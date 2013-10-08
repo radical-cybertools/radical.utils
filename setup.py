@@ -1,7 +1,7 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2012-2013, The SAGA Project"
-__license__   = "LGPL3"
+__author__    = "Andre Merzky, Ole Weidner"
+__copyright__ = "Copyright 2013, RADICAL Research, Rutgers University"
+__license__   = "MIT"
 
 
 """ Setup script. Used by easy_install and pip.
@@ -99,18 +99,18 @@ setup_args = {
     'version': update_version(),
     'description': "A collectyion of python utilities for the various radical projects.",
     'long_description': "A collectyion of python utilities for the various radical projects.",
-    'author': "Andre Merzky",
+    'author': "The RADICAL Group",
     'author_email': "andre@merzky.net",
     'maintainer': "Andre Merzky",
     'maintainer_email': "andre@merzky.net",
     'url': "https://www.github.com/saga-project/radical.utils/",
-    'license': "LGPL3",
+    'license': "MIT",
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'Environment :: No Input/Output (Daemon)',
         'Intended Audience :: Developers',
         'Programming Language :: Python',
-        'License :: OSI Approved :: LGPL3 License',
+        'License :: OSI Approved :: MIT License',
         'Topic :: System :: Distributed Computing',
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
         'Operating System :: MacOS :: MacOS X',
