@@ -62,6 +62,10 @@ class our_install_data(install_data):
         install_data.run(self)
         # ensure there's a radical/utils/VERSION file
         fn = os.path.join(self.install_dir, 'radical/utils', 'VERSION')
+
+        if os.path.exists(fn):
+            os.path.remove(fn)
+
         open(fn, 'w').write(update_version())
         self.outfiles.append(fn)
 
@@ -73,6 +77,10 @@ class our_sdist(sdist):
         sdist.make_release_tree(self, base_dir, files)
 
         fn = os.path.join(base_dir, 'radical/utils', 'VERSION')
+
+        if os.path.exists(fn):
+            os.path.remove(fn)
+
         open(fn, 'w').write(update_version())
 
 
@@ -97,8 +105,8 @@ class our_test(Command):
 setup_args = {
     'name': "radical.utils",
     'version': update_version(),
-    'description': "A collectyion of python utilities for the various radical projects.",
-    'long_description': "A collectyion of python utilities for the various radical projects.",
+    'description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
+    'long_description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
     'author': "The RADICAL Group",
     'author_email': "andre@merzky.net",
     'maintainer': "Andre Merzky",
