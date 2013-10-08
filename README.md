@@ -11,18 +11,20 @@ The radical.utils package contains the following things:
 * A Config Parser
 * A Logging Facility
 
+
 License
 -------
 
 This software is released under the 
-[MIT License](http://opensource.org/licenses/MIT)
+[MIT License](http://opensource.org/licenses/MIT).
+
 
 Installation 
 ------------
 
-You can install the latest radical.utils directly from PyPi:
+You can install the latest radical.utils directly from [PyPi](XXX):
 
-    pip install --update radical.utils
+    pip install --upgrade radical.utils
 
 You can also install the latest development version (which might be broken)
 from GitHub directly:
@@ -33,3 +35,14 @@ If you want to use radical.utils in your own project, include it in your
 `setup.py` file:
 
     'install_requires': ['radical.utils']
+
+
+Documentation
+-------------
+
+You can generate the documentation yourself with [Sphinx](http://sphinx-doc.org/)
+
+    pip install sphinx
+    make docs
+
+The resulting documentation will be in `open docs/build/html/index.html`.
