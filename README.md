@@ -22,7 +22,7 @@ This software is released under the
 Installation 
 ------------
 
-You can install the latest radical.utils directly from [PyPi](XXX):
+You can install the latest radical.utils directly from [PyPi](https://pypi.python.org/pypi/radical.utils/):
 
     pip install --upgrade radical.utils
 
