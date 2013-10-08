@@ -16,23 +16,30 @@ _rlock = threading.RLock ()
 #
 with _rlock :
 
-    version = "unknown"
-    
-    try :
-        cwd     = os.path.dirname (os.path.abspath (__file__))
-        fn      = os.path.join    (cwd, 'VERSION')
-        version = open (fn).read ().strip ()
-    
-        p   = sp.Popen (['git', 'describe', '--tags', '--always'],
-                        stdout=sp.PIPE)
-        out = p.communicate()[0]
-    
-        # ignore pylint error on p.returncode -- false positive
-        if  out and not p.returncode :
-            version += '-' + out.strip()
-    
-    except Exception :
-        pass
+    version = "latest"
+
+    try:
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        fn = os.path.join(cwd, 'VERSION')
+        version = open(fn).read().strip()
+    except IOError:
+        from subprocess import Popen, PIPE, STDOUT
+        import re
+
+        VERSION_MATCH = re.compile(r'\d+\.\d+\.\d+(\w|-)*')
+
+        try:
+            p = Popen(['git', 'describe', '--tags', '--always'],
+                      stdout=PIPE, stderr=STDOUT)
+            out = p.communicate()[0]
+
+            if (not p.returncode) and out:
+                v = VERSION_MATCH.search(out)
+                if v:
+                    version = v.group()
+        except OSError:
+            pass
+
     
 
 

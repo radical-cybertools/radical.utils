@@ -64,7 +64,7 @@ class our_install_data(install_data):
         fn = os.path.join(self.install_dir, 'radical/utils', 'VERSION')
 
         if os.path.exists(fn):
-            os.path.remove(fn)
+            os.remove(fn)
 
         open(fn, 'w').write(update_version())
         self.outfiles.append(fn)
@@ -79,7 +79,7 @@ class our_sdist(sdist):
         fn = os.path.join(base_dir, 'radical/utils', 'VERSION')
 
         if os.path.exists(fn):
-            os.path.remove(fn)
+            os.remove(fn)
 
         open(fn, 'w').write(update_version())
 
@@ -142,12 +142,12 @@ setup_args = {
         "radical",
         "radical.utils",
     ],
-    'package_data': {'': ['*.sh']},
+    'package_data': {'': ['*.sh', 'radical/utils/VERSION']},
     'zip_safe': False,
     'scripts': [],
     # mention data_files, even if empty, so install_data is called and
     # VERSION gets copied
-    'data_files': [("radical.utils", [])],
+    'data_files': [("radical/utils", [])],
     'cmdclass': {
         'install_data': our_install_data,
         'sdist': our_sdist,
