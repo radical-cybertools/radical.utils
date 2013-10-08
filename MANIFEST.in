@@ -1,0 +1,10 @@
+include *.py
+
+#include all tests
+recursive-include tests *
+
+include radical/*.py
+include radical/utils/*.py
+
+include MANIFEST.in README.md
+
