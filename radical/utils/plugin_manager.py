@@ -8,7 +8,7 @@ import os
 #
 class PluginManager (object) :
     """ 
-    The SAGA plugin management and loading utility.
+    The RADICAL plugin management and loading utility.
 
     The plugin manager allows to manage plugins of a specific types.  For those
     types, the manager can search for installed plugins, list and describe
@@ -16,9 +16,9 @@ class PluginManager (object) :
 
     Example::
 
-       module_name = 'saga'
+       module_name = 'radical'
        plugin_type = 'hello'
-       pm = saga.utils.PluginManager (module_name, plugin_type)
+       pm = radical.utils.PluginManager (module_name, plugin_type)
 
        for plugin_name in pm.list () :
            print plugin_name
@@ -36,7 +36,7 @@ class PluginManager (object) :
 
         [mname].plugins.[type].plugin_[type]_[name].py
 
-    i.e. for the code example above: `saga.plugins.scheduler.plugin_hello_default.py`
+    i.e. for the code example above: `radical.plugins.scheduler.plugin_hello_default.py`
 
     The plugin code consists of two parts:  a plugin description, and a plugin
     class.  The description is a module level dictionary named
@@ -56,9 +56,6 @@ class PluginManager (object) :
         mname: name of module (plugins are expected in mname/plugins/)
         ptype: type of plugins to manage
         """
-
-        if  not ptype :
-            raise Exception ('no plugin type specified')
 
         self._ptype   = ptype
         self._mname   = mname
@@ -125,7 +122,7 @@ class PluginManager (object) :
         plugin class, initialize and return in.
         """
         if  not name in self._plugins :
-            raise Exception ("No such plugin %s" % name)
+            raise LookupError ("No such plugin %s" % name)
 
         return self._plugins[name]['class'](*args, **kwargs)
 
