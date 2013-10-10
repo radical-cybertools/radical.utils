@@ -8,8 +8,14 @@ import singleton
 #
 class ObjectCache (object) :
 
-    """ This is a singleton object caching class -- it maintains a reference
-    counted registry of existing objects."""
+    """ 
+    This is a singleton object caching class -- it maintains a reference
+    counted registry of existing objects.
+    """
+    
+    # TODO: we should introduce namespaces -- this is a singleton, but we may want
+    # to use it in several places, thus need to make sure to not use colliding
+    # names...
 
     __metaclass__ = singleton.Singleton
     _lock         = threading.RLock ()

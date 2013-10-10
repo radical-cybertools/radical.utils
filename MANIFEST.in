@@ -5,6 +5,7 @@ recursive-include tests *
 
 include radical/*.py
 include radical/utils/*.py
+include radical/utils/config/*.py
 include radical/utils/contrib/*.py
 
 include MANIFEST.in README.md

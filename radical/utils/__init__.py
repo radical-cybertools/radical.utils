@@ -11,6 +11,9 @@ from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from tracer         import trace, untrace
 from which          import which
 
+# import sub-modules
+# from config         import Configuration, Configurable, ConfigOption, getConfig
+
 
 # ------------------------------------------------------------------------------
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
