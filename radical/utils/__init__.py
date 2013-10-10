@@ -4,6 +4,7 @@
 from plugin_manager import PluginManager
 from object_cache   import ObjectCache
 from singleton      import Singleton
+from url            import Url
 
 # import utility methods
 from tracer         import trace, untrace

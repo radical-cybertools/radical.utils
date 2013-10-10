@@ -141,6 +141,7 @@ setup_args = {
     'packages': [
         "radical",
         "radical.utils",
+        "radical.utils.contrib",
     ],
     'package_data': {'': ['*.sh', 'radical/utils/VERSION']},
     'zip_safe': False,
