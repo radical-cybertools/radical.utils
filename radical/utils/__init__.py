@@ -5,6 +5,7 @@ from plugin_manager import PluginManager
 from object_cache   import ObjectCache
 from singleton      import Singleton
 from url            import Url
+from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 
 # import utility methods
 from tracer         import trace, untrace
