@@ -4,9 +4,10 @@ __copyright__ = "Copyright 2013, The SAGA Project"
 __license__   = "MIT"
 
 
+import os
 import imp
 import sys
-import os
+import glob
 
 
 # ------------------------------------------------------------------------------
@@ -21,15 +22,15 @@ class PluginManager (object) :
 
     Example::
 
-       module_name = 'radical'
-       plugin_type = 'hello'
-       pm = radical.utils.PluginManager (module_name, plugin_type)
+       plugin_type = 'echo'
 
-       for plugin_name in pm.list () :
+       pm = radical.utils.PluginManager ('radical')
+
+       for plugin_name in pm.list (plugin_type) :
            print plugin_name
-           print pm.describe (plugin_name)
+           print pm.describe (plugin_type, plugin_name)
 
-        default_plugin = pm.load ('default')
+        default_plugin = pm.load ('echo', 'default')
 
         default_plugin.init ("world")
         greeting = default_plugin.run ()
@@ -39,7 +40,7 @@ class PluginManager (object) :
     The plugins are expected to follow a specific naming and coding schema to be
     recognized by the plugin manager.  The naming schema is:
 
-        [mname].plugins.[type].plugin_[type]_[name].py
+        [mname].plugins.[ptype].plugin_[ptype]_[pname].py
 
     i.e. for the code example above: `radical.plugins.scheduler.plugin_hello_default.py`
 
@@ -56,13 +57,11 @@ class PluginManager (object) :
 
     #---------------------------------------------------------------------------
     # 
-    def __init__ (self, mname, ptype) :
+    def __init__ (self, mname) :
         """
         mname: name of module (plugins are expected in mname/plugins/)
-        ptype: type of plugins to manage
         """
 
-        self._ptype   = ptype
         self._mname   = mname
         self._plugins = {}
 
@@ -78,59 +77,102 @@ class PluginManager (object) :
     # 
     def _load_plugins (self) :
         """ 
-        Load all plugins of the given type.  All previously loaded plugins are
-        thrown away.
+        Load all plugins for the given namespace.  Previously loaded plugins
+        are overloaded.
         """
 
         # search for plugins in all system module paths
         for path in sys.path :
 
             # we only load plugins installed under the mname hierarchy
-            ppath = "%s/%s/plugins/%s/"  %  (path, self._mname, self._ptype)
+            ppath = "%s/%s/plugins/"  %  (path, self._mname)
+            pglob = "*/plugin_*.py"  
 
-            if  os.path.isdir (ppath) :
+            if  not os.path.isdir (ppath) :
+                continue
 
-                # we assume that all python sources in that location are
-                # suitable plugins
-                pfs = os.listdir (ppath)
+            # we assume that all python sources in that location are
+            # suitable plugins
+            pfiles = glob.glob (ppath + pglob)
 
-                for pfile in pfs :
+            if  not pfiles :
+                continue
 
-                    # ignore non-python rubbish
-                    if  not pfile.endswith ('.py') :
-                        continue
+            for pfile in pfiles :
 
-                    # ignore other plugin types
-                    if  not pfile.startswith ("plugin_%s" % self._ptype) :
-                        continue
+                # load and register the plugin
+                plugin = imp.load_source (self._mname, pfile)
+                pname  = plugin.PLUGIN_DESCRIPTION['name']
+                ptype  = plugin.PLUGIN_DESCRIPTION['type']
 
-                    # strip the trailing '.py' to get plugin name, and also
-                    # strip plugin type prefix
-                    prefix_len = len ("plugin_%s_" % self._ptype)
-                    pf_name    = pfile[prefix_len:-3]
-                    mod_name   = "%s.plugins.%s.%s" % (self._mname, self._ptype, pfile[:-3])
+                if  not ptype in self._plugins :
+                    self._plugins[ptype] = {}
 
-                    # load and register the plugin
-                    plugin = imp.load_source (mod_name, "%s/%s" % (ppath, pfile))
-                    self._plugins[pf_name] = {
-                        'class'       : plugin.PLUGIN_CLASS,
-                        'version'     : plugin.PLUGIN_DESCRIPTION['version'],
-                        'description' : plugin.PLUGIN_DESCRIPTION['description']
-                    }
+                if  pname in self._plugins[ptype] :
+                    print "warning: overloading plugin '%s'" % pfile
+
+                self._plugins[ptype][pname] = {
+                    'class'       : plugin.PLUGIN_CLASS,
+                    'type'        : plugin.PLUGIN_DESCRIPTION['type'],
+                    'name'        : plugin.PLUGIN_DESCRIPTION['name'],
+                    'version'     : plugin.PLUGIN_DESCRIPTION['version'],
+                    'description' : plugin.PLUGIN_DESCRIPTION['description']
+                }
 
 
     #---------------------------------------------------------------------------
     # 
-    def load (self, name, *args, **kwargs) :
+    def list_types (self) :
         """
-        check if a plugin with given name was loaded, if so, instantiate its
+        return a list of loaded plugin types
+        """
+        return self._plugins.keys ()
+
+
+    #---------------------------------------------------------------------------
+    # 
+    def list (self, ptype) :
+        """
+        return a list of loaded plugins for a given plugin type
+        """
+        if  not ptype in self._plugins :
+            raise LookupError ("No such plugin type %s" % ptype)
+
+        return self._plugins[ptype].keys ()
+
+
+    #---------------------------------------------------------------------------
+    # 
+    def describe (self, ptype, pname) :
+        """
+        return a list of loaded plugins for a given plugin type
+        """
+        if  not ptype in self._plugins :
+            raise LookupError ("No such plugin type %s" % ptype)
+
+        if  not pname in self._plugins[ptype] :
+            raise LookupError ("No such plugin named %s" % pname)
+
+        return self._plugins[ptype][pname]
+
+
+    #---------------------------------------------------------------------------
+    # 
+    def load (self, ptype, pname) :
+        """
+        check if a plugin with given type and name was loaded, if so, instantiate its
         plugin class, initialize and return in.
         """
-        if  not name in self._plugins :
-            raise LookupError ("No such plugin %s" % name)
+        if  not ptype in self._plugins :
+            raise LookupError ("No such plugin type %s" % ptype)
 
-        return self._plugins[name]['class'](*args, **kwargs)
+        if  not pname in self._plugins[ptype] :
+            raise LookupError ("No such plugin named %s" % pname)
+
+        return self._plugins[ptype][pname]['class']()
 
 
+# ------------------------------------------------------------------------------
+#
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
