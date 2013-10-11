@@ -5,7 +5,12 @@ And example on using the radical.utils.config tools.
 This example will read config options fomr $HOME/.examples.cfg::
     
     [config]
-    casing = upper
+    casing   = upper
+    excluded = sparks,pftools
+    
+    [sp3.cd]
+    exe  = /usr/local/bin/sp3
+    args = no,idea
 
 That setting can be overwritting via $EXAMPLE_CONFIG_CASING.
 
