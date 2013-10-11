@@ -456,25 +456,28 @@ class Configuration (object):
 # ------------------------------------------------------------------------------
 #
 class Configurable (object) :
-    """ This class provides an interface for all configurable objects.  """
+    """ 
+    This class provides an interface for all configurable objects.  
+    """
+
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, namespace, valid_options):
+    def __init__(self, name):
 
         self._name          = name
-        self._namespace     = namespace
-        self._valid_options = valid_options
 
-        ## sanity check for valid_options
+    # --------------------------------------------------------------------------
+    #
+    def config_options (self, namespace, valid_options):
 
         ## register a new 'configurable' object
-        getConfig(self._name)._update(namespace, self._valid_options)
+        getConfig(self._name)._update(namespace, valid_options)
 
 
     # --------------------------------------------------------------------------
     #
-    def get_config(self):
-        return getConfig(self._name).get_category(self._namespace)
+    def get_config(self, namespace):
+        return getConfig(self._name).get_category(namespace)
 
 
     # --------------------------------------------------------------------------

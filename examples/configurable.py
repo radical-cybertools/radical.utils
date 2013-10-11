@@ -17,7 +17,7 @@ import radical.utils.config  as ruc
 # ------------------------------------------------------------------------------
 #
 # a set of pre-defined options
-##
+#
 _config_options = [
     { 
     'category'      : 'config',
@@ -27,6 +27,36 @@ _config_options = [
     'valid_options' : ['default', 'lower', 'upper'],
     'documentation' : "This option determines the casing of example's output",
     'env_variable'  : 'EXAMPLE_CONFIG_CASING'
+    },
+    { 
+    'category'      : 'config',
+    'name'          : 'excluded', 
+    'type'          : list, 
+    'default'       : '',
+    'valid_options' : [],
+    'documentation' : "This option determines set of excluded components",
+    'env_variable'  : ''
+    }
+]
+
+_sp3_options = [
+    { 
+    'category'      : 'sp3.cd',
+    'name'          : 'exe', 
+    'type'          : str, 
+    'default'       : '/usr/bin/sp3',
+    'valid_options' : [],
+    'documentation' : "This option determines set sp3 executable ",
+    'env_variable'  : ''
+    },
+    { 
+    'category'      : 'sp3.cd',
+    'name'          : 'args', 
+    'type'          : list, 
+    'default'       : '',
+    'valid_options' : [],
+    'documentation' : "This option determines set sp3 arguments ",
+    'env_variable'  : ''
     }
 ]
 
@@ -43,11 +73,35 @@ class FancyEcho (ruc.Configurable):
     def __init__(self):
         
         # set the configuration options for this object
-        ruc.Configurable.__init__ (self, 'examples', 'config', _config_options)
-        self._cfg = self.get_config ()
+        ruc.Configurable.__init__ (self, 'examples')
+        ruc.Configurable.config_options (self, 'config', _config_options)
+        ruc.Configurable.config_options (self, 'sp3.cd', _sp3_options)
+
+        # use the configuration
+        self._cfg = self.get_config ('config')
 
         self._mode = self._cfg['casing'].get_value ()
         print "mode: %s" % self._mode
+
+        self._excl = self._cfg['excluded'].get_value ()
+        print "excl: %s" % type(self._excl)
+        print "excl: %s" % self._excl
+
+
+        if  not 'sp3' in self._excl :
+            print 'running sp3'
+
+        if  not 'sparks' in self._excl :
+            print 'running sparks'
+
+        if  not 'pftools' in self._excl :
+            print 'running pftools'
+
+        # use sp3 configuration
+        self._sp3 = self.get_config ('sp3.cd')
+        print self._sp3['exe'].get_value ()
+        print self._sp3['args'].get_value ()
+
 
     #-----------------------------------------------------------------
     # 
