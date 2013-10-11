@@ -1,4 +1,8 @@
 
+__author__    = "Andre Merzky"
+__copyright__ = "Copyright 2013, The SAGA Project"
+__license__   = "MIT"
+
 
 import contrib.urlparse25 as urlparse
 import signatures         as rus
