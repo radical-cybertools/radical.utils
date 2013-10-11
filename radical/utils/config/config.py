@@ -248,6 +248,7 @@ class Configuration (object):
             # were read from either a system-wide or user configuration file.
             cfg_file_dict = cfr.get_config_dict()
 
+
             # load valid options and add them to the configuration
             for option in self._all_valid_options:
                 cat = option['category']

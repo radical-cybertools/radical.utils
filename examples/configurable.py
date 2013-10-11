@@ -1,5 +1,15 @@
 
-""" And example on using the radical.utils.config tools. """
+""" 
+And example on using the radical.utils.config tools. 
+
+This example will read config options fomr $HOME/.examples.cfg::
+    
+    [config]
+    casing = upper
+
+That setting can be overwritting via $EXAMPLE_CONFIG_CASING.
+
+"""
 
 import radical.utils.config  as ruc
 
@@ -19,6 +29,7 @@ _config_options = [
     'env_variable'  : 'EXAMPLE_CONFIG_CASING'
     }
 ]
+
 
 # ------------------------------------------------------------------------------
 #
