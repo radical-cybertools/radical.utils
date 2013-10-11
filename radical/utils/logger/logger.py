@@ -100,10 +100,10 @@ class _LogConfig (ruc.Configurable) :
             },
         ]
 
-        ruc.Configurable.__init__ (self, self._lc_name, 
-                                   '%s.logging' % self._lc_name,
-                                   _all_logging_options) 
-        cfg = self.get_config()
+        ruc.Configurable.__init__       (self, self._lc_name)
+        ruc.Configurable.config_options (self, '%s.logging' % self._lc_name,
+                                         _all_logging_options) 
+        cfg = self.get_config('%s.logging' % self._lc_name,)
 
         self._loglevel = str(cfg['level'].get_value())
         self._filters  = cfg['filters'].get_value()
