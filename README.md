@@ -7,10 +7,16 @@ Radical Kitchen Sink.
 
 The radical.utils package contains the following things:
 
-* A [Plugin Manager](https://github.com/saga-project/radical.utils/blob/master/radical/utils/plugin_manager.py)
-* A Config Parser
-* A Logging Facility
-
+* A [URL class](https://github.com/saga-project/radical.utils/blob/master/radical/utils/url.py)
+* A [Plugin manager](https://github.com/saga-project/radical.utils/blob/master/radical/utils/plugin_manager.py)
+* A [Config parser](https://github.com/saga-project/radical.utils/tree/master/radical/utils/config)
+* A [Logger](https://github.com/saga-project/radical.utils/tree/master/radical/utils/logger)
+* An [Object cache](https://github.com/saga-project/radical.utils/blob/master/radical/utils/object_cache.py)
+* A [Type checking module](https://github.com/saga-project/radical.utils/blob/master/radical/utils/signatures.py)
+* A [Singleton metaclass](https://github.com/saga-project/radical.utils/blob/master/radical/utils/singleton.py)
+* A [Thread wrapper](https://github.com/saga-project/radical.utils/blob/master/radical/utils/threads.py)
+* A [Call tracer](https://github.com/saga-project/radical.utils/blob/master/radical/utils/tracer.py)(for debugging)
+* A ['which' function](https://github.com/saga-project/radical.utils/blob/master/radical/utils/which.py)(simliar to the 'which' command line tool)
 
 License
 -------
