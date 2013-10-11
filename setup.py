@@ -142,6 +142,7 @@ setup_args = {
         "radical",
         "radical.utils",
         "radical.utils.config",
+        "radical.utils.logger",
         "radical.utils.contrib",
     ],
     'package_data': {'': ['*.sh', 'radical/utils/VERSION']},

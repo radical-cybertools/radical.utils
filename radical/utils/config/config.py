@@ -454,7 +454,7 @@ class Configuration (object):
 
 # ------------------------------------------------------------------------------
 #
-class Configurable(object):
+class Configurable (object) :
     """ This class provides an interface for all configurable objects.  """
     # --------------------------------------------------------------------------
     #
@@ -469,10 +469,17 @@ class Configurable(object):
         ## register a new 'configurable' object
         getConfig(self._name)._update(namespace, self._valid_options)
 
+
     # --------------------------------------------------------------------------
     #
     def get_config(self):
         return getConfig(self._name).get_category(self._namespace)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def get_config_as_dict(self):
+        return getConfig(self._name).as_dict ()
 
 
 # ------------------------------------------------------------------------------
