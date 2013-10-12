@@ -5,14 +5,16 @@ __license__   = "MIT"
 
 
 #import utility classes
-from ids            import generate_id
 from object_cache   import ObjectCache
 from plugin_manager import PluginManager
 from singleton      import Singleton
 from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
+from testing        import TestConfig, Testing, get_test_config
 
 # import utility methods
+from ids            import generate_id
+from read_json      import read_json
 from tracer         import trace, untrace
 from which          import which
 

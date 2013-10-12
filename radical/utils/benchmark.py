@@ -355,7 +355,8 @@ def benchmark_eval (_benchmark, error=None) :
         f.write ("%s\n" % top)
     f.write ("%s\n" % tab)
 
+
 # --------------------------------------------------------------------
 #
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
