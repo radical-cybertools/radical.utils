@@ -4,13 +4,14 @@ __copyright__ = "Copyright 2013, The SAGA Project"
 __license__   = "MIT"
 
 
-#import utility classes
+# import utility classes
 from object_cache   import ObjectCache
 from plugin_manager import PluginManager
 from singleton      import Singleton
 from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
 from testing        import TestConfig, Testing, get_test_config
+from dict_mixin     import DictMixin
 
 # import utility methods
 from ids            import generate_id
