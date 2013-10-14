@@ -4,10 +4,10 @@ __copyright__ = "Copyright 2012-2013, The SAGA Project"
 __license__   = "MIT"
 
 
-""" Unit tests for saga.utils.singleton.py
+""" Unit tests for radical.utils.singleton.py
 """
 
-from saga.utils.singleton import *
+from radical.utils.singleton import *
 
 class _MyClass():
     __metaclass__ = Singleton
