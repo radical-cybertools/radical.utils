@@ -101,7 +101,7 @@ class Thread (threading.Thread) :
             raise ValueError ("Thread requires a callable to function, not %s" \
                            % (str(call)))
 
-        Thread.__init__ (self)
+        threading.Thread.__init__ (self)
 
         self._call      = call
         self._args      = args

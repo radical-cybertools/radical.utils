@@ -9,9 +9,10 @@ import sys
 import math
 import time
 import socket
+import threading
 
-import radical.utils.threads     as rut
-import radical.utils.test_config as rutc
+import radical.utils.threads as rut
+import radical.utils.testing as rutest
 
 
 # --------------------------------------------------------------------
@@ -35,12 +36,13 @@ def benchmark_init (name, func_pre, func_core, func_post) :
     if  not config_name :
         benchmark_eval (_benchmark, 'no configuration specified (-c <conf>')
 
-    tc   = rutc.TestConfig ()
-    tc.read_config (config_name)
+    tc = rutest.TestConfig (config_name)
 
-    test_cfg  = tc.get_test_config ()
-    bench_cfg = tc.get_benchmark_config ()
+    test_cfg  = tc['saga.tests']
+    bench_cfg = tc['saga.benchmarks']
     session   = tc.session
+
+    print session
 
     # SAGA_BENCHMARK_ environments will overwrite config settings
     if  'SAGA_BENCHMARK_CONCURRENCY' in os.environ :
@@ -165,7 +167,7 @@ def benchmark_run (_benchmark) :
         _benchmark['start'][tid] = time.time ()
         _benchmark['times'][tid] = []
 
-        t = rut.SagaThread (benchmark_thread, tid, _benchmark)
+        t = rut.Thread (benchmark_thread, tid, _benchmark)
         threads.append (t)
 
 
