@@ -1,6 +1,6 @@
 
 __author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__copyright__ = "Copyright 2013, The RADICAL Project"
 __license__   = "MIT"
 
 
@@ -21,56 +21,42 @@ def benchmark_init (name, func_pre, func_core, func_post) :
 
     _benchmark = {}
 
-    rut.lout ('session was set up\n')
+    if  len(sys.argv) != 2 :
+        benchmark_eval (_benchmark, 'no configuration specified: %s <config>' % sys.argv[0])
 
-    # check if a config file was specified via '-c' command line option, and
-    # read it, return the dict
+    tc     = rutest.TestConfig (sys.argv[1])
+    config = tc['benchmarks']
 
-    config_name = None
+    # RADICAL_BENCHMARK_ environments will overwrite config settings
+    if  'RADICAL_BENCHMARK_CONCURRENCY' in os.environ :
+        config['concurrency'] = os.environ['RADICAL_BENCHMARK_CONCURRENCY']
 
-    for i, arg in enumerate (sys.argv[1:]) :
-        if  arg == '-c' and len (sys.argv) > i+2 :
-            config_name = sys.argv[i+2]
+    if  'RADICAL_BENCHMARK_ITERATIONS' in os.environ :
+        config['iterations'] = os.environ['RADICAL_BENCHMARK_ITERATIONS']
 
-
-    if  not config_name :
-        benchmark_eval (_benchmark, 'no configuration specified (-c <conf>')
-
-    tc = rutest.TestConfig (config_name)
-
-    test_cfg  = tc['saga.tests']
-    bench_cfg = tc['saga.benchmarks']
-    session   = tc.session
-
-    print session
-
-    # SAGA_BENCHMARK_ environments will overwrite config settings
-    if  'SAGA_BENCHMARK_CONCURRENCY' in os.environ :
-        bench_cfg['concurrency'] = os.environ['SAGA_BENCHMARK_CONCURRENCY']
-
-    if  'SAGA_BENCHMARK_ITERATIONS' in os.environ :
-        bench_cfg['iterations'] = os.environ['SAGA_BENCHMARK_ITERATIONS']
-
-    if  'SAGA_BENCHMARK_LOAD' in os.environ :
-        bench_cfg['load'] = os.environ['SAGA_BENCHMARK_LOAD']
+    if  'RADICAL_BENCHMARK_LOAD' in os.environ :
+        config['load'] = os.environ['RADICAL_BENCHMARK_LOAD']
 
     
     # check benchmark settings for completeness, set some defaults
-    if  not 'concurrency' in bench_cfg : 
+    if  not 'concurrency' in config : 
         benchmark_eval (_benchmark, 'no concurrency configured')
 
-    if  not 'iterations'  in bench_cfg : 
+    if  not 'iterations'  in config : 
         benchmark_eval (_benchmark, 'no iterations configured')
 
-    _benchmark['session']   = session
-    _benchmark['test_cfg']  = test_cfg
-    _benchmark['bench_cfg'] = bench_cfg
+    if  not 'load'  in config : 
+        benchmark_eval (_benchmark, 'no load configured')
 
-    _benchmark['bench_cfg']['pre']   = func_pre
-    _benchmark['bench_cfg']['core']  = func_core
-    _benchmark['bench_cfg']['post']  = func_post
-    _benchmark['bench_cfg']['name']  = name
-    _benchmark['bench_cfg']['cname'] = config_name
+    if  not 'name'  in config : 
+        benchmark_eval (_benchmark, 'no name configured')
+
+    _benchmark['config'] = config
+
+    _benchmark['config']['pre']   = func_pre
+    _benchmark['config']['core']  = func_core
+    _benchmark['config']['post']  = func_post
+    _benchmark['config']['name']  = name
 
     benchmark_run  (_benchmark)
     benchmark_eval (_benchmark)
@@ -79,17 +65,15 @@ def benchmark_init (name, func_pre, func_core, func_post) :
 #
 def benchmark_thread (tid, _benchmark) :
 
-    t_cfg    = _benchmark['test_cfg']
-    b_cfg    = _benchmark['bench_cfg']
-    session  = _benchmark['session']
-    lock     = _benchmark['lock']
+    config = _benchmark['config']
+    lock   = _benchmark['lock']
 
-    pre      = b_cfg['pre']
-    core     = b_cfg['core']
-    post     = b_cfg['post']
+    pre    = config['pre']
+    core   = config['core']
+    post   = config['post']
 
     try :
-        pre_ret  = pre (tid, t_cfg, b_cfg, session)
+        pre_ret  = pre (tid, config)
         sys.stdout.write ('-')
         sys.stdout.flush ()
 
@@ -97,10 +81,10 @@ def benchmark_thread (tid, _benchmark) :
         _benchmark['events'][tid]['event_1'].set  ()  # signal we are done        
         _benchmark['events'][tid]['event_2'].wait ()  # wait 'til others are done 
 
-        iterations = int(b_cfg['iterations']) / int(b_cfg['concurrency'])
+        iterations = int(config['iterations']) / int(config['concurrency'])
 
         # poor-mans ceil()
-        if (iterations * int(b_cfg['concurrency'])) < int(b_cfg['iterations']) :
+        if (iterations * int(config['concurrency'])) < int(config['iterations']) :
             iterations += 1
 
         for i in range (0, iterations+1) :
@@ -147,9 +131,9 @@ def benchmark_run (_benchmark) :
     - eval once
     """
 
-    cfg         = _benchmark['bench_cfg']
+    cfg         = _benchmark['config']
     threads     = []
-    concurrency = int(_benchmark['bench_cfg']['concurrency'])
+    concurrency = int(_benchmark['config']['concurrency'])
 
     benchmark_start (_benchmark)
 
@@ -208,7 +192,7 @@ def benchmark_run (_benchmark) :
 #
 def benchmark_start (_benchmark) :
 
-    cfg = _benchmark['bench_cfg']
+    cfg = _benchmark['config']
 
     _benchmark['lock']  = rut.RLock ()
     _benchmark['start'] = {}
@@ -278,8 +262,8 @@ def benchmark_eval (_benchmark, error=None) :
     if  len(times) < 1 :
         raise ValueError ("min 1 timing value required for benchmark evaluation (%d)" % len(times))
 
-    concurrency = int(_benchmark['bench_cfg']['concurrency'])
-    load        = int(_benchmark['bench_cfg']['load'])
+    concurrency = int(_benchmark['config']['concurrency'])
+    load        = int(_benchmark['config']['load'])
 
     out = "\n"
     top = ""
@@ -298,25 +282,22 @@ def benchmark_eval (_benchmark, error=None) :
     vsdev = math.sqrt (sum ((x - vmean) ** 2 for x in times) / vn)
     vrate = vn / vtot
 
-    bname = _benchmark['bench_cfg']['name']
-    bid   = "%s.%s" % (burl.scheme, burl.host)
-    bdat  = "benchmark.%s.%s.dat" % (bname, bid)
+    bname = _benchmark['config']['name']
+    bdat  = "benchmark.%s.dat" % (bname)
 
-    out += "  ping    : %8.5fs\n"                            % (_benchmark['ping'])
     out += "  threads : %9d          load    : %9d\n"        % (concurrency, load )
     out += "  iterats.: %9d          min     : %8.2fs\n"     % (vn,          vmin )
     out += "  init    : %8.2fs          max     : %8.2fs\n"  % (vini,        vmax )
     out += "  total   : %8.2fs          mean    : %8.2fs\n"  % (vtot,        vmean)
     out += "  rate    : %8.2fs          sdev    : %8.2fs\n"  % (vrate,       vsdev)
 
-    num = "# %5s  %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
-        % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-    top = "# %5s  %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
-        % ('ping', 'n', 'threads', 'load', 'init', 'tot', 'min',  'max', 'mean', \
+    num = "# %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
+        % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    top = "# %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
+        % ('n', 'threads', 'load', 'init', 'tot', 'min',  'max', 'mean', \
            'std-dev', 'rate', 'name')
 
-    tab = "%7.5f  " \
-          "%7d  "   \
+    tab = "%7d  "   \
           "%7d  "   \
           "%7d  "   \
           "%7.2f  " \
@@ -327,8 +308,7 @@ def benchmark_eval (_benchmark, error=None) :
           "%8.3f  " \
           "%9.3f  " \
           "%-20s  " \
-        % (_benchmark['ping'], 
-           vn, 
+        % (vn, 
            concurrency, 
            load, 
            vini,
