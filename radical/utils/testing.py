@@ -47,7 +47,7 @@ class TestConfig (dict) :
 
     def __setitem__(self, key, value):
         self.changed_values[key] = value
-        super(D, self).__setitem__(key, value)
+        super(TestConfig, self).__setitem__(key, value)
 
     def __getattr__(self, item):
         """Maps values to attributes.

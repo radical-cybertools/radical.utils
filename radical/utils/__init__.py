@@ -12,6 +12,8 @@ from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
 from testing        import TestConfig, Testing, get_test_config
 from dict_mixin     import DictMixin
+from lockable       import Lockable
+from registry       import Registry, READONLY, READWRITE
 
 # import utility methods
 from ids            import generate_id
