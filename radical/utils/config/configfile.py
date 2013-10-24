@@ -108,5 +108,5 @@ def _test_():
     print cq.as_dict()
 
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 
