@@ -142,6 +142,8 @@ setup_args = {
         "radical",
         "radical.utils",
         "radical.utils.config",
+        "radical.utils.plugins",
+        "radical.utils.plugins.unittests",
         "radical.utils.logger",
         "radical.utils.contrib",
     ],

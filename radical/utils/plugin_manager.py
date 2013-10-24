@@ -32,7 +32,7 @@ class PluginManager (object) :
 
         default_plugin = pm.load ('echo', 'default')
 
-        default_plugin.init ("world")
+        default_plugin.i__init_init ("world")
         greeting = default_plugin.run ()
 
         print greeting   # prints "hello default world"
@@ -68,10 +68,6 @@ class PluginManager (object) :
         # load adaptors
         self._load_plugins ()
 
-        print "-------------------------------------------"
-        print self._plugins
-        print "-------------------------------------------"
-
 
     #---------------------------------------------------------------------------
     # 
@@ -85,7 +81,8 @@ class PluginManager (object) :
         for path in sys.path :
 
             # we only load plugins installed under the mname hierarchy
-            ppath = "%s/%s/plugins/"  %  (path, self._mname)
+            mpath = self._mname.replace ('.', '/')
+            ppath = "%s/%s/plugins/"  %  (path, mpath)
             pglob = "*/plugin_*.py"  
 
             if  not os.path.isdir (ppath) :
