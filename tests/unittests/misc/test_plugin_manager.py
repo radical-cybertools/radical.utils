@@ -1,9 +1,10 @@
 
 import radical.utils as ru
 
-pmgr    = ru.PluginManager ('troy')
-default = pmgr.load ('workload_scheduler', 'default')
-default.init ('workload', 'overlay')
+pmgr    = ru.PluginManager ('radical.utils')
+plugin = pmgr.load ('unittests', 'default')
+plugin.init ('a', 1)
 
-print default.run ()
+ret = plugin.run ()
+assert (ret == (1, 'a')), "unexpected return from plugin invocation (%s)" % ret
 
