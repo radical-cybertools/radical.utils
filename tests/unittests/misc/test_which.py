@@ -4,7 +4,7 @@ __copyright__ = "Copyright 2012-2013, The SAGA Project"
 __license__   = "MIT"
 
 
-from saga.utils.which import *
+from radical.utils.which import *
 
 def test_which():
     """ Test if 'which' can find things
