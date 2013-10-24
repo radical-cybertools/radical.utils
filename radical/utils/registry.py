@@ -2,7 +2,7 @@
 import time
 import threading
 import contextlib
-import radical.utils as ru
+import singleton as rus
 
 
 # ------------------------------------------------------------------------------
@@ -10,9 +10,6 @@ import radical.utils as ru
 TIMEOUT   = 0.1 # sleep between lock checks
 READONLY  = 'ReadOnly'
 READWRITE = 'ReadWrite'
-# ------------------------------------------------------------------------------
-#
-Registry = _Registry ()
 
 
 # ------------------------------------------------------------------------------
@@ -104,7 +101,7 @@ class _Registry (object) :
     This is a singleton class.  We assume that Workload *and* Overlay IDs are
     unique.
     """
-    __metaclass__ = ru.Singleton
+    __metaclass__ = rus.Singleton
 
 
     # --------------------------------------------------------------------------
@@ -274,6 +271,13 @@ class _Registry (object) :
 
             # remove entity from registry, w/o a trace...
             del self._registry[eid]
+
+
+# ------------------------------------------------------------------------------
+#
+# create a global registry instance
+#
+Registry = _Registry ()
 
 
 # ------------------------------------------------------------------------------
