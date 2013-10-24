@@ -10,6 +10,11 @@ import singleton
 
 # ------------------------------------------------------------------------------
 #
+TIMEOUT = 10
+
+
+# ------------------------------------------------------------------------------
+#
 class ObjectCache (object) :
 
     """ 
@@ -74,6 +79,10 @@ class ObjectCache (object) :
         of the object -- this should make that object eligable for Python's
         garbage collection.  Returns 'True' if the given object was indeed
         registered, 'False' otherwise.
+
+        The removal of the object is actually time-delayed.  That way, we will
+        keep the object around *just* a little longer, which provides caching
+        semantics in the case of frequent creation/dstruction cycles.
         """
 
         with self._lock :
@@ -82,16 +91,30 @@ class ObjectCache (object) :
 
                 if  obj == self._cache [oid]['obj'] :
 
-                    self._cache [oid]['cnt'] -= 1
-
-                    if  self._cache [oid]['cnt'] == 0 :
-                        self._cache [oid]['obj'] = None  # free the obj reference
-                        self._cache.pop (oid, None)      # remove the cache entry
-
-                    return True # obj found
+                    # delay actual removeal by TIMEOUT seconds)
+                    threading.Timer (TIMEOUT, self._delayed_rem_obj, oid)
+                    return True
 
             return False  # obj not found
 
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+    # --------------------------------------------------------------------------
+    #
+    def _delayed_rem_obj (self, oid) :
+        """
+        actual removal of an object (identified by oid) from the cache -- see
+        :func:`rem_obj()` for details.
+        """
+
+        with self._lock :
+
+            self._cache [oid]['cnt'] -= 1
+
+            if  self._cache [oid]['cnt'] == 0 :
+                self._cache [oid]['obj'] = None  # free the obj reference
+                self._cache.pop (oid, None)      # remove the cache entry
+
+
+# ------------------------------------------------------------------------------
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 
