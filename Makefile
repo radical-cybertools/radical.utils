@@ -34,6 +34,7 @@ viz:
 	gource -s 0.1 -i 0 --title radical.utils --max-files 99999 --max-file-lag -1 --user-friction 0.3 --user-scale 0.5 --camera-mode overview --highlight-users --hide progress,filenames -r 25 -viewport 1024x1024
 
 clean:
+	-rm -f pylint.out
 	-rm -rf build/ radical.utils.egg-info/ temp/ MANIFEST dist/ radical.utils.egg-info setup.cfg
 	make -C docs clean
 	find . -name \*.pyc -exec rm -f {} \;
