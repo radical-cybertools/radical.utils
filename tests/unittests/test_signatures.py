@@ -21,5 +21,5 @@ def test_signatures () :
     except Exception as e : 
         assert False, "should have seen a BadParameter exception, not %s" % e
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

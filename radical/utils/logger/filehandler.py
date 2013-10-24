@@ -13,5 +13,5 @@ class FileHandler(LFileHandler):
     """ A output FileHandler. """
     pass
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

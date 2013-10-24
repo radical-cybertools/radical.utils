@@ -24,5 +24,5 @@ def which(program):
                 return exe_file
     return None
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

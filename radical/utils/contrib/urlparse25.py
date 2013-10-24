@@ -382,5 +382,5 @@ if __name__ == '__main__':
     test()
 
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

@@ -87,5 +87,5 @@ def _test_():
     log.critical('CRITICAL')
 
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

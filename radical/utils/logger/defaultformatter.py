@@ -13,5 +13,5 @@ from logging import Formatter
 DefaultFormatter = Formatter(fmt='%(asctime)s %(thread)d %(name)-22s: [%(levelname)-8s] %(message)s', 
                              datefmt='%Y:%m:%d %H:%M:%S')
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 

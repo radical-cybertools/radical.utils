@@ -18,5 +18,5 @@ def test_Singleton():
     """ 
     assert _MyClass() == _MyClass()
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+
 
