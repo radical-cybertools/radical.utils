@@ -140,8 +140,10 @@ class _Registry (object) :
             # check if instance is lockable
             if  not hasattr (entity, '__enter__') or \
                 not hasattr (entity, '__exit__' ) or \
-                not hasattr (entity, '__lock'   ) or \
-                not hasattr (entity, '__unlock' ) or \
+                not hasattr (entity, 'lock'     ) or \
+                not hasattr (entity, 'unlock'   ) or \
+                not hasattr (entity, 'locked'   ) or \
+                not hasattr (entity, '_locked'  ) or \
                 not hasattr (entity, '_rlock'   ) :
                 raise TypeError ("Registry only manages lockables")
 
@@ -154,11 +156,9 @@ class _Registry (object) :
             if  eid in self._registry :
                 raise ValueError ("'%s' is already registered" % eid)
 
-            print 'register %s' % eid
-
             self._registry[eid] = {}
-            self._registry[eid]['ro_leased'] = 0  # not leased
-            self._registry[eid]['rw_leased'] = 0  # not leased
+            self._registry[eid]['ro_leases'] = 0  # not leased
+            self._registry[eid]['rw_leases'] = 0  # not leased
             self._registry[eid]['entity']    = entity
 
 
@@ -207,11 +207,11 @@ class _Registry (object) :
                         self._registry[eid]['rw_leases'] += 1
                         break
 
-            # acquire entity lock
-            self._registry[eid]['entity'].lock ()
+        # acquire entity lock
+        self._registry[eid]['entity'].lock ()
 
-            # all is well...
-            return self._registry[eid]['entity']
+        # all is well...
+        return self._registry[eid]['entity']
 
 
     # --------------------------------------------------------------------------
@@ -239,7 +239,7 @@ class _Registry (object) :
                 self._registry[eid]['rw_leases'] -= 1
 
             # release entity lock
-            self._registry[eid]['entity'].lock.release ()
+            self._registry[eid]['entity'].unlock ()
 
             # all is well...
 
