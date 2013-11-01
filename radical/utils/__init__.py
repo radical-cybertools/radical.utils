@@ -10,7 +10,6 @@ from plugin_manager import PluginManager
 from singleton      import Singleton
 from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
-from testing        import TestConfig, Testing, get_test_config
 from dict_mixin     import DictMixin
 from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
