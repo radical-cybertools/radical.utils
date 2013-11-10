@@ -7,7 +7,7 @@ __license__   = "MIT"
 import os
 import sys
 
-import radical.utils.test_config as rutc
+import radical.utils.testing     as rut
 import radical.utils             as ru
 
 
@@ -16,7 +16,7 @@ import radical.utils             as ru
 if __name__ == "__main__":
 
     # set up the testing framework
-    testing = ru.Testing ('radical.utils', __file__)
+    testing = rut.Testing ('radical.utils', __file__)
 
     for config in sys.argv[1:] :
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
             sys.exit (-1)
 
         # for each config, set up the test config singleton and run the tests
-        tc = rutc.TestConfig (config)
+        tc = rut.TestConfig (config)
 
         testing.run ()
 
