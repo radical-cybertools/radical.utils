@@ -105,8 +105,8 @@ class PluginManager (object) :
                 if  not ptype in self._plugins :
                     self._plugins[ptype] = {}
 
-                if  pname in self._plugins[ptype] :
-                    print "warning: overloading plugin '%s'" % pfile
+              # if  pname in self._plugins[ptype] :
+              #     print "warning: overloading plugin '%s'" % pfile
 
                 self._plugins[ptype][pname] = {
                     'class'       : plugin.PLUGIN_CLASS,
