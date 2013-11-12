@@ -1,8 +1,11 @@
 
+
 __author__    = "Andre Merzky"
 __copyright__ = "Copyright 2013, The SAGA Project"
 __license__   = "MIT"
 
+
+import os
 
 import contrib.urlparse25 as urlparse
 import signatures         as rus
@@ -58,7 +61,7 @@ class Url (object):
             url_in = ""
 
         self._urlobj = urlparse.urlparse (str (url_in))
-
+        self._renew_url ()
 
     # --------------------------------------------------------------------------
     #
@@ -141,9 +144,13 @@ class Url (object):
     def _renew_url (self, scheme='', netloc='', path='', 
                           params='', query='',  fragment='') :
 
+        # always normalize the path
+        if  path :
+            path = os.path.normpath (path)
+
         newurl = urlparse.urlunparse ((scheme   or self._urlobj.scheme,
                                        netloc   or self._urlobj.netloc,
-                                       path     or self._urlobj.path,
+                                       path     or os.path.normpath(self._urlobj.path),
                                        params   or self._urlobj.params,
                                        query    or self._urlobj.query,
                                        fragment or self._urlobj.fragment))
