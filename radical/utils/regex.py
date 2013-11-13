@@ -192,7 +192,11 @@ class ReString (str) :
         self._result = ReSult (re.search  (_re, self))
         return self._result
 
-    def get (self) :
+    def get (self, key=None) :
+
+        if  key :
+            return self._result[key]
+
         return self._result
 
 
