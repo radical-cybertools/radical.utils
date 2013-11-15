@@ -139,7 +139,7 @@ class Thread (threading.Thread) :
             self._state     = DONE
 
         except Exception as e :
-          # print "task got exception: %s" % e
+            print "task got exception: %s" % e
           # print rumisc.get_trace ()
 
             self._exception = e

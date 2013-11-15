@@ -150,7 +150,7 @@ class Url (object):
 
         newurl = urlparse.urlunparse ((scheme   or self._urlobj.scheme,
                                        netloc   or self._urlobj.netloc,
-                                       path     or os.path.normpath(self._urlobj.path),
+                                       path     or self._urlobj.path,
                                        params   or self._urlobj.params,
                                        query    or self._urlobj.query,
                                        fragment or self._urlobj.fragment))
