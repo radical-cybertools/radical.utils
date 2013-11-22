@@ -118,7 +118,7 @@ class _LogConfig (ruc.Configurable) :
                 elif int(self._loglevel)    == 1:           self._loglevel = logging.ERROR
                 elif int(self._loglevel)    == 0:           self._loglevel = logging.CRITICAL
                 else: raise ValueError ('%s is not a valid value for %s_VERBOSE.' \
-                                     % (self._uc_name, self._loglevel))
+                                     % (self._loglevel, self._uc_name))
             else:
                 if   self._loglevel.lower() == 'debug':     self._loglevel = logging.DEBUG
                 elif self._loglevel.lower() == 'info':      self._loglevel = logging.INFO
@@ -126,7 +126,7 @@ class _LogConfig (ruc.Configurable) :
                 elif self._loglevel.lower() == 'error':     self._loglevel = logging.ERROR
                 elif self._loglevel.lower() == 'critical':  self._loglevel = logging.CRITICAL
                 else: raise ValueError ('%s is not a valid value for %s_VERBOSE.' \
-                                     % (self._uc_name, self._loglevel))
+                                     % (self._loglevel, self._uc_name))
 
         # create the handlers (target + formatter + filter)
         for target in self._targets:
