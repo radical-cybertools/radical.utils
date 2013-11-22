@@ -235,7 +235,17 @@ class Configuration (object):
                 sys_cfg = '/etc/%s.cfg' % self._name
                 if os.path.exists(sys_cfg):
                     cfg_files.append(sys_cfg)
-                usr_cfg = '%s/.%s.cfg' % (os.path.expanduser("~"), self._name)
+
+                uconf = "%s_CONFIG" % self._name.upper ()
+                uconf = uconf.replace ('.', '_')
+                uconf = uconf.replace ('-', '_')
+                if uconf in os.environ :
+                    usr_cfg = os.environ[uconf]
+                    if  not os.path.exists (usr_cfg) :
+                        print "WARNING: %s set to %s, but file does not exist" % (uconf, usr_cfg)
+                else:
+                    usr_cfg = '%s/.%s.cfg' % (os.path.expanduser("~"), self._name)
+
                 if os.path.exists(usr_cfg):
                     cfg_files.append(usr_cfg)
 
