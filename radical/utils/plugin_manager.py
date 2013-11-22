@@ -97,24 +97,28 @@ class PluginManager (object) :
 
             for pfile in pfiles :
 
-                # load and register the plugin
-                plugin = imp.load_source (self._mname, pfile)
-                pname  = plugin.PLUGIN_DESCRIPTION['name']
-                ptype  = plugin.PLUGIN_DESCRIPTION['type']
+                try :
+                    # load and register the plugin
+                    plugin = imp.load_source (self._mname, pfile)
+                    pname  = plugin.PLUGIN_DESCRIPTION['name']
+                    ptype  = plugin.PLUGIN_DESCRIPTION['type']
 
-                if  not ptype in self._plugins :
-                    self._plugins[ptype] = {}
+                    if  not ptype in self._plugins :
+                        self._plugins[ptype] = {}
 
-              # if  pname in self._plugins[ptype] :
-              #     print "warning: overloading plugin '%s'" % pfile
+                  # if  pname in self._plugins[ptype] :
+                  #     print "warning: overloading plugin '%s'" % pfile
 
-                self._plugins[ptype][pname] = {
-                    'class'       : plugin.PLUGIN_CLASS,
-                    'type'        : plugin.PLUGIN_DESCRIPTION['type'],
-                    'name'        : plugin.PLUGIN_DESCRIPTION['name'],
-                    'version'     : plugin.PLUGIN_DESCRIPTION['version'],
-                    'description' : plugin.PLUGIN_DESCRIPTION['description']
-                }
+                    self._plugins[ptype][pname] = {
+                        'class'       : plugin.PLUGIN_CLASS,
+                        'type'        : plugin.PLUGIN_DESCRIPTION['type'],
+                        'name'        : plugin.PLUGIN_DESCRIPTION['name'],
+                        'version'     : plugin.PLUGIN_DESCRIPTION['version'],
+                        'description' : plugin.PLUGIN_DESCRIPTION['description']
+                    }
+
+                except Exception as e :
+                    print "warning: ignoring plugin '%s': %s" % (pfile, str(e))
 
 
     #---------------------------------------------------------------------------
