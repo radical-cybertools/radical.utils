@@ -9,6 +9,39 @@ import imp
 import sys
 import glob
 
+import singleton
+
+
+# ------------------------------------------------------------------------------
+#
+class _PluginRegistry (dict) :
+
+    __metaclass__ = singleton.Singleton
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__ (self) :
+
+        self._registry = dict ()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register (self, namespace, plugins) :
+
+        if  not namespace in self._registry :
+            self._registry[namespace] = plugins
+
+
+    # --------------------------------------------------------------------------
+    #
+    def retrieve (self, namespace) :
+
+        if  namespace in self._registry :
+            return   self._registry[namespace]
+
+        return None
+
 
 # ------------------------------------------------------------------------------
 #
@@ -40,7 +73,7 @@ class PluginManager (object) :
     The plugins are expected to follow a specific naming and coding schema to be
     recognized by the plugin manager.  The naming schema is:
 
-        [mname].plugins.[ptype].plugin_[ptype]_[pname].py
+        [namespace].plugins.[ptype].plugin_[ptype]_[pname].py
 
     i.e. for the code example above: `radical.plugins.scheduler.plugin_hello_default.py`
 
@@ -57,16 +90,20 @@ class PluginManager (object) :
 
     #---------------------------------------------------------------------------
     # 
-    def __init__ (self, mname) :
+    def __init__ (self, namespace) :
         """
-        mname: name of module (plugins are expected in mname/plugins/)
+        namespace: name of module (plugins are expected in namespace/plugins/)
         """
 
-        self._mname   = mname
-        self._plugins = {}
+        self._namespace = namespace
+        self._registry  = _PluginRegistry () 
+        self._plugins   = self._registry.retrieve (self._namespace)
 
-        # load adaptors
-        self._load_plugins ()
+        # load adaptors if needed
+        if  not self._plugins :
+            self._plugins = dict ()
+            self._load_plugins ()
+            self._registry.register (self._namespace, self._plugins)
 
 
     #---------------------------------------------------------------------------
@@ -80,8 +117,8 @@ class PluginManager (object) :
         # search for plugins in all system module paths
         for path in sys.path :
 
-            # we only load plugins installed under the mname hierarchy
-            mpath = self._mname.replace ('.', '/')
+            # we only load plugins installed under the namespace hierarchy
+            mpath = self._namespace.replace ('.', '/')
             ppath = "%s/%s/plugins/"  %  (path, mpath)
             pglob = "*/plugin_*.py"  
 
@@ -99,7 +136,7 @@ class PluginManager (object) :
 
                 try :
                     # load and register the plugin
-                    plugin = imp.load_source (self._mname, pfile)
+                    plugin = imp.load_source (self._namespace, pfile)
                     pname  = plugin.PLUGIN_DESCRIPTION['name']
                     ptype  = plugin.PLUGIN_DESCRIPTION['type']
 

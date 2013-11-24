@@ -1,11 +1,11 @@
 
 
-import radical.utils as ru
+import radical.utils.testing as rut
 
 
 # ------------------------------------------------------------------------------
 #
-class TestConfig (ru.TestConfig): 
+class TestConfig (rut.TestConfig): 
 
     #---------------------------------------------------------------------------
     # 
@@ -13,7 +13,7 @@ class TestConfig (ru.TestConfig):
 
         # initialize configuration.  We only use the 'radical.utils.tests' 
         # category from the config file.
-        ru.TestConfig.__init__ (self, cfg_file, 'radical.utils.tests')
+        rut.TestConfig.__init__ (self, cfg_file, 'radical.utils.tests')
 
 
 # ------------------------------------------------------------------------------
