@@ -38,7 +38,7 @@ class _PluginRegistry (dict) :
     def retrieve (self, namespace) :
 
         if  namespace in self._registry :
-            return   self._registry[namespace]
+            return self._registry[namespace]
 
         return None
 
@@ -137,8 +137,27 @@ class PluginManager (object) :
                 try :
                     # load and register the plugin
                     plugin = imp.load_source (self._namespace, pfile)
-                    pname  = plugin.PLUGIN_DESCRIPTION['name']
-                    ptype  = plugin.PLUGIN_DESCRIPTION['type']
+                    ptype  = plugin.PLUGIN_DESCRIPTION.get ('type',        None)
+                    pname  = plugin.PLUGIN_DESCRIPTION.get ('name',        None)
+                    pvers  = plugin.PLUGIN_DESCRIPTION.get ('version',     None)
+                    pdescr = plugin.PLUGIN_DESCRIPTION.get ('description', None)
+                    single = plugin.PLUGIN_DESCRIPTION.get ('singleton',   True)
+
+                    if  not ptype  : 
+                        print "warning: plugin %s has no type -- ignore"        % pfile 
+                        continue
+
+                    if  not pname  : 
+                        print "warning: plugin %s has no name -- ignore"        % pfile 
+                        continue
+
+                    if  not pvers  : 
+                        print "warning: plugin %s has no version -- ignore"     % pfile 
+                        continue
+
+                    if  not pdescr : 
+                        print "warning: plugin %s has no description -- ignore" % pfile
+                        continue
 
                     if  not ptype in self._plugins :
                         self._plugins[ptype] = {}
@@ -148,11 +167,19 @@ class PluginManager (object) :
 
                     self._plugins[ptype][pname] = {
                         'class'       : plugin.PLUGIN_CLASS,
-                        'type'        : plugin.PLUGIN_DESCRIPTION['type'],
-                        'name'        : plugin.PLUGIN_DESCRIPTION['name'],
-                        'version'     : plugin.PLUGIN_DESCRIPTION['version'],
-                        'description' : plugin.PLUGIN_DESCRIPTION['description']
+                        'type'        : ptype, 
+                        'name'        : pname, 
+                        'version'     : pvers, 
+                        'description' : pdescr,
+                        'single'      : single,
+                        'instance'    : None
                     }
+
+                    # plugins can request to be singletons -- the same instance
+                    # is then returned on each load, and we instantiate right
+                    # here.
+                    if  single :
+                        self._plugins[ptype][pname]['instance'] = plugin.PLUGIN_CLASS ()
 
                 except Exception as e :
                     print "warning: ignoring plugin '%s': %s" % (pfile, str(e))
@@ -207,7 +234,11 @@ class PluginManager (object) :
         if  not pname in self._plugins[ptype] :
             raise LookupError ("No such plugin named %s" % pname)
 
-        return self._plugins[ptype][pname]['class']()
+        # for singletons, return old instance -- otherwise create new instance
+        if  self._plugins[ptype][pname]['single'] :
+            return self._plugins[ptype][pname]['instance']
+        else :
+            return self._plugins[ptype][pname]['class']()
 
 
 # ------------------------------------------------------------------------------
