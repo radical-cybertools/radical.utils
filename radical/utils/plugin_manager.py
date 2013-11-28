@@ -208,6 +208,14 @@ class PluginManager (object) :
 
     #---------------------------------------------------------------------------
     # 
+    def dump (self) :
+
+        import pprint
+        pprint.pprint (self._plugins)
+
+
+    #---------------------------------------------------------------------------
+    # 
     def describe (self, ptype, pname) :
         """
         return a list of loaded plugins for a given plugin type

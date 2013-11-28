@@ -14,6 +14,7 @@ from dict_mixin     import DictMixin
 from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
+from reporter       import Reporter
 
 # import utility methods
 from ids            import generate_id
