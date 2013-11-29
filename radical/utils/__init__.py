@@ -3,6 +3,9 @@ __author__    = "Andre Merzky"
 __copyright__ = "Copyright 2013, The SAGA Project"
 __license__   = "MIT"
 
+import os
+
+version=open (os.path.dirname (os.path.abspath (__file__)) + "/VERSION", 'r').read().strip()
 
 # import utility classes
 from object_cache   import ObjectCache

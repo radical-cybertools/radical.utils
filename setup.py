@@ -15,34 +15,63 @@ from distutils.command.install_data import install_data
 from distutils.command.sdist import sdist
 
 #-----------------------------------------------------------------------------
-# figure out the current version
-def update_version():
+#
+# versioning mechanism:
+#
+#   - short_version:  1.2.3 - is used for installation
+#   - long_version:  v1.2.3-9-g0684b06  - is used as runtime (ru.version)
+#   - both are derived from the last git tag
+#   - the file radical/utils/VERSION is created with the long_version, und used
+#     by ru.__init__.py to provide the runtime version information. 
+#
+def get_version():
 
-    version = "latest"
+    short_version = None  # 0.4.0
+    long_version  = None  # 0.4.0-9-g0684b06
 
     try:
-        cwd = os.path.dirname(os.path.abspath(__file__))
-        fn = os.path.join(cwd, 'radical/utils/VERSION')
-        version = open(fn).read().strip()
-    except IOError:
-        from subprocess import Popen, PIPE, STDOUT
+        import subprocess as sp
         import re
 
-        VERSION_MATCH = re.compile(r'\d+\.\d+\.\d+(\w|-)*')
+        VERSION_MATCH = re.compile (r'(([\d\.]+)\D.*)')
 
-        try:
-            p = Popen(['git', 'describe', '--tags', '--always'],
-                      stdout=PIPE, stderr=STDOUT)
-            out = p.communicate()[0]
+        # attempt to get version information from git
+        p   = sp.Popen (['git', 'describe', '--tags', '--always'],
+                        stdout=sp.PIPE, stderr=sp.STDOUT)
+        out = p.communicate()[0]
 
-            if (not p.returncode) and out:
-                v = VERSION_MATCH.search(out)
-                if v:
-                    version = v.group()
-        except OSError:
-            pass
 
-    return version
+        if  p.returncode != 0 or not out :
+
+            # the git check failed -- its likely that we are called from
+            # a tarball, so use ./VERSION instead
+            out=open (os.path.dirname (os.path.abspath (__file__)) + "/VERSION", 'r').read().strip()
+
+
+        # from the full string, extract short and long versions
+        v = VERSION_MATCH.search (out)
+        if v:
+            long_version  = v.groups ()[0]
+            short_version = v.groups ()[1]
+
+
+        # sanity check if we got *something*
+        if  not short_version or not long_version :
+            sys.stderr.write ("Cannot determine version from git or ./VERSION\n")
+            import sys
+            sys.exit (-1)
+
+
+        # make sure the version file exists for the runtime version inspection
+        open ('radical/utils/VERSION', 'w').write (long_version+"\n")
+
+
+    except Exception as e :
+        print 'Could not extract/set version: %s' % e
+        import sys
+        sys.exit (-1)
+
+    return short_version, long_version
 
 #-----------------------------------------------------------------------------
 # check python version. we need > 2.5
@@ -60,14 +89,6 @@ class our_install_data(install_data):
 
     def run(self):
         install_data.run(self)
-        # ensure there's a radical/utils/VERSION file
-        fn = os.path.join(self.install_dir, 'radical/utils', 'VERSION')
-
-        if os.path.exists(fn):
-            os.remove(fn)
-
-        open(fn, 'w').write(update_version())
-        self.outfiles.append(fn)
 
 #-----------------------------------------------------------------------------
 # 
@@ -75,14 +96,6 @@ class our_sdist(sdist):
 
     def make_release_tree(self, base_dir, files):
         sdist.make_release_tree(self, base_dir, files)
-
-        fn = os.path.join(base_dir, 'radical/utils', 'VERSION')
-
-        if os.path.exists(fn):
-            os.remove(fn)
-
-        open(fn, 'w').write(update_version())
-
 
 class our_test(Command):
     user_options = []
@@ -102,9 +115,11 @@ class our_test(Command):
         raise SystemExit(errno)
 
 
+short_version, long_version = get_version ()
+
 setup_args = {
     'name': "radical.utils",
-    'version': update_version(),
+    'version': short_version,
     'description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
     'long_description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
     'author': "The RADICAL Group",
