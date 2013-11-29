@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 import radical.utils as ru
 
+
 pmgr   = ru.PluginManager ('radical.utils')
 plugin = pmgr.load ('unittests', 'default')
 plugin.init ('a', 1)

@@ -83,8 +83,8 @@ if sys.hexversion < 0x02050000:
 class our_install_data(install_data):
 
     def finalize_options(self): 
-        self.set_undefined_options('install',
-                                   ('install_lib', 'install_dir'))
+        self.set_undefined_options ('install',
+                                    ('install_lib', 'install_dir'))
         install_data.finalize_options(self)
 
     def run(self):
@@ -167,7 +167,7 @@ setup_args = {
     'scripts': [],
     # mention data_files, even if empty, so install_data is called and
     # VERSION gets copied
-    'data_files': [("radical/utils", [])],
+    'data_files': [("radical/utils/VERSION", [])],
     'cmdclass': {
         'install_data': our_install_data,
         'sdist': our_sdist,

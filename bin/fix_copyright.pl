@@ -12,11 +12,12 @@ BEGIN {
 # file, it sifts through the 'git blame' output to derive authorship and
 # lifetime information -- those are then stored at the begin of the file, as  
 #
-#   __author__    = "$authors"
-#   __copyright__ = "Copyright $years, The SAGA Project"
+#   __author__    = "$PROJECT ($authors)"
+#   __copyright__ = "Copyright $years, RADICAL@Rutgers"
 #   __license__   = "MIT"
 #
 # The script will ignore authorship for empty lines, and for the lines above.
+# $PROJECT is read from a file './PROJECT', which must exist.
 #
 
 my $PROJECT = `cat PROJECT | head -n 1`;
