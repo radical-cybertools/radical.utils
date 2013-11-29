@@ -19,9 +19,24 @@ BEGIN {
 # The script will ignore authorship for empty lines, and for the lines above.
 #
 
+my $PROJECT = `cat PROJECT | head -n 1`;
+chomp $PROJECT;
+
+$PROJECT || die "no file 'PROJECT'?\n";
+
+my $base = $PROJECT;
+$base =~ tr/[A-Z]/[a-z]/;
+$base =~ s/^([a-z0-9]*).*$/$1/;
+
+my @dirs = ($base, 'doc', 'docs', 'examples', 'tests', 'src');
 
 # find all files we want to check
-my @files = split (/\n/, `find . -type f -name \\*.py`);
+my @files = ();
+
+foreach my $dir ( @dirs )
+{
+  push (@files, split (/\n/, `find $dir -type f -name \\*.py 2>/dev/null`));
+}
 
 # snippets for blame command to find authorship
 my $blame    = "git blame -M -C -C -C -c -w";
@@ -32,6 +47,7 @@ my $authgrep = "grep -v -e '^.*) *__\\(author\\|copyright\\|license\\)__' " .
 my $authcut  = "cut -f 2- -d '(' | cut -f 1 -d '2'"; # relies on year>=2000
 my $yearcut  = "cut -f 2  -d '(' | cut -f 1 -d ')' | " . 
 "cut -f 1  -d ':' | rev | cut -c 10-13 | rev | grep -ve '^ *\$' ";
+
 
 
 FILE:
@@ -56,30 +72,19 @@ for my $file ( @files )
     for my $author ( @authors )
     {
         $author =~ s/^\s*(.*?)\s*$/$1/g;
-        if ( $author eq "amerzky" )
+        if ( $author eq "amerzky"           or
+             $author eq "andre.merzky"      or
+             $author eq "andre\@merzky.net" )
         {
             $author = "Andre Merzky";
         }
         $authors{$author} += 1
     }
 
-    my $authors = "";
-    for my $author ( sort keys (%authors) )
-    {
-        $authors .= "$author, ";
-    }
-    $authors =~ s/,\s*$//g;
-
-
-    # if we don't have authors, we do not need to bother to continue...
-    unless ( scalar @authors )
-    {
-        next FILE;
-    }
 
     # build the year string
     my $years = "$first-$last";
-    if ( $first == $last )
+    if ( $first eq $last )
     {
         $years = $first;
     }
@@ -94,7 +99,7 @@ for my $file ( @files )
     my @old_lines   = read_file ($file);
     my @new_lines   = ();
     my $begin       = 1;  # we only skip the first part....
-    my $old_authors = (); # never remove an author
+    my @old_authors = (); # never remove an author
     my $old_aline   = ""; 
 
     OLD_LINE:
@@ -112,30 +117,44 @@ for my $file ( @files )
                 my $key = $1;
                 my $val = $2 || "";
 
-                if ( $key == 'author' ) 
+                if ( $key eq 'author' ) 
                 {
-                    $old_authors = split (/, */, $val);
+                    if ( $val =~ /^.*\((.+?)\)\s*$/o )
+                    {
+                        $val = $1;
+                    }
+
+                    @old_authors = split (/, */, $val);
                     $old_aline   = $old_line;
+
+                    for my $old_author ( @old_authors )
+                    {
+                        $authors{$old_author}++;
+                    }
                 }
 
                 next OLD_LINE;
             }
 
-            my $new_aline = "__author__    = \"$PROJECT development team ($authors)\"\n";
+            my $authors = "";
+            for my $author ( sort keys (%authors) )
+            {
+                $authors .= "$author, ";
+            }
+            $authors =~ s/,\s*$//g;
+
+            my $new_aline = "__author__    = \"$PROJECT Development Team ($authors)\"\n";
 
             # found a 'real' line -- make sure we have the copyright statement, and
             # the found line.
             $begin = 0;
             push (@new_lines, "\n");
-            push (@new_lines, "__author__    = \"$PROJECT development team ($authors)\"\n");
+            push (@new_lines, "__author__    = \"$PROJECT Development Team ($authors)\"\n");
             push (@new_lines, "__copyright__ = \"Copyright $years, RADICAL\@Rutgers\"\n");
             push (@new_lines, "__license__   = \"MIT\"\n");
             push (@new_lines, "\n");
             push (@new_lines, "\n");
             push (@new_lines, $old_line);
-
-            print $old_aline;
-            print $new_aline;
         }
         else
         {
@@ -145,6 +164,6 @@ for my $file ( @files )
     }
 
     # the file is re-assembled with the new copyright statement -- dump to disk.
-#   write_file ("$file", @new_lines);
+    write_file ("$file", @new_lines);
 }
 
