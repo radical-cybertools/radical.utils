@@ -10,9 +10,9 @@ __license__   = "MIT"
 import os
 import sys
 
-from setuptools import setup, Command
+from setuptools                     import setup, Command
 from distutils.command.install_data import install_data
-from distutils.command.sdist import sdist
+from distutils.command.sdist        import sdist
 
 #-----------------------------------------------------------------------------
 #
@@ -63,6 +63,10 @@ def get_version():
 
 
         # make sure the version file exists for the runtime version inspection
+        try :
+            os.remove ('radical/utils/VERSION')
+        except :
+            pass
         open ('radical/utils/VERSION', 'w').write (long_version+"\n")
 
 
@@ -73,29 +77,31 @@ def get_version():
 
     return short_version, long_version
 
+short_version, long_version = get_version ()
+
 #-----------------------------------------------------------------------------
 # check python version. we need > 2.5
 if sys.hexversion < 0x02050000:
     raise RuntimeError("radical.utils requires Python 2.5 or higher")
 
-#-----------------------------------------------------------------------------
-# 
-class our_install_data(install_data):
-
-    def finalize_options(self): 
-        self.set_undefined_options ('install',
-                                    ('install_lib', 'install_dir'))
-        install_data.finalize_options(self)
-
-    def run(self):
-        install_data.run(self)
-
-#-----------------------------------------------------------------------------
-# 
-class our_sdist(sdist):
-
-    def make_release_tree(self, base_dir, files):
-        sdist.make_release_tree(self, base_dir, files)
+## #-----------------------------------------------------------------------------
+## # 
+## class our_install_data(install_data):
+## 
+##     def finalize_options(self): 
+##         self.set_undefined_options ('install',
+##                                     ('install_lib', 'install_dir'))
+##         install_data.finalize_options(self)
+## 
+##     def run(self):
+##         install_data.run(self)
+## 
+## #-----------------------------------------------------------------------------
+## # 
+## class our_sdist(sdist):
+## 
+##     def make_release_tree(self, base_dir, files):
+##         sdist.make_release_tree(self, base_dir, files)
 
 class our_test(Command):
     user_options = []
@@ -115,45 +121,31 @@ class our_test(Command):
         raise SystemExit(errno)
 
 
-short_version, long_version = get_version ()
 
 setup_args = {
-    'name': "radical.utils",
-    'version': short_version,
-    'description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
-    'long_description': "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
-    'author': "The RADICAL Group",
-    'author_email': "andre@merzky.net",
-    'maintainer': "Andre Merzky",
-    'maintainer_email': "andre@merzky.net",
-    'url': "https://www.github.com/saga-project/radical.utils/",
-    'license': "MIT",
-    'classifiers': [
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: No Input/Output (Daemon)',
-        'Intended Audience :: Developers',
+    'name'             : "radical.utils",
+    'version'          : short_version,
+    'description'      : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
+    'long_description' : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
+    'author'           : "The RADICAL Group",
+    'author_email'     : "andre@merzky.net",
+    'maintainer'       : "Andre Merzky",
+    'maintainer_email' : "andre@merzky.net",
+    'url'              : "https://www.github.com/saga-project/radical.utils/",
+    'license'          : "MIT",
+    'classifiers'      : [
+        'Development Status   :: 5 - Production/Stable',
+        'Environment          :: No Input/Output (Daemon)',
+        'Intended Audience    :: Developers',
         'Programming Language :: Python',
-        'License :: OSI Approved :: MIT License',
-        'Topic :: System :: Distributed Computing',
-        'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
-        'Operating System :: MacOS :: MacOS X',
-        'Operating System :: POSIX',
-        'Operating System :: POSIX :: AIX',
-        'Operating System :: POSIX :: BSD',
-        'Operating System :: POSIX :: BSD :: BSD/OS',
-        'Operating System :: POSIX :: BSD :: FreeBSD',
-        'Operating System :: POSIX :: BSD :: NetBSD',
-        'Operating System :: POSIX :: BSD :: OpenBSD',
-        'Operating System :: POSIX :: GNU Hurd',
-        'Operating System :: POSIX :: HP-UX',
-        'Operating System :: POSIX :: IRIX',
-        'Operating System :: POSIX :: Linux',
-        'Operating System :: POSIX :: Other',
-        'Operating System :: POSIX :: SCO',
-        'Operating System :: POSIX :: SunOS/Solaris',
-        'Operating System :: Unix'
+        'License              :: OSI Approved :: MIT License',
+        'Topic                :: System :: Distributed Computing',
+        'Topic                :: Scientific/Engineering :: Interface Engine/Protocol Translator',
+        'Operating System     :: MacOS :: MacOS X',
+        'Operating System     :: POSIX',
+        'Operating System     :: Unix'
     ],
-    'packages': [
+    'packages' : [
         "radical",
         "radical.utils",
         "radical.utils.config",
@@ -162,19 +154,16 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'package_data': {'': ['*.sh', 'radical/utils/VERSION']},
-    'zip_safe': False,
-    'scripts': [],
-    # mention data_files, even if empty, so install_data is called and
-    # VERSION gets copied
-    'data_files': [("radical/utils/VERSION", [])],
-    'cmdclass': {
-        'install_data': our_install_data,
-        'sdist': our_sdist,
-        'test': our_test
+    'zip_safe'             : False,
+    'scripts'              : [],
+    'package_data'         : {'' : ['VERSION']},  # needed for easy_install
+    'cmdclass'             : {
+        'test'         : our_test,
+  #     'sdist'        : our_sdist,
     },
-    'install_requires': ['setuptools', 'colorama'],
-    'tests_require': ['setuptools', 'nose']
+    'install_requires' : ['setuptools', 'colorama'],
+    'tests_require'    : ['setuptools', 'nose'],
 }
 
 setup(**setup_args)
+
