@@ -6,5 +6,5 @@ include radical/utils/logger/*.py
 include radical/utils/contrib/*.py
 
 include radical/utils/VERSION
-include MANIFEST.in README.md 
+include MANIFEST.in README.md LICENSE.md CHANGES.md
 

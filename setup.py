@@ -4,15 +4,15 @@ __copyright__ = "Copyright 2013, RADICAL Research, Rutgers University"
 __license__   = "MIT"
 
 
-""" Setup script. Used by easy_install and pip.
-"""
+""" Setup script. Used by easy_install and pip. """
 
 import os
 import sys
+import subprocess
 
-from setuptools                     import setup, Command
-from distutils.command.install_data import install_data
-from distutils.command.sdist        import sdist
+from setuptools              import setup, Command
+from distutils.command.sdist import sdist
+
 
 #-----------------------------------------------------------------------------
 #
@@ -63,10 +63,6 @@ def get_version():
 
 
         # make sure the version file exists for the runtime version inspection
-        try :
-            os.remove ('radical/utils/VERSION')
-        except :
-            pass
         open ('radical/utils/VERSION', 'w').write (long_version+"\n")
 
 
@@ -80,48 +76,22 @@ def get_version():
 short_version, long_version = get_version ()
 
 #-----------------------------------------------------------------------------
-# check python version. we need > 2.5
-if sys.hexversion < 0x02050000:
-    raise RuntimeError("radical.utils requires Python 2.5 or higher")
+# check python version. we need > 2.5, <3.x
+if  sys.hexversion < 0x02050000 or sys.hexversion >= 0x03000000:
+    raise RuntimeError("SAGA requires Python 2.x (2.5 or higher)")
 
-## #-----------------------------------------------------------------------------
-## # 
-## class our_install_data(install_data):
-## 
-##     def finalize_options(self): 
-##         self.set_undefined_options ('install',
-##                                     ('install_lib', 'install_dir'))
-##         install_data.finalize_options(self)
-## 
-##     def run(self):
-##         install_data.run(self)
-## 
-## #-----------------------------------------------------------------------------
-## # 
-## class our_sdist(sdist):
-## 
-##     def make_release_tree(self, base_dir, files):
-##         sdist.make_release_tree(self, base_dir, files)
 
+#-----------------------------------------------------------------------------
 class our_test(Command):
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
     def run(self):
-        import sys
-        import subprocess
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
-        errno = subprocess.call([sys.executable, '%s/run_tests.py' % testdir,
-                                '--config=%s/configs/basetests.cfg' % testdir])
-        raise SystemExit(errno)
+        retval  = subprocess.call([sys.executable, 
+                                   '%s/run_tests.py'          % testdir,
+                                   '%s/configs/basetests.cfg' % testdir])
+        raise SystemExit(retval)
 
 
-
+#-----------------------------------------------------------------------------
 setup_args = {
     'name'             : "radical.utils",
     'version'          : short_version,
@@ -135,10 +105,11 @@ setup_args = {
     'license'          : "MIT",
     'classifiers'      : [
         'Development Status   :: 5 - Production/Stable',
-        'Environment          :: No Input/Output (Daemon)',
         'Intended Audience    :: Developers',
+        'Environment          :: Console',                    
         'Programming Language :: Python',
         'License              :: OSI Approved :: MIT License',
+        'Topic                :: Utilities',
         'Topic                :: System :: Distributed Computing',
         'Topic                :: Scientific/Engineering :: Interface Engine/Protocol Translator',
         'Operating System     :: MacOS :: MacOS X',
@@ -156,14 +127,18 @@ setup_args = {
     ],
     'zip_safe'             : False,
     'scripts'              : [],
-    'package_data'         : {'' : ['VERSION']},  # needed for easy_install
+    'package_data'         : {'' : ['VERSION']},
     'cmdclass'             : {
         'test'         : our_test,
-  #     'sdist'        : our_sdist,
+      # 'sdist'        : our_sdist,
     },
     'install_requires' : ['setuptools', 'colorama'],
     'tests_require'    : ['setuptools', 'nose'],
 }
 
+#-----------------------------------------------------------------------------
+
 setup(**setup_args)
+
+#-----------------------------------------------------------------------------
 

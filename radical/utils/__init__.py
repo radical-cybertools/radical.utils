@@ -6,8 +6,8 @@ __license__   = "MIT"
 
 import os
 
-
 version=open (os.path.dirname (os.path.abspath (__file__)) + "/VERSION", 'r').read().strip()
+
 
 # import utility classes
 from object_cache   import ObjectCache
@@ -32,5 +32,4 @@ from which          import which
 
 
 # ------------------------------------------------------------------------------
-
 
