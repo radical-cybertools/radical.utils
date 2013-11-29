@@ -11,7 +11,6 @@ import sys
 import subprocess
 
 from setuptools              import setup, Command
-from distutils.command.sdist import sdist
 
 
 #-----------------------------------------------------------------------------
@@ -62,7 +61,8 @@ def get_version():
             sys.exit (-1)
 
 
-        # make sure the version file exists for the runtime version inspection
+        # make sure the version files exist for the runtime version inspection
+        open (              'VERSION', 'w').write (long_version+"\n")
         open ('radical/utils/VERSION', 'w').write (long_version+"\n")
 
 
@@ -78,7 +78,7 @@ short_version, long_version = get_version ()
 #-----------------------------------------------------------------------------
 # check python version. we need > 2.5, <3.x
 if  sys.hexversion < 0x02050000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("SAGA requires Python 2.x (2.5 or higher)")
+    raise RuntimeError("Radical.Utils requires Python 2.x (2.5 or higher)")
 
 
 #-----------------------------------------------------------------------------
@@ -92,31 +92,43 @@ class our_test(Command):
 
 
 #-----------------------------------------------------------------------------
+#
+def read(*rnames):
+    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+
+
+#-----------------------------------------------------------------------------
 setup_args = {
     'name'             : "radical.utils",
     'version'          : short_version,
     'description'      : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
-    'long_description' : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
-    'author'           : "The RADICAL Group",
+    'long_description' : (read('README.md') + '\n\n' + read('CHANGES.md')),    
+    'author'           : 'RADICAL Group at Rutgers University',
     'author_email'     : "andre@merzky.net",
+    'author_email'     : "radical@rutgers.edu",
     'maintainer'       : "Andre Merzky",
     'maintainer_email' : "andre@merzky.net",
     'url'              : "https://www.github.com/saga-project/radical.utils/",
     'license'          : "MIT",
+    'keywords'         : "radical pilot job saga",
     'classifiers'      : [
         'Development Status   :: 5 - Production/Stable',
         'Intended Audience    :: Developers',
         'Environment          :: Console',                    
+        'License              :: OSI Approved :: MIT',
         'Programming Language :: Python',
-        'License              :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.5',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
         'Topic                :: Utilities',
         'Topic                :: System :: Distributed Computing',
         'Topic                :: Scientific/Engineering :: Interface Engine/Protocol Translator',
         'Operating System     :: MacOS :: MacOS X',
         'Operating System     :: POSIX',
-        'Operating System     :: Unix'
+        'Operating System     :: Unix',
     ],
-    'packages' : [
+    'packages'         : [
         "radical",
         "radical.utils",
         "radical.utils.config",
@@ -125,15 +137,14 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'zip_safe'             : False,
-    'scripts'              : [],
-    'package_data'         : {'' : ['VERSION']},
-    'cmdclass'             : {
+    'scripts'          : [],
+    'package_data'     : {'' : ['VERSION']},
+    'cmdclass'         : {
         'test'         : our_test,
-      # 'sdist'        : our_sdist,
     },
-    'install_requires' : ['setuptools', 'colorama'],
-    'tests_require'    : ['setuptools', 'nose'],
+    'install_requires' : ['colorama'],
+    'tests_require'    : ['nose'],
+    'zip_safe'         : False,
 }
 
 #-----------------------------------------------------------------------------
