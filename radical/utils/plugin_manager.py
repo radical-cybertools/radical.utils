@@ -210,7 +210,6 @@ class PluginManager (object) :
                     self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
 
 
-
     #---------------------------------------------------------------------------
     # 
     def list_types (self) :
@@ -265,6 +264,7 @@ class PluginManager (object) :
         check if a plugin with given type and name was loaded, if so, instantiate its
         plugin class, initialize and return in.
         """
+
         if  not ptype in self._plugins :
             self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)

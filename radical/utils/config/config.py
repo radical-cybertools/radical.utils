@@ -490,10 +490,11 @@ class Configurable (object) :
         return getConfig(self._name).get_category(namespace)
 
 
+
     # --------------------------------------------------------------------------
     #
-    def get_config_as_dict(self):
-        return getConfig(self._name).as_dict ()
+    def get_config_as_dict (self): return getConfig(self._name).as_dict ()
+    def            as_dict (self): return getConfig(self._name).as_dict ()
 
 
 # ------------------------------------------------------------------------------
