@@ -105,9 +105,8 @@ class PluginManager (object) :
         # load adaptors if needed
         if  not self._plugins :
             self._plugins = dict ()
-
-        self._load_plugins ()
-        self._registry.register (self._namespace, self._plugins)
+            self._load_plugins ()
+            self._registry.register (self._namespace, self._plugins)
 
 
     #---------------------------------------------------------------------------
@@ -119,8 +118,6 @@ class PluginManager (object) :
         """
 
         self._logger.info ('loading plugins for namespace %s' % self._namespace)
-
-        seen = list()
 
         # search for plugins in all system module paths
         for path in sys.path :
@@ -144,15 +141,6 @@ class PluginManager (object) :
 
                 idx    = pfile.find (mpath)
                 pshort = pfile[idx:]
-
-                idx    = pfile.find (ppath)
-                pname  = pfile[len(ppath):]
-
-                if  pname in seen : 
-                    # only load once
-                    continue
-
-                seen.append (pname)
 
                 try :
                     # load and register the plugin
