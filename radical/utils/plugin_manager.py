@@ -99,11 +99,15 @@ class PluginManager (object) :
         self._registry  = _PluginRegistry () 
         self._plugins   = self._registry.retrieve (self._namespace)
 
+        import radical.utils.logger as logger
+        self._logger    = logger.getLogger ('radical')
+
         # load adaptors if needed
         if  not self._plugins :
             self._plugins = dict ()
-            self._load_plugins ()
-            self._registry.register (self._namespace, self._plugins)
+
+        self._load_plugins ()
+        self._registry.register (self._namespace, self._plugins)
 
 
     #---------------------------------------------------------------------------
@@ -113,6 +117,10 @@ class PluginManager (object) :
         Load all plugins for the given namespace.  Previously loaded plugins
         are overloaded.
         """
+
+        self._logger.info ('loading plugins for namespace %s' % self._namespace)
+
+        seen = list()
 
         # search for plugins in all system module paths
         for path in sys.path :
@@ -134,6 +142,18 @@ class PluginManager (object) :
 
             for pfile in pfiles :
 
+                idx    = pfile.find (mpath)
+                pshort = pfile[idx:]
+
+                idx    = pfile.find (ppath)
+                pname  = pfile[len(ppath):]
+
+                if  pname in seen : 
+                    # only load once
+                    continue
+
+                seen.append (pname)
+
                 try :
                     # load and register the plugin
                     plugin = imp.load_source (self._namespace, pfile)
@@ -144,26 +164,27 @@ class PluginManager (object) :
                     single = plugin.PLUGIN_DESCRIPTION.get ('singleton',   True)
 
                     if  not ptype  : 
-                        print "warning: plugin %s has no type -- ignore"        % pfile 
+                        self._logger.warn ('not plugin type in %s' % pshort)
                         continue
 
                     if  not pname  : 
-                        print "warning: plugin %s has no name -- ignore"        % pfile 
+                        self._logger.warn ('not plugin name in %s' % pshort)
                         continue
 
                     if  not pvers  : 
-                        print "warning: plugin %s has no version -- ignore"     % pfile 
+                        self._logger.warn ('not plugin version in %s' % pshort)
                         continue
 
                     if  not pdescr : 
-                        print "warning: plugin %s has no description -- ignore" % pfile
+                        self._logger.warn ('not plugin description in %s'
+                                % pshort)
                         continue
 
                     if  not ptype in self._plugins :
                         self._plugins[ptype] = {}
 
                   # if  pname in self._plugins[ptype] :
-                  #     print "warning: overloading plugin '%s'" % pfile
+                  #     self._logger.warn ('overloading plugin %s' % pshort
 
                     self._plugins[ptype][pname] = {
                         'class'       : plugin.PLUGIN_CLASS,
@@ -180,9 +201,14 @@ class PluginManager (object) :
                     # here.
                     if  single :
                         self._plugins[ptype][pname]['instance'] = plugin.PLUGIN_CLASS ()
+                        self._logger.info ('loading singleton plugin %s'
+                                % pshort)
+                    else :
+                        self._logger.info ('loading plugin %s' % pshort)
 
                 except Exception as e :
-                    print "warning: ignoring plugin '%s': %s" % (pfile, str(e))
+                    self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
+
 
 
     #---------------------------------------------------------------------------
@@ -201,6 +227,7 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         return self._plugins[ptype].keys ()
@@ -221,9 +248,11 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
+            self.dump ()
             raise LookupError ("No such plugin named %s" % pname)
 
         return self._plugins[ptype][pname]
@@ -237,9 +266,11 @@ class PluginManager (object) :
         plugin class, initialize and return in.
         """
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
+            self.dump ()
             raise LookupError ("No such plugin named %s" % pname)
 
         # for singletons, return old instance -- otherwise create new instance

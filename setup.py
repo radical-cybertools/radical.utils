@@ -104,7 +104,6 @@ setup_args = {
     'description'      : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
     'long_description' : (read('README.md') + '\n\n' + read('CHANGES.md')),    
     'author'           : 'RADICAL Group at Rutgers University',
-    'author_email'     : "andre@merzky.net",
     'author_email'     : "radical@rutgers.edu",
     'maintainer'       : "Andre Merzky",
     'maintainer_email' : "andre@merzky.net",
@@ -149,7 +148,7 @@ setup_args = {
 
 #-----------------------------------------------------------------------------
 
-setup(**setup_args)
+setup (**setup_args)
 
 #-----------------------------------------------------------------------------
 
