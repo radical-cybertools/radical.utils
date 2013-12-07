@@ -1,11 +1,13 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
 import radical.utils as ru
 
+# ------------------------------------------------------------------------------
+#
 def test_re_string () :
     """
     Test if regex matching works
@@ -34,4 +36,7 @@ def test_re_string () :
     
     else :
         assert (False)
+
+
+# ------------------------------------------------------------------------------
 

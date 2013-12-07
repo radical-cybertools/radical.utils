@@ -22,7 +22,7 @@ from regex          import ReString, ReSult
 from reporter       import Reporter
 
 # import utility methods
-from ids            import generate_id
+from ids            import generate_id, ID_SIMPLE, ID_UNIQUE
 from read_json      import read_json
 from tracer         import trace, untrace
 from which          import which
