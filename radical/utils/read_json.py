@@ -22,6 +22,7 @@ def read_json (filename) :
         pprint.pprint (read_json (sys.argv[1]))
 
     """
+
     with open (filename) as f:
 
         content = ''

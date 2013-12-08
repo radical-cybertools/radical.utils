@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
     # set up the testing framework
     testing = rut.Testing ('radical.utils', __file__)
+    ret     = True
 
     for config in sys.argv[1:] :
 
@@ -25,9 +26,13 @@ if __name__ == "__main__":
             sys.exit (-1)
 
         # for each config, set up the test config singleton and run the tests
-        tc = rut.TestConfig (config)
+        tc  = rut.TestConfig (config)
 
-        testing.run ()
+        # run tests
+        if  not testing.run () :
+            ret = False
+
+    sys.exit (ret)
 
 
 # ------------------------------------------------------------------------------
