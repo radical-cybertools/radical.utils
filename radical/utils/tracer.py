@@ -39,6 +39,7 @@ _trace_namespace = 'radical'
 """
 
 
+# ------------------------------------------------------------------------------
 def _tracer (frame, event, arg) :
 
     global _trace_external
@@ -71,11 +72,17 @@ def _tracer (frame, event, arg) :
 
     return _tracer
 
+
+# ------------------------------------------------------------------------------
 def trace (namespace='radical') :
     _trace_namespace = namespace
     sys.settrace (_tracer)
 
+
+# ------------------------------------------------------------------------------
 def untrace () :
     sys.settrace (None)
 
+
+# ------------------------------------------------------------------------------
 

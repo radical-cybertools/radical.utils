@@ -7,10 +7,9 @@ __license__   = "MIT"
 import radical.utils as ru
 
 # ------------------------------------------------------------------------------
-#
 def test_re_string () :
     """
-    Test if regex matching works
+    Test regex matching
     """
 
     txt   = ru.ReString ("The quick brown fox jumps over the lazy dog")
@@ -37,6 +36,12 @@ def test_re_string () :
     else :
         assert (False)
 
+
+# ------------------------------------------------------------------------------
+# run tests if called directly
+if __name__ == "__main__":
+
+    test_re_string ()
 
 # ------------------------------------------------------------------------------
 

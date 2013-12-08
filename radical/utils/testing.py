@@ -134,6 +134,11 @@ class Testing (object) :
         tc = get_test_config ()
 
         results = list()
+
+        # fall back to no subtree structure if no test suites are specified
+        if  not 'test_suites' in tc \
+        or  not tc[ 'test_suites'] :
+            tc['test_suites'] = ['.']
         
         # run all test suites from the config
         for test_suite in tc['test_suites'] :

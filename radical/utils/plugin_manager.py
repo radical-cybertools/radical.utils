@@ -15,8 +15,13 @@ import singleton
 # ------------------------------------------------------------------------------
 #
 class _PluginRegistry (dict) :
+    """
+    The plugin registry helper class avoids that plugins are loaded twice.
+    """
 
     __metaclass__ = singleton.Singleton
+
+
 
     # --------------------------------------------------------------------------
     #
@@ -149,7 +154,6 @@ class PluginManager (object) :
                     pname  = plugin.PLUGIN_DESCRIPTION.get ('name',        None)
                     pvers  = plugin.PLUGIN_DESCRIPTION.get ('version',     None)
                     pdescr = plugin.PLUGIN_DESCRIPTION.get ('description', None)
-                    single = plugin.PLUGIN_DESCRIPTION.get ('singleton',   True)
 
                     if  not ptype  : 
                         self._logger.warn ('not plugin type in %s' % pshort)
@@ -180,19 +184,10 @@ class PluginManager (object) :
                         'name'        : pname, 
                         'version'     : pvers, 
                         'description' : pdescr,
-                        'single'      : single,
                         'instance'    : None
                     }
 
-                    # plugins can request to be singletons -- the same instance
-                    # is then returned on each load, and we instantiate right
-                    # here.
-                    if  single :
-                        self._plugins[ptype][pname]['instance'] = plugin.PLUGIN_CLASS ()
-                        self._logger.info ('loading singleton plugin %s'
-                                % pshort)
-                    else :
-                        self._logger.info ('loading plugin %s' % pshort)
+                    self._logger.info ('loading plugin %s' % pshort)
 
                 except Exception as e :
                     self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
@@ -261,11 +256,8 @@ class PluginManager (object) :
             self.dump ()
             raise LookupError ("No such plugin named %s" % pname)
 
-        # for singletons, return old instance -- otherwise create new instance
-        if  self._plugins[ptype][pname]['single'] :
-            return self._plugins[ptype][pname]['instance']
-        else :
-            return self._plugins[ptype][pname]['class']()
+        # create new plugin instance
+        return self._plugins[ptype][pname]['class']()
 
 
 # ------------------------------------------------------------------------------
