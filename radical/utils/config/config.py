@@ -474,7 +474,7 @@ class Configurable (object) :
     #
     def __init__(self, name):
 
-        self._name          = name
+        self._name = name
 
     # --------------------------------------------------------------------------
     #

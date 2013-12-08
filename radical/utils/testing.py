@@ -138,10 +138,7 @@ class Testing (object) :
         # fall back to no subtree structure if no test suites are specified
         if  not 'test_suites' in tc \
         or  not tc['test_suites'] :
-            print 'fix test suites (%s)' % str(tc)
             tc['test_suites'] = ['.']
-        
-        print 'tc: %s' % str(tc)
 
         verbosity_env  = os.getenv('NOSE_VERBOSE', 1)
         verbosity_nose = None
