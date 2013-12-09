@@ -1,4 +1,11 @@
+
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
+__license__   = "MIT"
+
+
 import threading 
+
 
 def Lockable (cls):
     """ 

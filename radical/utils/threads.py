@@ -1,6 +1,6 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -139,7 +139,7 @@ class Thread (threading.Thread) :
             self._state     = DONE
 
         except Exception as e :
-          # print "task got exception: %s" % e
+            print "task got exception: %s" % e
           # print rumisc.get_trace ()
 
             self._exception = e

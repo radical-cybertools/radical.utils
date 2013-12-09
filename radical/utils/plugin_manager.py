@@ -1,6 +1,6 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -8,6 +8,44 @@ import os
 import imp
 import sys
 import glob
+
+import singleton
+
+
+# ------------------------------------------------------------------------------
+#
+class _PluginRegistry (dict) :
+    """
+    The plugin registry helper class avoids that plugins are loaded twice.
+    """
+
+    __metaclass__ = singleton.Singleton
+
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__ (self) :
+
+        self._registry = dict ()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register (self, namespace, plugins) :
+
+        if  not namespace in self._registry :
+            self._registry[namespace] = plugins
+
+
+    # --------------------------------------------------------------------------
+    #
+    def retrieve (self, namespace) :
+
+        if  namespace in self._registry :
+            return self._registry[namespace]
+
+        return None
 
 
 # ------------------------------------------------------------------------------
@@ -40,7 +78,7 @@ class PluginManager (object) :
     The plugins are expected to follow a specific naming and coding schema to be
     recognized by the plugin manager.  The naming schema is:
 
-        [mname].plugins.[ptype].plugin_[ptype]_[pname].py
+        [namespace].plugins.[ptype].plugin_[ptype]_[pname].py
 
     i.e. for the code example above: `radical.plugins.scheduler.plugin_hello_default.py`
 
@@ -57,16 +95,23 @@ class PluginManager (object) :
 
     #---------------------------------------------------------------------------
     # 
-    def __init__ (self, mname) :
+    def __init__ (self, namespace) :
         """
-        mname: name of module (plugins are expected in mname/plugins/)
+        namespace: name of module (plugins are expected in namespace/plugins/)
         """
 
-        self._mname   = mname
-        self._plugins = {}
+        self._namespace = namespace
+        self._registry  = _PluginRegistry () 
+        self._plugins   = self._registry.retrieve (self._namespace)
 
-        # load adaptors
-        self._load_plugins ()
+        import radical.utils.logger as logger
+        self._logger    = logger.getLogger ('radical')
+
+        # load adaptors if needed
+        if  not self._plugins :
+            self._plugins = dict ()
+            self._load_plugins ()
+            self._registry.register (self._namespace, self._plugins)
 
 
     #---------------------------------------------------------------------------
@@ -77,11 +122,13 @@ class PluginManager (object) :
         are overloaded.
         """
 
+        self._logger.info ('loading plugins for namespace %s' % self._namespace)
+
         # search for plugins in all system module paths
         for path in sys.path :
 
-            # we only load plugins installed under the mname hierarchy
-            mpath = self._mname.replace ('.', '/')
+            # we only load plugins installed under the namespace hierarchy
+            mpath = self._namespace.replace ('.', '/')
             ppath = "%s/%s/plugins/"  %  (path, mpath)
             pglob = "*/plugin_*.py"  
 
@@ -97,24 +144,53 @@ class PluginManager (object) :
 
             for pfile in pfiles :
 
-                # load and register the plugin
-                plugin = imp.load_source (self._mname, pfile)
-                pname  = plugin.PLUGIN_DESCRIPTION['name']
-                ptype  = plugin.PLUGIN_DESCRIPTION['type']
+                idx    = pfile.find (mpath)
+                pshort = pfile[idx:]
 
-                if  not ptype in self._plugins :
-                    self._plugins[ptype] = {}
+                try :
+                    # load and register the plugin
+                    plugin = imp.load_source (self._namespace, pfile)
+                    ptype  = plugin.PLUGIN_DESCRIPTION.get ('type',        None)
+                    pname  = plugin.PLUGIN_DESCRIPTION.get ('name',        None)
+                    pvers  = plugin.PLUGIN_DESCRIPTION.get ('version',     None)
+                    pdescr = plugin.PLUGIN_DESCRIPTION.get ('description', None)
 
-                if  pname in self._plugins[ptype] :
-                    print "warning: overloading plugin '%s'" % pfile
+                    if  not ptype  : 
+                        self._logger.warn ('not plugin type in %s' % pshort)
+                        continue
 
-                self._plugins[ptype][pname] = {
-                    'class'       : plugin.PLUGIN_CLASS,
-                    'type'        : plugin.PLUGIN_DESCRIPTION['type'],
-                    'name'        : plugin.PLUGIN_DESCRIPTION['name'],
-                    'version'     : plugin.PLUGIN_DESCRIPTION['version'],
-                    'description' : plugin.PLUGIN_DESCRIPTION['description']
-                }
+                    if  not pname  : 
+                        self._logger.warn ('not plugin name in %s' % pshort)
+                        continue
+
+                    if  not pvers  : 
+                        self._logger.warn ('not plugin version in %s' % pshort)
+                        continue
+
+                    if  not pdescr : 
+                        self._logger.warn ('not plugin description in %s'
+                                % pshort)
+                        continue
+
+                    if  not ptype in self._plugins :
+                        self._plugins[ptype] = {}
+
+                  # if  pname in self._plugins[ptype] :
+                  #     self._logger.warn ('overloading plugin %s' % pshort
+
+                    self._plugins[ptype][pname] = {
+                        'class'       : plugin.PLUGIN_CLASS,
+                        'type'        : ptype, 
+                        'name'        : pname, 
+                        'version'     : pvers, 
+                        'description' : pdescr,
+                        'instance'    : None
+                    }
+
+                    self._logger.info ('loading plugin %s' % pshort)
+
+                except Exception as e :
+                    self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
 
 
     #---------------------------------------------------------------------------
@@ -133,9 +209,18 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         return self._plugins[ptype].keys ()
+
+
+    #---------------------------------------------------------------------------
+    # 
+    def dump (self) :
+
+        import pprint
+        pprint.pprint (self._plugins)
 
 
     #---------------------------------------------------------------------------
@@ -145,9 +230,11 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
+            self.dump ()
             raise LookupError ("No such plugin named %s" % pname)
 
         return self._plugins[ptype][pname]
@@ -160,12 +247,16 @@ class PluginManager (object) :
         check if a plugin with given type and name was loaded, if so, instantiate its
         plugin class, initialize and return in.
         """
+
         if  not ptype in self._plugins :
+            self.dump ()
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
+            self.dump ()
             raise LookupError ("No such plugin named %s" % pname)
 
+        # create new plugin instance
         return self._plugins[ptype][pname]['class']()
 
 

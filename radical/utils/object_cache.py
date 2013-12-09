@@ -1,6 +1,6 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -10,7 +10,9 @@ import singleton
 
 # ------------------------------------------------------------------------------
 #
-TIMEOUT = 10
+# default timeout for delayed object removal.
+#
+_TIMEOUT = 10
 
 
 # ------------------------------------------------------------------------------
@@ -31,13 +33,18 @@ class ObjectCache (object) :
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self) :
+    def __init__ (self, timeout=_TIMEOUT) :
         """
         Make sure the object cache dict is initialized, exactly once.
+
+        If timeout is 0 or smaller, the objects are removed immediately --
+        otherwise removal is delayed by the specified timeout in seconds, to
+        avoid thrashing on frequent removal/creation.
         """
 
         with self._lock :
-            self._cache  = {}
+            self._timeout = timeout
+            self._cache   = dict()
 
 
 
@@ -91,8 +98,14 @@ class ObjectCache (object) :
 
                 if  obj == self._cache [oid]['obj'] :
 
-                    # delay actual removeal by TIMEOUT seconds)
-                    threading.Timer (TIMEOUT, self._delayed_rem_obj, oid)
+                    if  self._timeout > 0 :
+                        # delay actual removeal by _timeout seconds
+                        threading.Timer (self._timeout, self._rem_obj, [oid]).start ()
+
+                    else :
+                        # immediate removeal 
+                        self._rem_obj (oid)
+                        
                     return True
 
             return False  # obj not found
@@ -100,7 +113,7 @@ class ObjectCache (object) :
 
     # --------------------------------------------------------------------------
     #
-    def _delayed_rem_obj (self, oid) :
+    def _rem_obj (self, oid) :
         """
         actual removal of an object (identified by oid) from the cache -- see
         :func:`rem_obj()` for details.

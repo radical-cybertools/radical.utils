@@ -1,6 +1,6 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -39,6 +39,7 @@ _trace_namespace = 'radical'
 """
 
 
+# ------------------------------------------------------------------------------
 def _tracer (frame, event, arg) :
 
     global _trace_external
@@ -71,11 +72,17 @@ def _tracer (frame, event, arg) :
 
     return _tracer
 
+
+# ------------------------------------------------------------------------------
 def trace (namespace='radical') :
     _trace_namespace = namespace
     sys.settrace (_tracer)
 
+
+# ------------------------------------------------------------------------------
 def untrace () :
     sys.settrace (None)
 
+
+# ------------------------------------------------------------------------------
 

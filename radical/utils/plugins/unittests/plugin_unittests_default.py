@@ -1,4 +1,9 @@
 
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
+__license__   = "MIT"
+
+import radical.utils as ru
 
 # ------------------------------------------------------------------------------
 #
@@ -16,9 +21,25 @@ class PLUGIN_CLASS (object) :
     This class implements the (empty) default unittest plugin for radical.utils.
     """
 
+    __metaclass__ = ru.Singleton
+    _created      = False # singleton test
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__ (self) :
+
+        if  PLUGIN_CLASS._created :
+            assert (False), "singleton plugin should not get created twice"
+
+        PLUGIN_CLASS._created = True
+
+
     # --------------------------------------------------------------------------
     #
     def init (self, arg1, arg2) :
+
+      # print 'loading unittest plugin'
 
         self.arg1 = arg1
         self.arg2 = arg2

@@ -1,6 +1,6 @@
 
-__author__    = "Andre Merzky"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -235,7 +235,17 @@ class Configuration (object):
                 sys_cfg = '/etc/%s.cfg' % self._name
                 if os.path.exists(sys_cfg):
                     cfg_files.append(sys_cfg)
-                usr_cfg = '%s/.%s.cfg' % (os.path.expanduser("~"), self._name)
+
+                uconf = "%s_CONFIG" % self._name.upper ()
+                uconf = uconf.replace ('.', '_')
+                uconf = uconf.replace ('-', '_')
+                if uconf in os.environ :
+                    usr_cfg = os.environ[uconf]
+                    if  not os.path.exists (usr_cfg) :
+                        print "WARNING: %s set to %s, but file does not exist" % (uconf, usr_cfg)
+                else:
+                    usr_cfg = '%s/.%s.cfg' % (os.path.expanduser("~"), self._name)
+
                 if os.path.exists(usr_cfg):
                     cfg_files.append(usr_cfg)
 
@@ -464,7 +474,7 @@ class Configurable (object) :
     #
     def __init__(self, name):
 
-        self._name          = name
+        self._name = name
 
     # --------------------------------------------------------------------------
     #
@@ -480,10 +490,11 @@ class Configurable (object) :
         return getConfig(self._name).get_category(namespace)
 
 
+
     # --------------------------------------------------------------------------
     #
-    def get_config_as_dict(self):
-        return getConfig(self._name).as_dict ()
+    def get_config_as_dict (self): return getConfig(self._name).as_dict ()
+    def            as_dict (self): return getConfig(self._name).as_dict ()
 
 
 # ------------------------------------------------------------------------------

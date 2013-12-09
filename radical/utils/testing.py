@@ -1,6 +1,6 @@
 
-__author__    = "Ole Weidner"
-__copyright__ = "Copyright 2013, The SAGA Project"
+__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
@@ -134,14 +134,34 @@ class Testing (object) :
         tc = get_test_config ()
 
         results = list()
-        
+
+        # fall back to no subtree structure if no test suites are specified
+        if  not 'test_suites' in tc \
+        or  not tc['test_suites'] :
+            tc['test_suites'] = ['.']
+
+        verbosity_env  = os.getenv('NOSE_VERBOSE', 1)
+        verbosity_nose = None
+
+        try    : verbosity_nose = int(verbosity_env)
+        except : pass
+
+        try    : verbosity_nose = {'ERROR'   : 1,
+                                   'WARNING' : 2,
+                                   'INFO'    : 3, 
+                                   'DEBUG'   : 4}[verbosity_env]
+        except : pass
+
+        if  verbosity_nose == None:
+            verbosity_nose =  2
+
         # run all test suites from the config
         for test_suite in tc['test_suites'] :
 
             # configure the unit test framework
             config = nose.config.Config ()
         
-            config.verbosity  = int(os.getenv('NOSE_VERBOSE', 1))
+            config.verbosity  = verbosity_nose
             config.workingDir = self._testdir + '/' + test_suite
             config.stream     = sys.stderr
         

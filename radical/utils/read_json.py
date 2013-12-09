@@ -1,4 +1,8 @@
 
+__author__    = "Radical.Utils Development Team (Andre Merzky)"
+__copyright__ = "Copyright 2013, RADICAL@Rutgers"
+__license__   = "MIT"
+
 
 import re
 import json
@@ -18,6 +22,7 @@ def read_json (filename) :
         pprint.pprint (read_json (sys.argv[1]))
 
     """
+
     with open (filename) as f:
 
         content = ''
