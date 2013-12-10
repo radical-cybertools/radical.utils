@@ -1,10 +1,6 @@
 
-include radical/*.py
-include radical/utils/*.py
-include radical/utils/config/*.py
-include radical/utils/logger/*.py
-include radical/utils/contrib/*.py
+include VERSION README.md LICENSE.md CHANGES.md
 
-include radical/utils/VERSION
-include MANIFEST.in README.md LICENSE.md CHANGES.md
+recursive-include radical *
+recursive-include tests   *
 
