@@ -91,8 +91,8 @@ class our_test(Command):
     def run (self) :
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
         retval  = subprocess.call([sys.executable, 
-                                   '%s/run_tests.py'          % testdir,
-                                   '%s/configs/basetests.cfg' % testdir])
+                                   '%s/run_tests.py'        % testdir,
+                                   '%s/configs/default.cfg' % testdir])
         raise SystemExit(retval)
 
 

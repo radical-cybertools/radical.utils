@@ -31,62 +31,63 @@ class Reporter (object) :
         self._title = title
 
         if  self._title :
-            self._out (HEADER, "\n")
-            self._out (HEADER, HASHED_LINE)
-            self._out (HEADER, "%s\n" % title)
-            self._out (HEADER, HASHED_LINE)
-            self._out (HEADER, "\n")
+            self._out (self.HEADER, "\n")
+            self._out (self.HEADER, self.HASHED_LINE)
+            self._out (self.HEADER, "%s\n" % title)
+            self._out (self.HEADER, self.HASHED_LINE)
+            self._out (self.HEADER, "\n")
     
 
     # --------------------------------------------------------------------------
     #
-    def __del__ (self, title=None) :
-
-        if  self._title :
-            self._out (HEADER, "\n")
-            self._out (HEADER, HASHED_LINE)
-            self._out (HEADER, "\n")
-    
-
-    # --------------------------------------------------------------------------
-    #
-    def _out (color, msg) :
+    def _out (self, color, msg) :
         sys.stdout.write (color)
         sys.stdout.write (msg)
-        sys.stdout.write (ENDC)
+        sys.stdout.write (self.ENDC)
     
 
     # --------------------------------------------------------------------------
     #
     def header (self, msg) :
-        self._out (HEADER, "\n\n%s\n" % msg)
-        self._out (HEADER, DOUBLE_LINE)
+        self._out (self.HEADER, "\n\n%s\n" % msg)
+        self._out (self.HEADER, self.DOUBLE_LINE)
 
 
     # --------------------------------------------------------------------------
     #
     def info (self, msg) :
-        self._out (INFO, "\n%s\n" % msg)
-        self._out (INFO, SINGLE_LINE)
+        self._out (self.INFO, "\n%s\n" % msg)
+        self._out (self.INFO, self.SINGLE_LINE)
 
 
     # --------------------------------------------------------------------------
     #
     def ok (self, msg) :
-        self._out (OK, "%s\n" % msg)
+        self._out (self.OK, "%s\n" % msg)
 
 
     # --------------------------------------------------------------------------
     #
     def warn (self, msg) :
-        self._out (WARN, "%s\n" % msg)
+        self._out (self.WARN, "%s\n" % msg)
 
 
     # --------------------------------------------------------------------------
     #
     def error (self, msg) :
-        self._out (ERROR, "%s\n" % msg)
+        self._out (self.ERROR, "%s\n" % msg)
 
 
 # ------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+
+    r = Reporter (title='test')
+
+    r.header ('header')
+    r.info   ('info  ')
+    r.ok     ('ok    ')
+    r.warn   ('warn  ')
+    r.error  ('error ')
+
 
