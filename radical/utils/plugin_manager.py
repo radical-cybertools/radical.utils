@@ -125,11 +125,11 @@ class PluginManager (object) :
         self._logger.info ('loading plugins for namespace %s' % self._namespace)
 
         # search for plugins in all system module paths
-        for path in sys.path :
+        for spath in sys.path :
 
             # we only load plugins installed under the namespace hierarchy
-            mpath = self._namespace.replace ('.', '/')
-            ppath = "%s/%s/plugins/"  %  (path, mpath)
+            npath = self._namespace.replace ('.', '/')
+            ppath = "%s/%s/plugins/"  %  (spath, npath)
             pglob = "*/plugin_*.py"  
 
             if  not os.path.isdir (ppath) :
@@ -144,12 +144,31 @@ class PluginManager (object) :
 
             for pfile in pfiles :
 
-                idx    = pfile.find (mpath)
+                idx    = pfile.find (npath)
                 pshort = pfile[idx:]
+
+                # modname needs to be unique, otherwise global vars in the
+                # plugin file (such as, aehm, PLUGIN_DESCRIPTION) will be
+                # overwritten by the next plugin load.
+                pmodname = "%s.plugins.%s" % (self._namespace, 
+                                              os.path.basename(os.path.dirname(pfile)))
+                modname  = "%s.%s"         % (pmodname,
+                                              os.path.splitext(os.path.basename(pfile))[0])
 
                 try :
                     # load and register the plugin
-                    plugin = imp.load_source (self._namespace, pfile)
+
+                    # modname is unique and correct -- but load_source raises
+                    # a RuntimeWarning, because, apparently, the plugin's parent
+                    # module cannot be found.  In fact, the parent is a proper
+                    # python module, and it loads fine via 'import' -- but if is
+                    # is not imported before, load_source doesn't like that.
+                    # Well, the parent module actually SHOULD NOT be imported --
+                    # but we do it here anyways to silence the warning.  Thanks
+                    # python...
+                    __import__ (pmodname)
+                    plugin = imp.load_source (modname, pfile)
+
                     ptype  = plugin.PLUGIN_DESCRIPTION.get ('type',        None)
                     pname  = plugin.PLUGIN_DESCRIPTION.get ('name',        None)
                     pvers  = plugin.PLUGIN_DESCRIPTION.get ('version',     None)
@@ -261,6 +280,4 @@ class PluginManager (object) :
 
 
 # ------------------------------------------------------------------------------
-#
-
 
