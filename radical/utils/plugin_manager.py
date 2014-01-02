@@ -254,7 +254,7 @@ class PluginManager (object) :
 
         if  not pname in self._plugins[ptype] :
             self.dump ()
-            raise LookupError ("No such plugin named %s" % pname)
+            raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
 
         return self._plugins[ptype][pname]
 
@@ -273,7 +273,7 @@ class PluginManager (object) :
 
         if  not pname in self._plugins[ptype] :
             self.dump ()
-            raise LookupError ("No such plugin named %s" % pname)
+            raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
 
         # create new plugin instance
         return self._plugins[ptype][pname]['class']()
