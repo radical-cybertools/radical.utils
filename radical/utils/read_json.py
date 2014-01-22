@@ -27,7 +27,7 @@ def read_json (filename) :
 
         content = ''
 
-        # weed comments
+        # weed out comments
         for line in f.readlines () :
             content += re.sub (r'#.*', '', line)
 
@@ -35,6 +35,26 @@ def read_json (filename) :
         json_data = json.loads (content)
     
         return json_data
+
+
+# ------------------------------------------------------------------------------
+#
+def parse_json (json_str) :
+    """
+    Comments in the form of
+        # rest of line
+    are stripped from json before parsing
+    """
+
+    content = ''
+
+    # weed out comments
+    for line in json_str.split ('\n')
+        content += re.sub (r'#.*', '', line)
+
+    json_data = json.loads (content)
+    
+    return json_data
 
 
 # ------------------------------------------------------------------------------
