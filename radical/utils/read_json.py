@@ -49,7 +49,7 @@ def parse_json (json_str) :
     content = ''
 
     # weed out comments
-    for line in json_str.split ('\n')
+    for line in json_str.split ('\n') :
         content += re.sub (r'#.*', '', line)
 
     json_data = json.loads (content)
