@@ -188,19 +188,44 @@ class ReString (str) :
             print 'no match'
     """
 
+    # --------------------------------------------------------------------------
     def __init__ (self, src) :
+
+        self._result = None
+
         str.__init__ (self, src)
 
+
+    # --------------------------------------------------------------------------
     def __floordiv__ (self, regex) :
-        t = ReSult ()
-        _re          = re.compile (regex)
-        self._result = ReSult (re.search  (_re, self))
-        return self._result
 
-    def get (self, key=None) :
+        compiled_regex = None
+        if  isinstance (regex, basestring) :
+            compiled_regex = re.compile (regex)
+        else :
+            # assume we got a compiled regex
+            # FIXME: type check
+            compiled_regex = regex
 
-        if  key :
-            return self._result[key]
+        if re :
+            self._result = ReSult (re.search (compiled_regex, self))
+            return self._result
+
+        return None
+
+
+    # --------------------------------------------------------------------------
+    def get (self, key=None, default=None) :
+
+        if  self._result and key :
+
+            try :
+                return self._result[key]
+
+            except KeyError :
+                if  default :
+                    return default
+                raise
 
         return self._result
 
@@ -212,6 +237,7 @@ def _example_re_string () :
     txt = ReString ("The quick brown fox jumps over the lazy dog")
     
     with txt // '(\s.u)(?P<x>.*?j\S+)' as res :
+
         if res : print 'Matched!'               # boolean check
         print "res      : '%s' " % res          # list of results
         print "res[0]   : '%s' " % res[0]       # index by number ...
