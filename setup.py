@@ -142,7 +142,9 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'          : [],
+    'scripts'          : ['bin/dump_mongodb.py', 
+                          'bin/radical_copyright.pl',
+                         ],
     'package_data'     : {'' : ['*.sh', 'VERSION']},
     'cmdclass'         : {
         'test'         : our_test,
