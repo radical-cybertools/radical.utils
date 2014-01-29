@@ -108,7 +108,6 @@ class PluginManager (object) :
 
         # load adaptors if needed
         if  not self._plugins :
-            print 'no plugins'
             self._plugins = dict ()
             self._load_plugins ()
             self._registry.register (self._namespace, self._plugins)
