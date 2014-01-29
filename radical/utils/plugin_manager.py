@@ -22,7 +22,6 @@ class _PluginRegistry (dict) :
     __metaclass__ = singleton.Singleton
 
 
-
     # --------------------------------------------------------------------------
     #
     def __init__ (self) :
@@ -100,15 +99,16 @@ class PluginManager (object) :
         namespace: name of module (plugins are expected in namespace/plugins/)
         """
 
+        import radical.utils.logger as logger
+
         self._namespace = namespace
         self._registry  = _PluginRegistry () 
         self._plugins   = self._registry.retrieve (self._namespace)
-
-        import radical.utils.logger as logger
         self._logger    = logger.getLogger ('radical')
 
         # load adaptors if needed
         if  not self._plugins :
+            print 'no plugins'
             self._plugins = dict ()
             self._load_plugins ()
             self._registry.register (self._namespace, self._plugins)
@@ -123,6 +123,8 @@ class PluginManager (object) :
         """
 
         self._logger.info ('loading plugins for namespace %s' % self._namespace)
+
+        seen = list()
 
         # search for plugins in all system module paths
         for spath in sys.path :
@@ -146,6 +148,11 @@ class PluginManager (object) :
 
                 idx    = pfile.find (npath)
                 pshort = pfile[idx:]
+
+                if  pshort in seen :
+                    continue
+                else :
+                    seen.append (pshort)
 
                 # modname needs to be unique, otherwise global vars in the
                 # plugin file (such as, aehm, PLUGIN_DESCRIPTION) will be
@@ -206,7 +213,8 @@ class PluginManager (object) :
                         'instance'    : None
                     }
 
-                    self._logger.info ('loading plugin %s' % pshort)
+                    self._logger.debug ('loading plugin %s' % pfile)
+                    self._logger.info  ('loading plugin %s' % pshort)
 
                 except Exception as e :
                     self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
@@ -228,7 +236,7 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
-            self.dump ()
+            self._logger.debug (self.dumps())
             raise LookupError ("No such plugin type %s" % ptype)
 
         return self._plugins[ptype].keys ()
@@ -241,6 +249,12 @@ class PluginManager (object) :
         import pprint
         pprint.pprint (self._plugins)
 
+    #---------------------------------------------------------------------------
+    # 
+    def dumps (self) :
+
+        import pprint
+        return "\n%s" % pprint.pformat (self._plugins)
 
     #---------------------------------------------------------------------------
     # 
@@ -249,11 +263,11 @@ class PluginManager (object) :
         return a list of loaded plugins for a given plugin type
         """
         if  not ptype in self._plugins :
-            self.dump ()
+            self._logger.debug (self.dumps())
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
-            self.dump ()
+            self._logger.debug (self.dumps())
             raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
 
         return self._plugins[ptype][pname]
@@ -268,11 +282,11 @@ class PluginManager (object) :
         """
 
         if  not ptype in self._plugins :
-            self.dump ()
+            self._logger.debug (self.dumps())
             raise LookupError ("No such plugin type %s" % ptype)
 
         if  not pname in self._plugins[ptype] :
-            self.dump ()
+            self._logger.debug (self.dumps())
             raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
 
         # create new plugin instance

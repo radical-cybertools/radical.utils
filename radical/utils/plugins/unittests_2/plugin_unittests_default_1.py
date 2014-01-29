@@ -3,13 +3,14 @@ __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
-import radical.utils as ru
+import radical.utils  as ru
+import does_not_exist as nope
 
 # ------------------------------------------------------------------------------
 #
 PLUGIN_DESCRIPTION = {
-    'type'        : 'unittests', 
-    'name'        : 'default', 
+    'type'        : 'unittests_2', 
+    'name'        : 'default_1', 
     'version'     : '0.1',
     'description' : 'this is an empty test which basically does nothing.'
   }

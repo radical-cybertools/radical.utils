@@ -13,25 +13,49 @@ def test_plugin_manager () :
     Test plugin manager
     """
 
-    pmgr   = ru.PluginManager ('radical.utils')
-    plugin = pmgr.load ('unittests', 'default')
+    pmgr = ru.PluginManager ('radical.utils')
 
-    plugin.init ('a', 1)
-    
-    ret = plugin.run ()
+    plugin_2 = pmgr.load ('unittests_1', 'default_2')
+    plugin_2.init ('a', 1)
+    ret = plugin_2.run ()
+    assert (ret == (1, 'a')), "plugin_2 invocation: '%s' != '%s'" % ([1, 'a'], ret)
 
-    assert (ret == (1, 'a')), "plugin invocation: '%s' != '%s'" % ([1, 'a'], ret)
+    try :
+        plugin_1 = pmgr.load ('unittests_1', 'default_1')
+        assert False 
+    except LookupError :
+        pass
+    except :
+        assert False
+
+
+    plugin_2 = pmgr.load ('unittests_1', 'default_2')
+    plugin_2.init ('a', 1)
+    ret = plugin_2.run ()
+    assert (ret == (1, 'a')), "plugin_2 invocation: '%s' != '%s'" % ([1, 'a'], ret)
     
-    # load twice -- plugin is marked as singleton plugin, and will raise if it
+    plugin_3 = pmgr.load ('unittests_2', 'default_2')
+    plugin_3.init ('a', 1)
+    ret = plugin_3.run ()
+    assert (ret == (1, 'a')), "plugin_3 invocation: '%s' != '%s'" % ([1, 'a'], ret)
+    
+    # load twice -- plugin_2 is marked as singleton plugin_2, and will raise if it
     # is created twice
+    plugin_3 = pmgr.load ('unittests_2', 'default_2')
+    plugin_3.init ('a', 1)
+    ret = plugin_3.run ()
+    assert (ret == (1, 'a')), "plugin_3 invocation: '%s' != '%s'" % ([1, 'a'], ret)
     
-    pmgr   = ru.PluginManager ('radical.utils')
-    plugin = pmgr.load ('unittests', 'default')
-    plugin.init ('a', 1)
-    
-    ret = plugin.run ()
-    assert (ret == (1, 'a')), "plugin invocation: '%s' != '%s'" % ([1, 'a'], ret)
 
+    try :
+        pmgr = ru.PluginManager     ('troy')
+        plugin_strategy = pmgr.load ('strategy', 'basic_late_binding')
+        import troy
+        session = troy.Session ()
+        plugin_strategy.init_plugin (session)
+        plugin_strategy.execute     (None, None, None, None)
+    except :
+        pass
 
 # ------------------------------------------------------------------------------
 # run tests if called directly
