@@ -27,13 +27,14 @@ def usage (msg=None) :
 
       Commands are:
 
+        help:   show this message
         tree:   show a tree of the hierarchy, but only  document IDs, no content
         dump:   show a tree of the hierarchy, including document contents
         list:   list entries in the subtree, but do not traverse
         remove: remove the specified subtree
 
       The default command is 'tree'.  
-      The default URL is """ + "%s\n\n" % _DEFAULT_DBURL
+      The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL
 
     if  msg :
         sys.exit (1)
