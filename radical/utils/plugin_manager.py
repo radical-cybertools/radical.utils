@@ -151,8 +151,15 @@ class PluginManager (object) :
                 # from the full plugin file name, derive a short name for more
                 # useful logging, duplication checks etc. -- simply remove the
                 # namespace path portion...
-                idx    = pfile.find (npath) 
-                pshort = pfile[idx:]
+                if  pfile.startswith (spath) :
+                    pshort = pfile[len(spath):]
+                else :
+                    pshort = pfile
+
+              # print "pfile : %s" % pfile
+              # print "npath : %s" % npath
+              # print "spath : %s" % spath
+              # print "pshort: %s" % pshort
 
                 # check for duplication
                 if  pshort in seen :
@@ -229,7 +236,7 @@ class PluginManager (object) :
                     self._logger.info  ('loading plugin %s' % pshort)
 
                 except Exception as e :
-                    self._logger.warn ('loading plugin %s failed: %s' % (pshort, e))
+                    self._logger.error ('loading plugin %s failed: %s' % (pshort, e))
 
 
     #---------------------------------------------------------------------------
