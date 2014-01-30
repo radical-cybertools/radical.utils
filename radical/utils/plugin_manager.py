@@ -89,6 +89,9 @@ class PluginManager (object) :
 
     At this point, we leave the definition of the exact plugin signatures open,
     but expect that to be more strictly defined per plugin type in the future.
+
+    Note that the PluginManager construction is, at this point, not considered
+    thread safe.
     """
 
 
@@ -109,7 +112,6 @@ class PluginManager (object) :
 
         # load adaptors if registry didn't have any registered, yet
         if  not self._plugins :
-            self._plugins = dict ()
             self._load_plugins ()
             self._registry.register (self._namespace, self._plugins)
 
@@ -121,6 +123,9 @@ class PluginManager (object) :
         Load all plugins for the given namespace.  Previously loaded plugins
         are overloaded.
         """
+
+        # start wish a fresh plugin registry
+        self._plugins = dict () 
 
         self._logger.info ('loading plugins for namespace %s' % self._namespace)
 
