@@ -199,20 +199,19 @@ class PluginManager (object) :
 
                     # make sure details are complete
                     if  not ptype  : 
-                        self._logger.warn ('not plugin type in %s' % pshort)
+                        self._logger.error ('no plugin type in %s' % pshort)
                         continue
 
                     if  not pname  : 
-                        self._logger.warn ('not plugin name in %s' % pshort)
+                        self._logger.error ('no plugin name in %s' % pshort)
                         continue
 
                     if  not pvers  : 
-                        self._logger.warn ('not plugin version in %s' % pshort)
+                        self._logger.error ('no plugin version in %s' % pshort)
                         continue
 
                     if  not pdescr : 
-                        self._logger.warn ('not plugin description in %s'
-                                % pshort)
+                        self._logger.error ('no plugin description in %s' % pshort)
                         continue
 
                     # now put the plugin and plugin info into the plugin
