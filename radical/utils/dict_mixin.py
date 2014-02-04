@@ -101,5 +101,62 @@ class DictMixin :
 
 
 # ------------------------------------------------------------------------------
+#
+def dict_merge (a, b, merge_policy=None, _path=[]):
+    # thanks to 
+    # http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
+    """
+    This merges two dict in place, modifying the original dict in a.
+
+    Merge Policies :
+        None (default) : raise an exception on conflicts
+        preserve       : original value in a are preserved, new values 
+                         from b are only added where the original value 
+                         is None / 0 / ''
+        overwrite      : values in a are overwritten by new values from b
+
+    """
+
+    for key in b:
+        
+        if  key in a:
+
+            # need to resolve conflict
+            if  isinstance (a[key], dict) and isinstance (b[key], dict):
+                dict_merge (a[key], b[key], 
+                            merge_policy = merge_policy, 
+                            _path        = _path + [str(key)])
+            
+            elif a[key] == b[key]:
+                pass # same leaf value
+
+            elif  not a[key] and b[key] :
+                a[key] = b[key] # use b value
+
+            elif  not b[key] and a[key] :
+                pass # keep a value
+
+            elif  not b[key] and not a[key] :
+                pass # keep no a value
+
+            else:
+                if  merge_policy == 'preserve' :
+                    pass # keep original value
+
+                elif merge_policy == 'overwrite' :
+                    a[key] = b[key] # use new value
+
+                else :
+                    raise ValueError ('Conflict at %s (%s : %s)' \
+                                   % ('.'.join(_path + [str(key)]), a[key], b[key]))
+        
+        else:
+            # no conflict - simply add.  Not that this is a potential shallow
+            # copy if b[key] is a complex type.
+            a[key] = b[key]
+    
+    return a
+
+# ------------------------------------------------------------------------------
 
 

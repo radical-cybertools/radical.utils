@@ -31,10 +31,19 @@ def read_json (filename) :
         for line in f.readlines () :
             content += re.sub (r'#.*', '', line)
 
+        return json.loads (content)
 
-        json_data = json.loads (content)
-    
-        return json_data
+
+# ------------------------------------------------------------------------------
+#
+def read_json_str (filename) :
+    """
+    same as read_json, but converts unicode strings to simple strings.
+    This could trivially done with YAML, but that introduces a compile
+    dependency -- so we convert manually...
+    """
+
+    return _unicode_to_strings (read_json (filename))
 
 
 # ------------------------------------------------------------------------------
@@ -52,11 +61,40 @@ def parse_json (json_str) :
     for line in json_str.split ('\n') :
         content += re.sub (r'#.*', '', line)
 
-    json_data = json.loads (content)
-    
-    return json_data
+    return json.loads (content)
 
 
 # ------------------------------------------------------------------------------
+#
+def parse_json_str (json_str) :
+    """
+    same as parse_json, but converts unicode strings to simple strings
+    """
+
+    return _unicode_to_strings (parse_json (json_str))
 
 
+# ------------------------------------------------------------------------------
+#
+def _unicode_to_strings (unicode_data) :
+
+    if isinstance (unicode_data, dict) :
+        ret = dict ()
+        for key, value in unicode_data.iteritems() :
+            ret[_unicode_to_strings(key)] = _unicode_to_strings(value) 
+        return ret
+
+    elif isinstance (unicode_data, list) :
+        ret = list ()
+        for element in unicode_data :
+            ret.append (_unicode_to_strings (element))
+        return ret
+
+    elif isinstance (unicode_data, unicode) :
+        return unicode_data.encode ('utf-8')
+
+    else:
+        return unicode_data
+
+
+# ------------------------------------------------------------------------------

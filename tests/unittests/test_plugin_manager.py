@@ -57,6 +57,32 @@ def test_plugin_manager () :
     except :
         pass
 
+
+    import resource
+    mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print "%5d  %d" % (0, mem)
+
+    pmgr = ru.PluginManager ('radical.utils')
+
+    import resource
+    mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print "%5d  %d" % (0, mem)
+
+    for i in range (1000000) :
+        plugin_4 = pmgr.load ('unittests_2', 'default_2')
+        plugin_4.init ('a', 1)
+        ret = plugin_4.run ()
+        assert (ret == (1, 'a')), "plugin_4 invocation: '%s' != '%s'" % ([1, 'a'], ret)
+
+        if not i % 100000 :
+            mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            print "%5d  %d" % (i, mem)
+
+    mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    print "%5d  %d" % (i+1, mem)
+
+
+
 # ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ from plugin_manager import PluginManager
 from singleton      import Singleton
 from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
-from dict_mixin     import DictMixin
+from dict_mixin     import DictMixin, dict_merge
 from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
@@ -24,6 +24,9 @@ from reporter       import Reporter
 # import utility methods
 from ids            import generate_id, ID_SIMPLE, ID_UNIQUE
 from read_json      import read_json
+from read_json      import read_json_str
+from read_json      import parse_json
+from read_json      import parse_json_str
 from tracer         import trace, untrace
 from which          import which
 
