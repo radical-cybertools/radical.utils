@@ -29,6 +29,7 @@ from read_json      import parse_json
 from read_json      import parse_json_str
 from tracer         import trace, untrace
 from which          import which
+from misc           import split_dburl
 
 # import sub-modules
 # from config         import Configuration, Configurable, ConfigOption, getConfig
