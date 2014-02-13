@@ -5,12 +5,18 @@ import os
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (url) :
+def split_dburl (url, default_url=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
     collection id.
     """
+
+    # if the given URL does not contain schema nor host, the default URL is used
+    # as base, and the given URL string is appended to the path element.
+    
+    if  '://' not in url and default_url:
+        url = "%s/%s" % (default_url, url)
 
     slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
 

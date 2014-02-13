@@ -50,7 +50,7 @@ def dump (url, mode) :
     Connect to mongodb at the given location, and traverse the data bases
     """
 
-    [host, port, dbname, cname, pname] = ru.split_dburl (url)
+    [host, port, dbname, cname, pname] = ru.split_dburl (url, _DEFAULT_DBURL)
 
     db_client  = pymongo.MongoClient (host=host, port=port)
 
