@@ -102,7 +102,7 @@ class DictMixin :
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge (a, b, merge_policy=None, _path=[]):
+def dict_merge (a, b, policy=None, _path=[]):
     # thanks to 
     # http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
     """
@@ -124,8 +124,8 @@ def dict_merge (a, b, merge_policy=None, _path=[]):
             # need to resolve conflict
             if  isinstance (a[key], dict) and isinstance (b[key], dict):
                 dict_merge (a[key], b[key], 
-                            merge_policy = merge_policy, 
-                            _path        = _path + [str(key)])
+                            policy = policy, 
+                            _path  = _path + [str(key)])
             
             elif a[key] == b[key]:
                 pass # same leaf value
@@ -140,10 +140,10 @@ def dict_merge (a, b, merge_policy=None, _path=[]):
                 pass # keep no a value
 
             else:
-                if  merge_policy == 'preserve' :
+                if  policy == 'preserve' :
                     pass # keep original value
 
-                elif merge_policy == 'overwrite' :
+                elif policy == 'overwrite' :
                     a[key] = b[key] # use new value
 
                 else :
@@ -156,6 +156,55 @@ def dict_merge (a, b, merge_policy=None, _path=[]):
             a[key] = b[key]
     
     return a
+
+# ------------------------------------------------------------------------------
+#
+def dict_stringexpand (target, source) :
+    """
+    This expands dict entries (strings only) with keys from a second dict. For
+    example, the dicts::
+
+        target = {'workdir'  : '/home/%(user)s/', 
+                  'resource' : '%(resource)s'}
+        source = {'user'     : 'peer_gynt',
+                  'protocol' : 'ssh',
+                  'host'     : 'localhost',
+                  'resource' : '%(protocol)s://%(host)s/'}
+
+    would result in::
+        target = {'workdir'  : '/home/peer_gynt/', 
+                  'resource' : 'ssh://localhost'}
+
+    Note that expansion happened twice, for the `resource` tag to be fully
+    specified.
+    """
+
+    expand_again = True
+
+    while expand_again :
+
+        expand_again = False
+   
+        for key in target :
+
+            if  isinstance (target[key], basestring) :
+                orig     = target[key]
+                expanded = orig % source
+                if  orig != expanded :
+                    target[key]  = expanded
+                    expand_again = True
+
+            elif isinstance (target[key], dict) :
+                orig_str     = str(target[key])
+                dict_stringexpand (target[key], source)
+                expanded_str = str(target[key])
+                if  orig_str != expanded_str :
+                    expand_again = True
+
+            else :
+                # skip other types for now
+                pass
+
 
 # ------------------------------------------------------------------------------
 

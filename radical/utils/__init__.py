@@ -15,7 +15,7 @@ from plugin_manager import PluginManager
 from singleton      import Singleton
 from threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from url            import Url
-from dict_mixin     import DictMixin, dict_merge
+from dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
