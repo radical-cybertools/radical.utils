@@ -1,6 +1,7 @@
 
 
 import os
+import regex
 
 
 # ------------------------------------------------------------------------------
@@ -67,4 +68,61 @@ def split_dburl (url, default_url=None) :
 
   # print str([host, port, dbname, cname, pname])
     return [host, port, dbname, cname, pname]
+
+
+# ------------------------------------------------------------------------------
+#
+def parse_file_staging_directives (directives) :
+    """
+    staging directives
+
+       [local_path] [operator] [remote_path]
+
+    local path: 
+        * interpreted as relative to the application's working directory
+        * must point to local storage (localhost)
+    
+    remote path
+        * interpreted as relative to the job's working directory
+
+    operator :
+        * >  : stage to remote target, overwrite if exists
+        * >> : stage to remote target, append    if exists
+        * <  : stage to local  target, overwrite if exists
+        * << : stage to local  target, append    if exists
+
+    This method returns a tuple [src, tgt, op] for each given directive.  This
+    parsing is backward compatible with the simple staging directives used
+    previously -- any strings which do not contain staging operators will be
+    interpreted as simple paths (identical for src and tgt), operation is set to
+    '=', which must be interpreted in the caller context.  
+    """
+
+    bulk = True
+    if  not isinstance (directives, list) :
+        bulk       = False
+        directives = [directives]
+
+    ret = list()
+
+    for directive in directives :
+
+        if  not isinstance (directive, basestring) :
+            raise TypeError ("file staging directives muct by of type string, "
+                             "not %s" % type(directive))
+
+        rs = regex.ReString (directive)
+
+        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$' :
+            res = rs.get ()
+            ret.append ([res['one'], res['two'], res['op']]
+
+        else :
+            ret.append ([directive, directive, '='])
+
+    if  bulk : return ret
+    else     : return ret[0]
+
+
+# ------------------------------------------------------------------------------
 
