@@ -107,17 +107,18 @@ def test_dict_merge () :
 #
 def test_dict_stringexpand () :
 
-    target = {'workdir'  : '/home/%(user)s/', 
+    target = {'workdir'  : '%(home)s/work/',
               'resource' : '%(resource)s'}
     source = {'user'     : 'peer_gynt',
               'protocol' : 'ssh',
               'host'     : 'localhost',
+              'home'     : '/home/%(user)s', 
               'resource' : '%(protocol)s://%(host)s/'}
 
     ru.dict_stringexpand (target, source)
 
     assert (target.keys()      == ['workdir', 'resource'])
-    assert (target['workdir']  == '/home/peer_gynt/')
+    assert (target['workdir']  == '/home/peer_gynt/work/')
     assert (target['resource'] == 'ssh://localhost/')
 
 # ------------------------------------------------------------------------------

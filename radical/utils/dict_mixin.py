@@ -117,6 +117,16 @@ def dict_merge (a, b, policy=None, _path=[]):
 
     """
 
+    if  a == None : return
+    if  b == None : return
+
+    if  not isinstance (a, dict) :
+        raise TypeError ("*dict*_merge expects dicts, not '%s'" % type(a))
+
+    if  not isinstance (b, dict) :
+        raise TypeError ("*dict*_merge expects dicts, not '%s'" % type(b))
+
+
     for key in b:
         
         if  key in a:
@@ -154,22 +164,22 @@ def dict_merge (a, b, policy=None, _path=[]):
             # no conflict - simply add.  Not that this is a potential shallow
             # copy if b[key] is a complex type.
             a[key] = b[key]
-    
+
     return a
 
 # ------------------------------------------------------------------------------
 #
-def dict_stringexpand (target, source) :
+def dict_stringexpand (target, sources=None) :
     """
     This expands dict entries (strings only) with keys from a second dict. For
     example, the dicts::
 
-        target = {'workdir'  : '/home/%(user)s/', 
-                  'resource' : '%(resource)s'}
-        source = {'user'     : 'peer_gynt',
-                  'protocol' : 'ssh',
-                  'host'     : 'localhost',
-                  'resource' : '%(protocol)s://%(host)s/'}
+        target  = {'workdir'  : '/home/%(user)s/', 
+                   'resource' : '%(resource)s'}
+        sources = {'user'     : 'peer_gynt',
+                   'protocol' : 'ssh',
+                   'host'     : 'localhost',
+                   'resource' : '%(protocol)s://%(host)s/'}
 
     would result in::
         target = {'workdir'  : '/home/peer_gynt/', 
@@ -179,31 +189,139 @@ def dict_stringexpand (target, source) :
     specified.
     """
 
-    expand_again = True
+    assert (isinstance(target, dict))
 
-    while expand_again :
+    # expand from self, and all given dicts, but only use 
+    # first-level primitive types (string, int, float)
+    if  sources :
+        if  isinstance (sources, dict) :
+            sources = [sources]
+    else :
+        sources = list()
 
-        expand_again = False
-   
-        for key in target :
+    if  not isinstance (sources, list) :
+        raise TypeError ("Need dict as expansion sources, not %s" % type(sources))
 
-            if  isinstance (target[key], basestring) :
-                orig     = target[key]
-                expanded = orig % source
-                if  orig != expanded :
-                    target[key]  = expanded
-                    expand_again = True
+    # target must be first source, to avoid cycles (other sources are likely to
+    # have *other* info)
+    sources.insert (0, target)
 
-            elif isinstance (target[key], dict) :
-                orig_str     = str(target[key])
-                dict_stringexpand (target[key], source)
-                expanded_str = str(target[key])
-                if  orig_str != expanded_str :
-                    expand_again = True
+    repl_source = dict()
+    for source in sources :
+        for (key, val) in source.iteritems() :
+            if  isinstance (val, basestring) or \
+                isinstance (val, int       ) or \
+                isinstance (val, float     ) :
+                repl_source[key] = val
 
-            else :
-                # skip other types for now
-                pass
+  # print '---------'
+  # print repl_source
+  # print '---------'
+  # print target
+  # print '---------'
+
+    again = True
+    while again :
+        target, again = _generic_stringexpand (target, repl_source)
+        
+      # print target
+      # print '---------'
+
+
+# ------------------------------------------------------------------------------
+#
+def _generic_stringexpand (target, source) :
+
+  # print 'generic (%s) (%s)' % (type(target), id(target))
+
+    if  isinstance (target, basestring) : 
+        return _string_stringexpand (target, source)
+
+    elif  isinstance (target, list) : 
+        return _list_stringexpand (target, source)
+
+    elif  isinstance (target, dict) : 
+        return _dict_stringexpand (target, source)
+
+    else :
+        # ignore other types for now
+        return target, False
+
+
+
+# ------------------------------------------------------------------------------
+#
+def _list_stringexpand (target, source) :
+
+    assert (isinstance(target, list))
+    assert (isinstance(source, dict))
+
+  # print '> list %s' % target
+
+    all_again = 0
+    for (idx, elem) in enumerate(target) :
+        target[idx], again = _generic_stringexpand (elem, source)
+        all_again += again
+
+  # print '< list %s' % target
+    return target, all_again
+
+
+# ------------------------------------------------------------------------------
+#
+def _dict_stringexpand (target, source) :
+
+  # print 'dict'
+
+    assert (isinstance(target, dict))
+    assert (isinstance(source, dict))
+
+    all_again = 0
+    for (key, val) in target.iteritems() :
+      # print 'key: %s' % key
+        target[key], again = _generic_stringexpand (val, source)
+        all_again += again
+
+    return target, all_again
+
+
+# ------------------------------------------------------------------------------
+#
+def _string_stringexpand (target, source) :
+
+  # print 'string %s' % target
+
+    assert (isinstance(target, basestring))
+    assert (isinstance(source, dict))
+
+  # if 'cardinal' in source :
+  #     print '> str replace: %d - %s' % (source['cardinal'], target)
+
+    orig = str(target)
+    try :
+        expanded = target % source
+
+    except KeyError as e:
+        # we ignore incomplete expands
+      # print e
+        return orig, False
+
+    except ValueError as e:
+        # we ignore incomplete expands
+      # print e
+        return orig, False
+
+  # if  'cardinal' in source :
+  #     print '< str replace: %d - %s' % (source['cardinal'], target)
+
+    # only check for success after success.  Duh!
+  # print '>>>'
+  # print orig
+  # print expanded
+  # print "%20s \t %s" % (orig, expanded)
+    if  orig == expanded : return expanded, False
+    else                 : return expanded, True
+
 
 
 # ------------------------------------------------------------------------------
