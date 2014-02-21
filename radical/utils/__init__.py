@@ -4,10 +4,6 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import os
-
-version=open (os.path.dirname (os.path.abspath (__file__)) + "/VERSION", 'r').read().strip()
-
 
 # import utility classes
 from object_cache   import ObjectCache
@@ -30,9 +26,20 @@ from read_json      import parse_json_str
 from tracer         import trace, untrace
 from which          import which
 from misc           import split_dburl
+from get_version    import get_version
 
 # import sub-modules
 # from config         import Configuration, Configurable, ConfigOption, getConfig
+
+
+import os
+from   get_version import get_version
+
+pwd     = os.path.dirname (__file__)
+root    = "%s/../.." % pwd
+short_version, long_version, branch = get_version ([root, pwd])
+version = long_version
+
 
 
 # ------------------------------------------------------------------------------
