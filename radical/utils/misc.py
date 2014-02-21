@@ -115,7 +115,7 @@ def parse_file_staging_directives (directives) :
 
         if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$' :
             res = rs.get ()
-            ret.append ([res['one'], res['two'], res['op']]
+            ret.append ([res['one'], res['two'], res['op']])
 
         else :
             ret.append ([directive, directive, '='])

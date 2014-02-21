@@ -227,6 +227,8 @@ def dict_stringexpand (target, sources=None) :
       # print target
       # print '---------'
 
+    return target
+
 
 # ------------------------------------------------------------------------------
 #
