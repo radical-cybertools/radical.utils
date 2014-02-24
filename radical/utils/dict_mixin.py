@@ -215,16 +215,17 @@ def dict_stringexpand (target, sources=None) :
                 repl_source[key] = val
 
   # print '---------'
-  # print repl_source
+  # import pprint
+  # pprint.pprint (repl_source)
   # print '---------'
-  # print target
+  # pprint.pprint (target)
   # print '---------'
 
     again = True
     while again :
         target, again = _generic_stringexpand (target, repl_source)
         
-      # print target
+      # pprint.pprint (target)
       # print '---------'
 
     return target
