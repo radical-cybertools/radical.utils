@@ -115,7 +115,7 @@ def get_version (paths=None):
         # check if either one worked ok
         if  None == long_version :
             raise RuntimeError ("Cannot determine version from git or ./VERSION\n")
-                    
+
 
         # make sure the version files exist for the runtime version inspection
         for path in paths :
