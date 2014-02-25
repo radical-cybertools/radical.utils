@@ -9,73 +9,15 @@ __license__   = "MIT"
 import os
 import sys
 import subprocess
-
-from setuptools              import setup, Command
+from   setuptools  import setup, Command
 
 
 #-----------------------------------------------------------------------------
-#
-# versioning mechanism:
-#
-#   - short_version:  1.2.3 - is used for installation
-#   - long_version:  v1.2.3-9-g0684b06  - is used as runtime (ru.version)
-#   - both are derived from the last git tag
-#   - the file radical/utils/VERSION is created with the long_version, und used
-#     by ru.__init__.py to provide the runtime version information. 
-#
-def get_version():
+# setup.py can use ru version detection, as ru do not import any other
+# dependencies (which would otherwise be specified only below, ie.. chicken/egg)
+import radical.utils as ru
+short_version, version, branch = ru.short_version, ru.version, ru.branch
 
-    short_version = None  # 0.4.0
-    long_version  = None  # 0.4.0-9-g0684b06
-
-    try:
-        import subprocess as sp
-        import re
-
-        srcroot       = os.path.dirname (os.path.abspath (__file__))
-        VERSION_MATCH = re.compile (r'(([\d\.]+)\D.*)')
-
-        # attempt to get version information from git
-        p   = sp.Popen ('cd %s && git describe --tags --always' % srcroot,
-                        stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-        out = p.communicate()[0]
-
-
-        if  p.returncode != 0 or not out :
-
-            # the git check failed -- its likely that we are called from
-            # a tarball, so use ./VERSION instead
-            out=open ("%s/VERSION" % srcroot, 'r').read().strip()
-
-
-        # from the full string, extract short and long versions
-        v = VERSION_MATCH.search (out)
-        if v:
-            long_version  = v.groups ()[0]
-            short_version = v.groups ()[1]
-
-
-        # sanity check if we got *something*
-        if  not short_version or not long_version :
-            sys.stderr.write ("Cannot determine version from git or ./VERSION\n")
-            import sys
-            sys.exit (-1)
-
-
-        # make sure the version files exist for the runtime version inspection
-        open (              '%s/VERSION' % srcroot, 'w').write (long_version+"\n")
-        open ('%s/radical/utils/VERSION' % srcroot, 'w').write (long_version+"\n")
-
-
-    except Exception as e :
-        print 'Could not extract/set version: %s' % e
-        import sys
-        sys.exit (-1)
-
-    return short_version, long_version
-
-
-short_version, long_version = get_version ()
 
 #-----------------------------------------------------------------------------
 # check python version. we need > 2.5, <3.x
@@ -137,16 +79,19 @@ setup_args = {
         "radical.utils",
         "radical.utils.config",
         "radical.utils.plugins",
-        "radical.utils.plugins.unittests",
+        "radical.utils.plugins.unittests_1",
+        "radical.utils.plugins.unittests_2",
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'          : [],
+    'scripts'          : ['bin/dump_mongodb.py', 
+                          'bin/radical_copyright.pl',
+                         ],
     'package_data'     : {'' : ['*.sh', 'VERSION']},
     'cmdclass'         : {
         'test'         : our_test,
     },
-    'install_requires' : ['colorama'],
+    'install_requires' : ['colorama', 'pymongo'],
     'tests_require'    : ['nose'],
     'zip_safe'         : False,
 }

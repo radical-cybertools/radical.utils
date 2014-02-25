@@ -7,6 +7,7 @@ __license__   = "MIT"
 import time
 import threading
 import contextlib
+import weakref
 import singleton as rus
 
 
@@ -164,7 +165,7 @@ class _Registry (object) :
             self._registry[eid] = {}
             self._registry[eid]['ro_leases'] = 0  # not leased
             self._registry[eid]['rw_leases'] = 0  # not leased
-            self._registry[eid]['entity']    = entity
+            self._registry[eid]['entity']    = weakref.ref (entity)
 
 
     # --------------------------------------------------------------------------
@@ -177,7 +178,7 @@ class _Registry (object) :
 
         # sanity check
         if  not eid in self._registry :
-            KeyError ("'%s' is not registered" % eid)
+            raise KeyError ("'%s' is not registered" % eid)
 
         # wait for the entity to be fee for the expected usage
         while True :
@@ -213,10 +214,15 @@ class _Registry (object) :
                         break
 
         # acquire entity lock
-        self._registry[eid]['entity'].lock ()
-
-        # all is well...
-        return self._registry[eid]['entity']
+        entity = self._registry[eid]['entity']()
+        
+        if  None == entity :
+            raise KeyError ("'%s' was deallocated" % eid)
+            
+        else :
+            # all is well...
+            entity.lock ()
+            return entity
 
 
     # --------------------------------------------------------------------------
@@ -244,9 +250,14 @@ class _Registry (object) :
                 self._registry[eid]['rw_leases'] -= 1
 
             # release entity lock
-            self._registry[eid]['entity'].unlock ()
+            entity = self._registry[eid]['entity']()
 
-            # all is well...
+            if  entity == None :
+                raise KeyError ("'%s' was deallocated" % eid)
+
+            else :
+                # all is well...
+                entity.unlock ()
 
 
     # --------------------------------------------------------------------------
@@ -264,13 +275,19 @@ class _Registry (object) :
         # lock manager before checking/manipulating the registry
         with  self.lock :
 
+            entity = self._registry[eid]['entity']()
+
+            if  entity == None :
+                raise KeyError ("'%s' was deallocated" % eid)
+
+
             # unlock entity
             while self._registry[eid]['ro_leases'] :
-                self._registry[eid]['entity'].unlock ()
+                entity.unlock ()
                 self._registry[eid]['ro_leases'] -= 1
 
             while self._registry[eid]['rw_leases'] :
-                self._registry[eid]['entity'].unlock ()
+                entity.unlock ()
                 self._registry[eid]['rw_leases'] -= 1
 
 
