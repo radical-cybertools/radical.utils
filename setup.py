@@ -136,7 +136,9 @@ def get_version (paths=None):
 #-----------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
 root     = os.path.dirname (__file__)
-src_dir = "%s/%s" % (root, srcroot)
+if  not root :
+    root = os.getcwd()
+src_dir  = "%s/%s" % (root, srcroot)
 short_version, long_version, branch = get_version ([root, src_dir])
 
 
