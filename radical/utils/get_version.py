@@ -59,7 +59,6 @@ def get_version (paths=None):
     
         except Exception as e :
             # ignore missing VERSION file -- this is caught below
-            print e
             pass
 
 
