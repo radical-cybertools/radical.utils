@@ -6,9 +6,10 @@ __license__   = "MIT"
 
 """ Setup script. Used by easy_install and pip. """
 
+import re
 import os
 import sys
-import subprocess
+import subprocess as sp
 
 from setuptools import setup, Command
 
@@ -82,8 +83,6 @@ def get_version (paths=None):
         # if we didn't find it, get it from git 
         if  not long_version :
 
-            import subprocess as sp
-            import re
 
             # make sure we look at the right git repo
             if  len(paths) :
@@ -153,9 +152,9 @@ class our_test(Command):
     def finalize_options   (self) : pass
     def run (self) :
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
-        retval  = subprocess.call([sys.executable,
-                                   '%s/run_tests.py'               % testdir,
-                                   '%s/configs/default.cfg'        % testdir])
+        retval  = sp.call([sys.executable,
+                          '%s/run_tests.py'               % testdir,
+                          '%s/configs/default.cfg'        % testdir])
         raise SystemExit(retval)
 
 
