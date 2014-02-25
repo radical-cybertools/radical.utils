@@ -4,7 +4,6 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-
 # import utility classes
 from object_cache   import ObjectCache
 from plugin_manager import PluginManager
@@ -32,14 +31,15 @@ from get_version    import get_version
 # from config         import Configuration, Configurable, ConfigOption, getConfig
 
 
+# ------------------------------------------------------------------------------
+
+
 import os
-from   get_version import get_version
 
 pwd     = os.path.dirname (__file__)
 root    = "%s/../.." % pwd
 short_version, long_version, branch = get_version ([root, pwd])
 version = long_version
-
 
 
 # ------------------------------------------------------------------------------

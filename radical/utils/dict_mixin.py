@@ -102,7 +102,7 @@ class DictMixin :
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge (a, b, policy=None, _path=[]):
+def dict_merge (a, b, policy=None, logger=None, _path=[]):
     # thanks to 
     # http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
     """
@@ -116,6 +116,9 @@ def dict_merge (a, b, policy=None, _path=[]):
         overwrite      : values in a are overwritten by new values from b
 
     """
+
+    if  logger : logger.debug ("merging dicts (%s)" % ":".join(_path))
+    else       : print         "Merging dicts (%s)" % ":".join(_path)
 
     if  a == None : return
     if  b == None : return
@@ -135,6 +138,7 @@ def dict_merge (a, b, policy=None, _path=[]):
             if  isinstance (a[key], dict) and isinstance (b[key], dict):
                 dict_merge (a[key], b[key], 
                             policy = policy, 
+                            logger = logger, 
                             _path  = _path + [str(key)])
             
             elif a[key] == b[key]:
@@ -151,9 +155,13 @@ def dict_merge (a, b, policy=None, _path=[]):
 
             else:
                 if  policy == 'preserve' :
+                    if  logger :
+                        logger.debug ("preserving key %s:%s \t(%s)" % (":".join(_path), key, b[key]))
                     pass # keep original value
 
                 elif policy == 'overwrite' :
+                    if  logger :
+                        logger.debug ("overwriting key %s:%s \t(%s)" % (":".join(_path), key, b[key]))
                     a[key] = b[key] # use new value
 
                 else :
