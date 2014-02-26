@@ -117,8 +117,8 @@ def dict_merge (a, b, policy=None, logger=None, _path=[]):
 
     """
 
-    if  logger : logger.debug ("merging dicts (%s)" % ":".join(_path))
-    else       : print         "Merging dicts (%s)" % ":".join(_path)
+    if  logger : 
+        logger.debug ("merging dicts (%s)" % ":".join(_path))
 
     if  a == None : return
     if  b == None : return
