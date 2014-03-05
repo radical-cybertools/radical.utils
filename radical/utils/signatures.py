@@ -3,6 +3,8 @@ __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
+import sys
+
 
 # ------------------------------------------------------------------------------
 #
@@ -181,6 +183,7 @@ class Checker (object):
 
     def __init__ (self, reference):
         self.reference = reference
+        self.spectype   = reference
 
     def check (self, value): # abstract
         pass
@@ -337,11 +340,12 @@ class OneOfChecker (Checker):
 
 one_of = lambda *args: OneOfChecker (*args).check
 
-def raise_return_exception (method, spectype, result) :
 
-    if no_return_check:
-        # disable this!
-        return
+def create_return_exception (method, spectype, result) :
+
+  # if no_return_check:
+  #     # disable this!
+  #     return
 
     stack = extract_stack ()
     for f in stack : 
@@ -354,14 +358,14 @@ def raise_return_exception (method, spectype, result) :
     msg  += "  in file       : %s +%s\n"   % (frame[0], frame[1])
     msg  += "  on line       : %s\n"       % (frame[3])
     msg  += "  method        : %s\n"       % (method.__name__)
-    msg  += "  returned type : %s\n"       % (type_name (result))
-    msg  += "  instead  of   : %s\n"       % (type_name (spectype))
+    msg  += "  returned type : %s\n"       % (type(result).__name__)
+    msg  += "  instead  of   : %s\n"       % (spectype.__name__)
     msg  += "  This is an internal error!"
 
-    raise TypeError (msg)
+    return TypeError (msg)
 
 
-def raise_type_exception (method, arg0, i, arg, kwname="") :
+def create_type_exception (method, arg0, i, arg, spectype, kwname="") :
 
     narg = 0
     
@@ -385,9 +389,10 @@ def raise_type_exception (method, arg0, i, arg, kwname="") :
         msg  += "  argument           : #%s\n"  % (narg)
     else :
         msg  += "  parameter          : %s"     % (kwname)
-    msg  += "  has incorrect type : %s"         % (type (arg))
+    msg  += "  has incorrect type : %s\n"       % (type (arg).__name__)
+    msg  += "  instead of         : %s"         % (spectype.__name__)
 
-    raise TypeError (msg)
+    return TypeError (msg)
 
 
 # ------------------------------------------------------------------------------
@@ -425,7 +430,7 @@ def takes (*args, **kwargs):
             method_args, method_defaults = getargspec (method)[0::3]
 
             @wraps(method)
-            def takes_invocation_proxy (*pargs, **pkwargs):
+            def signature_check (*pargs, **pkwargs):
     
                 # append the default parameters
 
@@ -437,16 +442,25 @@ def takes (*args, **kwargs):
 
                 for i, (arg, checker) in enumerate (zip (pargs, checkers)):
                     if  not checker.check (arg):
-                        raise_type_exception (method, pargs[0], i, arg)
+                        print 'Checker.spectype %s' % checker.spectype
+                        raise (create_type_exception (method, pargs[0], i,
+                                                      arg, checker.spectype))
 
                 for kwname, checker in kwcheckers.iteritems ():
                     if  not checker.check (pkwargs.get (kwname, None)):
-                        raise_type_exception (method, pargs[0], i, arg, kwname)
+                        print 'checker.spectype %s' % checker.spectype
+                        raise (create_type_exception (method, pargs[0], i,
+                                                      arg, checker.spectype, kwname))
 
-                return method(*pargs, **pkwargs)
+                try :
+                    return method(*pargs, **pkwargs)
+                except :
+                    # remove signature decorator from exception call stack
+                    et, ei, tb = sys.exc_info()
+                    raise et, ei, tb.tb_next
 
-            takes_invocation_proxy.__name__ = method.__name__
-            return takes_invocation_proxy
+            signature_check.__name__ = method.__name__
+            return signature_check
     
     return takes_proxy
 
@@ -456,7 +470,7 @@ def returns (sometype):
     "Return type checking decorator"
 
     # convert decorator argument into a checker
-
+    
     checker = Checker.create(sometype)
     if checker is None:
         raise TypeError ("@returns decorator got parameter of unsupported "
@@ -472,18 +486,24 @@ def returns (sometype):
         def returns_proxy (method):
             
             @wraps(method)
-            def returns_invocation_proxy (*args, **kwargs):
+            def signature_check (*args, **kwargs):
                 
-                result = method (*args, **kwargs)
+                try :
+                    result = method (*args, **kwargs)
+                except :
+                    # remove signature decorator from exception call stack
+                    et, ei, tb = sys.exc_info()
+                    raise et, ei, tb.tb_next
                 
                 if  not checker.check (result):
                     
-                    raise_return_exception (method, sometype, result)
+                    print 'Checker.spectype %s' % checker.spectype
+                    raise (create_return_exception (method, checker.spectype, result))
 
                 return result
     
-            returns_invocation_proxy.__name__ = method.__name__
-            return returns_invocation_proxy
+            signature_check.__name__ = method.__name__
+            return signature_check
         
     return returns_proxy
 
