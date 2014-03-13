@@ -46,6 +46,8 @@ def get_version (mod_root):
 
         # get version from './VERSION'
         src_root = os.path.dirname (__file__)
+        if  not src_root :
+            src_root = '.'
 
         with open (src_root + "/VERSION", "r") as f :
             version = f.readline ().strip()
