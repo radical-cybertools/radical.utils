@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 """ Setup script. Used by easy_install and pip. """
 
+import re
 import os
 import sys
 import subprocess as sp

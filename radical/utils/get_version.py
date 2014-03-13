@@ -54,12 +54,11 @@ def get_version (paths=None):
                     long_version  = match.group ('long')
                     short_version = match.group ('short')
                     branch_name   = match.group ('branch')
-                    print 'reading  %s' % filename
+                  # print 'reading  %s' % filename
                     break
     
         except Exception as e :
             # ignore missing VERSION file -- this is caught below
-            print e
             pass
 
 
