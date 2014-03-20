@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 ''' Provides log handler management. '''
 
+import re
 import logging
 
 import radical.utils         as ru
@@ -59,7 +60,7 @@ class _LogConfig (ruc.Configurable) :
 
         self._name    = name
         self._lc_name = name.lower ()
-        self._uc_name = name.upper ()
+        self._uc_name = re.sub (r"[^A-Z0-9]+", "_" % name.upper ())
 
         _all_logging_options = [
             { 
