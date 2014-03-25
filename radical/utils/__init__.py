@@ -36,10 +36,10 @@ from get_version    import get_version
 
 import os
 
-pwd     = os.path.dirname (__file__)
-root    = "%s/../.." % pwd
-short_version, long_version, branch = get_version ([root, pwd])
-version = long_version
+_mod_root = os.path.dirname (__file__)
+
+version        = open (_mod_root + "/VERSION",     "r").readline ().strip ()
+version_detail = open (_mod_root + "/VERSION.git", "r").readline ().strip ()
 
 
 # ------------------------------------------------------------------------------

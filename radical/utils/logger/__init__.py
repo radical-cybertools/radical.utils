@@ -10,12 +10,12 @@ from   logger  import getLogger
 import radical.utils as ru
 
 # ------------------------------------------------------------------------------
-def log_version (module='radical', name='radical.utils', version=ru.version) :
+def log_version (module, name, version, version_detail) :
 
     _log = getLogger (module)
-    _log.info ('%-15s version: %s', name, version)
+    _log.info ('%-15s version: %s (%s)', name, version, version_detail)
 
-log_version ()
+log_version ('radical', 'radical.utils', ru.version, ru.version_detail)
 
 
 # ------------------------------------------------------------------------------
