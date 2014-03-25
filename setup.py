@@ -54,14 +54,14 @@ def get_version (mod_root):
 
         # attempt to get version detail information from git
         p   = sp.Popen ('cd %s ; '\
-                        'tag=`git describe --tags --always` ; '\
-                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` ; '\
+                        'tag=`git describe --tags --always` 2>/dev/null ; '\
+                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` 2>/dev/null ; '\
                         'echo $tag@$branch'  % src_root,
                         stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         version_detail = p.communicate()[0].strip()
 
-        if  p.returncode != 0 and out :
-            version_detail = None
+        if  p.returncode != 0 or version_detail == '@' :
+            version_detail = "v%s" % version
 
         print 'version: %s (%s)'  % (version, version_detail)
 
