@@ -6,125 +6,74 @@ __license__   = "MIT"
 
 """ Setup script. Used by easy_install and pip. """
 
-import re
 import os
 import sys
 import subprocess as sp
 
 from setuptools import setup, Command
 
-srcroot = 'radical/utils'
-name    = 'radical.utils'
+name     = 'radical.utils'
+mod_root = 'radical/utils'
 
-# ------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 #
 # versioning mechanism:
 #
-#   - short_version:  1.2.3                   - is used for installation
-#   - long_version:   1.2.3-9-g0684b06-devel  - is used as runtime (ru.version)
-#   - both are derived from the last git tag and branch information
-#   - VERSION files are created on demand, with the long_version
+#   - version:          1.2.3            - is used for installation
+#   - version_detail:  v1.2.3-9-g0684b06 - is used for debugging
+#   - version is read from VERSION file in src root, which is on installation
+#     copied into the module dir.
+#   - version_detail is derived from the git tag, and only available when
+#     installed from git -- this is stored in VERSION.git, in the same
+#     locations, on install.
+#   - both files, VERSION and VERSION.git are used to provide the runtime 
+#     version information. 
 #
-# can't use radical.utils versioning detection, as radical.utils is only
-# below specified as dependency :/
-def get_version (paths=None):
+def get_version (mod_root):
     """
-    paths:
-        a VERSION file containing the long version is created in every directpry
-        listed in paths.  Those VERSION files are used when they exist to get
-        the version numbers, if they exist prior to calling this method.  If 
-        not, we cd into the first path, try to get version numbers from git tags 
-        in that location, and create the VERSION files in all dirst given in 
-        paths.
+    mod_root
+        a VERSION and VERSION.git file containing the version strings is created
+        in mod_root, during installation.  Those files are used at runtime to
+        get the version information.
+
     """
 
     try:
 
-        if  None == paths :
-            # by default, get version for myself
-            pwd     = os.path.dirname (__file__)
-            root    = "%s/.." % pwd
-            paths = [root, pwd]
+        version        = None
+        version_detail = None
 
-        if  not isinstance (paths, list) :
-            paths = [paths]
+        # get version from './VERSION'
+        src_root = os.path.dirname (__file__)
+        if  not src_root :
+            src_root = '.'
 
-        long_version  = None
-        short_version = None
-        branch_name   = None
+        with open (src_root + "/VERSION", "r") as f :
+            version = f.readline ().strip()
 
 
-        # if in any of the paths a VERSION file exists, we use the long version
-        # in there.
-        for path in paths :
+        # attempt to get version detail information from git
+        p   = sp.Popen ('cd %s ; '\
+                        'tag=`git describe --tags --always` ; '\
+                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` ; '\
+                        'echo $tag@$branch'  % src_root,
+                        stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
+        version_detail = p.communicate()[0].strip()
 
-            try :
+        if  p.returncode != 0 and out :
+            version_detail = None
 
-                filename = "%s/VERSION" % path
-
-                with open (filename) as f :
-                    line = f.readline()
-                    line.strip()
-                    pattern = re.compile ('^\s*(?P<long>(?P<short>[^-@]+?)(-[^@]+?)?(?P<branch>@.+?)?)\s*$')
-                    match   = pattern.search (line)
-    
-                    if  match :
-                        long_version  = match.group ('long')
-                        short_version = match.group ('short')
-                        branch_name   = match.group ('branch')
-                        print 'reading  %s' % filename
-                        break
-
-            except Exception as e :
-                # ignore missing VERSION file -- this is caught below
-                pass
-
-
-        # if we didn't find it, get it from git 
-        if  not long_version :
-
-
-            # make sure we look at the right git repo
-            if  len(paths) :
-                git_cd  = "cd %s ;" % paths[0]
-
-            # attempt to get version information from git
-            p   = sp.Popen ('%s'\
-                            'git describe --tags --always ; ' \
-                            'git branch   --contains | grep -e "^\*"' % git_cd,
-                            stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-            out = p.communicate()[0]
-
-            if  p.returncode == 0 and out :
-
-                pattern = re.compile ('(?P<long>(?P<short>[\d\.]+).*?)(\s+\*\s+(?P<branch>\S+))?$')
-                match   = pattern.search (out)
-
-                if  match :
-                    long_version  = match.group ('long')
-                    short_version = match.group ('short')
-                    branch_name   = match.group ('branch')
-                    print 'inspecting git for version info'
-
-                    # if not on master, make sure the branch is part of the long version
-                    if  branch_name and not branch_name == 'master' :
-                        long_version = "%s@%s" % (long_version, branch_name)
-
-
-        # check if either one worked ok
-        if  None == long_version :
-            raise RuntimeError ("Cannot determine version from git or ./VERSION\n")
+        print 'version: %s (%s)'  % (version, version_detail)
 
 
         # make sure the version files exist for the runtime version inspection
-        for path in paths :
-            vpath = '%s/VERSION' % path
-            print 'creating %s'  % vpath
-            with open (vpath, 'w') as f :
-                f.write (long_version  + "\n")
-    
-        return short_version, long_version, branch_name
+        path = "%s/%s" % (src_root, mod_root)
+        print 'creating %s/VERSION' % path
 
+        with open (path + "/VERSION",     "w") as f : f.write (version        + "\n") 
+        with open (path + "/VERSION.git", "w") as f : f.write (version_detail + "\n")
+
+        return version, version_detail
 
     except Exception as e :
         raise RuntimeError ("Could not extract/set version: %s" % e)
@@ -132,11 +81,7 @@ def get_version (paths=None):
 
 #-----------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
-root     = os.path.dirname (__file__)
-if  not root :
-    root = os.getcwd()
-src_dir  = "%s/%s" % (root, srcroot)
-short_version, long_version, branch = get_version ([root, src_dir])
+version, version_detail = get_version (mod_root)
 
 
 #-----------------------------------------------------------------------------
@@ -166,18 +111,19 @@ def read(*rnames):
 
 #-----------------------------------------------------------------------------
 setup_args = {
-    'name'             : name,
-    'version'          : short_version,
-    'description'      : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
-    'long_description' : (read('README.md') + '\n\n' + read('CHANGES.md')),    
-    'author'           : 'RADICAL Group at Rutgers University',
-    'author_email'     : "radical@rutgers.edu",
-    'maintainer'       : "Andre Merzky",
-    'maintainer_email' : "andre@merzky.net",
-    'url'              : "https://www.github.com/saga-project/radical.utils/",
-    'license'          : "MIT",
-    'keywords'         : "radical pilot job saga",
-    'classifiers'      : [
+    'name'               : name,
+    'namespace_packages' : ["radical"],
+    'version'            : version,
+    'description'        : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
+    'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
+    'author'             : 'RADICAL Group at Rutgers University',
+    'author_email'       : "radical@rutgers.edu",
+    'maintainer'         : "Andre Merzky",
+    'maintainer_email'   : "andre@merzky.net",
+    'url'                : "https://www.github.com/saga-project/radical.utils/",
+    'license'            : "MIT",
+    'keywords'           : "radical pilot job saga",
+    'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Environment :: Console',
@@ -192,9 +138,9 @@ setup_args = {
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
-        'Operating System :: Unix',
+        'Operating System :: Unix'
     ],
-    'packages'         : [
+    'packages'           : [
         "radical",
         "radical.utils",
         "radical.utils.config",
@@ -204,23 +150,23 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'          : ['bin/dump_mongodb.py', 
-                          'bin/radical_copyright.pl',
-                         ],
-    'package_data'     : {'' : ['*.sh', 'VERSION']},
-    'cmdclass'         : {
-        'test'         : our_test,
+    'scripts'            : ['bin/dump_mongodb.py', 
+                            'bin/radical_copyright.pl',
+                           ],
+    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
+    'cmdclass'           : {
+        'test'           : our_test,
     },
-    'install_requires' : ['colorama', 'pymongo'],
-    'tests_require'    : ['nose'],
-    'zip_safe'         : False,
-#   'build_sphinx'     : {
-#       'source-dir'   : 'docs/',
-#       'build-dir'    : 'docs/build',
-#       'all_files'    : 1,
+    'install_requires'   : ['colorama', 'pymongo'],
+    'tests_require'      : ['nose'],
+    'zip_safe'           : False,
+#   'build_sphinx'       : {
+#       'source-dir'     : 'docs/',
+#       'build-dir'      : 'docs/build',
+#       'all_files'      : 1,
 #   },
-#   'upload_sphinx'    : {
-#       'upload-dir'   : 'docs/build/html',
+#   'upload_sphinx'      : {
+#       'upload-dir'     : 'docs/build/html',
 #   }
 }
 
