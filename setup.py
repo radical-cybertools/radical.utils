@@ -122,7 +122,7 @@ setup_args = {
     'author_email'       : "radical@rutgers.edu",
     'maintainer'         : "Andre Merzky",
     'maintainer_email'   : "andre@merzky.net",
-    'url'                : "https://www.github.com/saga-project/radical.utils/",
+    'url'                : "https://www.github.com/radical-cybertools/radical.utils/",
     'license'            : "MIT",
     'keywords'           : "radical pilot job saga",
     'classifiers'        : [
@@ -152,10 +152,8 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'            : ['bin/dump_mongodb.py', 
-                            'bin/radical_copyright.pl',
-                           ],
-    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
+    'scripts'            : ['bin/owms.py', 'bin/radical-owms-version'],
+    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git', 'resources.json']},
     'cmdclass'           : {
         'test'           : our_test,
     },
