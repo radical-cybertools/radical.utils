@@ -95,7 +95,7 @@ class Testing (object) :
 
 
         print "______________________________________________________________________"
-        print "Using %s from: %s" % (modname, module.__file__)
+        print "Using %s from: %s" % (modname, module.__path__[0])
         print "______________________________________________________________________"
 
 
