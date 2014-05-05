@@ -58,6 +58,20 @@ class ReSult (object) :
 
     # --------------------------------------------------------------------------
     #
+    def get (self, key, default=None) :
+        """
+        get is supported for default based dict access,
+        """
+   
+        if  isinstance (key, str) :
+            return self._gdict.get (key, default)
+        else :
+            raise TypeError ("key %s needs to be integer, not %s"
+                          % (key, type(key)))
+
+
+    # --------------------------------------------------------------------------
+    #
     def __getitem__ (self, idx) :
         """
         getitem is supported for both array type access (using an int index),

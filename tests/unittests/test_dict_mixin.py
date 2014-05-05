@@ -69,12 +69,65 @@ def test_dict_mixin () :
     assert ('test1' not in t)
     assert ('test2'     in t)
 
+# ------------------------------------------------------------------------------
+#
+def test_dict_merge () :
+
+    dict_1 = {'key_shared' : 'val_shared_1', 
+              'key_orig_1' : 'val_orig_1'}
+    dict_2 = {'key_shared' : 'val_shared_2', 
+              'key_orig_2' : 'val_orig_2'}
+
+    try :
+        ru.dict_merge (dict_1, dict_2)
+        assert (False), 'expected ValueError exception'
+    except ValueError :
+        pass
+    except Exception as e :
+        assert (False), 'expected ValueError exception, not %s' % e
+
+
+    ru.dict_merge (dict_1, dict_2, policy='preserve')
+
+    assert (dict_1.keys()        == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (dict_1['key_shared'] == 'val_shared_1')
+    assert (dict_1['key_orig_1'] == 'val_orig_1')
+    assert (dict_1['key_orig_2'] == 'val_orig_2')
+
+
+    ru.dict_merge (dict_1, dict_2, policy='overwrite')
+
+    assert (dict_1.keys()        == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (dict_1['key_shared'] == 'val_shared_2')
+    assert (dict_1['key_orig_1'] == 'val_orig_1')
+    assert (dict_1['key_orig_2'] == 'val_orig_2')
+
+
+# ------------------------------------------------------------------------------
+#
+def test_dict_stringexpand () :
+
+    target = {'workdir'  : '%(home)s/work/',
+              'resource' : '%(resource)s'}
+    source = {'user'     : 'peer_gynt',
+              'protocol' : 'ssh',
+              'host'     : 'localhost',
+              'home'     : '/home/%(user)s', 
+              'resource' : '%(protocol)s://%(host)s/'}
+
+    ru.dict_stringexpand (target, source)
+
+    assert (target.keys()      == ['workdir', 'resource'])
+    assert (target['workdir']  == '/home/peer_gynt/work/')
+    assert (target['resource'] == 'ssh://localhost/')
 
 # ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
     test_dict_mixin ()
+    test_dict_merge ()
+    test_dict_stringexpand ()
 
 # ------------------------------------------------------------------------------
 

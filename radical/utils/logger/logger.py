@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 ''' Provides log handler management. '''
 
+import re
 import logging
 
 import radical.utils         as ru
@@ -59,7 +60,7 @@ class _LogConfig (ruc.Configurable) :
 
         self._name    = name
         self._lc_name = name.lower ()
-        self._uc_name = name.upper ()
+        self._uc_name = re.sub (r"[^A-Z0-9]+", "_", name.upper ())
 
         _all_logging_options = [
             { 
@@ -183,7 +184,7 @@ _logger_registry = ru.ObjectCache ()
 #
 # FIXME: strange pylint error
 #
-def getLogger (name, tag='logger'):
+def getLogger (name, tag=None):
     ''' 
     Get a logger.  For any new name/tag pair, a new logger instance will be
     created; subsequent calls to this method with the same argument set will
@@ -192,7 +193,9 @@ def getLogger (name, tag='logger'):
     Configuration for the logger is *only* derived from the name part.
     '''
 
-    fullname = "%s.%s" % (name, tag)
+    fullname = name
+    if  tag :
+        fullname += ".%s" % tag
 
 
     # get or create a python logger

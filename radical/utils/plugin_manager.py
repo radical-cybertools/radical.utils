@@ -260,7 +260,8 @@ class PluginManager (object) :
         """
         if  not ptype in self._plugins :
             self._logger.debug (self.dump_str())
-            raise LookupError ("No such plugin type %s" % ptype)
+            raise LookupError ("No such plugin type %s in %s" \
+                    % (ptype, self._plugins.keys()))
 
         return self._plugins[ptype].keys ()
 
@@ -273,11 +274,13 @@ class PluginManager (object) :
         """
         if  not ptype in self._plugins :
             self._logger.debug (self.dump_str())
-            raise LookupError ("No such plugin type %s" % ptype)
+            raise LookupError ("No such plugin type %s in %s" \
+                    % (ptype, self._plugins.keys()))
 
         if  not pname in self._plugins[ptype] :
             self._logger.debug (self.dump_str())
-            raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
+            raise LookupError ("No such plugin name %s (type: %s) in %s" \
+                    % (pname, ptype, self._plugins[ptype].keys()))
 
         return self._plugins[ptype][pname]
 
@@ -292,11 +295,13 @@ class PluginManager (object) :
 
         if  not ptype in self._plugins :
             self._logger.debug (self.dump_str())
-            raise LookupError ("No such plugin type %s" % ptype)
+            raise LookupError ("No such plugin type %s in %s" \
+                    % (ptype, self._plugins.keys()))
 
         if  not pname in self._plugins[ptype] :
             self._logger.debug (self.dump_str())
-            raise LookupError ("No such plugin name %s / type %s" % (pname, ptype))
+            raise LookupError ("No such plugin name %s (type: %s) in %s" \
+                    % (pname, ptype, self._plugins[ptype].keys()))
 
         # create new plugin instance
         return self._plugins[ptype][pname]['class']()

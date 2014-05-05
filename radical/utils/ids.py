@@ -104,7 +104,8 @@ def generate_id (prefix, mode=ID_SIMPLE) :
         pid  = os.getpid ()
 
       # return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, _id_registry.get_counter (prefix))
-        return "%s%06d.%04d" % (prefix, pid, _id_registry.get_counter (prefix))
+        return "%s%s.%s.%04d"      % (prefix, date, time,      _id_registry.get_counter (prefix))
+      # return "%s%06d.%04d"       % (prefix,             pid, _id_registry.get_counter (prefix))
 
     else :
         raise ValueError ("mode '%s' not supported for ID generation", mode) 
