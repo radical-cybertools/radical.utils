@@ -152,8 +152,8 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'            : ['bin/owms.py', 'bin/radical-owms-version'],
-    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git', 'resources.json']},
+    'scripts'            : ['bin/dump_mongodb.py'],
+    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
         'test'           : our_test,
     },
