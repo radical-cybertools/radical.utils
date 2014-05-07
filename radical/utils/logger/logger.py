@@ -184,7 +184,7 @@ _logger_registry = ru.ObjectCache ()
 #
 # FIXME: strange pylint error
 #
-def getLogger (name, tag='logger'):
+def getLogger (name, tag=None):
     ''' 
     Get a logger.  For any new name/tag pair, a new logger instance will be
     created; subsequent calls to this method with the same argument set will
@@ -193,7 +193,9 @@ def getLogger (name, tag='logger'):
     Configuration for the logger is *only* derived from the name part.
     '''
 
-    fullname = "%s.%s" % (name, tag)
+    fullname = name
+    if  tag :
+        fullname += ".%s" % tag
 
 
     # get or create a python logger

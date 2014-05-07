@@ -220,9 +220,11 @@ def dict_stringexpand (target, sources=None) :
                 repl_source[key] = val
 
   # print '---------'
+  # print 'source'
   # import pprint
   # pprint.pprint (repl_source)
   # print '---------'
+  # print 'target'
   # pprint.pprint (target)
   # print '---------'
 
@@ -230,6 +232,7 @@ def dict_stringexpand (target, sources=None) :
     while again :
         target, again = _generic_stringexpand (target, repl_source)
         
+      # print 'target x'
       # pprint.pprint (target)
       # print '---------'
 
@@ -240,7 +243,9 @@ def dict_stringexpand (target, sources=None) :
 #
 def _generic_stringexpand (target, source) :
 
-  # print 'generic (%s) (%s)' % (type(target), id(target))
+  # print
+  # print 'generic (%s) (%s) (%s)' % (type(target), id(target), target)
+
 
     if  isinstance (target, basestring) : 
         return _string_stringexpand (target, source)
@@ -302,9 +307,6 @@ def _string_stringexpand (target, source) :
     assert (isinstance(target, basestring))
     assert (isinstance(source, dict))
 
-  # if 'cardinal' in source :
-  #     print '> str replace: %d - %s' % (source['cardinal'], target)
-
     orig = str(target)
     try :
         expanded = target % source
@@ -319,14 +321,8 @@ def _string_stringexpand (target, source) :
       # print e
         return orig, False
 
-  # if  'cardinal' in source :
-  #     print '< str replace: %d - %s' % (source['cardinal'], target)
-
     # only check for success after success.  Duh!
-  # print '>>>'
-  # print orig
-  # print expanded
-  # print "%20s \t %s" % (orig, expanded)
+  # print '>>> orig (%s) expanded (%s)' % (orig, expanded)
     if  orig == expanded : return expanded, False
     else                 : return expanded, True
 
