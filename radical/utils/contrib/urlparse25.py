@@ -65,7 +65,7 @@ class BaseResult(tuple):
 
     @property
     def scheme(self):
-        return self[0]
+        return self[0] or None
 
     @property
     def netloc(self):
@@ -73,15 +73,15 @@ class BaseResult(tuple):
 
     @property
     def path(self):
-        return self[2]
+        return self[2] or None
 
     @property
     def query(self):
-        return self[-2]
+        return self[-2] or None
 
     @property
     def fragment(self):
-        return self[-1]
+        return self[-1] or None
 
     # Additional attributes that provide access to parsed-out portions
     # of the netloc:
