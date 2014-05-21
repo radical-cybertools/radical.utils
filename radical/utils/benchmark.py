@@ -203,16 +203,16 @@ class Benchmark (object) :
     def _tic (self, tid='master_tid') :
     
         with self.lock :
-    
+
             now   = time.time ()
             timer = now - self.start[tid]
-    
+
+            self.times[tid].append (timer)
             self.start[tid] = now
 
-    
-            if len(self.times[tid]) :
+            if len(self.times[tid][1:]) :
                 numpy_times = numpy.array (self.times[tid][1:])
-                vmean = numpy_times.mean
+                vmean = numpy_times.mean ()
             else :
                 vmean = timer
     
@@ -243,14 +243,16 @@ class Benchmark (object) :
         times = list()
     
         for tid in self.times :
-            times.append (self.times[tid][1:])
+            times += self.times[tid][1:]
+
+      # import pprint
       # pprint.pprint (times)
     
         if  len(times) < 1 :
             raise ValueError ("min 1 timing value required for benchmark evaluation (%d)" % len(times))
     
         concurrency = int(self.cfg['concurrency'])
-        arguments   = str(self.cfg['arguments'])
+        args        = str(self.cfg['arguments'])
     
         out = "\n"
         top = ""
@@ -267,26 +269,30 @@ class Benchmark (object) :
         vsum  = sum (times)
         vmin  = min (times)
         vmax  = max (times)
-        vmean = numpy_times.mean
-        vsdev = numpy_times.std
+
+        if len (times) :
+            vmean = numpy_times.mean ()
+            vsdev = numpy_times.std  ()
+        else :
+            vmean = 0.0
+            vsdev = 0.0
         vrate = vn / vtot
     
-        bname = self.cfg['name']
-        bdat  = "benchmark.%s.dat" % (bname)
+        bdat  = "benchmark.%s.dat" % (self.name)
     
-        out += "  threads : %9d          args    : %9d\n"        % (concurrency, args)
+        out += "  threads : %9d          args    : %s\n"         % (concurrency, args)
         out += "  iterats.: %9d          min     : %8.2fs\n"     % (vn,          vmin )
         out += "  init    : %8.2fs          max     : %8.2fs\n"  % (vini,        vmax )
         out += "  total   : %8.2fs          mean    : %8.2fs\n"  % (vtot,        vmean)
         out += "  rate    : %8.2fs          sdev    : %8.2fs\n"  % (vrate,       vsdev)
     
-        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
+        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
             % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s   %-18s" \
-            % ('n', 'threads', 'args', 'init', 'tot', 'min',  'max', 'mean', \
-               'std-dev', 'rate', 'name')
+        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
+            % ('n', 'threads', 'init', 'tot', 'min',  'max', 'mean', \
+               'std-dev', 'rate', 'name', 'args')
     
-        tab = "%7d  "   \
+        tab = "  "      \
               "%7d  "   \
               "%7d  "   \
               "%7.2f  " \
@@ -296,10 +302,10 @@ class Benchmark (object) :
               "%8.3f  " \
               "%8.3f  " \
               "%9.3f  " \
-              "%-20s  " \
+              "%10s  "   \
+              "%10s  "   \
             % (vn, 
                concurrency, 
-               arguments, 
                vini,
                vtot,   
                vmin,  
@@ -307,7 +313,8 @@ class Benchmark (object) :
                vmean, 
                vsdev, 
                vrate, 
-               bname)
+               self.name,
+               str(args)) 
     
         rut.lout ("\n%s" % out)
     

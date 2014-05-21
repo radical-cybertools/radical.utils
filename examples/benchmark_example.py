@@ -23,7 +23,7 @@ def benchmark_pre (tid, config) :
 #
 def benchmark_core (tid, i, config={}) :
 
-    time.sleep (int(config['arguments'][0]))
+    time.sleep (float(config['arguments'][0]))
 
     return config
 
