@@ -31,8 +31,17 @@ class Benchmark (object) :
         self.lock   = rut.RLock ()
         self.events = dict()
     
-        tc  = rutest.TestConfig (config)
-        cfg = tc['benchmarks']
+        if  isinstance (config, basestring) :
+            cfg = rutest.TestConfig (config)
+        elif isinstance (config, dict) :
+            cfg = config
+        else :
+            print 'warning: no valid benchmarl config (neither filename nor dict) -- ignore'
+            cfg = dict()
+
+        if  'benchmarks' in cfg :
+            cfg = cfg['benchmarks']
+
     
         # RADICAL_BENCHMARK_ environments will overwrite config settings
         if  'RADICAL_BENCHMARK_CONCURRENCY' in os.environ :
@@ -55,8 +64,8 @@ class Benchmark (object) :
         if  not 'arguments' in cfg : 
             raise ValueError ('no arguments configured')
     
-        if  not 'tag' in cfg : 
-            cfg['tag'] = ""
+        if  not 'tags' in cfg : 
+            cfg['tags'] = ""
     
         self.cfg = cfg
     
@@ -253,6 +262,7 @@ class Benchmark (object) :
     
         concurrency = int(self.cfg['concurrency'])
         args        = str(self.cfg['arguments'])
+        tags        = str(self.cfg['tags'])
     
         out = "\n"
         top = ""
@@ -280,11 +290,14 @@ class Benchmark (object) :
     
         bdat  = "benchmark.%s.dat" % (self.name)
     
-        out += "  threads : %9d          args    : %s\n"         % (concurrency, args)
-        out += "  iterats.: %9d          min     : %8.2fs\n"     % (vn,          vmin )
-        out += "  init    : %8.2fs          max     : %8.2fs\n"  % (vini,        vmax )
-        out += "  total   : %8.2fs          mean    : %8.2fs\n"  % (vtot,        vmean)
-        out += "  rate    : %8.2fs          sdev    : %8.2fs\n"  % (vrate,       vsdev)
+        out += "  name    : %s\n"                               % (self.name)
+        out += "  tags    : %s\n"                               % (tags)
+        out += "  args    : %s\n"                               % (args)
+        out += "  threads : %8d        iters   : %8d\n"        % (concurrency, vn)
+        out += "  init    : %8.2fs       min     : %8.2fs\n"    % (vini,        vmin )
+        out += "  total   : %8.2fs       max     : %8.2fs\n"    % (vtot,        vmax )
+        out += "  rate    : %8.2fs       mean    : %8.2fs\n"    % (vrate,       vmean)
+        out += "                            sdev    : %8.2fs\n" % (             vsdev)
     
         num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
             % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
