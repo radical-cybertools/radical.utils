@@ -15,6 +15,7 @@ from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
 from reporter       import Reporter
+from benchmark      import Benchmark
 
 # import utility methods
 from ids            import generate_id, ID_SIMPLE, ID_UNIQUE

@@ -4,7 +4,8 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import radical.utils.benchmark as rb
+import radical.utils as ru
+import sys
 import time
 
 
@@ -12,8 +13,8 @@ import time
 #
 def benchmark_pre (tid, config) :
 
-    if  not 'load' in config : 
-        raise KeyError ('no benchmark load configured')
+    if  not 'arguments' in config : 
+        raise KeyError ('no benchmark arguments configured')
 
     return config
 
@@ -22,7 +23,7 @@ def benchmark_pre (tid, config) :
 #
 def benchmark_core (tid, i, config={}) :
 
-    time.sleep (config['load'])
+    time.sleep (int(config['arguments'][0]))
 
     return config
 
@@ -36,11 +37,10 @@ def benchmark_post (tid, config={}) :
 
 # ------------------------------------------------------------------------------
 #
-try:
-    rb.benchmark_init ('job_run', benchmark_pre, benchmark_core, benchmark_post)
-
-except Exception as ex:
-    print "An exception occured: %s " % ex
+cfg = sys.argv[1]
+b = ru.Benchmark (cfg, 'job_run', benchmark_pre, benchmark_core, benchmark_post)
+b.run  ()
+b.eval ()
 
 
 # ------------------------------------------------------------------------------

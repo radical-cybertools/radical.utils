@@ -6,8 +6,9 @@ __license__   = "MIT"
 
 import sys
 import threading
+import traceback
 
-# import radical.utils.misc  as rumisc
+import misc  as rumisc
 
 
 _out_lock = threading.RLock ()
@@ -139,8 +140,11 @@ class Thread (threading.Thread) :
             self._state     = DONE
 
         except Exception as e :
-            print "task got exception: %s" % e
-          # print rumisc.get_trace ()
+            stack = traceback.extract_stack ()
+            msg   = "\n"
+            for frame in stack :
+                msg += " -- %s:%s\n ---- %s \t: %s\n" % frame
+            print "thread got exception: %s:%s%s" % (type(e).__name__, str(e), msg)
 
             self._exception = e
             self._state     = FAILED
