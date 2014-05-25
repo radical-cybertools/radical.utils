@@ -32,42 +32,42 @@ class Benchmark (object) :
         self.events = dict()
     
         if  isinstance (config, basestring) :
-            cfg = rutest.TestConfig (config)
+            app_cfg = rutest.TestConfig (config)
         elif isinstance (config, dict) :
-            cfg = config
+            app_cfg = config
         else :
             print 'warning: no valid benchmarl config (neither filename nor dict) -- ignore'
-            cfg = dict()
+            app_cfg = dict()
 
-        if  'benchmarks' in cfg :
-            cfg = cfg['benchmarks']
+        if  'benchmarks' in app_cfg :
+            bench_cfg = app_cfg['benchmarks']
+        else :
+            bench_cfg = dict ()
 
     
         # RADICAL_BENCHMARK_ environments will overwrite config settings
+        if  'RADICAL_BENCHMARK_TAGS' in os.environ :
+            bench_cfg['tags'] = os.environ['RADICAL_BENCHMARK_TAGS'].split (' ')
+    
         if  'RADICAL_BENCHMARK_CONCURRENCY' in os.environ :
-            cfg['concurrency'] = os.environ['RADICAL_BENCHMARK_CONCURRENCY']
+            bench_cfg['concurrency'] = os.environ['RADICAL_BENCHMARK_CONCURRENCY']
     
         if  'RADICAL_BENCHMARK_ITERATIONS' in os.environ :
-            cfg['iterations'] = os.environ['RADICAL_BENCHMARK_ITERATIONS']
-    
-        if  'RADICAL_BENCHMARK_ARGUMENTS' in os.environ :
-            cfg['arguments'] = eval(os.environ['RADICAL_BENCHMARK_ARGUMENTS'])
+            bench_cfg['iterations'] = os.environ['RADICAL_BENCHMARK_ITERATIONS']
     
         
         # check benchmark settings for completeness, set some defaults
-        if  not 'concurrency' in cfg : 
-            raise ValueError ('no concurrency configured')
+        if  not 'concurrency' in bench_cfg : 
+            bench_cfg['concurrency'] = 1
     
-        if  not 'iterations'  in cfg : 
-            raise ValueError ('no iterations configured')
+        if  not 'iterations'  in bench_cfg : 
+            bench_cfg['iterations'] = 1
     
-        if  not 'arguments' in cfg : 
-            raise ValueError ('no arguments configured')
+        if  not 'tags' in bench_cfg : 
+            bench_cfg['tags'] = list()
     
-        if  not 'tags' in cfg : 
-            cfg['tags'] = ""
-    
-        self.cfg = cfg
+        self.app_cfg   = app_cfg
+        self.bench_cfg = bench_cfg
     
 
     # --------------------------------------------------------------------------
@@ -75,7 +75,7 @@ class Benchmark (object) :
     def _thread (self, tid) :
     
         try :
-            pre_ret  = self.pre (tid, self.cfg)
+            self.pre (tid, self.app_cfg, self.bench_cfg)
 
             sys.stdout.write ('-')
             sys.stdout.flush ()
@@ -83,14 +83,14 @@ class Benchmark (object) :
             self.events[tid]['event_1'].set  ()  # signal we are done        
             self.events[tid]['event_2'].wait ()  # wait 'til others are done 
     
-            iterations = int(self.cfg['iterations']) / int(self.cfg['concurrency'])
+            iterations = int(self.bench_cfg['iterations']) / int(self.bench_cfg['concurrency'])
     
             # poor-mans ceil()
-            if (iterations * int(self.cfg['concurrency'])) < int(self.cfg['iterations']) :
+            if (iterations * int(self.bench_cfg['concurrency'])) < int(self.bench_cfg['iterations']) :
                 iterations += 1
     
             for i in range (0, iterations+1) :
-                core_ret = self.core (tid, i, pre_ret)
+                core_ret = self.core (tid, i, self.app_cfg, self.bench_cfg)
                 self._tic (tid)
     
     
@@ -98,7 +98,7 @@ class Benchmark (object) :
             self.events[tid]['event_4'].wait ()  # wait 'til others are done 
     
     
-            post_ret = self.post (tid, core_ret)
+            self.post (tid, self.app_cfg, self.bench_cfg)
             sys.stdout.write ('=')
             sys.stdout.flush ()
     
@@ -116,10 +116,8 @@ class Benchmark (object) :
             self.events[tid]['event_3'].set  ()
             self.events[tid]['event_5'].set  ()
 
-            raise (e)
-    
-            sys.exit (-1)
-    
+            raise
+
         # finish thread
         sys.exit (0)
     
@@ -138,7 +136,7 @@ class Benchmark (object) :
         """
     
         threads     = []
-        concurrency = int(self.cfg['concurrency'])
+        concurrency = int(self.bench_cfg['concurrency'])
     
         self._start ()
     
@@ -199,10 +197,9 @@ class Benchmark (object) :
         self.idx   = 0
     
         rut.lout ("\n")
-        rut.lout ("benchmark   : %s (%s)\n" % (self.name, self.cfg['tag']))
-        rut.lout ("concurrency : %s\n"      %  self.cfg['concurrency'])
-        rut.lout ("iterations  : %s\n"      %  self.cfg['iterations'])
-        rut.lout ("arguments   : %s\n"      %  self.cfg['arguments'])
+        rut.lout ("benchmark   : %s (%s)\n" % (self.name, self.bench_cfg['tags']))
+        rut.lout ("concurrency : %s\n"      %  self.bench_cfg['concurrency'])
+        rut.lout ("iterations  : %s\n"      %  self.bench_cfg['iterations'])
     
         sys.stdout.flush ()
     
@@ -260,9 +257,8 @@ class Benchmark (object) :
         if  len(times) < 1 :
             raise ValueError ("min 1 timing value required for benchmark evaluation (%d)" % len(times))
     
-        concurrency = int(self.cfg['concurrency'])
-        args        = str(self.cfg['arguments'])
-        tags        = str(self.cfg['tags'])
+        concurrency = int(self.bench_cfg['concurrency'])
+        tags        = str(self.bench_cfg['tags'])
     
         out = "\n"
         top = ""
@@ -292,18 +288,17 @@ class Benchmark (object) :
     
         out += "  name    : %s\n"                               % (self.name)
         out += "  tags    : %s\n"                               % (tags)
-        out += "  args    : %s\n"                               % (args)
         out += "  threads : %8d        iters   : %8d\n"        % (concurrency, vn)
         out += "  init    : %8.2fs       min     : %8.2fs\n"    % (vini,        vmin )
         out += "  total   : %8.2fs       max     : %8.2fs\n"    % (vtot,        vmax )
         out += "  rate    : %8.2fs       mean    : %8.2fs\n"    % (vrate,       vmean)
         out += "                            sdev    : %8.2fs\n" % (             vsdev)
     
-        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
-            % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
+        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s" \
+            % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s" \
             % ('n', 'threads', 'init', 'tot', 'min',  'max', 'mean', \
-               'std-dev', 'rate', 'name', 'args')
+               'std-dev', 'rate', 'name')
     
         tab = "  "      \
               "%7d  "   \
@@ -316,7 +311,6 @@ class Benchmark (object) :
               "%8.3f  " \
               "%9.3f  " \
               "%10s  "   \
-              "%10s  "   \
             % (vn, 
                concurrency, 
                vini,
@@ -326,8 +320,7 @@ class Benchmark (object) :
                vmean, 
                vsdev, 
                vrate, 
-               self.name,
-               str(args)) 
+               self.name) 
     
         rut.lout ("\n%s" % out)
     

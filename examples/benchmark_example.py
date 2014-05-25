@@ -11,26 +11,22 @@ import time
 
 # ------------------------------------------------------------------------------
 #
-def benchmark_pre (tid, config) :
+def benchmark_pre (tid, app_cfg, bench_cfg) :
 
-    if  not 'arguments' in config : 
-        raise KeyError ('no benchmark arguments configured')
-
-    return config
+    if  not 'load' in app_cfg : 
+        raise KeyError ('no load configured')
 
 
 # ------------------------------------------------------------------------------
 #
-def benchmark_core (tid, i, config={}) :
+def benchmark_core (tid, i, app_cfg, bench_cfg) :
 
-    time.sleep (float(config['arguments'][0]))
-
-    return config
+    time.sleep (float(app_cfg['load']))
 
 
 # ------------------------------------------------------------------------------
 #
-def benchmark_post (tid, config={}) :
+def benchmark_post (tid, app_cfg, bench_cfg) :
 
     pass
 
