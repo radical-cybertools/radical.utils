@@ -7,7 +7,6 @@ __license__   = "MIT"
 import os
 import sys
 import math
-import numpy
 import time
 import socket
 import threading
@@ -210,6 +209,8 @@ class Benchmark (object) :
     
         with self.lock :
 
+            import numpy
+
             now   = time.time ()
             timer = now - self.start[tid]
 
@@ -246,6 +247,8 @@ class Benchmark (object) :
     #
     def eval (self, error=None) :
     
+        import numpy
+
         times = list()
     
         for tid in self.times :
