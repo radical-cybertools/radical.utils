@@ -3,7 +3,7 @@ Package radical.utils
 
 This Python package contains shared code and tools for various 
 [Radical Group](http://radical.rutgers.edu) projects. Sometimes we call it the 
-Radical Kitchen Sink. 
+Radical Kitchen Sink.  
 
 The radical.utils package contains the following things:
 
@@ -17,6 +17,10 @@ The radical.utils package contains the following things:
 * A [Thread wrapper](https://github.com/saga-project/radical.utils/blob/master/radical/utils/threads.py) (A thin convenience wrapper around threading.Thread)
 * A [Call tracer](https://github.com/saga-project/radical.utils/blob/master/radical/utils/tracer.py) (Support for call tracing / debugging)
 * A ['which' function](https://github.com/saga-project/radical.utils/blob/master/radical/utils/which.py)(Simliar to the 'which' command line tool)
+
+The package should in general be compatible with Python 2.6.
+
+
 
 License
 -------
@@ -52,3 +56,4 @@ You can generate the documentation yourself with [Sphinx](http://sphinx-doc.org/
     make docs
 
 The resulting documentation will be in `open docs/build/html/index.html`.
+

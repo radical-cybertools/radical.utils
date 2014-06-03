@@ -87,9 +87,9 @@ version, version_detail = get_version (mod_root)
 
 
 #-----------------------------------------------------------------------------
-# check python version. we need > 2.5, <3.x
-if  sys.hexversion < 0x02050000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("%s requires Python 2.x (2.5 or higher)" % name)
+# check python version. we need > 2.6, <3.x
+if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
+    raise RuntimeError("%s requires Python 2.x (2.6 or higher)" % name)
 
 
 #-----------------------------------------------------------------------------
@@ -132,7 +132,6 @@ setup_args = {
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
