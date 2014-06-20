@@ -22,8 +22,9 @@ def split_dburl (url, default_url=None) :
     slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
 
     if  len(slashes) < 3 :
-        raise ValueError ("url needs to be a mongodb URL, the path element " \
-                          "must specify the database and collection id")
+        url += '/'
+
+    slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
 
     if  url[:slashes[0]].lower() != 'mongodb:' :
         raise ValueError ("url must be a 'mongodb://' url, not %s" % url)
@@ -122,6 +123,27 @@ def parse_file_staging_directives (directives) :
 
     if  bulk : return ret
     else     : return ret[0]
+
+
+# ------------------------------------------------------------------------------
+#
+def time_diff (dt_abs, dt_stamp) :
+    """
+    return the time difference bewteen  two datetime 
+    objects in seconds (incl. fractions).  Exceptions (like on improper data
+    types) fall through.
+    """
+
+    delta = ds_abs - ds_stamp
+
+    import datetime
+    if  not isinstance  (delta, datetime.timedelta) :
+        raise TypeError ("difference between '%s' and '%s' is not a .timedelta" \
+                      % (type(dt_abs), type(td_stamp))
+
+    # get seconds as float 
+    seconds = delta.seconds + delta.microseconds/1E6
+    return seconds
 
 
 # ------------------------------------------------------------------------------

@@ -10,6 +10,7 @@ import math
 import time
 import socket
 import threading
+import traceback
 
 import threads as rut
 import testing as rutest
@@ -22,11 +23,16 @@ class Benchmark (object) :
     # ----------------------------------------------------------------
     #
     def __init__ (self, config, name, func_pre, func_core, func_post) :
+
+        try:
+            import numpy
+        except ImportError, e:
+            raise RuntimeError ("Benchmark depends on numpy which is not installed")
     
         self.pre    = func_pre
         self.core   = func_core
         self.post   = func_post
-        self.name   = name
+        self.name   = name.replace (' ', '_')
         self.lock   = rut.RLock ()
         self.events = dict()
     
@@ -89,8 +95,8 @@ class Benchmark (object) :
                 iterations += 1
     
             for i in range (0, iterations+1) :
-                core_ret = self.core (tid, i, self.app_cfg, self.bench_cfg)
-                self._tic (tid)
+                core_timer = self.core (tid, i, self.app_cfg, self.bench_cfg)
+                self._tic (tid, core_timer)
     
     
             self.events[tid]['event_3'].set ()   # signal we are done        
@@ -107,6 +113,8 @@ class Benchmark (object) :
         except Exception as e :
     
             sys.stdout.write ("exception in benchmark thread: %s\n\n" % str(e))
+            sys.stdout.write (traceback.format_exc())
+            sys.stdout.write ("\n")
             sys.stdout.flush ()
     
             # Oops, we are screwed.  Tell main thread that we are done for, and
@@ -205,14 +213,21 @@ class Benchmark (object) :
     
     # ----------------------------------------------------------------
     #
-    def _tic (self, tid='master_tid') :
+    def _tic (self, tid='master_tid', core_timer=None) :
+        # if a core_timer is given, we interpret that as time value instead of
+        # using 'now-start'.  This assumes that 'core' has its own way of
+        # measuring the time, possibly to correct for some systematic error...
     
         with self.lock :
 
             import numpy
 
             now   = time.time ()
-            timer = now - self.start[tid]
+
+            if  core_timer :
+                timer = core_timer
+            else :
+                timer = now - self.start[tid]
 
             self.times[tid].append (timer)
             self.start[tid] = now
@@ -261,7 +276,7 @@ class Benchmark (object) :
             raise ValueError ("min 1 timing value required for benchmark evaluation (%d)" % len(times))
     
         concurrency = int(self.bench_cfg['concurrency'])
-        tags        = str(self.bench_cfg['tags'])
+        tags        = ' '.join (self.bench_cfg['tags'])
     
         out = "\n"
         top = ""
@@ -294,14 +309,14 @@ class Benchmark (object) :
         out += "  threads : %8d        iters   : %8d\n"        % (concurrency, vn)
         out += "  init    : %8.2fs       min     : %8.2fs\n"    % (vini,        vmin )
         out += "  total   : %8.2fs       max     : %8.2fs\n"    % (vtot,        vmax )
-        out += "  rate    : %8.2fs       mean    : %8.2fs\n"    % (vrate,       vmean)
+        out += "  rate    : %8.2f/s      mean    : %8.2fs\n"    % (vrate,       vmean)
         out += "                            sdev    : %8.2fs\n" % (             vsdev)
     
-        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s" \
-            % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s" \
+        num = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
+            % (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+        top = "# %7s  %7s  %7s  %7s  %7s  %7s  %8s  %8s  %9s  %10s  %10s" \
             % ('n', 'threads', 'init', 'tot', 'min',  'max', 'mean', \
-               'std-dev', 'rate', 'name')
+               'std-dev', 'rate', 'name', 'tags')
     
         tab = "  "      \
               "%7d  "   \
@@ -313,7 +328,8 @@ class Benchmark (object) :
               "%8.3f  " \
               "%8.3f  " \
               "%9.3f  " \
-              "%10s  "   \
+              "%10s  "  \
+              "%10s  "  \
             % (vn, 
                concurrency, 
                vini,
@@ -323,7 +339,8 @@ class Benchmark (object) :
                vmean, 
                vsdev, 
                vrate, 
-               self.name) 
+               self.name, 
+               tags) 
     
         rut.lout ("\n%s" % out)
     
