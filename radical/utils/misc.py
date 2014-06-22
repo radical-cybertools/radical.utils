@@ -134,12 +134,12 @@ def time_diff (dt_abs, dt_stamp) :
     types) fall through.
     """
 
-    delta = ds_abs - ds_stamp
+    delta = dt_stamp - dt_abs
 
     import datetime
     if  not isinstance  (delta, datetime.timedelta) :
         raise TypeError ("difference between '%s' and '%s' is not a .timedelta" \
-                      % (type(dt_abs), type(td_stamp))
+                      % (type(dt_abs), type(td_stamp)))
 
     # get seconds as float 
     seconds = delta.seconds + delta.microseconds/1E6

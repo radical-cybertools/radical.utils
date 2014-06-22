@@ -26,6 +26,8 @@ from read_json      import parse_json_str
 from tracer         import trace, untrace
 from which          import which
 from misc           import split_dburl
+from misc           import parse_file_staging_directives 
+from misc           import time_diff
 from get_version    import get_version
 
 # import sub-modules
