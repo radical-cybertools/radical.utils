@@ -183,7 +183,7 @@ class Checker (object):
 
     def __init__ (self, reference):
         self.reference = reference
-        self.spectype   = reference
+        self.spectype  = reference
 
     def check (self, value): # abstract
         pass

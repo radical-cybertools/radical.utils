@@ -230,7 +230,7 @@ class Url (object):
     # Port property
     #
     @rus.takes   ('Url', 
-                  (basestring, int))
+                  (rus.nothing, basestring, int))
     @rus.returns (rus.nothing)
     def set_port(self, port):
         """ 
