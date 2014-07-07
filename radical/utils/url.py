@@ -162,7 +162,7 @@ class Url (object):
     # Scheme property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_scheme(self, scheme):
         """ 
@@ -197,7 +197,7 @@ class Url (object):
     # Host property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_host(self, hostname):
         """ 
@@ -266,7 +266,7 @@ class Url (object):
     # Username property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_username(self, username):
         """ 
@@ -298,7 +298,7 @@ class Url (object):
     # Password property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_password(self, password):
         """ 
@@ -330,7 +330,7 @@ class Url (object):
     # Fragment property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_fragment(self, fragment):
         """ 
@@ -362,7 +362,7 @@ class Url (object):
     # Path property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_path(self, path):
         """ 
@@ -401,7 +401,7 @@ class Url (object):
     # Query property
     #
     @rus.takes   ('Url', 
-                  basestring)
+                  (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_query(self, query):
         """ 

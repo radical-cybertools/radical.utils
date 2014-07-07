@@ -88,8 +88,8 @@ def generate_id (prefix, mode=ID_SIMPLE) :
       
     """
 
-    if  not prefix \
-    or  not isinstance (prefix, basestring) :
+    if  not prefix or \
+        not isinstance (prefix, basestring) :
         raise TypeError ("ID generation expect prefix in basestring type") 
 
     if  mode  == ID_SIMPLE :
