@@ -77,11 +77,7 @@ def mongodb_connect (dburl, default_dburl=None) :
         db = mongo[dbname]
 
         if  user and pwd :
-            try :
-                db.authenticate (user, pwd)
-            except Exception as e :
-                print e
-                raise "oops"
+            db.authenticate (user, pwd)
 
 
     else :
