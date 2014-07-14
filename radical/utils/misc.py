@@ -2,12 +2,13 @@
 
 import os
 import regex
+import pymongo
 import url as ruu
 
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (dburl, default_url=None) :
+def split_dburl (dburl, default_dburl=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -20,10 +21,11 @@ def split_dburl (dburl, default_url=None) :
     url = ruu.Url (dburl)
 
     if  not url.schema and not url.host :
-        url      = ruu.Url (default_url)
+        url      = ruu.Url (default_dburl)
         url.path = dburl
 
-    if  url.schema != 'mongodb' :
+    # NOTE: add other data base schemes here...
+    if  url.schema not in ['mongodb'] :
         raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
 
     host = url.host
@@ -35,7 +37,6 @@ def split_dburl (dburl, default_url=None) :
     if  path.startswith ('/') :
         path = path[1:]
     path_elems = path.split ('/')
-
 
     dbname = None
     cname  = None
@@ -56,8 +57,44 @@ def split_dburl (dburl, default_url=None) :
     if  dbname == '.' : 
         dbname = None
 
-  # print str([host, port, dbname, cname, pname])
     return [host, port, dbname, cname, pname, user, pwd]
+
+
+# ------------------------------------------------------------------------------
+#
+def mongodb_connect (dburl, default_dburl=None) :
+    """
+    connect to the given mongodb, perform auth for the database (if a database
+    was given).
+    """
+
+    [host, port, dbname, cname, pname, user, pwd] = split_dburl (dburl, default_dburl)
+
+    mongo = pymongo.MongoClient (host=host, port=port)
+    db    = None
+
+    if  dbname :
+        db = mongo[dbname]
+
+        if  user and pwd :
+            try :
+                db.authenticate (user, pwd)
+            except Exception as e :
+                print e
+                raise "oops"
+
+
+    else :
+
+        # if no DB is given, we try to auth against all databases.
+        for dbname in mongo.database_names () :
+            try :
+                mongo[dbname].authenticate (user, pwd)
+            except Exception as e :
+                pass 
+
+
+    return mongo, db, dbname, cname, pname
 
 
 # ------------------------------------------------------------------------------

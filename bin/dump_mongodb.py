@@ -3,17 +3,17 @@
 
 import sys
 import pprint
-import pymongo
 import radical.utils as ru
 
 
+_DEFAULT_MODE  = 'list'
 _DEFAULT_DBURL = 'mongodb://localhost:27017/'
 _DEFAULT_DBURL = 'mongodb://ec2-184-72-89-141.compute-1.amazonaws.com:27017/'
 
 
 # ------------------------------------------------------------------------------
 #
-def usage (msg=None) :
+def usage (msg=None, noexit=False) :
 
     if  msg :
         print "\n\t%s\n" % msg
@@ -40,7 +40,8 @@ def usage (msg=None) :
     if  msg :
         sys.exit (1)
 
-    sys.exit (0)
+    if  not noexit :
+        sys.exit (0)
 
 
 # ------------------------------------------------------------------------------
@@ -50,16 +51,13 @@ def dump (url, mode) :
     Connect to mongodb at the given location, and traverse the data bases
     """
 
-    [host, port, dbname, cname, pname] = ru.split_dburl (url, _DEFAULT_DBURL)
+    print url
+    mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
-    db_client  = pymongo.MongoClient (host=host, port=port)
-
-    print 'host      : %s' % host
-    print 'port      : %s' % port
-
+    print dbname
  
     if  dbname : dbnames = [dbname]
-    else       : dbnames = db_client.database_names ()
+    else       : dbnames = mongo.database_names ()
 
     for name in dbnames :
 
@@ -70,24 +68,24 @@ def dump (url, mode) :
             
             if (not dbname) or (name == dbname) :
                 try :
-                    db_client.drop_database (name)
+                    mongo.drop_database (name)
                     print "  removed database %s" % name
                 except :
                     pass # ignore system tables
 
         else :
-            handle_db (db_client, mode, name, cname, pname)
+            handle_db (mongo, mode, name, cname, pname)
 
-    db_client.disconnect ()
+    mongo.disconnect ()
 
 
 # ------------------------------------------------------------------------------
-def handle_db (db_client, mode, dbname, cname, pname) :
+def handle_db (mongo, mode, dbname, cname, pname) :
     """
     For the given db, traverse collections
     """
 
-    database = db_client[dbname]
+    database = mongo[dbname]
     print " +-- db   %s" % dbname
 
 
@@ -183,27 +181,38 @@ def handle_doc (collection, mode, doc) :
 #
 if __name__ == '__main__' :
 
-    if  '--help' in sys.argv or \
-        'help'   in sys.argv or \
-         '-h'    in sys.argv :
-        usage ()
+    import optparse
+    parser = optparse.OptionParser (add_help_option=False)
 
-    elif  len(sys.argv) == 3 :
-        mode = sys.argv[1]
-        url  = sys.argv[2]
-    
-    elif len(sys.argv) == 2 :
-        mode = sys.argv[1]
-        url  = _DEFAULT_DBURL
+    parser.add_option('-m', '--mode',    dest='mode')
+    parser.add_option('-d', '--dburl',   dest='dburl')
+    parser.add_option('-h', '--help',    dest='help', action="store_true")
 
-    elif len(sys.argv) == 1 :
-        mode = 'tree'
-        url  = _DEFAULT_DBURL
+    options, args = parser.parse_args ()
 
-    else :
-        usage ("incorrect usage -- too many arguments")
+    if  args         : usage ("Too many arguments (%s)" % args) 
+    if  options.help : usage ()
 
-    dump (url, mode)
+    mode    = options.mode 
+    dburl   = options.dburl
+
+    if not mode  : mode  = _DEFAULT_MODE
+    if not dburl : dburl = _DEFAULT_DBURL
+
+    print "modes   : %s" % mode
+    print "db url  : %s" % dburl
+
+    for m in mode.split (',') :
+
+        if  m not in ['list', 'dump', 'tree', 'remove', 'help'] : 
+            usage ("Unsupported mode '%s'" % m)
+
+        elif m == 'tree'   : dump  (dburl, m) 
+        elif m == 'dump'   : dump  (dburl, m) 
+        elif m == 'list'   : dump  (dburl, m) 
+        elif m == 'remove' : dump  (dburl, m) 
+        elif m == 'help'   : usage (noexit=True)
+        else               : usage ("unknown mode '%s'" % mode)
 
 
 # ------------------------------------------------------------------------------
