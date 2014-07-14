@@ -2,11 +2,12 @@
 
 import os
 import regex
+import url as ruu
 
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (url, default_url=None) :
+def split_dburl (dburl, default_url=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -16,33 +17,21 @@ def split_dburl (url, default_url=None) :
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
     
-    if  '://' not in url and default_url:
-        url = "%s/%s" % (default_url, url)
+    url = ruu.Url (dburl)
 
-    slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
+    if  not url.schema and not url.host :
+        url      = ruu.Url (default_url)
+        url.path = dburl
 
-    if  len(slashes) < 3 :
-        url += '/'
+    if  url.schema != 'mongodb' :
+        raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
 
-    slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
+    host = url.host
+    port = url.port
+    path = url.path
+    user = url.username
+    pwd  = url.password
 
-    if  url[:slashes[0]].lower() != 'mongodb:' :
-        raise ValueError ("url must be a 'mongodb://' url, not %s" % url)
-
-  # if  len(url) <= slashes[2]+1 :
-  #     raise ValueError ("url needs to be a mongodb url, the path element " \
-  #                       "must specify the database and collection id")
-
-    base_url = url[slashes[1]+1:slashes[2]]
-    path     = url[slashes[2]+1:]
-
-    if  ':' in base_url :
-        host, port = base_url.split (':', 1)
-        port = int(port)
-    else :
-        host, port = base_url, None
-
-    path = os.path.normpath(path)
     if  path.startswith ('/') :
         path = path[1:]
     path_elems = path.split ('/')
@@ -68,7 +57,7 @@ def split_dburl (url, default_url=None) :
         dbname = None
 
   # print str([host, port, dbname, cname, pname])
-    return [host, port, dbname, cname, pname]
+    return [host, port, dbname, cname, pname, user, pwd]
 
 
 # ------------------------------------------------------------------------------
