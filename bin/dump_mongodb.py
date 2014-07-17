@@ -51,7 +51,6 @@ def dump (url, mode) :
     Connect to mongodb at the given location, and traverse the data bases
     """
 
-    print url
     mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
     print dbname
