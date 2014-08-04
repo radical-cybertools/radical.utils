@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import os
 import sys
 import pprint
 import radical.utils as ru
@@ -9,6 +10,9 @@ import radical.utils as ru
 _DEFAULT_MODE  = 'list'
 _DEFAULT_DBURL = 'mongodb://localhost:27017/'
 _DEFAULT_DBURL = 'mongodb://ec2-184-72-89-141.compute-1.amazonaws.com:27017/'
+
+if  'RADICAL_PILOT_DBURL' in os.environ :
+    _DEFAULT_DBURL = os.environ['RADICAL_PILOT_DBURL']
 
 
 # ------------------------------------------------------------------------------
