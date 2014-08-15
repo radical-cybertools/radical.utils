@@ -16,6 +16,7 @@ from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
 from reporter       import Reporter
 from benchmark      import Benchmark
+from lease_manager  import LeaseManager
 
 # import utility methods
 from ids            import generate_id, ID_SIMPLE, ID_UNIQUE
