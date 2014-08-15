@@ -7,7 +7,7 @@ __license__   = "MIT"
 import threading 
 
 
-def Lockable (cls):
+def Lockable (cls) :
     """ 
     This class decorator will add lock/unlock methods to the thusly decorated
     classes, which will be enacted via an also added `threading.RLock` member
@@ -44,6 +44,16 @@ def Lockable (cls):
         locked: 2
         locked: 1
         locked: 0
+
+    The class A can also internally use the lock, and can, for example, use:
+
+        @Lockable
+        class A (object) :
+            ...
+            def work (self) :
+                with self :
+                    # locked code section
+                    ...
     """
 
     if  hasattr (cls, '__enter__') :
@@ -68,13 +78,14 @@ def Lockable (cls):
         raise RuntimeError ("Cannot make '%s' lockable -- has unlock()" % cls)
 
 
-    def locked   (self)        : return self._locked
-    def locker   (self)        : self._rlock.acquire (); self._locked += 1
-    def unlocker (self, *args) : self._rlock.release (); self._locked -= 1
+    def locked      (self)        : return self._locked
+    def locker      (self)        : self._rlock.acquire (); self._locked += 1
+    def unlocker    (self, *args) : self._rlock.release (); self._locked -= 1
 
     cls._rlock    = threading.RLock ()
     cls._locked   = 0
     cls.locked    = locked
+    cls.is_locked = locked
     cls.lock      = locker
     cls.unlock    = unlocker
     cls.__enter__ = locker
@@ -83,13 +94,20 @@ def Lockable (cls):
     return cls
 
 
+# ------------------------------------------------------------------------------
 
 # @Lockable
 # class A (object) :
 # 
 #     def call (self) :
-#         print 'locked: %s' % self.locked ()
+#         print 'locked 1: %s' % self.locked ()
 # 
+#         with self :
+#             print 'locked 2: %s' % self.locked ()
+# 
+#         print 'locked 3: %s\n' % self.locked ()
+# 
+# print
 # a = A()
 # a.call ()
 # a.lock ()
@@ -103,6 +121,23 @@ def Lockable (cls):
 # a.call ()
 # a.unlock ()
 # a.call ()
+# try :
+#     a.unlock ()
+#     print 'oops\n'
+# except :
+#     print 'ok\n'
+# a.lock ()
+# a.call ()
+# with a :
+#   a.call ()
+# a.call ()
+# a.unlock ()
+# a.call ()
+# try :
+#     a.unlock ()
+#     print 'oops\n'
+# except :
+#     print 'ok\n'
 
 # ------------------------------------------------------------------------------
 
