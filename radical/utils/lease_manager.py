@@ -8,103 +8,115 @@ import os
 import time
 import lockable
 import singleton
+import threading
 
-MAX_LEASE_POOL_SIZE = 10
-MAX_LEASE_POOL_WAIT = 60 # seconds
+MAX_POOL_SIZE = 10
+MAX_POOL_WAIT = 60 # seconds
 
 
 
 # ------------------------------------------------------------------------------
 #
-@lockable.Lockable
 class _LeaseObject (object) :
 
     # --------------------------------------------------------------------------
-    def __init__ (self) :
+    def __init__ (self, lm, creator, args) :
 
-        self._instance = None
-
-
-    # --------------------------------------------------------------------------
-    @classmethod
-    def create (cls, creator) :
-
-        self = cls ()
-        self._instance = creator ()
-
-        return self
-
-
-    # --------------------------------------------------------------------------
-    def get (self) :
-
-        return self._instance
-
+        self._lm   = lm
+        self._used = False
+        self.obj   = creator (*args)
 
     # --------------------------------------------------------------------------
     def __cmp__ (self, other) :
 
-        return (other == self._instance)
+        return (other == self.obj)
 
+    # --------------------------------------------------------------------------
+    def __enter__ (self) :
 
+        return self.obj
+
+    # --------------------------------------------------------------------------
+    def __exit__ (self, *args) :
+
+        self._lm.release (self)
+
+    # --------------------------------------------------------------------------
+    def use (self, *args) :
+
+        if  self._used :
+            raise RuntimeError ("LeaseObject is already in use: %s" % self)
+
+        self._used = True
+
+    # --------------------------------------------------------------------------
+    def unuse (self, *args) :
+
+        if  not self._used :
+            raise RuntimeError ("LeaseObject is not in use: %s" % self)
+
+        self._used = False
+
+    # --------------------------------------------------------------------------
+    def is_used (self, *args) :
+
+        return self._used
+        
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
 class LeaseManager (object) :
 
     """ 
-
-    This is a singleton object lease manager -- it creates resource instances on
-    demand and hands out leases to them.  If for a given ID no object instance
-    exists, one is created, locked and a lease is returned.  If for an ID an
-    object instance exists and is not leased, it is locked and returned.  If one
-    or more instances exist but all are in use already (leased), a new instance
-    is created (up to MAX_LEASE_POOL_SIZE -- can be overwritten in the lease
-    call).  If that limit is reached, no objects are returned, and instead the
-    lease call blocks until one of the existing objects gets released.
-
+    This is a lease manager -- it creates resource instances on demand and hands
+    out leases to them.  If for a given ID no object instance exists, one is
+    created, locked and a lease is returned.  If for an ID an object instance
+    exists and is not leased, it is locked and returned.  If one or more
+    instances exist but all are in use already (leased), a new instance is
+    created (up to MAX_POOL_SIZE -- can be overwritten in the lease call).
+    If that limit is reached, no objects are returned, and instead the lease
+    call blocks until one of the existing objects gets released.
     """
     
-    # TODO: we should introduce namespaces -- this is a singleton, but we may want
-    # to use it in several places, thus need to make sure to not use colliding
-    # names...
-
-    __metaclass__ = singleton.Singleton
-
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self) :
+    def __init__ (self, max_pool_size=MAX_POOL_SIZE) :
         """
         Make sure the object dict is initialized, exactly once.
         """
 
         self._pools = dict()
+        self._max_pool_size = max_pool_size
 
 
     # --------------------------------------------------------------------------
     #
-    def _initialize_pool (self, pool_id, creator, max_pool_size) :
+    def _initialize_pool (self, pool_id) :
         """
         set up a new pool, but do not create any instances, yet.
         """
 
         with self :
 
-            if  pool_id in self._pools :
-                # nothing to be done
-                return
+            if  not pool_id in self._pools :
 
-            self._pools[pool_id] = dict()
-            self._pools[pool_id]['max']     = max_pool_size
-            self._pools[pool_id]['objects'] = list()
+              # print 'lm create  pool   for %s (%s) (%s)' % (pool_id, type(pool_id), self)
+
+                self._pools[pool_id] = dict()
+                self._pools[pool_id]['objects'] = list()
+                self._pools[pool_id]['freed']   = None
+                self._pools[pool_id]['event']   = threading.Event ()
+
+              # import pprint
+              # pprint.pprint (self._pools)
 
             return self._pools[pool_id]
 
 
     # --------------------------------------------------------------------------
     #
-    def _create_object (self, pool_id, creator) :
+    def _create_object (self, pool_id, creator, args) :
         """
         a new instance is needed -- create one, unless max_pool_size is reached.
         If that is the case, return `None`, otherwise return the created object
@@ -113,32 +125,32 @@ class LeaseManager (object) :
 
         with self :
 
+          # print 'lm create  object for %s' % pool_id
+
             if  pool_id not in self._pools :
                 raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
 
             pool = self._pools[pool_id]
 
-            # check if a poolsize cap is set..
-            if  pool['max'] :
+            # check if a poolsize cap is set and reched
+            if  self._max_pool_size >  0 and \
+                self._max_pool_size <= len(pool['objects']) :
 
-                # ... and if it is reached
-                if  len(pool['objects'] >= pool['max']) :
-
-                    # no more space...
-                    return None
+                # no more space...
+                return None
 
             # poolsize cap not reached -- increase pool 
-            obj = _LeaseObject.create (creator)
-            obj.lock ()
+            obj = _LeaseObject (self, creator, args)
+            obj.use ()
             pool['objects'].append (obj)
 
-            return obj.get()
+            return obj
 
 
 
     # --------------------------------------------------------------------------
     #
-    def lease_obj (self, pool_id, creator, max_pool_size=None) :
+    def lease (self, pool_id, creator, args=[]) :
         """
 
         For a given object identified, attempt to retrieve an existing object
@@ -161,38 +173,39 @@ class LeaseManager (object) :
                                 return getLogger (name)
 
                             ret   = lease_manager.lease (name, creator)
-
-        max_pool_size : maximal number of objects in the pool.  The
-                        max_pool_size specified on the first lease() call for
-                        any given pool ID is used for the pool for that pool ID.
-                        `None` is used for an unlimited pool size.  Non-positive
-                        values are otherwise ognored.  
         """
 
         pool_id = str(pool_id)
 
+        if  not isinstance (args, list) :
+            args = [args]
+
         with self :
 
             # make sure the pool exists
-            pool = self._initialize_pool (pool_id, creator, max_pool_size)
+            pool = self._initialize_pool (pool_id)
+
+          # print 'lm lease   object for %s (%s)' % (pool_id, len(pool['objects']))
 
             # find an unlocked object instance in the pool
             for obj in pool['objects'] :
 
-                if  not obj.is_locked () :
+              # print 'lm lease   object %s use: %s' % (obj, obj.is_used())
+
+                if  not obj.is_used () :
 
                     # found one -- lease/lock and return it
-                    obj.lock ()
-                    return obj.get ()
+                    obj.use ()
+                    return obj
 
             # no unlocked object found -- create a new one 
-            obj = self._create_object (pool_id, creator)
+            obj = self._create_object (pool_id, creator, args)
 
             # check if we got an object
             if  obj is not None :
 
                 # we got a locked object -- return
-                return obj.get ()
+                return obj
 
 
         # pool is full, nothing is free -- we need to wait for an event on
@@ -201,17 +214,18 @@ class LeaseManager (object) :
         # too many instances in the same thread (with 'too many' meaning
         # more than max_pool_size) will lock that thread here, thus having no
         # chance to release other instances.  We thus will print a log error
-        # here, and will raise a timeout exception after MAX_LEASE_POOL_WAIT
+        # here, and will raise a timeout exception after MAX_POOL_WAIT
         # seconds.
         # Not that we release our lock here, to give other threads the
         # chance to release objects.
+      # print 'lm lease   object: pool is full'
         timer_start = time.time()
         timer_now   = time.time()
 
-        while (timer_now - timer_start) < MAX_LEASE_POOL_WAIT :
+        while (timer_now - timer_start) < MAX_POOL_WAIT :
 
             # wait for any release activity on the pool
-            timer_left = MAX_LEASE_POOL_WAIT - (timer_now - timer_start)
+            timer_left = MAX_POOL_WAIT - (timer_now - timer_start)
             pool['event'].wait (timer_left)
 
             with self :
@@ -229,13 +243,13 @@ class LeaseManager (object) :
 
                         # object was deleted -- we should have space to create
                         # a new one!
-                        obj = self._create_object (pool_id, creator)
+                        obj = self._create_object (pool_id, creator, args)
 
                         # check if we got an object
                         if  obj is not None :
 
                             # we got a locked object -- return
-                            return obj.get ()
+                            return obj
 
                         else :
 
@@ -244,19 +258,19 @@ class LeaseManager (object) :
                             # pool?
                             for obj in pool['objects'] :
 
-                                if  not obj.is_locked () :
+                                if  not obj.is_used () :
 
                                     # found one -- lease/lock and return it
-                                    obj.lock ()
-                                    return obj.get ()
+                                    obj.use ()
+                                    return obj
 
                             # apparently not - so we give up for now...
 
 
                     else :
                         # we got a freed object -- lock and return
-                        obj.lock ()
-                        return obj.get ()
+                        obj.use ()
+                        return obj
 
 
                 # none free, none created - or we lost the rase for handling the 
@@ -271,13 +285,18 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
-    def release_obj (self, instance, delete=False) :
+    def release (self, instance, delete=False) :
         """
         the given object is not needed right now -- unlock it so that somebody
         else can lease it.  This will not delete the object,
         """
 
+      # print 'lm release object'
+
         with self :
+
+          # import pprint
+          # pprint.pprint (self._pools)
 
             for pool_id in self._pools :
 
@@ -288,9 +307,10 @@ class LeaseManager (object) :
                         # this is not the object you are looking for.
                         continue
 
+                  # print 'lm release object %s for %s' % (obj, pool_id)
 
                     # remove the lease lock on the object
-                    obj.unlock ()
+                    obj.unuse ()
 
                     if  delete :
 
