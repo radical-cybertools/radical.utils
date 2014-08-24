@@ -10,8 +10,8 @@ import lockable
 import singleton
 import threading
 
-MAX_POOL_SIZE = 10
-MAX_POOL_WAIT = 60 # seconds
+MAX_POOL_SIZE =  0  # unlimited
+MAX_POOL_WAIT = 60  # seconds
 
 
 
@@ -86,6 +86,7 @@ class LeaseManager (object) :
         Make sure the object dict is initialized, exactly once.
         """
 
+      # print 'lm new manager'
         self._pools = dict()
         self._max_pool_size = max_pool_size
 
@@ -98,6 +99,8 @@ class LeaseManager (object) :
         """
 
         with self :
+
+          # print 'lm check   pool (%s)' % self._pools.keys()
 
             if  not pool_id in self._pools :
 
@@ -186,6 +189,7 @@ class LeaseManager (object) :
             pool = self._initialize_pool (pool_id)
 
           # print 'lm lease   object for %s (%s)' % (pool_id, len(pool['objects']))
+          # print pool['objects']
 
             # find an unlocked object instance in the pool
             for obj in pool['objects'] :
