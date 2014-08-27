@@ -16,6 +16,16 @@ from   radical.utils.logger.colorstreamhandler import *
 from   radical.utils.logger.filehandler        import FileHandler
 from   radical.utils.logger.defaultformatter   import DefaultFormatter
 
+_log_configs = dict ()
+
+def _get_log_config (name) :
+
+    if  not name in _log_configs :
+    
+        _log_configs[name] = _LogConfig (name)
+
+    return _log_configs[name]
+    
 
 # ------------------------------------------------------------------------------
 #
@@ -203,7 +213,7 @@ def getLogger (name, tag=None):
         return logging.getLogger (fullname)
 
     ret   = _logger_registry.get_obj (fullname, creator)
-    lconf = _LogConfig (name)
+    lconf = _get_log_config (name)
 
     # was this logger initialized before?
     if ret.handlers == []:

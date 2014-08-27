@@ -107,7 +107,8 @@ class _Configurations (object) :
     def put (self, name, config) :
 
         with self._rlock :
-            self._configs[name] = copy.deepcopy (config)
+            self._configs[name] = dict (config)
+          # self._configs[name] = copy.deepcopy (config)
 
 
     # --------------------------------------------------------------------------
@@ -118,7 +119,8 @@ class _Configurations (object) :
             if  not name in self._configs :
                 self._configs[name] = dict()
 
-            return copy.deepcopy (self._configs[name])
+            return dict (self._configs[name])
+          # return copy.deepcopy (self._configs[name])
 
 
 # ------------------------------------------------------------------------------
