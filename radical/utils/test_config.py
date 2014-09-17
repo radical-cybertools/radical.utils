@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import radical.utils.testing as rut
+import traceback
 
 
 # ------------------------------------------------------------------------------
@@ -18,6 +19,16 @@ class TestConfig (rut.TestConfig):
         # initialize configuration.  We only use the 'radical.utils.tests' 
         # category from the config file.
         rut.TestConfig.__init__ (self, cfg_file, 'radical.utils.tests')
+
+    def handle_exception (e) :
+
+        if  self.not_implemented.lower () == 'warn' :
+            if  'NotImplemented' in str(e) :
+                print "WARNING: %s"
+                return
+
+        print traceback.format_exc ()
+        raise e
 
 
 # ------------------------------------------------------------------------------

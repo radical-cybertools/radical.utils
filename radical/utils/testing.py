@@ -131,8 +131,7 @@ class Testing (object) :
         
         """
         
-        tc = get_test_config ()
-
+        tc      = get_test_config ()
         results = list()
 
         # fall back to no subtree structure if no test suites are specified
@@ -140,20 +139,16 @@ class Testing (object) :
         or  not tc['test_suites'] :
             tc['test_suites'] = ['.']
 
-        verbosity_env  = os.getenv('NOSE_VERBOSE', 1)
+        verbosity_env  = os.getenv('NOSE_VERBOSE', 2)
         verbosity_nose = None
 
-        try    : verbosity_nose = int(verbosity_env)
-        except : pass
+        verbosity_env = {'ERROR'   : 1,
+                         'WARNING' : 2,
+                         'INFO'    : 3, 
+                         'DEBUG'   : 4}.get (verbosity_env, verbosity_env)
 
-        try    : verbosity_nose = {'ERROR'   : 1,
-                                   'WARNING' : 2,
-                                   'INFO'    : 3, 
-                                   'DEBUG'   : 4}[verbosity_env]
-        except : pass
+        verbosity_nose = int(verbosity_env)
 
-        if  verbosity_nose == None:
-            verbosity_nose =  2
 
         # run all test suites from the config
         for test_suite in tc['test_suites'] :
