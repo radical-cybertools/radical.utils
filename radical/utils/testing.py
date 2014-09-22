@@ -6,7 +6,6 @@ __license__   = "MIT"
 
 import os
 import sys
-import nose
 
 import singleton as rs
 import read_json as rj
@@ -97,6 +96,18 @@ class Testing (object) :
         print "______________________________________________________________________"
         print "Using %s from: %s" % (modname, module.__path__[0])
         print "______________________________________________________________________"
+
+        try :
+            import nose
+        except ImportError :
+            msg  = " \n\nnose is not available -- install radical.utils with: \n\n"
+            msg += "  (1) pip install --upgrade -e '.[nose]'\n"
+            msg += "  (2) pip install --upgrade    'radical.utils[nose]'\n\n"
+            msg += "to resolve that dependency (or install nose manually).\n"
+            msg += "The first version will work for local installation, \n"
+            msg += "the second one for installation from pypi.\n\n"
+            raise ImportError (msg)
+
 
 
     # --------------------------------------------------------------------------
