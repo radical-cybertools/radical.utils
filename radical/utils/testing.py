@@ -141,6 +141,7 @@ class Testing (object) :
         with the test suites as shown.
         
         """
+        import nose
         
         tc = get_test_config ()
 
