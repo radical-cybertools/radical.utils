@@ -156,7 +156,11 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : ['colorama', 'pymongo', 'nose'],
+    'install_requires'   : ['colorama'],
+    'extras_require'     : {
+        'pymongo'        : ['pymongo'],
+        'nose'           : ['nose']
+    },
     'tests_require'      : [],
     'zip_safe'           : False,
 #   'build_sphinx'       : {

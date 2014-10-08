@@ -86,7 +86,7 @@ class LeaseManager (object) :
         Make sure the object dict is initialized, exactly once.
         """
 
-      # print 'lm new manager'
+      # print ' === lm new manager'
         self._pools = dict()
         self._max_pool_size = max_pool_size
 
@@ -100,11 +100,11 @@ class LeaseManager (object) :
 
         with self :
 
-          # print 'lm check   pool (%s)' % self._pools.keys()
+          # print ' === lm check   pool (%s)' % self._pools.keys()
 
             if  not pool_id in self._pools :
 
-              # print 'lm create  pool   for %s (%s) (%s)' % (pool_id, type(pool_id), self)
+              # print ' === lm create  pool   for %s (%s) (%s)' % (pool_id, type(pool_id), self)
 
                 self._pools[pool_id] = dict()
                 self._pools[pool_id]['objects'] = list()
@@ -128,7 +128,7 @@ class LeaseManager (object) :
 
         with self :
 
-          # print 'lm create  object for %s' % pool_id
+          # print ' === lm create  object for %s' % pool_id
 
             if  pool_id not in self._pools :
                 raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
@@ -188,17 +188,18 @@ class LeaseManager (object) :
             # make sure the pool exists
             pool = self._initialize_pool (pool_id)
 
-          # print 'lm lease   object for %s (%s)' % (pool_id, len(pool['objects']))
+          # print ' === lm lease   object for %s (%s)' % (pool_id, len(pool['objects']))
           # print pool['objects']
 
             # find an unlocked object instance in the pool
             for obj in pool['objects'] :
 
-              # print 'lm lease   object %s use: %s' % (obj, obj.is_used())
+              # print ' === lm lease   object %s use: %s' % (obj, obj.is_used())
 
                 if  not obj.is_used () :
 
                     # found one -- lease/lock and return it
+                  # print ' === lm lease   object %s use: %s -- ok!' % (obj, obj.is_used())
                     obj.use ()
                     return obj
 
@@ -209,6 +210,7 @@ class LeaseManager (object) :
             if  obj is not None :
 
                 # we got a locked object -- return
+              # print ' === lm lease   object %s use: %s -- new!' % (obj, obj.is_used())
                 return obj
 
 
@@ -222,7 +224,7 @@ class LeaseManager (object) :
         # seconds.
         # Not that we release our lock here, to give other threads the
         # chance to release objects.
-      # print 'lm lease   object: pool is full'
+      # print ' === lm lease   object: pool is full'
         timer_start = time.time()
         timer_now   = time.time()
 
@@ -295,7 +297,7 @@ class LeaseManager (object) :
         else can lease it.  This will not delete the object,
         """
 
-      # print 'lm release object'
+      # print ' === lm release object'
 
         with self :
 
@@ -311,7 +313,7 @@ class LeaseManager (object) :
                         # this is not the object you are looking for.
                         continue
 
-                  # print 'lm release object %s for %s' % (obj, pool_id)
+                  # print ' === lm release object %s for %s' % (obj, pool_id)
 
                     # remove the lease lock on the object
                     obj.unuse ()

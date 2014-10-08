@@ -2,7 +2,6 @@
 
 import os
 import regex
-import pymongo
 import url as ruu
 
 
@@ -67,6 +66,17 @@ def mongodb_connect (dburl, default_dburl=None) :
     connect to the given mongodb, perform auth for the database (if a database
     was given).
     """
+
+    try :
+        import pymongo
+    except ImportError :
+        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
+        msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
+        msg += "to resolve that dependency (or install pymongo manually).\n"
+        msg += "The first version will work for local installation, \n"
+        msg += "the second one for installation from pypi.\n\n"
+        raise ImportError (msg)
 
     [host, port, dbname, cname, pname, user, pwd] = split_dburl (dburl, default_dburl)
 
