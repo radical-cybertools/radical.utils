@@ -65,7 +65,7 @@ class BaseResult(tuple):
 
     @property
     def scheme(self):
-        return self[0]
+        return self[0] or ''
 
     @property
     def netloc(self):
@@ -73,15 +73,15 @@ class BaseResult(tuple):
 
     @property
     def path(self):
-        return self[2]
+        return self[2] or ''
 
     @property
     def query(self):
-        return self[-2]
+        return self[-2] or ''
 
     @property
     def fragment(self):
-        return self[-1]
+        return self[-1] or ''
 
     # Additional attributes that provide access to parsed-out portions
     # of the netloc:
@@ -94,7 +94,7 @@ class BaseResult(tuple):
             if ":" in userinfo:
                 userinfo = userinfo.split(":", 1)[0]
             return userinfo
-        return None
+        return ''
 
     @property
     def password(self):
@@ -103,7 +103,7 @@ class BaseResult(tuple):
             userinfo = netloc.split("@", 1)[0]
             if ":" in userinfo:
                 return userinfo.split(":", 1)[1]
-        return None
+        return ''
 
     @property
     def hostname(self):
@@ -112,7 +112,7 @@ class BaseResult(tuple):
             netloc = netloc.split("@", 1)[1]
         if ":" in netloc:
             netloc = netloc.split(":", 1)[0]
-        return netloc.lower() or None
+        return netloc.lower() or ''
 
     @property
     def port(self):

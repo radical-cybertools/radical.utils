@@ -85,11 +85,17 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 
     The above will generate the IDs:
 
+        item.0001
+        item.0002
+        item.2014-07-30.13:13:44.0003
+        item.2014-07-30.13:13:44.0004
+        
+
       
     """
 
-    if  not prefix \
-    or  not isinstance (prefix, basestring) :
+    if  not prefix or \
+        not isinstance (prefix, basestring) :
         raise TypeError ("ID generation expect prefix in basestring type") 
 
     if  mode  == ID_SIMPLE :
@@ -103,8 +109,8 @@ def generate_id (prefix, mode=ID_SIMPLE) :
         time = "%02d:%02d:%02d" % (now.hour, now.minute, now.second)
         pid  = os.getpid ()
 
-      # return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, _id_registry.get_counter (prefix))
-        return "%s%s.%s.%04d"      % (prefix, date, time,      _id_registry.get_counter (prefix))
+        return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, _id_registry.get_counter (prefix))
+      # return "%s%s.%s.%04d"      % (prefix, date, time,      _id_registry.get_counter (prefix))
       # return "%s%06d.%04d"       % (prefix,             pid, _id_registry.get_counter (prefix))
 
     else :

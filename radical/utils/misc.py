@@ -2,11 +2,12 @@
 
 import os
 import regex
+import url as ruu
 
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (url, default_url=None) :
+def split_dburl (dburl, default_dburl=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -16,36 +17,25 @@ def split_dburl (url, default_url=None) :
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
     
-    if  '://' not in url and default_url:
-        url = "%s/%s" % (default_url, url)
+    url = ruu.Url (dburl)
 
-    slashes = [idx for [idx,elem] in enumerate(url) if elem == '/']
+    if  not url.schema and not url.host :
+        url      = ruu.Url (default_dburl)
+        url.path = dburl
 
-    if  len(slashes) < 3 :
-        raise ValueError ("url needs to be a mongodb URL, the path element " \
-                          "must specify the database and collection id")
+    # NOTE: add other data base schemes here...
+    if  url.schema not in ['mongodb'] :
+        raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
 
-    if  url[:slashes[0]].lower() != 'mongodb:' :
-        raise ValueError ("url must be a 'mongodb://' url, not %s" % url)
+    host = url.host
+    port = url.port
+    path = url.path
+    user = url.username
+    pwd  = url.password
 
-  # if  len(url) <= slashes[2]+1 :
-  #     raise ValueError ("url needs to be a mongodb url, the path element " \
-  #                       "must specify the database and collection id")
-
-    base_url = url[slashes[1]+1:slashes[2]]
-    path     = url[slashes[2]+1:]
-
-    if  ':' in base_url :
-        host, port = base_url.split (':', 1)
-        port = int(port)
-    else :
-        host, port = base_url, None
-
-    path = os.path.normpath(path)
     if  path.startswith ('/') :
         path = path[1:]
     path_elems = path.split ('/')
-
 
     dbname = None
     cname  = None
@@ -66,8 +56,51 @@ def split_dburl (url, default_url=None) :
     if  dbname == '.' : 
         dbname = None
 
-  # print str([host, port, dbname, cname, pname])
-    return [host, port, dbname, cname, pname]
+    return [host, port, dbname, cname, pname, user, pwd]
+
+
+# ------------------------------------------------------------------------------
+#
+def mongodb_connect (dburl, default_dburl=None) :
+    """
+    connect to the given mongodb, perform auth for the database (if a database
+    was given).
+    """
+
+    try :
+        import pymongo
+    except ImportError :
+        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
+        msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
+        msg += "to resolve that dependency (or install pymongo manually).\n"
+        msg += "The first version will work for local installation, \n"
+        msg += "the second one for installation from pypi.\n\n"
+        raise ImportError (msg)
+
+    [host, port, dbname, cname, pname, user, pwd] = split_dburl (dburl, default_dburl)
+
+    mongo = pymongo.MongoClient (host=host, port=port)
+    db    = None
+
+    if  dbname :
+        db = mongo[dbname]
+
+        if  user and pwd :
+            db.authenticate (user, pwd)
+
+
+    else :
+
+        # if no DB is given, we try to auth against all databases.
+        for dbname in mongo.database_names () :
+            try :
+                mongo[dbname].authenticate (user, pwd)
+            except Exception as e :
+                pass 
+
+
+    return mongo, db, dbname, cname, pname
 
 
 # ------------------------------------------------------------------------------
@@ -122,6 +155,27 @@ def parse_file_staging_directives (directives) :
 
     if  bulk : return ret
     else     : return ret[0]
+
+
+# ------------------------------------------------------------------------------
+#
+def time_diff (dt_abs, dt_stamp) :
+    """
+    return the time difference bewteen  two datetime 
+    objects in seconds (incl. fractions).  Exceptions (like on improper data
+    types) fall through.
+    """
+
+    delta = dt_stamp - dt_abs
+
+    import datetime
+    if  not isinstance  (delta, datetime.timedelta) :
+        raise TypeError ("difference between '%s' and '%s' is not a .timedelta" \
+                      % (type(dt_abs), type(dt_stamp)))
+
+    # get seconds as float 
+    seconds = delta.seconds + delta.microseconds/1E6
+    return seconds
 
 
 # ------------------------------------------------------------------------------

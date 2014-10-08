@@ -183,7 +183,7 @@ class Checker (object):
 
     def __init__ (self, reference):
         self.reference = reference
-        self.spectype   = reference
+        self.spectype  = reference
 
     def check (self, value): # abstract
         pass
@@ -343,10 +343,6 @@ one_of = lambda *args: OneOfChecker (*args).check
 
 def create_return_exception (method, spectype, result) :
 
-  # if no_return_check:
-  #     # disable this!
-  #     return
-
     stack = extract_stack ()
     for f in stack : 
         if  'utils/signatures.py' in f[0] :
@@ -442,13 +438,13 @@ def takes (*args, **kwargs):
 
                 for i, (arg, checker) in enumerate (zip (pargs, checkers)):
                     if  not checker.check (arg):
-                        print 'Checker.spectype %s' % checker.spectype
+                      # print 'Checker.spectype %s' % checker.spectype
                         raise (create_type_exception (method, pargs[0], i,
                                                       arg, checker.spectype))
 
                 for kwname, checker in kwcheckers.iteritems ():
                     if  not checker.check (pkwargs.get (kwname, None)):
-                        print 'checker.spectype %s' % checker.spectype
+                      # print 'checker.spectype %s' % checker.spectype
                         raise (create_type_exception (method, pargs[0], i,
                                                       arg, checker.spectype, kwname))
 
@@ -497,8 +493,9 @@ def returns (sometype):
                 
                 if  not checker.check (result):
                     
-                    print 'Checker.spectype %s' % checker.spectype
-                    raise (create_return_exception (method, checker.spectype, result))
+                    if not  no_return_check:
+                      # print 'Checker.spectype %s' % checker.spectype
+                        raise (create_return_exception (method, checker.spectype, result))
 
                 return result
     

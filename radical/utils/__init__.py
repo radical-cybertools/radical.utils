@@ -15,6 +15,8 @@ from lockable       import Lockable
 from registry       import Registry, READONLY, READWRITE
 from regex          import ReString, ReSult
 from reporter       import Reporter
+from benchmark      import Benchmark
+from lease_manager  import LeaseManager
 
 # import utility methods
 from ids            import generate_id, ID_SIMPLE, ID_UNIQUE
@@ -24,7 +26,9 @@ from read_json      import parse_json
 from read_json      import parse_json_str
 from tracer         import trace, untrace
 from which          import which
-from misc           import split_dburl
+from misc           import split_dburl, mongodb_connect
+from misc           import parse_file_staging_directives 
+from misc           import time_diff
 from get_version    import get_version
 
 # import sub-modules

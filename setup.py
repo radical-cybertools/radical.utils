@@ -54,8 +54,8 @@ def get_version (mod_root):
 
         # attempt to get version detail information from git
         p   = sp.Popen ('cd %s ; '\
-                        'tag=`git describe --tags --always` ; '\
-                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` ; '\
+                        'tag=`git describe --tags --always` 2>/dev/null ; '\
+                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` 2>/dev/null ; '\
                         'echo $tag@$branch'  % src_root,
                         stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         version_detail = p.communicate()[0].strip()
@@ -87,9 +87,9 @@ version, version_detail = get_version (mod_root)
 
 
 #-----------------------------------------------------------------------------
-# check python version. we need > 2.5, <3.x
-if  sys.hexversion < 0x02050000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("%s requires Python 2.x (2.5 or higher)" % name)
+# check python version. we need > 2.6, <3.x
+if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
+    raise RuntimeError("%s requires Python 2.x (2.6 or higher)" % name)
 
 
 #-----------------------------------------------------------------------------
@@ -132,7 +132,6 @@ setup_args = {
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
@@ -152,13 +151,17 @@ setup_args = {
         "radical.utils.logger",
         "radical.utils.contrib",
     ],
-    'scripts'            : ['bin/owms.py', 'bin/radical-owms-version'],
-    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git', 'resources.json']},
+    'scripts'            : ['bin/dump_mongodb.py'],
+    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : ['colorama', 'pymongo'],
-    'tests_require'      : ['nose'],
+    'install_requires'   : ['colorama'],
+    'extras_require'     : {
+        'pymongo'        : ['pymongo'],
+        'nose'           : ['nose']
+    },
+    'tests_require'      : [],
     'zip_safe'           : False,
 #   'build_sphinx'       : {
 #       'source-dir'     : 'docs/',

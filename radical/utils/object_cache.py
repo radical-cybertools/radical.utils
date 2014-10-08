@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import threading
+import lockable
 import singleton
 
 
@@ -17,6 +18,7 @@ _TIMEOUT = 10
 
 # ------------------------------------------------------------------------------
 #
+@lockable.Lockable
 class ObjectCache (object) :
 
     """ 
@@ -29,7 +31,6 @@ class ObjectCache (object) :
     # names...
 
     __metaclass__ = singleton.Singleton
-    _lock         = threading.RLock ()
 
     # --------------------------------------------------------------------------
     #
@@ -42,9 +43,8 @@ class ObjectCache (object) :
         avoid thrashing on frequent removal/creation.
         """
 
-        with self._lock :
-            self._timeout = timeout
-            self._cache   = dict()
+        self._timeout = timeout
+        self._cache   = dict()
 
 
 
@@ -58,9 +58,18 @@ class ObjectCache (object) :
         
         If that object does not exist, call the given creator, then register and
         return the object thusly created.
+
+        oid     : id of the object to get from the cache.  
+        creator : method to use to create a new object instance
+
+                  Example:
+                      def creator () :
+                          return getLogger (name)
+
+                      ret   = object_cache.get_object (name, creator)
         """
 
-        with self._lock :
+        with self :
 
             oid = str(oid)
 
@@ -92,7 +101,7 @@ class ObjectCache (object) :
         semantics in the case of frequent creation/dstruction cycles.
         """
 
-        with self._lock :
+        with self :
 
             for oid in self._cache.keys () :
 
@@ -119,7 +128,7 @@ class ObjectCache (object) :
         :func:`rem_obj()` for details.
         """
 
-        with self._lock :
+        with self :
 
             self._cache [oid]['cnt'] -= 1
 
