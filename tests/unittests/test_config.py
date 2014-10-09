@@ -5,14 +5,16 @@ __license__   = "MIT"
 
 
 import os
+import pytest
+
 import radical.utils.config as ruc
 
 
 # ------------------------------------------------------------------------------
-def test_config () :
+def test_config (tmpdir) :
     """ Test if configuration location is picked up from env """
 
-    tmp = '/tmp/radical.util.cfg.%s' % os.getpid ()
+    tmp = '%s/radical.util.cfg' % tmpdir
     os.environ ['RADICAL_UTILS_CONFIG'] = tmp
 
     with  open (tmp, 'w') as tmp_file :
@@ -28,13 +30,6 @@ def test_config () :
 
     os.remove (tmp)
 
-# ------------------------------------------------------------------------------
-#
-# run tests if called directly
-#
-if __name__ == "__main__":
-
-    test_config ()
 
 # ------------------------------------------------------------------------------
 

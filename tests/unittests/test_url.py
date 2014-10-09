@@ -120,14 +120,5 @@ def test_url_properties () :
     assert url.get_path()     == "/tpath"
    
 
-
 # ------------------------------------------------------------------------------
-# run tests if called directly
-if __name__ == "__main__":
-
-    test_url_compatibility ()
-    test_url_scheme_issue  ()
-    test_url_issue_49      ()
-    test_url_issue_61      ()
-    test_url_properties    ()
 

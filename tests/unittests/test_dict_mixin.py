@@ -121,13 +121,6 @@ def test_dict_stringexpand () :
     assert (target['workdir']  == '/home/peer_gynt/work/')
     assert (target['resource'] == 'ssh://localhost/')
 
-# ------------------------------------------------------------------------------
-# run tests if called directly
-if __name__ == "__main__":
-
-    test_dict_mixin ()
-    test_dict_merge ()
-    test_dict_stringexpand ()
 
 # ------------------------------------------------------------------------------
 
