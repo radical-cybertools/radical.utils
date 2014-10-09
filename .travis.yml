@@ -1,0 +1,19 @@
+language: 
+  - python
+
+python:
+  - "2.5"
+  - "2.6"
+  - "2.7"
+  - "pypy"
+
+install:
+  - pip install .
+  - pip install pytest
+  - pip install pylint
+
+script: 
+  - py.test tests/
+  - find radical -name \*.py | xargs -n 1 pylint | grep -e '^E'
+
+
