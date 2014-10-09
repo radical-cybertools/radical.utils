@@ -99,10 +99,7 @@ class our_test(Command):
     def finalize_options   (self) : pass
     def run (self) :
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
-        retval  = sp.call([sys.executable,
-                          '%s/run_tests.py'               % testdir,
-                          '%s/configs/default.cfg'        % testdir])
-        raise SystemExit(retval)
+        sys.exit (sp.call (['py.test', testdir]))
 
 
 #-----------------------------------------------------------------------------
@@ -157,11 +154,10 @@ setup_args = {
         'test'           : our_test,
     },
     'install_requires'   : ['colorama'],
+    'tests_require'      : ['pytest'],
     'extras_require'     : {
-        'pymongo'        : ['pymongo'],
-        'nose'           : ['nose']
+        'pymongo'        : ['pymongo']
     },
-    'tests_require'      : [],
     'zip_safe'           : False,
 #   'build_sphinx'       : {
 #       'source-dir'     : 'docs/',
