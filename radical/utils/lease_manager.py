@@ -163,10 +163,17 @@ class LeaseManager (object) :
                 # no more space...
                 return None
 
-            # poolsize cap not reached -- increase pool 
-            obj = _LeaseObject (self, self._log, creator, args)
-            obj.lease ()
-            pool['objects'].append (obj)
+            # poolsize cap not reached -- increase pool.  If creating a new
+            # object does not work for any reason, return None.
+            obj = None
+            try :
+                obj = _LeaseObject (self, self._log, creator, args)
+                obj.lease ()
+                pool['objects'].append (obj)
+
+            except Exception as e :
+                obj = None
+                self._log.exception ("Could not create lease object")
 
             return obj
 
@@ -216,14 +223,12 @@ class LeaseManager (object) :
             # find an unlocked object instance in the pool
             for obj in pool['objects'] :
 
-                self._log.debug ('lm lease   object %s use: %s' % (obj,
-                    obj.is_leased()))
+              # self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
 
                 if  not obj.is_leased () :
 
                     # found one -- lease/lock and return it
-                    self._log.debug ('lm lease   object %s use: %s -- ok!' \
-                                  % (obj, obj.is_leased()))
+                    self._log.debug ('lm lease   object %s use: ok!' % obj)
                     obj.lease ()
                     return obj
 
