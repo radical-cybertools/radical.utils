@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 __author__    = "RADICAL Team"
 __copyright__ = "Copyright 2013, RADICAL Research, Rutgers University"
@@ -108,23 +109,26 @@ class our_test(Command):
 #-----------------------------------------------------------------------------
 #
 def read(*rnames):
-    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+    try :
+        return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+    except Exception :
+        return ""
 
 
 #-----------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
-    'namespace_packages' : ["radical"],
+    'namespace_packages' : ['radical'],
     'version'            : version,
-    'description'        : "Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.",
+    'description'        : 'Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.',
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
     'author'             : 'RADICAL Group at Rutgers University',
-    'author_email'       : "radical@rutgers.edu",
-    'maintainer'         : "Andre Merzky",
-    'maintainer_email'   : "andre@merzky.net",
-    'url'                : "https://www.github.com/radical-cybertools/radical.utils/",
-    'license'            : "MIT",
-    'keywords'           : "radical pilot job saga",
+    'author_email'       : 'radical@rutgers.edu',
+    'maintainer'         : 'Andre Merzky',
+    'maintainer_email'   : 'andre@merzky.net',
+    'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
+    'license'            : 'MIT',
+    'keywords'           : 'radical pilot job saga',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -137,40 +141,33 @@ setup_args = {
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
-        'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
     'packages'           : [
-        "radical",
-        "radical.utils",
-        "radical.utils.config",
-        "radical.utils.plugins",
-        "radical.utils.plugins.unittests_1",
-        "radical.utils.plugins.unittests_2",
-        "radical.utils.logger",
-        "radical.utils.contrib",
+        'radical',
+        'radical.utils',
+        'radical.utils.config',
+        'radical.utils.plugins',
+        'radical.utils.plugins.unittests_1',
+        'radical.utils.plugins.unittests_2',
+        'radical.utils.logger',
+        'radical.utils.contrib',
     ],
     'scripts'            : ['bin/dump_mongodb.py'],
     'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : ['colorama'],
+    'install_requires'   : [
+        'colorama'
+    ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
         'nose'           : ['nose']
     },
     'tests_require'      : [],
     'zip_safe'           : False,
-#   'build_sphinx'       : {
-#       'source-dir'     : 'docs/',
-#       'build-dir'      : 'docs/build',
-#       'all_files'      : 1,
-#   },
-#   'upload_sphinx'      : {
-#       'upload-dir'     : 'docs/build/html',
-#   }
 }
 
 #-----------------------------------------------------------------------------
