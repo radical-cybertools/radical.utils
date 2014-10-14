@@ -179,4 +179,44 @@ def time_diff (dt_abs, dt_stamp) :
 
 
 # ------------------------------------------------------------------------------
+#
+def _get_stacktraces () :
+
+    import sys
+    import threading
+    import traceback
+
+    id2name = {}
+    for th in threading.enumerate():
+        id2name[th.ident] = th.name
+
+    code = []
+    for threadId, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name[threadId], threadId))
+
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+
+            if line:
+                code.append(" %s" % (line.strip()))
+
+    return "\n".join(code)
+
+
+# ------------------------------------------------------------------------------
+class DebugHelper (object) :
+
+    def __init__ (self) :
+        import signal
+        signal.signal(signal.SIGUSR1, self.dump_stacktraces)
+
+
+    def dump_stacktraces (self, a, b) :
+        print self
+        print a
+        print b
+        print _get_stacktraces ()
+
+
+# ------------------------------------------------------------------------------
 

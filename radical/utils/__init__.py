@@ -29,6 +29,7 @@ from which          import which
 from misc           import split_dburl, mongodb_connect
 from misc           import parse_file_staging_directives 
 from misc           import time_diff
+from misc           import DebugHelper
 from get_version    import get_version
 
 # import sub-modules
