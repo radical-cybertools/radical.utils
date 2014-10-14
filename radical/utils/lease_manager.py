@@ -59,7 +59,7 @@ class _LeaseObject (object) :
         self.used     = True
         self.t_leased = time.time()
 
-        self.log.error ("%s was unused for %6.1fs" % (self.uid, self.t_leased-self.t_released))
+        self.log.debug ("%s was unused for %6.1fs" % (self.uid, self.t_leased-self.t_released))
 
     # --------------------------------------------------------------------------
     def release (self, *args) :
@@ -70,7 +70,7 @@ class _LeaseObject (object) :
         self.used       = False
         self.t_released = time.time ()
 
-        self.log.error ("%s was leased for %6.1fs" % (self.uid, self.t_released-self.t_leased))
+        self.log.debug ("%s was leased for %6.1fs" % (self.uid, self.t_released-self.t_leased))
 
     # --------------------------------------------------------------------------
     def is_leased (self, *args) :
