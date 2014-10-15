@@ -10,8 +10,9 @@ import lockable
 import singleton
 import threading
 
-MAX_POOL_SIZE =  0  # unlimited
-MAX_POOL_WAIT = 60  # seconds
+MAX_POOL_SIZE =  0     # unlimited
+MAX_POOL_WAIT = 60     # seconds
+MAX_OBJ_AGE   = 60*10  # 10 minutes
 
 
 
@@ -181,6 +182,37 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
+    def _remove_object (self, pool_id, obj) :
+        """
+        a new instance is needed -- create one, unless max_pool_size is reached.
+        If that is the case, return `None`, otherwise return the created object
+        (which is locked before return).
+        """
+
+        with self :
+
+            self._log.debug ('lm remove  object for %s' % pool_id)
+
+            if  pool_id not in self._pools :
+                raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
+
+            pool = self._pools[pool_id]
+
+            # poolsize cap not reached -- increase pool.  If creating a new
+            # object does not work for any reason, return None.
+            obj = None
+            try :
+                pool['objects'].remove (obj)
+
+            except Exception as e :
+                self._log.exception ("Could not remove lease object")
+
+            return obj
+
+
+
+    # --------------------------------------------------------------------------
+    #
     def lease (self, pool_id, creator, args=[]) :
         """
 
@@ -221,11 +253,20 @@ class LeaseManager (object) :
           # self._log.debug (pool['objects'])
 
             # find an unlocked object instance in the pool
-            for obj in pool['objects'] :
+            # NOTE: we iterate over a copy of the list, as an eventual object 
+            # removeal would screw up the index...
+            for obj in pool['objects'][:] :
 
               # self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
 
                 if  not obj.is_leased () :
+
+                    # check age
+                    age = time.now - obj.t_created
+                    if  age > MAX_OBJ_AGE :
+                        # too old -- remove and continue to search for a younger unleased object
+                        self._remove_object (pool_id, obj)
+                        continue
 
                     # found one -- lease/lock and return it
                     self._log.debug ('lm lease   object %s use: ok!' % obj)
