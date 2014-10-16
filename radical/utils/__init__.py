@@ -32,6 +32,9 @@ from misc           import time_diff
 from misc           import DebugHelper
 from get_version    import get_version
 
+# import decorators
+from timing         import timed_method
+
 # import sub-modules
 # from config         import Configuration, Configurable, ConfigOption, getConfig
 
