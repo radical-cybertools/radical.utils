@@ -262,7 +262,7 @@ class LeaseManager (object) :
                 if  not obj.is_leased () :
 
                     # check age
-                    age = time.now - obj.t_created
+                    age = time.time() - obj.t_created
                     if  age > MAX_OBJ_AGE :
                         # too old -- remove and continue to search for a younger unleased object
                         self._remove_object (pool_id, obj)
