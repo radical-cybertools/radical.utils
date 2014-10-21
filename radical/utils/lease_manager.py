@@ -265,7 +265,7 @@ class LeaseManager (object) :
                     age = time.time() - obj.t_created
                     if  age > MAX_OBJ_AGE :
                         # too old -- remove and continue to search for a younger unleased object
-                        self._log.debug ('lm retire  object %s (%6.2fs): %s' % (obj, age))
+                        self._log.debug ('lm retire  object %s (%6.2fs)' % (obj, age))
                         self._remove_object (pool_id, obj)
                         continue
 
