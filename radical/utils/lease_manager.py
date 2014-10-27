@@ -10,10 +10,10 @@ import lockable
 import singleton
 import threading
 
-MAX_POOL_SIZE =  0     # unlimited
+# default settings for lease manager
+MAX_POOL_SIZE = 10     # unlimited
 MAX_POOL_WAIT = 60     # seconds
 MAX_OBJ_AGE   = 60*10  # 10 minutes
-
 
 
 # ------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, max_pool_size=MAX_POOL_SIZE) :
+    def __init__ (self, max_pool_size=MAX_POOL_SIZE, max_pool_wait=MAX_POOL_WAIT, max_obj_age=MAX_OBJ_AGE) :
         """
         Make sure the object dict is initialized, exactly once.
         """
@@ -110,6 +110,8 @@ class LeaseManager (object) :
         self._log.debug ('lm new manager')
         self._pools = dict()
         self._max_pool_size = max_pool_size
+        self._max_pool_wait = max_pool_wait 
+        self._max_obj_age   = max_obj_age
 
 
     # --------------------------------------------------------------------------
@@ -250,21 +252,22 @@ class LeaseManager (object) :
 
             self._log.debug ('lm lease   object for %s (%s)' \
                           % (pool_id, len(pool['objects'])))
-          # self._log.debug (pool['objects'])
+            self._log.debug (pool['objects'])
 
             # find an unlocked object instance in the pool
             # NOTE: we iterate over a copy of the list, as an eventual object 
             # removeal would screw up the index...
             for obj in pool['objects'][:] :
 
-              # self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
+                self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
 
                 if  not obj.is_leased () :
 
                     # check age
                     age = time.time() - obj.t_created
-                    if  age > MAX_OBJ_AGE :
+                    if  age > self._max_obj_age :
                         # too old -- remove and continue to search for a younger unleased object
+                        self._log.debug ('lm retire  object %s (%6.2fs)' % (obj, age))
                         self._remove_object (pool_id, obj)
                         continue
 
@@ -299,10 +302,10 @@ class LeaseManager (object) :
         timer_start = time.time()
         timer_now   = time.time()
 
-        while (timer_now - timer_start) < MAX_POOL_WAIT :
+        while (timer_now - timer_start) < self._max_pool_wait :
 
             # wait for any release activity on the pool
-            timer_left = MAX_POOL_WAIT - (timer_now - timer_start)
+            timer_left = self._max_pool_wait - (timer_now - timer_start)
             pool['event'].wait (timer_left)
 
             with self :
