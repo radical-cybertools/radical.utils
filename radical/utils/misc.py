@@ -204,6 +204,7 @@ def _get_stacktraces () :
 
 
 # ------------------------------------------------------------------------------
+#
 class DebugHelper (object) :
     """
     When instantiated, and when "RADICAL_DEBUG" is set in the environmant, this
@@ -223,6 +224,16 @@ class DebugHelper (object) :
     def dump_stacktraces (self, a, b) :
         print _get_stacktraces ()
 
+
+# ------------------------------------------------------------------------------
+#
+def all_pairs (iterable, n) :
+    """
+    s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
+    """
+
+    from itertools import izip
+    return izip(*[iter(iterable)]*n)
 
 # ------------------------------------------------------------------------------
 
