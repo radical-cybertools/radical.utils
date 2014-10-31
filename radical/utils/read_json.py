@@ -54,8 +54,8 @@ def write_json (data,  filename) :
 
     """
 
-   with open (filename, 'w') as f :
-       json.dump (data, f, sort_keys=True, indent=4, ensure_ascii=False) 
+    with open (filename, 'w') as f :
+        json.dump (data, f, sort_keys=True, indent=4, ensure_ascii=False) 
 
 
 # ------------------------------------------------------------------------------
