@@ -141,15 +141,21 @@ class Url (object):
 
 
     def _renew_url (self, scheme='', netloc='', path='', 
-                          params='', query='',  fragment='') :
+                          params='', query='',  fragment='', force_path=False) :
 
         # always normalize the path
         if  path :
             path = os.path.normpath (path)
 
+        if  force_path :
+            forced_path = path or ''
+        else :
+            forced_path = path or self._urlobj.path
+
+
         newurl = urlparse.urlunparse ((scheme   or self._urlobj.scheme,
                                        netloc   or self._urlobj.netloc,
-                                       path     or self._urlobj.path,
+                                       forced_path,
                                        params   or self._urlobj.params,
                                        query    or self._urlobj.query,
                                        fragment or self._urlobj.fragment))
@@ -373,7 +379,7 @@ class Url (object):
         :param path: The new path
         :type path:  str
         """
-        self._renew_url (path=path)
+        self._renew_url (path=path, force_path=True)
 
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
@@ -384,13 +390,15 @@ class Url (object):
         Return the URL 'path' component.
         """
 
-        import os
+        path = self._urlobj.path
 
-        if '?' in self._urlobj.path:
-            (path, query) = self._urlobj.path.split('?')
+        if  '?' in path :
+            (path, query) = path
+
+        if  path :
             return os.path.normpath(path)
-        else:
-            return os.path.normpath(self._urlobj.path)
+        else :
+            return path
 
     path = property(get_path, set_path)
     """ The path component.  """
