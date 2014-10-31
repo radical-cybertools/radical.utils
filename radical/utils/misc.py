@@ -159,6 +159,20 @@ def parse_file_staging_directives (directives) :
 
 # ------------------------------------------------------------------------------
 #
+def time_stamp (spec) :
+
+    if  isinstance (spec, int)   or \
+        isinstance (spec, long)  or \
+        isinstance (spec, float) :
+
+        import datetime
+        return datetime.datetime.utcfromtimestamp (spec)
+
+    return spec
+
+
+# ------------------------------------------------------------------------------
+#
 def time_diff (dt_abs, dt_stamp) :
     """
     return the time difference bewteen  two datetime 
@@ -167,6 +181,12 @@ def time_diff (dt_abs, dt_stamp) :
     """
 
     delta = dt_stamp - dt_abs
+
+    # make it easy to use seconds since epoch instead of datetime objects
+    if  isinstance (delta, int)   or \
+        isinstance (delta, long)  or \
+        isinstance (delta, float) :
+        return delta
 
     import datetime
     if  not isinstance  (delta, datetime.timedelta) :
