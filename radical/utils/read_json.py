@@ -48,6 +48,18 @@ def read_json_str (filename) :
 
 # ------------------------------------------------------------------------------
 #
+def write_json (data,  filename) :
+    """
+    thin wrapper around python's json write, for consistency of interface
+
+    """
+
+   with open (filename, 'w') as f :
+       json.dump (data, f, sort_keys=True, indent=4, ensure_ascii=False) 
+
+
+# ------------------------------------------------------------------------------
+#
 def parse_json (json_str) :
     """
     Comments in the form of
