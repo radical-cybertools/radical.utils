@@ -16,14 +16,14 @@ from setuptools import setup, Command
 name     = 'radical.utils'
 mod_root = 'radical/utils'
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 #
 # versioning mechanism:
 #
 #   - version:          1.2.3            - is used for installation
 #   - version_detail:  v1.2.3-9-g0684b06 - is used for debugging
-#   - version is read from VERSION file in src root, which is on installation
-#     copied into the module dir.
+#   - version is read from VERSION file in src_root, which then is copied to
+#     module dir, and is getting installed from there.
 #   - version_detail is derived from the git tag, and only available when
 #     installed from git -- this is stored in VERSION.git, in the same
 #     locations, on install.
@@ -33,10 +33,9 @@ mod_root = 'radical/utils'
 def get_version (mod_root):
     """
     mod_root
-        a VERSION and VERSION.git file containing the version strings is created
-        in mod_root, during installation.  Those files are used at runtime to
-        get the version information.
-
+        a VERSION and VERSION.git file containing the version strings is 
+        created in mod_root, during installation.  Those files are used at 
+        runtime to get the version information.
     """
 
     try:
@@ -73,7 +72,7 @@ def get_version (mod_root):
         path = "%s/%s" % (src_root, mod_root)
         print 'creating %s/VERSION' % path
 
-        with open (path + "/VERSION",     "w") as f : f.write (version        + "\n") 
+        with open (path + "/VERSION",     "w") as f : f.write (version        + "\n")
         with open (path + "/VERSION.git", "w") as f : f.write (version_detail + "\n")
 
         return version, version_detail
@@ -82,18 +81,18 @@ def get_version (mod_root):
         raise RuntimeError ("Could not extract/set version: %s" % e)
 
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
 version, version_detail = get_version (mod_root)
 
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # check python version. we need > 2.6, <3.x
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
     raise RuntimeError("%s requires Python 2.x (2.6 or higher)" % name)
 
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 class our_test(Command):
     user_options = []
     def initialize_options (self) : pass
@@ -106,7 +105,7 @@ class our_test(Command):
         raise SystemExit(retval)
 
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 #
 def read(*rnames):
     try :
@@ -115,12 +114,13 @@ def read(*rnames):
         return ""
 
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
     'version'            : version,
-    'description'        : 'Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.',
+    'description'        : 'Shared code and tools for various Radical Group '
+                           '(http://radical.rutgers.edu) projects.',
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
@@ -170,9 +170,9 @@ setup_args = {
     'zip_safe'           : False,
 }
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 setup (**setup_args)
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
