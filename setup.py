@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-__author__    = "RADICAL Team"
-__copyright__ = "Copyright 2013, RADICAL Research, Rutgers University"
-__license__   = "MIT"
+__author__    = 'RADICAL Team'
+__email__     = 'radical@rutgers.edu'
+__copyright__ = 'Copyright 2013/14, RADICAL Research, Rutgers University'
+__license__   = 'MIT'
 
 
 """ Setup script. Used by easy_install and pip. """
@@ -11,7 +12,7 @@ import os
 import sys
 import subprocess as sp
 
-from setuptools import setup, Command
+from setuptools import setup, Command, find_packages
 
 name     = 'radical.utils'
 mod_root = 'radical/utils'
@@ -27,15 +28,21 @@ mod_root = 'radical/utils'
 #   - version_detail is derived from the git tag, and only available when
 #     installed from git -- this is stored in VERSION.git, in the same
 #     locations, on install.
-#   - both files, VERSION and VERSION.git are used to provide the runtime 
-#     version information. 
+#   - both files, VERSION and VERSION.git are used to provide the runtime
+#     version information.
 #
 def get_version (mod_root):
     """
     mod_root
+<<<<<<< Updated upstream
         a VERSION and VERSION.git file containing the version strings is 
         created in mod_root, during installation.  Those files are used at 
         runtime to get the version information.
+=======
+        a VERSION and VERSION.git file containing the version strings is created
+        in mod_root, during installation.  Those files are used at runtime to
+        get the version information.
+>>>>>>> Stashed changes
     """
 
     try:
@@ -48,11 +55,13 @@ def get_version (mod_root):
         if  not src_root :
             src_root = '.'
 
-        with open (src_root + "/VERSION", "r") as f :
+        with open (src_root + '/VERSION', 'r') as f :
             version = f.readline ().strip()
 
 
         # attempt to get version detail information from git
+        os.system ('git describe --tags --always')
+        os.system ('git branch | grep -e "^*" | cut -f 2 -d " "')
         p   = sp.Popen ('cd %s ; '\
                         'tag=`git describe --tags --always` 2>/dev/null ; '\
                         'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` 2>/dev/null ; '\
@@ -63,22 +72,27 @@ def get_version (mod_root):
         if  p.returncode   !=  0  or \
             version_detail == '@' or \
             'fatal'        in version_detail :
-            version_detail =  "v%s" % version
+            version_detail =  'v%s' % version
 
         print 'version: %s (%s)'  % (version, version_detail)
 
 
         # make sure the version files exist for the runtime version inspection
-        path = "%s/%s" % (src_root, mod_root)
+        path = '%s/%s' % (src_root, mod_root)
         print 'creating %s/VERSION' % path
 
+<<<<<<< Updated upstream
         with open (path + "/VERSION",     "w") as f : f.write (version        + "\n")
         with open (path + "/VERSION.git", "w") as f : f.write (version_detail + "\n")
+=======
+        with open (path + '/VERSION',     'w') as f : f.write (version        + '\n') 
+        with open (path + '/VERSION.git', 'w') as f : f.write (version_detail + '\n')
+>>>>>>> Stashed changes
 
         return version, version_detail
 
     except Exception as e :
-        raise RuntimeError ("Could not extract/set version: %s" % e)
+        raise RuntimeError ('Could not extract/set version: %s' % e)
 
 
 #-------------------------------------------------------------------------------
@@ -89,7 +103,7 @@ version, version_detail = get_version (mod_root)
 #-------------------------------------------------------------------------------
 # check python version. we need > 2.6, <3.x
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("%s requires Python 2.x (2.6 or higher)" % name)
+    raise RuntimeError('%s requires Python 2.x (2.6 or higher)' % name)
 
 
 #-------------------------------------------------------------------------------
@@ -98,11 +112,16 @@ class our_test(Command):
     def initialize_options (self) : pass
     def finalize_options   (self) : pass
     def run (self) :
+<<<<<<< Updated upstream
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
         retval  = sp.call([sys.executable,
                           '%s/run_tests.py'               % testdir,
                           '%s/configs/default.cfg'        % testdir])
         raise SystemExit(retval)
+=======
+        testdir = '%s/tests/' % os.path.dirname(os.path.realpath(__file__))
+        sys.exit (sp.call (['py.test', testdir]))
+>>>>>>> Stashed changes
 
 
 #-------------------------------------------------------------------------------
@@ -110,8 +129,13 @@ class our_test(Command):
 def read(*rnames):
     try :
         return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
+<<<<<<< Updated upstream
     except Exception :
         return ""
+=======
+    except :
+        return ''
+>>>>>>> Stashed changes
 
 
 #-------------------------------------------------------------------------------
@@ -119,8 +143,12 @@ setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
     'version'            : version,
+<<<<<<< Updated upstream
     'description'        : 'Shared code and tools for various Radical Group '
                            '(http://radical.rutgers.edu) projects.',
+=======
+    'description'        : 'Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.',
+>>>>>>> Stashed changes
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
@@ -140,6 +168,7 @@ setup_args = {
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
+<<<<<<< Updated upstream
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
         'Operating System :: POSIX',
         'Operating System :: Unix'
@@ -154,6 +183,14 @@ setup_args = {
         'radical.utils.logger',
         'radical.utils.contrib',
     ],
+=======
+        'Topic :: Scientific/Engineering',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: POSIX',
+        'Operating System :: Unix'
+    ],
+    'packages'           : find_packages(),
+>>>>>>> Stashed changes
     'scripts'            : ['bin/dump_mongodb.py'],
     'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
