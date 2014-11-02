@@ -34,7 +34,7 @@ class Daemon (object) :
 
     # --------------------------------------------------------------------------
     #
-    def daemonize (self) :
+    def daemonize (self, debug=False) :
         """
         do the UNIX double-fork magic, see Stevens' "Advanced 
         Programming in the UNIX Environment" for details (ISBN 0201563177)
@@ -43,46 +43,46 @@ class Daemon (object) :
 
         try :
 
-            with open ('/tmp/t', 'a') as l :
-                # first fork
-                try : 
-                    f1_pid = os.fork () 
-                    if  f1_pid > 0:
-                        # wait for daemon pid from second parent
-                        self.pid = self.queue.get ()
+            # first fork
+            try : 
+                f1_pid = os.fork () 
+                if  f1_pid > 0:
+                    # wait for daemon pid from second parent
+                    self.pid = self.queue.get ()
 
-                        # we are done...
-                        return False
+                    # we are done...
+                    return False
 
-                except OSError as e : 
-                    raise RuntimeError ("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+            except OSError as e : 
+                raise RuntimeError ("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
 
 
-                # decouple from parent environment
-                os.chdir  ("/") 
-              # os.setsid () 
-                os.umask  (0) 
+            # decouple from parent environment
+            os.chdir  ("/") 
+          # os.setsid () 
+            os.umask  (0) 
 
-                # second fork
-                try : 
-                    f2_pid = os.fork () 
-                    
-                    if  f2_pid > 0 :
-                        # communicate pid to first parent
-                        self.queue.put (f2_pid)
+            # second fork
+            try : 
+                f2_pid = os.fork () 
+                
+                if  f2_pid > 0 :
+                    # communicate pid to first parent
+                    self.queue.put (f2_pid)
 
-                        # exit from second parent
-                        sys.exit(0) 
+                    # exit from second parent
+                    sys.exit(0) 
 
-                except OSError as e : 
-                    # no use rasing exceptions at this point
-                    sys.stderr.write ("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
-                    sys.exit (1) 
+            except OSError as e : 
+                # no use rasing exceptions at this point
+                sys.stderr.write ("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+                sys.exit (1) 
 
+            if  not debug :
                 # redirect standard file descriptors
                 sys.stdout.flush ()
                 sys.stderr.flush ()
-
+                
                 si = file (self.stdin,  'r' )
                 so = file (self.stdout, 'a+')
                 se = file (self.stderr, 'a+', 0)
@@ -91,13 +91,13 @@ class Daemon (object) :
                 os.dup2 (so.fileno (), sys.stdout.fileno ())
                 os.dup2 (se.fileno (), sys.stderr.fileno ())
 
-                # write pidfile
-                if  self.pidfile :
-                    atexit.register (self.delpid)
-                    pid = str (os.getpid ())
-                    file (self.pidfile,'w+').write ("%s\n" % pid)
+            # write pidfile
+            if  self.pidfile :
+                atexit.register (self.delpid)
+                pid = str (os.getpid ())
+                file (self.pidfile,'w+').write ("%s\n" % pid)
 
-                return True
+            return True
 
         except Exception as e :
             raise
