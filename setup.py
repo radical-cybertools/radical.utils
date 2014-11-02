@@ -54,8 +54,6 @@ def get_version (mod_root):
 
 
         # attempt to get version detail information from git
-        os.system ('git describe --tags --always')
-        os.system ('git branch | grep -e "^*" | cut -f 2 -d " "')
         p   = sp.Popen ('cd %s ; '\
                         'tag=`git describe --tags --always` 2>/dev/null ; '\
                         'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` 2>/dev/null ; '\
