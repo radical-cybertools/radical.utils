@@ -24,13 +24,13 @@ def usage (msg=None, noexit=False) :
 
     print """
 
-      usage   : %s [command] [url]
+      usage   : %s -m mode [-d url]
       example : %s mongodb://localhost/synapse_profiles/profiles/
 
       The URL is interpreted as:
           [schema]://[host]:[port]/[database]/[collection]/[document_id]
 
-      Commands are:
+      modes are:
 
         help:   show this message
         tree:   show a tree of the hierarchy, but only  document IDs, no content

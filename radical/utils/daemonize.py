@@ -4,7 +4,7 @@ import os
 import time
 import atexit
 import signal
-import Queue
+import multiprocessing
 
 # from 
 # http://stackoverflow.com/questions/1417631/python-code-to-daemonize-a-process
@@ -29,7 +29,7 @@ class Daemon (object) :
         self.stderr  = stderr
         self.pidfile = pidfile
         self.pid     = None
-        self.queue   = Queue.Queue ()
+        self.queue   = multiprocessing.Queue ()
 
 
     # --------------------------------------------------------------------------
@@ -41,60 +41,66 @@ class Daemon (object) :
         http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
         """
 
+        try :
+
+            with open ('/tmp/t', 'a') as l :
+                # first fork
+                try : 
+                    f1_pid = os.fork () 
+                    if  f1_pid > 0:
+                        # wait for daemon pid from second parent
+                        self.pid = self.queue.get ()
+
+                        # we are done...
+                        return False
+
+                except OSError as e : 
+                    raise RuntimeError ("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
 
 
-        # first fork
-        try : 
-            f1_pid = os.fork () 
-            if  f1_pid > 0:
-                # wait for daemon pid from second parent
-                self.pid = self.queue.get ()
+                # decouple from parent environment
+                os.chdir  ("/") 
+              # os.setsid () 
+                os.umask  (0) 
 
-                # we are done...
-                return
+                # second fork
+                try : 
+                    f2_pid = os.fork () 
+                    
+                    if  f2_pid > 0 :
+                        # communicate pid to first parent
+                        self.queue.put (f2_pid)
 
-        except OSError as e : 
-            raise RuntimeError ("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
+                        # exit from second parent
+                        sys.exit(0) 
 
+                except OSError as e : 
+                    # no use rasing exceptions at this point
+                    sys.stderr.write ("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
+                    sys.exit (1) 
 
-        # decouple from parent environment
-        os.chdir  ("/") 
-        os.setsid () 
-        os.umask  (0) 
+                # redirect standard file descriptors
+                sys.stdout.flush ()
+                sys.stderr.flush ()
 
-        # second fork
-        try : 
-            f2_pid = os.fork () 
-            
-            if  f2_pid > 0 :
-                # communicate pid to first parent
-                self.queue.put (f2_pid)
+                si = file (self.stdin,  'r' )
+                so = file (self.stdout, 'a+')
+                se = file (self.stderr, 'a+', 0)
+                
+                os.dup2 (si.fileno (), sys.stdin.fileno  ())
+                os.dup2 (so.fileno (), sys.stdout.fileno ())
+                os.dup2 (se.fileno (), sys.stderr.fileno ())
 
-                # exit from second parent
-                sys.exit(0) 
+                # write pidfile
+                if  self.pidfile :
+                    atexit.register (self.delpid)
+                    pid = str (os.getpid ())
+                    file (self.pidfile,'w+').write ("%s\n" % pid)
 
-        except OSError as e : 
-            # no use rasing exceptions at this point
-            sys.stderr.write ("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
-            sys.exit (1) 
+                return True
 
-        # redirect standard file descriptors
-        sys.stdout.flush ()
-        sys.stderr.flush ()
-
-        si = file (self.stdin,  'r' )
-        so = file (self.stdout, 'a+')
-        se = file (self.stderr, 'a+', 0)
-        
-        os.dup2 (si.fileno (), sys.stdin.fileno  ())
-        os.dup2 (so.fileno (), sys.stdout.fileno ())
-        os.dup2 (se.fileno (), sys.stderr.fileno ())
-
-        # write pidfile
-        if  self.pidfile :
-            atexit.register (self.delpid)
-            pid = str (os.getpid ())
-            file (self.pidfile,'w+').write ("%s\n" % pid)
+        except Exception as e :
+            raise
 
 
     # --------------------------------------------------------------------------
@@ -107,7 +113,10 @@ class Daemon (object) :
 
     # --------------------------------------------------------------------------
     #
-    def start (self) :
+    def start (self, debug=False) :
+
+        if  debug :
+            return self.run ()
 
         if  self.pidfile :
             
@@ -123,9 +132,13 @@ class Daemon (object) :
                 raise RuntimeError ("pidfile %s exist - daemon running?\n" \
                                    % self.pidfile)
 
-        # Start the daemon
-        self.daemonize ()
-        self.run ()
+        # Start the daemon, and in the demon, run the workload
+        if self.daemonize () :
+            try :
+                self.run ()
+            except Exception as e :
+                # FIXME: we need a logfile :P
+                pass
 
 
     # --------------------------------------------------------------------------
