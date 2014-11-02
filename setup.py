@@ -34,15 +34,9 @@ mod_root = 'radical/utils'
 def get_version (mod_root):
     """
     mod_root
-<<<<<<< Updated upstream
         a VERSION and VERSION.git file containing the version strings is 
         created in mod_root, during installation.  Those files are used at 
         runtime to get the version information.
-=======
-        a VERSION and VERSION.git file containing the version strings is created
-        in mod_root, during installation.  Those files are used at runtime to
-        get the version information.
->>>>>>> Stashed changes
     """
 
     try:
@@ -81,13 +75,8 @@ def get_version (mod_root):
         path = '%s/%s' % (src_root, mod_root)
         print 'creating %s/VERSION' % path
 
-<<<<<<< Updated upstream
-        with open (path + "/VERSION",     "w") as f : f.write (version        + "\n")
-        with open (path + "/VERSION.git", "w") as f : f.write (version_detail + "\n")
-=======
         with open (path + '/VERSION',     'w') as f : f.write (version        + '\n') 
         with open (path + '/VERSION.git', 'w') as f : f.write (version_detail + '\n')
->>>>>>> Stashed changes
 
         return version, version_detail
 
@@ -112,16 +101,11 @@ class our_test(Command):
     def initialize_options (self) : pass
     def finalize_options   (self) : pass
     def run (self) :
-<<<<<<< Updated upstream
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
         retval  = sp.call([sys.executable,
                           '%s/run_tests.py'               % testdir,
                           '%s/configs/default.cfg'        % testdir])
         raise SystemExit(retval)
-=======
-        testdir = '%s/tests/' % os.path.dirname(os.path.realpath(__file__))
-        sys.exit (sp.call (['py.test', testdir]))
->>>>>>> Stashed changes
 
 
 #-------------------------------------------------------------------------------
@@ -129,13 +113,8 @@ class our_test(Command):
 def read(*rnames):
     try :
         return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
-<<<<<<< Updated upstream
     except Exception :
-        return ""
-=======
-    except :
         return ''
->>>>>>> Stashed changes
 
 
 #-------------------------------------------------------------------------------
@@ -143,12 +122,8 @@ setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
     'version'            : version,
-<<<<<<< Updated upstream
     'description'        : 'Shared code and tools for various Radical Group '
                            '(http://radical.rutgers.edu) projects.',
-=======
-    'description'        : 'Shared code and tools for various Radical Group (http://radical.rutgers.edu) projects.',
->>>>>>> Stashed changes
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
@@ -168,29 +143,12 @@ setup_args = {
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
-<<<<<<< Updated upstream
-        'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
-        'Operating System :: POSIX',
-        'Operating System :: Unix'
-    ],
-    'packages'           : [
-        'radical',
-        'radical.utils',
-        'radical.utils.config',
-        'radical.utils.plugins',
-        'radical.utils.plugins.unittests_1',
-        'radical.utils.plugins.unittests_2',
-        'radical.utils.logger',
-        'radical.utils.contrib',
-    ],
-=======
         'Topic :: Scientific/Engineering',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
     'packages'           : find_packages(),
->>>>>>> Stashed changes
     'scripts'            : ['bin/dump_mongodb.py'],
     'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
