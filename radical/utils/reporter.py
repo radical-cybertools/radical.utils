@@ -5,11 +5,16 @@ __license__   = "MIT"
 
 
 import sys
+import singleton
 
 
 # ------------------------------------------------------------------------------
 #
 class Reporter (object) :
+
+    # we want reporter style to be consistent in the scope of an application
+    __metaclass__ = singleton.Singleton
+
 
     # Define terminal colors for the reporter
     HEADER  = '\033[95m'
