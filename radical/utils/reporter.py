@@ -58,40 +58,41 @@ class Reporter (object) :
         '''
         settings.style:
           E : empty line
+          T : tabulator
           L : line of line segments
-          T : text to report
+          M : text to report
         '''
 
         self._title    = title
         self._settings = {
                 'title' : {
                     'color'   : self.HEADER,
-                    'style'   : 'ELTLE',
+                    'style'   : 'ELMLE',
                     'segment' : self.HASHED
                     },
                 'header' : {
                     'color'   : self.HEADER,
-                    'style'   : 'EETL',
+                    'style'   : 'EEML',
                     'segment' : self.DOUBLE
                     },
                 'info' : {
                     'color'   : self.INFO,
-                    'style'   : 'ET',
+                    'style'   : 'EM',
                     'segment' : self.SINGLE
                     },
                 'ok' : {
                     'color'   : self.OK,
-                    'style'   : 'T',
+                    'style'   : 'M',
                     'segment' : self.DOTTED
                     },
                 'warn' : {
                     'color'   : self.WARN,
-                    'style'   : 'T',
+                    'style'   : 'M',
                     'segment' : self.DOTTED
                     },
                 'error' : {
                     'color'   : self.ERROR,
-                    'style'   : 'T',
+                    'style'   : 'M',
                     'segment' : self.DOTTED
                     }
                 }
@@ -135,8 +136,11 @@ class Reporter (object) :
 
         for c in style :
 
-            if  c == 'T' :
+            if  c == 'M' :
                 self._out (color, "%s\n" % msg)
+
+            if  c == 'T' :
+                self._out (color, "\t")
 
             elif c == 'E' :
                 self._out (color, "\n")
@@ -205,7 +209,7 @@ if __name__ == "__main__":
     r.warn   ('warn  ')
     r.error  ('error ')
     
-    r.set_style ('error', color='yellow', style='ELTLE', segment='X')
+    r.set_style ('error', color='yellow', style='ELMLE', segment='X')
     r.error  ('error ')
 
 
