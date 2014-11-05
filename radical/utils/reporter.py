@@ -24,24 +24,74 @@ class Reporter (object) :
     ERROR   = '\033[91m'
     ENDC    = '\033[0m'
 
-    DOTTED_LINE = '........................................................................\n'
-    SINGLE_LINE = '------------------------------------------------------------------------\n'
-    DOUBLE_LINE = '========================================================================\n'
-    HASHED_LINE = '########################################################################\n'
+    DOTTED = '.'
+    SINGLE = '-'
+    DOUBLE = '='
+    HASHED = '#'
+
+    LINE_LENGTH = 80
 
     # --------------------------------------------------------------------------
     #
     def __init__ (self, title=None) :
 
-        self._title = title
+        '''
+        settings.style:
+          E : empty line
+          L : line of line segments
+          T : text to report
+        '''
 
-        if  self._title :
-            self._out (self.HEADER, "\n")
-            self._out (self.HEADER, self.HASHED_LINE)
-            self._out (self.HEADER, "%s\n" % title)
-            self._out (self.HEADER, self.HASHED_LINE)
-            self._out (self.HEADER, "\n")
-    
+        self._title    = title
+        self._settings = {
+                'title' : {
+                    'color'   : self.HEADER,
+                    'style'   : 'ELTLE',
+                    'segment' : self.HASHED
+                    },
+                'header' : {
+                    'color'   : self.HEADER,
+                    'style'   : 'EETL',
+                    'segment' : self.DOUBLE
+                    },
+                'info' : {
+                    'color'   : self.INFO,
+                    'style'   : 'ET',
+                    'segment' : self.SINGLE
+                    },
+                'ok' : {
+                    'color'   : self.OK,
+                    'style'   : 'T',
+                    'segment' : self.DOTTED
+                    },
+                'warn' : {
+                    'color'   : self.WARN,
+                    'style'   : 'T',
+                    'segment' : self.DOTTED
+                    },
+                'error' : {
+                    'color'   : self.ERROR,
+                    'style'   : 'T',
+                    'segment' : self.DOTTED
+                    }
+                }
+
+        self.title (self._title)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def set_style (self, which, color=None, style=None, segment=None) :
+
+        if which not in self._settings :
+            raise LookupError ('reporter does not support style "%s"' % which)
+
+        settings = self._settings[which]
+
+        if color   : settings['color']   = color 
+        if style   : settings['style']   = style
+        if segment : settings['segment'] = segment
+
 
     # --------------------------------------------------------------------------
     #
@@ -49,50 +99,89 @@ class Reporter (object) :
         sys.stdout.write (color)
         sys.stdout.write (msg)
         sys.stdout.write (self.ENDC)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _format (self, msg, settings) :
+
+        color   = settings['color']
+        style   = settings['style']
+        segment = settings['segment']
+
+        for c in style :
+
+            if  c == 'T' :
+                self._out (color, "%s\n" % msg)
+
+            elif c == 'E' :
+                self._out (color, "\n")
+
+            elif c == 'L' :
+                self._out (color, "%s\n" % (self.LINE_LENGTH * segment))
     
 
     # --------------------------------------------------------------------------
     #
+    def title (self, title=None) :
+
+        if not title :
+            title = self._title
+
+        self._format (title, self._settings['title'])
+
+    
+    # --------------------------------------------------------------------------
+    #
     def header (self, msg) :
-        self._out (self.HEADER, "\n\n%s\n" % msg)
-        self._out (self.HEADER, self.DOUBLE_LINE)
+
+        self._format (msg, self._settings['header'])
 
 
     # --------------------------------------------------------------------------
     #
     def info (self, msg) :
-        self._out (self.INFO, "\n%s\n" % msg)
-        self._out (self.INFO, self.SINGLE_LINE)
+
+        self._format (msg, self._settings['info'])
 
 
     # --------------------------------------------------------------------------
     #
     def ok (self, msg) :
-        self._out (self.OK, "%s\n" % msg)
+
+        self._format (msg, self._settings['ok'])
 
 
     # --------------------------------------------------------------------------
     #
     def warn (self, msg) :
-        self._out (self.WARN, "%s\n" % msg)
+
+        self._format (msg, self._settings['warn'])
 
 
     # --------------------------------------------------------------------------
     #
     def error (self, msg) :
-        self._out (self.ERROR, "%s\n" % msg)
+        
+        self._format (msg, self._settings['error'])
 
 
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 
-    r = Reporter (title='test')
-
+    import radical.utils as ru
+    
+    
+    r = ru.Reporter (title='test')
+    
     r.header ('header')
     r.info   ('info  ')
     r.ok     ('ok    ')
     r.warn   ('warn  ')
+    r.error  ('error ')
+    
+    r.set_style ('error', style='EELLTLLEEL', segment='X')
     r.error  ('error ')
 
 
