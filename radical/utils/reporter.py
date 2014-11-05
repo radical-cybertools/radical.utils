@@ -6,7 +6,7 @@ __license__   = "MIT"
 
 import sys
 import singleton
-import colorama as c
+# import colorama as c
 
 
 # ------------------------------------------------------------------------------
@@ -16,30 +16,50 @@ class Reporter (object) :
     # we want reporter style to be consistent in the scope of an application
     __metaclass__ = singleton.Singleton
 
-    COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
-              'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
-              'green'       : c.Style.BRIGHT    + c.Fore.GREEN   ,
-              'blue'        : c.Style.BRIGHT    + c.Fore.BLUE    ,
-              'cyan'        : c.Style.BRIGHT    + c.Fore.CYAN    ,
-              'red'         : c.Style.BRIGHT    + c.Fore.RED     ,
-              'magenta'     : c.Style.BRIGHT    + c.Fore.MAGENTA ,
-              'black'       : c.Style.BRIGHT    + c.Fore.BLACK   ,
-              'darkwhite'   : c.Style.DIM       + c.Fore.WHITE   ,
-              'darkyellow'  : c.Style.DIM       + c.Fore.YELLOW  ,
-              'darkgreen'   : c.Style.DIM       + c.Fore.GREEN   ,
-              'darkblue'    : c.Style.DIM       + c.Fore.BLUE    ,
-              'darkcyan'    : c.Style.DIM       + c.Fore.CYAN    ,
-              'darkred'     : c.Style.DIM       + c.Fore.RED     ,
-              'darkmagenta' : c.Style.DIM       + c.Fore.MAGENTA ,
-              'darkblack'   : c.Style.DIM       + c.Fore.BLACK   ,
-              'off'         : c.Style.RESET_ALL + c.Fore.RESET
-          }
+    # COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
+    #           'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
+    #           'green'       : c.Style.BRIGHT    + c.Fore.GREEN   ,
+    #           'blue'        : c.Style.BRIGHT    + c.Fore.BLUE    ,
+    #           'cyan'        : c.Style.BRIGHT    + c.Fore.CYAN    ,
+    #           'red'         : c.Style.BRIGHT    + c.Fore.RED     ,
+    #           'magenta'     : c.Style.BRIGHT    + c.Fore.MAGENTA ,
+    #           'black'       : c.Style.BRIGHT    + c.Fore.BLACK   ,
+    #           'darkwhite'   : c.Style.DIM       + c.Fore.WHITE   ,
+    #           'darkyellow'  : c.Style.DIM       + c.Fore.YELLOW  ,
+    #           'darkgreen'   : c.Style.DIM       + c.Fore.GREEN   ,
+    #           'darkblue'    : c.Style.DIM       + c.Fore.BLUE    ,
+    #           'darkcyan'    : c.Style.DIM       + c.Fore.CYAN    ,
+    #           'darkred'     : c.Style.DIM       + c.Fore.RED     ,
+    #           'darkmagenta' : c.Style.DIM       + c.Fore.MAGENTA ,
+    #           'darkblack'   : c.Style.DIM       + c.Fore.BLACK   ,
+    #           'off'         : c.Style.RESET_ALL + c.Fore.RESET
+    #       }
+
+    COLORS = {'off'          : '\033[39m',
+              'default'      : '\033[39m',
+              'black'        : '\033[30m',
+              'red'          : '\033[31m',
+              'green'        : '\033[32m',
+              'yellow'       : '\033[33m',
+              'blue'         : '\033[34m',
+              'magenta'      : '\033[35m',
+              'cyan'         : '\033[36m',
+              'lightgray'    : '\033[37m',
+              'darkgray'     : '\033[90m',
+              'lightred'     : '\033[91m',
+              'lightgreen'   : '\033[92m',
+              'lightyellow'  : '\033[93m',
+              'lightblue'    : '\033[94m',
+              'lightmagenta' : '\033[95m',
+              'lightcyan'    : '\033[96m',
+              'white'        : '\033[97m'}
+
 
 
     # Define terminal colors for the reporter
-    HEADER  = 'darkblue'
-    INFO    = 'darkgreen'
-    OK      = 'green'
+    HEADER  = 'blue'
+    INFO    = 'green'
+    OK      = 'lightgreen'
     WARN    = 'magenta'
     ERROR   = 'red'
     ENDC    = 'off'
