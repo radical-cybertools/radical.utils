@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 import sys
 import singleton
+import colorama as c
 
 
 # ------------------------------------------------------------------------------
@@ -15,19 +16,38 @@ class Reporter (object) :
     # we want reporter style to be consistent in the scope of an application
     __metaclass__ = singleton.Singleton
 
+    COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
+              'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
+              'green'       : c.Style.BRIGHT    + c.Fore.GREEN   ,
+              'blue'        : c.Style.BRIGHT    + c.Fore.BLUE    ,
+              'cyan'        : c.Style.BRIGHT    + c.Fore.CYAN    ,
+              'red'         : c.Style.BRIGHT    + c.Fore.RED     ,
+              'magenta'     : c.Style.BRIGHT    + c.Fore.MAGENTA ,
+              'black'       : c.Style.BRIGHT    + c.Fore.BLACK   ,
+              'darkwhite'   : c.Style.DIM       + c.Fore.WHITE   ,
+              'darkyellow'  : c.Style.DIM       + c.Fore.YELLOW  ,
+              'darkgreen'   : c.Style.DIM       + c.Fore.GREEN   ,
+              'darkblue'    : c.Style.DIM       + c.Fore.BLUE    ,
+              'darkcyan'    : c.Style.DIM       + c.Fore.CYAN    ,
+              'darkred'     : c.Style.DIM       + c.Fore.RED     ,
+              'darkmagenta' : c.Style.DIM       + c.Fore.MAGENTA ,
+              'darkblack'   : c.Style.DIM       + c.Fore.BLACK   ,
+              'off'         : c.Style.RESET_ALL + c.Fore.RESET
+          }
+
 
     # Define terminal colors for the reporter
-    HEADER  = '\033[95m'
-    INFO    = '\033[94m'
-    OK      = '\033[92m'
-    WARN    = '\033[93m'
-    ERROR   = '\033[91m'
-    ENDC    = '\033[0m'
+    HEADER  = 'darkblue'
+    INFO    = 'darkgreen'
+    OK      = 'green'
+    WARN    = 'magenta'
+    ERROR   = 'red'
+    ENDC    = 'off'
 
-    DOTTED = '.'
-    SINGLE = '-'
-    DOUBLE = '='
-    HASHED = '#'
+    DOTTED  = '.'
+    SINGLE  = '-'
+    DOUBLE  = '='
+    HASHED  = '#'
 
     LINE_LENGTH = 80
 
@@ -88,7 +108,11 @@ class Reporter (object) :
 
         settings = self._settings[which]
 
-        if color   : settings['color']   = color 
+        if  color   : 
+            if  color.lower() not in self.COLORS :
+                raise LookupError ('reporter does not support color "%s"' % color)
+            settings['color'] = color
+
         if style   : settings['style']   = style
         if segment : settings['segment'] = segment
 
@@ -98,14 +122,14 @@ class Reporter (object) :
     def _out (self, color, msg) :
         sys.stdout.write (color)
         sys.stdout.write (msg)
-        sys.stdout.write (self.ENDC)
+        sys.stdout.write (self.COLORS[self.ENDC])
 
 
     # --------------------------------------------------------------------------
     #
     def _format (self, msg, settings) :
 
-        color   = settings['color']
+        color   = self.COLORS[settings['color'].lower()]
         style   = settings['style']
         segment = settings['segment']
 
@@ -181,7 +205,7 @@ if __name__ == "__main__":
     r.warn   ('warn  ')
     r.error  ('error ')
     
-    r.set_style ('error', style='EELLTLLEEL', segment='X')
+    r.set_style ('error', color='yellow', style='ELTLE', segment='X')
     r.error  ('error ')
 
 
