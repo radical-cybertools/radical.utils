@@ -32,37 +32,43 @@ class Reporter (object) :
     #           'darkred'     : c.Style.DIM       + c.Fore.RED     ,
     #           'darkmagenta' : c.Style.DIM       + c.Fore.MAGENTA ,
     #           'darkblack'   : c.Style.DIM       + c.Fore.BLACK   ,
-    #           'off'         : c.Style.RESET_ALL + c.Fore.RESET
+    #           'reset'       : c.Style.RESET_ALL + c.Fore.RESET
     #       }
 
-    COLORS = {'off'          : '\033[39m',
-              'default'      : '\033[39m',
-              'black'        : '\033[30m',
-              'red'          : '\033[31m',
-              'green'        : '\033[32m',
-              'yellow'       : '\033[33m',
-              'blue'         : '\033[34m',
-              'magenta'      : '\033[35m',
-              'cyan'         : '\033[36m',
-              'lightgray'    : '\033[37m',
-              'darkgray'     : '\033[90m',
-              'lightred'     : '\033[91m',
-              'lightgreen'   : '\033[92m',
-              'lightyellow'  : '\033[93m',
-              'lightblue'    : '\033[94m',
-              'lightmagenta' : '\033[95m',
-              'lightcyan'    : '\033[96m',
-              'white'        : '\033[97m'}
+    COLORS     = {'reset'        : '\033[39m',
+                  'black'        : '\033[30m',
+                  'red'          : '\033[31m',
+                  'green'        : '\033[32m',
+                  'yellow'       : '\033[33m',
+                  'blue'         : '\033[34m',
+                  'blue'         : '\033[34m',
+                  'magenta'      : '\033[35m',
+                  'cyan'         : '\033[36m',
+                  'lightgray'    : '\033[37m',
+                  'darkgray'     : '\033[90m',
+                  'lightred'     : '\033[91m',
+                  'lightgreen'   : '\033[92m',
+                  'lightyellow'  : '\033[93m',
+                  'lightblue'    : '\033[94m',
+                  'lightmagenta' : '\033[95m',
+                  'lightcyan'    : '\033[96m',
+                  'white'        : '\033[97m'}
 
+    COLOR_MODS = {'reset'        : '\033[0m',
+                  'bold'         : '\033[1m',
+                  'underline'    : '\033[4m',
+                  'blink'        : '\033[5m',
+                  'inverse'      : '\033[7m', 
+                  ''             : ''}
 
 
     # Define terminal colors for the reporter
+    TITLE   = 'underline blue'
     HEADER  = 'blue'
-    INFO    = 'green'
-    OK      = 'lightgreen'
+    INFO    = 'bold green'
+    OK      = 'green'
     WARN    = 'magenta'
-    ERROR   = 'red'
-    ENDC    = 'off'
+    ERROR   = 'inverse red'
 
     DOTTED  = '.'
     SINGLE  = '-'
@@ -86,7 +92,7 @@ class Reporter (object) :
         self._title    = title
         self._settings = {
                 'title' : {
-                    'color'   : self.HEADER,
+                    'color'   : self.TITLE,
                     'style'   : 'ELMLE',
                     'segment' : self.HASHED
                     },
@@ -122,37 +128,32 @@ class Reporter (object) :
 
     # --------------------------------------------------------------------------
     #
-    def set_style (self, which, color=None, style=None, segment=None) :
-
-        if which not in self._settings :
-            raise LookupError ('reporter does not support style "%s"' % which)
-
-        settings = self._settings[which]
-
-        if  color   : 
-            if  color.lower() not in self.COLORS :
-                raise LookupError ('reporter does not support color "%s"' % color)
-            settings['color'] = color
-
-        if style   : settings['style']   = style
-        if segment : settings['segment'] = segment
-
-
-    # --------------------------------------------------------------------------
-    #
     def _out (self, color, msg) :
         sys.stdout.write (color)
         sys.stdout.write (msg)
-        sys.stdout.write (self.COLORS[self.ENDC])
+        sys.stdout.write (self.COLORS['reset'])
+        sys.stdout.write (self.COLOR_MODS['reset'])
 
 
     # --------------------------------------------------------------------------
     #
     def _format (self, msg, settings) :
 
-        color   = self.COLORS[settings['color'].lower()]
-        style   = settings['style']
-        segment = settings['segment']
+        color   = settings.get ('color',     '')
+        style   = settings.get ('style',     '')
+        segment = settings.get ('segment',   '')
+
+        color_mod = ''
+        if  ' ' in color :
+            color_mod, color = color.split (' ', 2)
+
+        if  color.lower() not in self.COLORS :
+            raise LookupError ('reporter does not support color "%s"' % color)
+
+        color     = self.COLORS[color.lower()]
+        color_mod = self.COLOR_MODS[color_mod.lower()]
+
+        color  += color_mod
 
         for c in style :
 
@@ -168,6 +169,20 @@ class Reporter (object) :
             elif c == 'L' :
                 self._out (color, "%s\n" % (self.LINE_LENGTH * segment))
     
+
+    # --------------------------------------------------------------------------
+    #
+    def set_style (self, which, color=None, style=None, segment=None) :
+
+        if which not in self._settings :
+            raise LookupError ('reporter does not support style "%s"' % which)
+
+        settings = self._settings[which]
+
+        if color   : settings['color']   = color 
+        if style   : settings['style']   = style
+        if segment : settings['segment'] = segment
+
 
     # --------------------------------------------------------------------------
     #
