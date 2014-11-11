@@ -244,7 +244,7 @@ if __name__ == "__main__":
     r.warn   ('warn  ')
     r.error  ('error ')
     
-    r.set_style ('error', color='yellow', style='ELMLE', segment='X')
+    r.set_style ('error', color='yellow', style='ELTTMLE', segment='X')
     r.error  ('error ')
 
 
