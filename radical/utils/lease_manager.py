@@ -60,7 +60,7 @@ class _LeaseObject (object) :
         self.used     = True
         self.t_leased = time.time()
 
-        self.log.debug ("%s was unused for %6.1fs" % (self.uid, self.t_leased-self.t_released))
+      # self.log.debug ("%s was unused for %6.1fs" % (self.uid, self.t_leased-self.t_released))
 
     # --------------------------------------------------------------------------
     def release (self, *args) :
@@ -71,7 +71,7 @@ class _LeaseObject (object) :
         self.used       = False
         self.t_released = time.time ()
 
-        self.log.debug ("%s was leased for %6.1fs" % (self.uid, self.t_released-self.t_leased))
+      # self.log.debug ("%s was leased for %6.1fs" % (self.uid, self.t_released-self.t_leased))
 
     # --------------------------------------------------------------------------
     def is_leased (self, *args) :
@@ -123,7 +123,7 @@ class LeaseManager (object) :
 
         with self :
 
-            self._log.debug ('lm check   pool (%s)' % self._pools.keys())
+          # self._log.debug ('lm check   pool (%s)' % self._pools.keys())
 
             if  not pool_id in self._pools :
 
@@ -193,7 +193,7 @@ class LeaseManager (object) :
 
         with self :
 
-            self._log.debug ('lm remove  object for %s' % pool_id)
+          # self._log.debug ('lm remove  object for %s' % pool_id)
 
             if  pool_id not in self._pools :
                 raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
@@ -250,16 +250,16 @@ class LeaseManager (object) :
             # make sure the pool exists
             pool = self._initialize_pool (pool_id)
 
-            self._log.debug ('lm lease   object for %s (%s)' \
-                          % (pool_id, len(pool['objects'])))
-            self._log.debug (pool['objects'])
+          # self._log.debug ('lm lease   object for %s (%s)' \
+          #               % (pool_id, len(pool['objects'])))
+          # self._log.debug (pool['objects'])
 
             # find an unlocked object instance in the pool
             # NOTE: we iterate over a copy of the list, as an eventual object 
             # removeal would screw up the index...
             for obj in pool['objects'][:] :
 
-                self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
+              # self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
 
                 if  not obj.is_leased () :
 
@@ -267,12 +267,12 @@ class LeaseManager (object) :
                     age = time.time() - obj.t_created
                     if  age > self._max_obj_age :
                         # too old -- remove and continue to search for a younger unleased object
-                        self._log.debug ('lm retire  object %s (%6.2fs)' % (obj, age))
+                      # self._log.debug ('lm retire  object %s (%6.2fs)' % (obj, age))
                         self._remove_object (pool_id, obj)
                         continue
 
                     # found one -- lease/lock and return it
-                    self._log.debug ('lm lease   object %s use: ok!' % obj)
+                  # self._log.debug ('lm lease   object %s use: ok!' % obj)
                     obj.lease ()
                     return obj
 
@@ -283,8 +283,8 @@ class LeaseManager (object) :
             if  obj is not None :
 
                 # we got a locked object -- return
-                self._log.debug ('lm lease   object %s use: %s -- new!' \
-                              % (obj, obj.is_leased()))
+              # self._log.debug ('lm lease   object %s use: %s -- new!' \
+              #               % (obj, obj.is_leased()))
                 return obj
 
 
@@ -298,7 +298,7 @@ class LeaseManager (object) :
         # seconds.
         # Not that we release our lock here, to give other threads the
         # chance to release objects.
-        self._log.debug ('lm lease   object: pool is full')
+        self._log.warn ('lm lease   object: pool is full')
         timer_start = time.time()
         timer_now   = time.time()
 
@@ -371,7 +371,7 @@ class LeaseManager (object) :
         else can lease it.  This will not delete the object,
         """
 
-        self._log.debug ('lm release object')
+      # self._log.debug ('lm release object')
 
         with self :
 
@@ -387,7 +387,7 @@ class LeaseManager (object) :
                         # this is not the object you are looking for.
                         continue
 
-                    self._log.debug ('lm release object %s for %s' % (obj, pool_id))
+                  # self._log.debug ('lm release object %s for %s' % (obj, pool_id))
 
                     # remove the lease lock on the object
                     obj.release ()
