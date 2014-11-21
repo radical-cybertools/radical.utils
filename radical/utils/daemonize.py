@@ -115,8 +115,8 @@ class Daemon (object) :
     #
     def start (self, debug=False) :
 
-        if  debug :
-            return self.run ()
+      # if  debug :
+      #     return self.run ()
 
         if  self.pidfile :
             
