@@ -17,7 +17,7 @@ from setuptools import setup, Command, find_packages
 name     = 'radical.utils'
 mod_root = 'radical/utils'
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 # versioning mechanism:
 #
@@ -82,18 +82,18 @@ def get_version (mod_root):
         raise RuntimeError ('Could not extract/set version: %s' % e)
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
 version, version_detail = get_version (mod_root)
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # check python version. we need > 2.6, <3.x
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
     raise RuntimeError('%s requires Python 2.x (2.6 or higher)' % name)
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 class our_test(Command):
     user_options = []
     def initialize_options (self) : pass
@@ -106,7 +106,7 @@ class our_test(Command):
         raise SystemExit(retval)
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 def read(*rnames):
     try :
@@ -115,14 +115,14 @@ def read(*rnames):
         return ''
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
     'version'            : version,
-    'description'        : 'Shared code and tools for various Radical Group '
-                           '(http://radical.rutgers.edu) projects.',
-    'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),    
+    'description'        : 'Shared code and tools for various RADICAL Projects '
+                           '(http://radical.rutgers.edu/)',
+    'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'Andre Merzky',
@@ -163,9 +163,9 @@ setup_args = {
     'zip_safe'           : False,
 }
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 setup (**setup_args)
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 

@@ -133,7 +133,7 @@ class Daemon (object) :
                                    % self.pidfile)
 
         # Start the daemon, and in the demon, run the workload
-        if self.daemonize () :
+        if self.daemonize (debug=debug) :
             try :
                 self.run ()
             except Exception as e :
