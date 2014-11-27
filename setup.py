@@ -147,7 +147,9 @@ setup_args = {
         'Operating System :: Unix'
     ],
     'packages'           : find_packages(),
-    'scripts'            : ['bin/dump_mongodb.py'],
+    'scripts'            : ['bin/radical-utils-copyright.pl',
+                            'bin/radical-utils-mongodb.py',
+                            'bin/radical-utils-pylint.sh'],
     'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
     'cmdclass'           : {
         'test'           : our_test,
