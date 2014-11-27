@@ -1,6 +1,12 @@
 #!/bin/sh
 
-SRC=`ls -d -C1 src radical examples test 2>/dev/null`
+SRC="$*"
+
+
+if test -z "$SRC"
+then
+    SRC=`ls -d -C1 src/ radical/ examples/ test 2>/dev/null`
+fi
 
 if test -z "$SRC"
 then
