@@ -60,20 +60,23 @@ def write_json (data,  filename) :
 
 # ------------------------------------------------------------------------------
 #
-def parse_json (json_str) :
+def parse_json (json_str, filter_comments=True) :
     """
     Comments in the form of
         # rest of line
     are stripped from json before parsing
     """
 
-    content = ''
+    if not filter_comments :
+        return json.loads (json_str)
 
-    # weed out comments
-    for line in json_str.split ('\n') :
-        content += re.sub (r'#.*', '', line)
+    else :
+        content = ''
+        for line in json_str.split ('\n') :
+            content += re.sub (r'^\s*#', '', line)
+            content += '\n'
 
-    return json.loads (content)
+        return json.loads (content)
 
 
 # ------------------------------------------------------------------------------
