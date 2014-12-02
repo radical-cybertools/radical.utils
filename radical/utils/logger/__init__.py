@@ -10,12 +10,17 @@ from   logger  import getLogger
 import radical.utils as ru
 
 # ------------------------------------------------------------------------------
-def log_version (module, name, version, version_detail) :
+def log_version (module, name, version, version_detail=None) :
 
     _log = getLogger (module)
-    _log.info ('%-15s version: %s (%s)', name, version, version_detail)
+    if  version_detail :
+        _log.info ('%-20s version: %s (%s)', name, version, version_detail)
+    else :
+        _log.info ('%-20s version: %s', name, version)
 
-log_version ('radical', 'radical.utils', ru.version, ru.version_detail)
+import sys
+log_version ('radical', 'python.interpreter', ' '.join(sys.version.split()))
+log_version ('radical', 'radical.utils',      ru.version, ru.version_detail)
 
 
 # ------------------------------------------------------------------------------

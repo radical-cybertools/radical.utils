@@ -150,8 +150,17 @@ class _LogConfig (ruc.Configurable) :
                 else: 
                     handler = logging.StreamHandler()
             else:
+
+                mode = 'a'
+                if  target.startswith ('>>') :
+                    mode   = 'a'
+                    target = target[2:]
+                elif target.startswith ('>') :
+                    mode   = 'w'
+                    target = target[1:]
+
                 # got to be a file logger
-                handler = FileHandler(target)
+                handler = FileHandler(target, mode=mode)
 
             handler.setFormatter(DefaultFormatter)
 

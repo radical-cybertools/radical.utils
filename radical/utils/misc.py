@@ -159,6 +159,20 @@ def parse_file_staging_directives (directives) :
 
 # ------------------------------------------------------------------------------
 #
+def time_stamp (spec) :
+
+    if  isinstance (spec, int)   or \
+        isinstance (spec, long)  or \
+        isinstance (spec, float) :
+
+        import datetime
+        return datetime.datetime.utcfromtimestamp (spec)
+
+    return spec
+
+
+# ------------------------------------------------------------------------------
+#
 def time_diff (dt_abs, dt_stamp) :
     """
     return the time difference bewteen  two datetime 
@@ -167,6 +181,12 @@ def time_diff (dt_abs, dt_stamp) :
     """
 
     delta = dt_stamp - dt_abs
+
+    # make it easy to use seconds since epoch instead of datetime objects
+    if  isinstance (delta, int)   or \
+        isinstance (delta, long)  or \
+        isinstance (delta, float) :
+        return delta
 
     import datetime
     if  not isinstance  (delta, datetime.timedelta) :
@@ -208,7 +228,7 @@ def _get_stacktraces () :
 class DebugHelper (object) :
     """
     When instantiated, and when "RADICAL_DEBUG" is set in the environmant, this
-    class will install a signal handler for SIGINFO.  When that signal is
+    class will install a signal handler for SIGUSR1.  When that signal is
     received, a stacktrace for all threads is printed to stdout.  Note that 
     <CTRL-T> also triggers that signal on the terminal.
     """
@@ -218,7 +238,7 @@ class DebugHelper (object) :
 
         if 'RADICAL_DEBUG' in os.environ :
             import signal
-            signal.signal(signal.SIGINFO, self.dump_stacktraces)
+            signal.signal(signal.SIGUSR1, self.dump_stacktraces)
 
 
     def dump_stacktraces (self, a, b) :
@@ -229,11 +249,45 @@ class DebugHelper (object) :
 #
 def all_pairs (iterable, n) :
     """
+    [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
+    """
+
+    import itertools 
+    return list(itertools.combinations (iterable, n))
+
+
+# ------------------------------------------------------------------------------
+#
+def cluster_list (iterable, n) :
+    """
     s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
     """
 
     from itertools import izip
     return izip(*[iter(iterable)]*n)
 
+
 # ------------------------------------------------------------------------------
+# From https://docs.python.org/release/2.3.5/lib/itertools-example.html
+#
+def window (seq, n=2) :
+    """
+    Returns a sliding window (of width n) over data from the iterable"
+    s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ... 
+    """
+
+    from itertools import islice
+
+    it = iter(seq)
+    result = tuple(islice(it, n))
+
+    if len(result) == n :
+        yield result
+
+    for elem in it :
+        result = result[1:] + (elem,)
+        yield result
+
+# ------------------------------------------------------------------------------
+
 
