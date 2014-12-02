@@ -1,4 +1,19 @@
 
+Version 0.7.9 release                                      2014-12-02
+---------------------------------------------------------------------
+
+* fix to json comment parsing
+* att flexible pylint util
+* support append / overwrite mode for log targets 
+* add daemonize class
+* fix leaking logs
+* reduce lease manager logging noise 
+* log python version on startup 
+* add reporter class for nice demo output etc
+* add namespace for object_cache, backward compatible 
+* fix bson/json/timestamp mangling 
+* json support for json writing
+
 
 Version 0.7.8 release                                      2014-10-29
 ---------------------------------------------------------------------
