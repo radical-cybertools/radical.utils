@@ -79,7 +79,7 @@ class Reporter (object) :
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, title=None) :
+    def __init__ (self, title=None, targets=['stdout']) :
 
         '''
         settings.style:
@@ -90,6 +90,7 @@ class Reporter (object) :
         '''
 
         self._title    = title
+        self._targets  = targets
         self._settings = {
                 'title' : {
                     'color'   : self.TITLE,
@@ -123,16 +124,47 @@ class Reporter (object) :
                     }
                 }
 
+        # set up the output target streams
+        self._color_streams = list()
+        self._streams       = list()
+
+        for tgt in self._targets :
+
+            if  tgt.lower() == 'stdout' :
+                self._color_streams.append (sys.stdout)
+
+            elif tgt.lower() == 'stderr' :
+                self._color_streams.append (sys.stderr)
+
+            else :
+                # >>&     color stream in append    mode
+                # >&      color stream in overwrite mode (default)
+                # >>  non-color stream in append    mode
+                # >   non-color stream in overwrite mode
+
+                if   tgt.startswith ('>>&') : self._color_streams.append (open (tgt[3:], 'a'))
+                elif tgt.startswith ('>&')  : self._color_streams.append (open (tgt[2:], 'w'))
+                elif tgt.startswith ('>>')  : self._streams.append       (open (tgt[2:], 'a'))
+                elif tgt.startswith ('>')   : self._streams.append       (open (tgt[1:], 'w'))
+                else                        : self._color_streams.append (open (tgt,     'w'))
+
+        # and send the title to all streams
         self.title (self._title)
+
 
 
     # --------------------------------------------------------------------------
     #
     def _out (self, color, msg) :
-        sys.stdout.write (color)
-        sys.stdout.write (msg)
-        sys.stdout.write (self.COLORS['reset'])
-        sys.stdout.write (self.COLOR_MODS['reset'])
+
+        for stream in self._color_streams :
+            stream.write (color)
+            stream.write (msg)
+            stream.write (self.COLORS['reset'])
+            stream.write (self.COLOR_MODS['reset'])
+
+        for stream in self._streams :
+            stream.write (msg)
 
 
     # --------------------------------------------------------------------------
