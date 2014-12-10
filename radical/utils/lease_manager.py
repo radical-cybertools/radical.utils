@@ -11,7 +11,7 @@ import singleton
 import threading
 
 # default settings for lease manager
-MAX_POOL_SIZE = 10     # unlimited
+MAX_POOL_SIZE = 15     # unlimited
 MAX_POOL_WAIT = 60     # seconds
 MAX_OBJ_AGE   = 60*10  # 10 minutes
 
