@@ -105,7 +105,6 @@ class LeaseManager (object) :
         import radical.utils.logger as rul
 
         self._log = rul.getLogger('radical.utils')
-        self._log.setLevel ('DEBUG')
 
         self._log.debug ('lm new manager')
         self._pools = dict()
