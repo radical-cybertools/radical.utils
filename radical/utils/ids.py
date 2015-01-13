@@ -62,9 +62,9 @@ _id_registry = _IDRegistry ()
 
 # ------------------------------------------------------------------------------
 #
-ID_SIMPLE = 'simple'
-ID_UNIQUE = 'unique'
-ID_PRIVAT = 'privat'
+ID_SIMPLE  = 'simple'
+ID_UNIQUE  = 'unique'
+ID_PRIVATE = 'private'
 
 # ------------------------------------------------------------------------------
 #
@@ -88,8 +88,8 @@ def generate_id (prefix, mode=ID_SIMPLE) :
         id_2 = radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
         id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
         id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
-        id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVAT)
-        id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVAT)
+        id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
+        id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
 
     The above will generate the IDs:
 
