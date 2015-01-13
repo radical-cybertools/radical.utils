@@ -35,20 +35,23 @@ class _IDRegistry (object) :
 
 
     # --------------------------------------------------------------------------
-    def get_counter (self, prefix) :
+    def get_counter (self, prefix, mode='any') :
         """
-        Obtain the next number in the sequence for the given prefix.  If the
-        prefix is not known, a new registry entry is created
+        Obtain the next number in the sequence for the given prefix and mode.  
+        If the mode or prefix are not known, a new registry counter is created.
         """
 
         with self._rlock :
     
-            if  not prefix in self._registry :
-                self._registry[prefix] =  0
-            
-            self._registry[prefix] += 1
+            if  not mode in self._registry :
+                self._registry[mode] =  dict()
 
-            return int(self._registry[prefix])
+            if  not prefix in self._registry[mode] :
+                self._registry[mode][prefix] =  0
+            
+            self._registry[mode][prefix] += 1
+
+            return int(self._registry[mode][prefix])
 
 
 # ------------------------------------------------------------------------------
@@ -61,6 +64,7 @@ _id_registry = _IDRegistry ()
 #
 ID_SIMPLE = 'simple'
 ID_UNIQUE = 'unique'
+ID_PRIVAT = 'privat'
 
 # ------------------------------------------------------------------------------
 #
@@ -80,38 +84,63 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 
         id_1 = radical.utils.generate_id ('item.')
         id_2 = radical.utils.generate_id ('item.')
+        id_1 = radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
+        id_2 = radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
         id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
         id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
+        id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVAT)
+        id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVAT)
 
     The above will generate the IDs:
 
         item.0001
         item.0002
-        item.2014-07-30.13:13:44.0003
-        item.2014-07-30.13:13:44.0004
-        
+        item.0003
+        item.0004
+        item.2014.07.30.13.13.44.0001
+        item.2014.07.30.13.13.44.0002
+        item.cameo.merzky.021342.0001
+        item.cameo.merzky.021342.0002
 
-      
+    where 'cameo' is the (short) hostname, 'merzky' is the username, and '02134'
+    is 'days since epoch'.  The last element, the counter is unique for each id
+    type and item type, and restarts for each session (application process).  In
+    the last case though (`ID_PRIVATE`), the counter is reset for every new day,
+    and can thus span multiple applications.
     """
 
     if  not prefix or \
         not isinstance (prefix, basestring) :
         raise TypeError ("ID generation expect prefix in basestring type") 
 
+    counter = _id_registry.get_counter (prefix, mode)
+
     if  mode  == ID_SIMPLE :
-        return "%s%04d" % (prefix, _id_registry.get_counter (prefix))
+        return "%s%04d" % (prefix, counter)
 
     elif mode == ID_UNIQUE :
 
-      # FIXME: make format more configurable
         now  = datetime.datetime.utcnow ()
-        date = "%04d-%02d-%02d" % (now.year, now.month,  now.day)
-        time = "%02d:%02d:%02d" % (now.hour, now.minute, now.second)
+        date = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
+        time = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
         pid  = os.getpid ()
 
-        return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, _id_registry.get_counter (prefix))
-      # return "%s%s.%s.%04d"      % (prefix, date, time,      _id_registry.get_counter (prefix))
-      # return "%s%06d.%04d"       % (prefix,             pid, _id_registry.get_counter (prefix))
+        return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, counter)
+      # return "%s%s.%s.%04d"      % (prefix, date, time,      counter)
+      # return "%s%06d.%04d"       % (prefix,             pid, counter)
+
+    elif mode == ID_PRIVATE :
+
+        import time
+        import socket
+        import getpass
+
+        now  = time.time ()              # seconds since epoch
+        days = int(now / (60 * 60 * 24)) # full days since epoch
+        host = socket.gethostname()      # local hostname
+        user = getpass.getuser() 
+
+        return "%s%s.%s.%06d.%04d" % (prefix, host, user, days, counter)
 
     else :
         raise ValueError ("mode '%s' not supported for ID generation", mode) 
