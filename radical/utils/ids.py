@@ -5,9 +5,7 @@ __license__   = "MIT"
 
 
 import os
-import datetime
 import threading
-
 import singleton
 
 
@@ -37,18 +35,18 @@ class _IDRegistry (object) :
     # --------------------------------------------------------------------------
     def get_counter (self, prefix, mode='any') :
         """
-        Obtain the next number in the sequence for the given prefix and mode.  
+        Obtain the next number in the sequence for the given prefix and mode.
         If the mode or prefix are not known, a new registry counter is created.
         """
 
         with self._rlock :
-    
+
             if  not mode in self._registry :
                 self._registry[mode] =  dict()
 
             if  not prefix in self._registry[mode] :
                 self._registry[mode][prefix] =  0
-            
+
             self._registry[mode][prefix] += 1
 
             return int(self._registry[mode][prefix])
@@ -65,16 +63,17 @@ _id_registry = _IDRegistry ()
 ID_SIMPLE  = 'simple'
 ID_UNIQUE  = 'unique'
 ID_PRIVATE = 'private'
+ID_CUSTOM  = 'custom'
 
 # ------------------------------------------------------------------------------
 #
 def generate_id (prefix, mode=ID_SIMPLE) :
     """
-    Generate a human readable, sequential ID for the given prefix.  
-    
+    Generate a human readable, sequential ID for the given prefix.
+
     The ID is by default very simple and thus very readable, but cannot be
     assumed to be globally unique -- simple ID uniqueness is only guaranteed
-    within the scope of one python instance.  
+    within the scope of one python instance.
 
     If `mode` is set to the non-default type `ID_UNIQUE`, an attempt is made to
     generate readable but globally unique IDs -- although the level of
@@ -111,39 +110,80 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 
     if  not prefix or \
         not isinstance (prefix, basestring) :
-        raise TypeError ("ID generation expect prefix in basestring type") 
+        raise TypeError ("ID generation expect prefix in basestring type")
 
-    counter = _id_registry.get_counter (prefix, mode)
+    template = ""
 
-    if  mode  == ID_SIMPLE :
-        return "%s%04d" % (prefix, counter)
-
-    elif mode == ID_UNIQUE :
-
-        now  = datetime.datetime.utcnow ()
-        date = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
-        time = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-        pid  = os.getpid ()
-
-        return "%s%s.%s.%06d.%04d" % (prefix, date, time, pid, counter)
-      # return "%s%s.%s.%04d"      % (prefix, date, time,      counter)
-      # return "%s%06d.%04d"       % (prefix,             pid, counter)
-
-    elif mode == ID_PRIVATE :
-
-        import time
-        import socket
-        import getpass
-
-        now  = time.time ()              # seconds since epoch
-        days = int(now / (60 * 60 * 24)) # full days since epoch
-        host = socket.gethostname()      # local hostname
-        user = getpass.getuser() 
-
-        return "%s%s.%s.%06d.%04d" % (prefix, host, user, days, counter)
-
+    if   mode == ID_SIMPLE : template = "%(prefix)s.%(counter)04d"
+    elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
+    elif mode == ID_PRIVATE: template = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
+    elif mode == ID_CUSTOM : template = prefix
     else :
-        raise ValueError ("mode '%s' not supported for ID generation", mode) 
+        raise ValueError ("mode '%s' not supported for ID generation", mode)
+
+    return _generate_id (template, prefix, mode)
+
+# ------------------------------------------------------------------------------
+#
+def _generate_id (template, prefix, mode) :
+
+    import time
+    import fcntl
+    import socket
+    import getpass
+    import datetime
+
+    # seconds since epoch (float), and timestamp
+    seconds = time.time ()
+    now     = datetime.datetime.fromtimestamp (seconds)
+    days    = int(seconds / (60*60*24))
+    user    = getpass.getuser()
+
+    info = dict()
+
+    info['day_counter' ]  = 0
+    info['item_counter'] = 0
+    info['counter'     ]  = 0
+    info['prefix'      ]  = prefix
+    info['mode'        ]  = mode
+    info['now'         ]  = now
+    info['seconds'     ]  = int(seconds)              # full seconds since epoch
+    info['days'        ]  = days                      # full days since epoch
+    info['host'        ]  = socket.gethostname()      # local hostname
+    info['user'        ]  = user                      # local username
+    info['date'        ]  = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
+    info['time'        ]  = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
+    info['pid'         ]  = os.getpid ()
+
+    if '%(day_counter)' in template :
+        fd = os.open ("/tmp/rp_%s_%s.cnt" % (user, days), os.O_RDWR | os.O_CREAT)
+        fcntl.flock (fd, fcntl.LOCK_EX)
+        os.lseek (fd, 0, os.SEEK_SET )
+        data = os.read (fd, 256)
+        if not data : data = "0\n"
+        day_counter = int(data) + 1
+        os.lseek (fd, 0, os.SEEK_SET )
+        os.write (fd, "%d\n" % day_counter)
+        info['day_counter'] = day_counter
+        os.close (fd)
+
+    if '%(item_counter)' in template :
+        fd = os.open ("/tmp/rp_%s_%s.cnt" % (user, prefix), os.O_RDWR | os.O_CREAT)
+        fcntl.flock (fd, fcntl.LOCK_EX)
+        os.lseek (fd, 0, os.SEEK_SET)
+        data = os.read (fd, 256)
+        if not data : data = "0\n"
+        item_counter = int(data) + 1
+        os.lseek (fd, 0, os.SEEK_SET)
+        os.write (fd, "%d\n" % item_counter)
+        info['item_counter'] = item_counter
+        os.close (fd)
+
+    if '%(counter)' in template :
+        info['counter'] = _id_registry.get_counter (prefix, mode)
+
+
+    return template % info
 
 
 # ------------------------------------------------------------------------------

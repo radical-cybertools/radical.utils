@@ -20,7 +20,7 @@ from lease_manager  import LeaseManager
 from daemonize      import Daemon
 
 # import utility methods
-from ids            import generate_id, ID_SIMPLE, ID_UNIQUE
+from ids            import *
 from read_json      import *
 from tracer         import trace, untrace
 from which          import which
