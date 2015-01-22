@@ -29,7 +29,7 @@ def read_json (filename) :
 
         # weed out comments
         for line in f.readlines () :
-            content += re.sub (r'^\s*#', '', line)
+            content += re.sub (r'^\s*#.*', '', line)
 
         return json.loads (content)
 

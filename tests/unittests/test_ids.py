@@ -14,13 +14,13 @@ def test_ids () :
     Test ID generation
     """
 
-    id_a_1 = ru.generate_id ('a.')
-    id_a_2 = ru.generate_id ('a.')
-    id_a_3 = ru.generate_id ('a.', mode=ru.ID_SIMPLE)
-    id_b_1 = ru.generate_id ('b.', mode=ru.ID_SIMPLE)
-    id_b_2 = ru.generate_id ('b.', mode=ru.ID_SIMPLE)
-    id_c_1 = ru.generate_id ('c.', mode=ru.ID_UNIQUE)
-    id_c_2 = ru.generate_id ('c.', mode=ru.ID_UNIQUE)
+    id_a_1 = ru.generate_id ('a')
+    id_a_2 = ru.generate_id ('a')
+    id_a_3 = ru.generate_id ('a', mode=ru.ID_SIMPLE)
+    id_b_1 = ru.generate_id ('b', mode=ru.ID_SIMPLE)
+    id_b_2 = ru.generate_id ('b', mode=ru.ID_SIMPLE)
+    id_c_1 = ru.generate_id ('c', mode=ru.ID_UNIQUE)
+    id_c_2 = ru.generate_id ('c', mode=ru.ID_UNIQUE)
 
     assert (id_a_1 == 'a.0001'       ), "'%s' == 'a.0001'"       % (id_a_1)
     assert (id_a_2 == 'a.0002'       ), "'%s' == 'a.0002'"       % (id_a_2)
