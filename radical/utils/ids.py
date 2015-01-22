@@ -142,7 +142,7 @@ def _generate_id (template, prefix, mode) :
     info = dict()
 
     info['day_counter' ]  = 0
-    info['item_counter'] = 0
+    info['item_counter']  = 0
     info['counter'     ]  = 0
     info['prefix'      ]  = prefix
     info['mode'        ]  = mode
@@ -180,10 +180,19 @@ def _generate_id (template, prefix, mode) :
         os.close (fd)
 
     if '%(counter)' in template :
-        info['counter'] = _id_registry.get_counter (prefix, mode)
+        info['counter'] = _id_registry.get_counter (prefix.replace ('%', ''), mode)
 
 
-    return template % info
+    ret = template % info
+
+    if '%(' in ret :
+        import pprint
+        pprint.pprint (info)
+        print template
+        print ret
+        raise ValueError ('unknown replacement pattern in template (%s)' % template)
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
