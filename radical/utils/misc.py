@@ -33,6 +33,9 @@ def split_dburl (dburl, default_dburl=None) :
     user = url.username
     pwd  = url.password
 
+    if not host:
+        host = 'localhost'
+
     if  path.startswith ('/') :
         path = path[1:]
     path_elems = path.split ('/')
@@ -51,7 +54,7 @@ def split_dburl (dburl, default_dburl=None) :
     if  len(path_elems)  >  2 :
         dbname = path_elems[0]
         cname  = path_elems[1]
-        pname  = '/'.join (path_elems[2:])
+        pname  = '.'.join (path_elems[2:])
 
     if  dbname == '.' : 
         dbname = None
@@ -200,31 +203,6 @@ def time_diff (dt_abs, dt_stamp) :
 
 # ------------------------------------------------------------------------------
 #
-def _get_stacktraces () :
-
-    import sys
-    import threading
-    import traceback
-
-    id2name = {}
-    for th in threading.enumerate():
-        id2name[th.ident] = th.name
-
-    code = []
-    for threadId, stack in sys._current_frames().items():
-        code.append("\n# Thread: %s(%d)" % (id2name[threadId], threadId))
-
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
-
-            if line:
-                code.append(" %s" % (line.strip()))
-
-    return "\n".join(code)
-
-
-# ------------------------------------------------------------------------------
-#
 class DebugHelper (object) :
     """
     When instantiated, and when "RADICAL_DEBUG" is set in the environmant, this
@@ -234,15 +212,78 @@ class DebugHelper (object) :
     """
 
     def __init__ (self) :
-        import os
 
+        import os
         if 'RADICAL_DEBUG' in os.environ :
             import signal
-            signal.signal(signal.SIGUSR1, self.dump_stacktraces)
+            signal.signal(signal.SIGUSR1, self.print_stacktraces) # signum 10
+            signal.signal(signal.SIGQUIT, self.print_stacktraces) # signum  3
+
+  #     print "kill -USR1 %s" % os.getpid()
+  #
+  #     import threading
+  #     t=threading.Thread (target=self.test, name='test')
+  #     t.start()
+  #
+  # def test(self):
+  #     print 'test'
+  #     import time
+  #     time.sleep (10)
 
 
-    def dump_stacktraces (self, a, b) :
-        print _get_stacktraces ()
+    def print_stacktraces (self, a, b) :
+
+        import threading
+        this_tid = threading.currentThread().ident
+
+        print "==============================================================="
+        print "RADICAL Utils -- Debug Helper -- Stacktraces"
+        info = self.get_stacktraces ()
+
+
+        for tid, tname in info :
+
+            if tid == this_tid : marker = '[active]'
+            else               : marker = ''
+            print "---------------------------------------------------------------"
+            print "Thread: %s %s" % (tname, marker)
+            print "  PID : %s "   % os.getpid()
+            print "  TID : %s "   % tid
+            for fname, lineno, method, code in info[tid,tname] :
+
+                code = code.strip()
+                if not code :
+                    code = '<no code>'
+
+                # [:-1]: .py vs. .pyc :/
+                if not (__file__[:-1] in fname and \
+                        method in ['get_stacktraces', 'print_stacktraces']) :
+                    print "  File: %s, line %d, in %s" % (fname, lineno, method)
+                    print "        %s" % code
+
+        print "==============================================================="
+
+        return True
+
+
+    # --------------------------------------------------------------------------
+    #
+    def get_stacktraces (self) :
+    
+        import sys
+        import threading
+        import traceback
+
+        id2name = {}
+        for th in threading.enumerate():
+            id2name[th.ident] = th.name
+    
+        ret = dict()
+        for tid, stack in sys._current_frames().items():
+            ret[tid,id2name[tid]] = traceback.extract_stack(stack)
+    
+        return ret
+
 
 
 # ------------------------------------------------------------------------------

@@ -47,9 +47,11 @@ class _IDRegistry (object) :
             if  not prefix in self._registry[mode] :
                 self._registry[mode][prefix] =  0
 
+            ret = self._registry[mode][prefix]
+
             self._registry[mode][prefix] += 1
 
-            return int(self._registry[mode][prefix])
+            return ret
 
 
 # ------------------------------------------------------------------------------
@@ -160,11 +162,10 @@ def _generate_id (template, prefix, mode) :
         fcntl.flock (fd, fcntl.LOCK_EX)
         os.lseek (fd, 0, os.SEEK_SET )
         data = os.read (fd, 256)
-        if not data : data = "0\n"
-        day_counter = int(data) + 1
+        if not data : data = 0
+        info['day_counter'] = int(data)
         os.lseek (fd, 0, os.SEEK_SET )
-        os.write (fd, "%d\n" % day_counter)
-        info['day_counter'] = day_counter
+        os.write (fd, "%d\n" % (info['day_counter']+1))
         os.close (fd)
 
     if '%(item_counter)' in template :
@@ -172,11 +173,10 @@ def _generate_id (template, prefix, mode) :
         fcntl.flock (fd, fcntl.LOCK_EX)
         os.lseek (fd, 0, os.SEEK_SET)
         data = os.read (fd, 256)
-        if not data : data = "0\n"
-        item_counter = int(data) + 1
+        if not data : data = 0
+        info['item_counter'] = int(data)
         os.lseek (fd, 0, os.SEEK_SET)
-        os.write (fd, "%d\n" % item_counter)
-        info['item_counter'] = item_counter
+        os.write (fd, "%d\n" % (info['item_counter']+1))
         os.close (fd)
 
     if '%(counter)' in template :
