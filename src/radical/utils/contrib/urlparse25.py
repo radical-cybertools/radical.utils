@@ -34,6 +34,7 @@ uses_fragment = ['ftp', 'hdl', 'http', 'gopher', 'news',
                  'nntp', 'wais', 'https', 'shttp', 'snews',
                  'file', 'prospero', '']
 uses_hash_in_hostname = ['go']
+preserve_case_in_hostname = ['go']
 
 # Characters valid in scheme names
 scheme_chars = ('abcdefghijklmnopqrstuvwxyz'
@@ -113,7 +114,10 @@ class BaseResult(tuple):
             netloc = netloc.split("@", 1)[1]
         if ":" in netloc:
             netloc = netloc.split(":", 1)[0]
-        return netloc.lower() or ''
+        if self.scheme in preserve_case_in_hostname:
+            return netloc or ''
+        else:
+            return netloc.lower() or ''
 
     @property
     def port(self):
