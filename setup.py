@@ -26,18 +26,17 @@ mod_root = 'radical/utils'
 #   - version is read from VERSION file in src_root, which then is copied to
 #     module dir, and is getting installed from there.
 #   - version_detail is derived from the git tag, and only available when
-#     installed from git -- this is stored in VERSION.git, in the same
-#     locations, on install.
-#   - both files, VERSION and VERSION.git are used to provide the runtime
-#     version information.
+#     installed from git.  That is stored in mod_root/VERSION in the install
+#     tree.
+#   - The VERSION file is used to provide the runtime version information.
 #
 def get_version (mod_root):
     """
     mod_root
-        a VERSION and VERSION.git file containing the version strings is 
-        created in mod_root, during installation.  Those files are used at 
-        runtime to get the version information.
-    """
+        a VERSION file containes the version strings is created in mod_root,
+        during installation.  That file is used at runtime to get the version
+        information.  
+        """
 
     try:
 
@@ -73,8 +72,7 @@ def get_version (mod_root):
         path = '%s/%s' % (src_root, mod_root)
         print 'creating %s/VERSION' % path
 
-        with open (path + '/VERSION',     'w') as f : f.write (version        + '\n') 
-        with open (path + '/VERSION.git', 'w') as f : f.write (version_detail + '\n')
+        with open (path + '/VERSION',     'w') as f : f.write (version_detail + '\n') 
 
         return version, version_detail
 
@@ -150,7 +148,7 @@ setup_args = {
     'scripts'            : ['bin/radical-utils-copyright.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-pylint.sh'],
-    'package_data'       : {'' : ['*.sh', 'VERSION', 'VERSION.git']},
+    'package_data'       : {'' : ['*.sh', 'VERSION']},
     'cmdclass'           : {
         'test'           : our_test,
     },
