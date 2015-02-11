@@ -15,7 +15,7 @@ import subprocess as sp
 from setuptools import setup, Command, find_packages
 
 name     = 'radical.utils'
-mod_root = 'radical/utils'
+mod_root = 'src/radical/utils'
 
 # ------------------------------------------------------------------------------
 #
@@ -72,7 +72,7 @@ def get_version (mod_root):
         path = '%s/%s' % (src_root, mod_root)
         print 'creating %s/VERSION' % path
 
-        with open (path + '/VERSION',     'w') as f : f.write (version_detail + '\n') 
+        with open (path + '/VERSION', 'w') as f : f.write (version_detail + '\n') 
 
         return version, version_detail
 
@@ -144,7 +144,8 @@ setup_args = {
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
-    'packages'           : find_packages(),
+    'packages'           : find_packages('src'),
+    'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-copyright.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-pylint.sh'],
@@ -152,9 +153,7 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : [
-        'colorama'
-    ],
+    'install_requires'   : ['colorama'],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
         'nose'           : ['nose']
