@@ -33,6 +33,8 @@ uses_query = ['http', 'wais', 'imap', 'https', 'shttp', 'mms',
 uses_fragment = ['ftp', 'hdl', 'http', 'gopher', 'news',
                  'nntp', 'wais', 'https', 'shttp', 'snews',
                  'file', 'prospero', '']
+uses_hash_in_hostname = ['go']
+preserve_case_in_hostname = ['go']
 
 # Characters valid in scheme names
 scheme_chars = ('abcdefghijklmnopqrstuvwxyz'
@@ -112,7 +114,10 @@ class BaseResult(tuple):
             netloc = netloc.split("@", 1)[1]
         if ":" in netloc:
             netloc = netloc.split(":", 1)[0]
-        return netloc.lower() or ''
+        if self.scheme in preserve_case_in_hostname:
+            return netloc or ''
+        else:
+            return netloc.lower() or ''
 
     @property
     def port(self):
@@ -176,9 +181,13 @@ def _splitparams(url):
         i = url.find(';')
     return url[:i], url[i+1:]
 
-def _splitnetloc(url, start=0):
+def _splitnetloc(url, start=0, allow_hash_in_hostname=False):
     delim = len(url)   # position of end of domain part of url, default is end
-    for c in '/?#':    # look for delimiters; the order is NOT important
+    if allow_hash_in_hostname:
+        separators = '/?'
+    else:
+        separators = '/?#'
+    for c in separators:    # look for delimiters; the order is NOT important
         wdelim = url.find(c, start)        # find first of this delim
         if wdelim >= 0:                    # if found
             delim = min(delim, wdelim)     # use earliest delim position
@@ -218,7 +227,10 @@ def urlsplit(url, scheme='', allow_fragments=True):
         else:
             scheme, url = url[:i].lower(), url[i+1:]
     if url[:2] == '//':
-        netloc, url = _splitnetloc(url, 2)
+        if scheme in uses_hash_in_hostname:
+            netloc, url = _splitnetloc(url, 2, True)
+        else:
+            netloc, url = _splitnetloc(url, 2)
     if allow_fragments and scheme in uses_fragment and '#' in url:
         url, fragment = url.split('#', 1)
     if scheme in uses_query and '?' in url:
