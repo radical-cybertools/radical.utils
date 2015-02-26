@@ -21,7 +21,7 @@ def get_version (paths=None):
         a VERSION file containing the long version is checked for in every
         directory listed in paths.   When we find a VERSION file, we also look
         for an SDIST file, and return the found name and location as absolute
-        path to the sdist (after checking the file exists).  
+        path to the sdist.
     """
 
     if not paths:
