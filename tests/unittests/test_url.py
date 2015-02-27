@@ -113,7 +113,7 @@ def test_url_properties () :
     
     url.password = "password"
     url.path     = "/path/"
-    assert str(url)           == "scheme://username:password@host:42/path"
+    assert str(url)           == "scheme://username:password@host:42/path/"
     assert url.get_path()     == "/path"
  
     url.set_path("tpath")
