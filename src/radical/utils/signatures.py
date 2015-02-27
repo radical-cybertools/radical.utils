@@ -225,6 +225,7 @@ class TupleChecker (Checker):
 
     def __init__ (self, reference):
         self.reference = map (Checker.create, reference)
+        self.spectype  = reference
 
     def check (self, value):
         return reduce (lambda r, c: r or c.check (value), self.reference, False)
@@ -376,6 +377,21 @@ def create_type_exception (method, arg0, i, arg, spectype, kwname="") :
             break
         frame = f
 
+    if isinstance(spectype,tuple) or \
+       isinstance(spectype,list )  :
+        expected = list()
+        for t in spectype :
+            if isinstance(t, type):
+                expected.append (t.__name__)
+            else:
+                expected.append (str(t))
+
+    elif isinstance(spectype,type):
+        expected = spectype.__name__
+
+    else:
+        expected = str(spectype)
+
     msg   = "\nSignature Mismatch\n"
     msg  += "  in function        : %s\n"       % (frame[2])
     msg  += "  in file            : %s +%s\n"   % (frame[0], frame[1])
@@ -386,7 +402,7 @@ def create_type_exception (method, arg0, i, arg, spectype, kwname="") :
     else :
         msg  += "  parameter          : %s"     % (kwname)
     msg  += "  has incorrect type : %s\n"       % (type (arg).__name__)
-    msg  += "  instead of         : %s"         % (spectype.__name__)
+    msg  += "  instead of         : %s"         % (str(expected))
 
     return TypeError (msg)
 
