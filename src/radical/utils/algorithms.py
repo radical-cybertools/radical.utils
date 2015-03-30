@@ -31,6 +31,10 @@ def collapse_ranges (ranges):
 
     final = list()
 
+    # return empty list if given an empty list
+    if not ranges:
+        return final
+
     # sort ranges into a copy list
     _ranges = sorted (ranges, key=lambda x: x[0])
 
