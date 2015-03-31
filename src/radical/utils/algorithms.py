@@ -20,10 +20,10 @@ def collapse_ranges (ranges):
     a) when start_2 <= end_1, then the ranges overlap, and we collapse them into
     range_1: range_1 = [start_1, max[end_1, end_2]
 
-    b) when start_2 > end_2, then ranges don't overlap.  Importantly, none of
-    the other later ranges can ever overlap range_1.  So we move range_1 to the
-    set of final ranges, and restart the algorithm with range_2 being the
-    smallest one.
+    b) when start_2 > end_1, then ranges don't overlap.  Importantly, none of
+    the other later ranges can ever overlap range_1, because there start points
+    are even larger.  So we move range_1 to the set of final ranges, and restart
+    the algorithm with range_2 being the smallest one.
 
     Termination condition is if only one range is left -- it is also moved to
     the set of final ranges then, and that set is returned.
