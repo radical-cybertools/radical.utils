@@ -76,7 +76,11 @@ class RLock (object) :
       # ind = (self._cnt)*' '+'-'+(30-self._cnt)*' '
       # lout ("%s    %-10s %50s release  - %s\n" % (ind, threading.current_thread().name, self, self._lock))
 
-        self._lock.release ()
+        # locks can be gone during shutdown, so make sure we still have it
+        # before releasing
+        # FIXME: this is still a race, of course, albeit a smaller one...
+        if self._lock: 
+            self._lock.release ()
 
       # self._cnt -= 1
       # ind = (self._cnt)*' '+'<'+(30-self._cnt)*' '
