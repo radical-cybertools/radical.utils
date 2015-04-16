@@ -47,7 +47,7 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     @rus.takes   ('Url', 
-                  rus.optional (basestring, 'Url'))
+                  rus.optional ((basestring, 'Url')))
     @rus.returns (rus.nothing)
     def __init__(self, url_in=''):
         """ 

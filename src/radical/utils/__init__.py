@@ -26,6 +26,7 @@ from tracer         import trace, untrace
 from which          import which
 from misc           import *
 from get_version    import get_version
+from algorithms     import *
 
 # import decorators
 from timing         import timed_method
@@ -41,7 +42,7 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version, version_detail, version_branch = get_version()
+version, version_detail, version_branch, sdist_name, sdist_path = get_version()
 
 # ------------------------------------------------------------------------------
 

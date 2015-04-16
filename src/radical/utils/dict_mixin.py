@@ -144,16 +144,16 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
                         logger    = logger, 
                         _path     = _path + [str(key)])
         
+        elif (key_a not in a) and (key_b in b):
+            a[key_a] = b[key_b] # use b value
+
+        elif (key_a in a) and (key_b not in b):
+            pass # keep a value
+
         elif a[key_a] == b[key_b]:
             pass # same leaf value
 
-        elif  not a[key_a] and b[key_b] :
-            a[key_a] = b[key_b] # use b value
-
-        elif  not b[key_b] and a[key_a] :
-            pass # keep a value
-
-        elif  not b[key_b] and not a[key_a] :
+        elif (key_a not in a) and (key_b not in b):
             pass # keep no a value
 
         else:

@@ -8,6 +8,7 @@ __license__   = 'MIT'
 
 """ Setup script. Used by easy_install and pip. """
 
+import re
 import os
 import sys
 import subprocess as sp
@@ -55,26 +56,52 @@ def get_version (mod_root):
         # attempt to get version detail information from git
         p   = sp.Popen ('cd %s ; '\
                         'tag=`git describe --tags --always` 2>/dev/null ; '\
-                        'branch=`git branch | grep -e "^*" | cut -f 2 -d " "` 2>/dev/null ; '\
+                        'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '\
                         'echo $tag@$branch'  % src_root,
                         stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         version_detail = p.communicate()[0].strip()
+        version_detail = version_detail.replace('detached from ', 'detached-')
+
+        # remove all non-alphanumeric (and then some) chars
+        version_detail = re.sub('[/ ]+', '-', version_detail)
+        version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', version_detail)
+
 
         if  p.returncode   !=  0  or \
             version_detail == '@' or \
-            'fatal'        in version_detail :
-            version_detail =  'v%s' % version
+            'not-a-git-repo' in version_detail or \
+            'not-found'      in version_detail or \
+            'fatal'          in version_detail :
+            version_detail =  version
 
-        print 'version: %s (%s)'  % (version, version_detail)
+        print 'version: %s (%s)' % (version, version_detail)
 
 
         # make sure the version files exist for the runtime version inspection
         path = '%s/%s' % (src_root, mod_root)
         print 'creating %s/VERSION' % path
+        with open (path + "/VERSION", "w") as f : f.write (version_detail + "\n")
 
-        with open (path + '/VERSION', 'w') as f : f.write (version_detail + '\n') 
+        sdist_name = "%s-%s.tar.gz" % (name, version_detail)
+        sdist_name = sdist_name.replace ('/', '-')
+        sdist_name = sdist_name.replace ('@', '-')
+        sdist_name = sdist_name.replace ('#', '-')
+        if '--record'  in sys.argv or 'bdist_egg' in sys.argv :   
+           # pip install stage 2      easy_install stage 1
+           # NOTE: pip install will untar the sdist in a tmp tree.  In that tmp
+           # tree, we won't be able to derive git version tags -- so we pack the
+           # formerly derived version as ./VERSION
+            os.system ("mv VERSION VERSION.bak")        # backup version
+            os.system ("cp %s/VERSION VERSION" % path)  # use full version instead
+            os.system ("python setup.py sdist")         # build sdist
+            os.system ("cp 'dist/%s' '%s/%s'" % \
+                    (sdist_name, mod_root, sdist_name)) # copy into tree
+            os.system ("mv VERSION.bak VERSION")        # restore version
 
-        return version, version_detail
+        print 'creating %s/SDIST' % path
+        with open (path + "/SDIST", "w") as f : f.write (sdist_name + "\n")
+
+        return version, version_detail, sdist_name
 
     except Exception as e :
         raise RuntimeError ('Could not extract/set version: %s' % e)
@@ -82,7 +109,7 @@ def get_version (mod_root):
 
 # ------------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
-version, version_detail = get_version (mod_root)
+version, version_detail, sdist_name = get_version (mod_root)
 
 
 # ------------------------------------------------------------------------------
@@ -116,15 +143,14 @@ def read(*rnames):
 # -------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
-    'namespace_packages' : ['radical'],
     'version'            : version,
     'description'        : 'Shared code and tools for various RADICAL Projects '
                            '(http://radical.rutgers.edu/)',
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
-    'maintainer'         : 'Andre Merzky',
-    'maintainer_email'   : 'andre@merzky.net',
+    'maintainer'         : 'The RADICAL Group',
+    'maintainer_email'   : 'radical@rutgers.edu',
     'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
     'license'            : 'MIT',
     'keywords'           : 'radical pilot job saga',
@@ -144,12 +170,13 @@ setup_args = {
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
+    'namespace_packages' : ['radical'],
     'packages'           : find_packages('src'),
     'package_dir'        : {'': 'src'},
-    'scripts'            : ['bin/radical-utils-copyright.pl',
+    'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-pylint.sh'],
-    'package_data'       : {'' : ['*.sh', 'VERSION']},
+    'package_data'       : {'': ['*.sh', '*.json', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {
         'test'           : our_test,
     },
@@ -159,7 +186,16 @@ setup_args = {
         'nose'           : ['nose']
     },
     'tests_require'      : [],
+    'test_suite'         : 'radical.utils.tests',
     'zip_safe'           : False,
+#   'build_sphinx'       : {
+#       'source-dir'     : 'docs/',
+#       'build-dir'      : 'docs/build',
+#       'all_files'      : 1,
+#   },
+#   'upload_sphinx'      : {
+#       'upload-dir'     : 'docs/build/html',
+#   }
 }
 
 # ------------------------------------------------------------------------------
