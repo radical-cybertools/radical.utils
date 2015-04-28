@@ -26,6 +26,7 @@ from tracer         import trace, untrace
 from which          import which
 from misc           import *
 from get_version    import get_version
+from algorithms     import *
 
 # import decorators
 from timing         import timed_method
