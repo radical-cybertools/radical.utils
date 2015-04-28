@@ -54,8 +54,22 @@ def write_json (data,  filename) :
 
     """
 
+    # thanks to 
+    # http://stackoverflow.com/questions/956867/#13105359
+    def _byteify(input):
+        if isinstance(input, dict):
+            return {_byteify(key):_byteify(value) for key,value in input.iteritems()}
+        elif isinstance(input, list):
+            return [_byteify(element) for element in input]
+        elif isinstance(input, unicode):
+            return input.encode('utf-8')
+        else:
+            return input
+
+
     with open (filename, 'w') as f :
-        json.dump (data, f, sort_keys=True, indent=4, ensure_ascii=False) 
+        json.dump (_byteify(data), f, sort_keys=True, indent=4, ensure_ascii=False) 
+        f.write ("\n")
 
 
 # ------------------------------------------------------------------------------
