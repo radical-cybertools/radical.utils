@@ -42,13 +42,13 @@ def test_lease_manager() :
             iw_thread_2 = threading.Thread(target=self.iw_thread, kwargs={'id': 2, 'pool': 'pool2'})
             iw_thread_2.start() # thread will run until lock check
 
-            ow_thread_1 = threading.Thread(target=self.ow_thread, kwargs={'id': 1, 'pool': 'pool3'})
+            ow_thread_1 = threading.Thread(target=self.ow_thread, kwargs={'id': 1, 'pool': 'pool1'})
             ow_thread_1.start() # thread will run until lock check
 
-            ow_thread_2 = threading.Thread(target=self.ow_thread, kwargs={'id': 2, 'pool': 'pool4'})
+            ow_thread_2 = threading.Thread(target=self.ow_thread, kwargs={'id': 2, 'pool': 'pool2'})
             ow_thread_2.start() # thread will run until lock check
 
-            mon_thread = threading.Thread(target=self.mon_thread, kwargs={'pool': 'pool5'})
+            mon_thread = threading.Thread(target=self.mon_thread, kwargs={'id': 1, 'pool': 'pool1'})
             mon_thread.start() # thread will run until lock check
 
             # mon_thread.join()
@@ -59,67 +59,67 @@ def test_lease_manager() :
 
         # -----------------
         def iw_thread(self, id, pool):
-            name = "IW Thread-%d: lease()" % id
+            name = "IWo Thread-%d (%s)" % (id, pool)
 
             while True:
                 leases = list()
                 for i in range(MAX):
-                    debug("%s: lease()" % name)
+                    debug("%s: >" % name)
                     lease = self.lm.lease(pool, dict)
-                    debug("%s: leased()" % name)
+                    debug("%s:  =" % name)
                     lease.obj['name'] = name
                     leases.append(lease)
 
-                time.sleep(.1)
+              # time.sleep(.1)
 
                 for lease in leases:
                     #self.lm.release('lease')
                     self.lm.release(lease)
                     #self.lm.release(lease, delete=True)
                     #self.lm2.release(lease)
-                    debug("%s: released()" % name)
+                    debug("%s:   <" % name)
 
 
         # ----------------------
         def ow_thread(self, id, pool) :
 
-            name = "OW Thread-%d: lease()" % id
+            name = "OWo Thread-%d (%s)" % (id, pool)
 
             while True:
                 leases = list()
                 for i in range(MAX):
-                    debug("%s: lease()" % name)
+                    debug("%s: >" % name)
                     lease = self.lm.lease(pool, dict)
-                    debug("%s: leased()" % name)
+                    debug("%s:  =" % name)
                     lease.obj['name'] = name
                     leases.append(lease)
 
-                time.sleep(.1)
+              # time.sleep(.1)
 
                 for lease in leases:
                     self.lm.release(lease)
-                    debug("%s: released()" % name)
+                    debug("%s:   <" % name)
 
 
         # ----------------------
-        def mon_thread(self, pool) :
+        def mon_thread(self, id, pool) :
 
-            name = "Mon Thread: lease()"
+            name = "Mon Thread-%d (%s)" % (id, pool)
 
             while True:
                 leases = list()
                 for i in range(MAX):
-                    debug("%s: lease()" % name)
+                    debug("%s: >" % name)
                     lease = self.lm.lease(pool, dict)
-                    debug("%s: leased()" % name)
+                    debug("%s:  =" % name)
                     lease.obj['name'] = name
                     leases.append(lease)
 
-                time.sleep(.1)
+              # time.sleep(.1)
 
                 for lease in leases:
                     self.lm.release(lease)
-                    debug("%s: released()" % name)
+                    debug("%s:   <" % name)
                     #sys.exit(1)
 
 
