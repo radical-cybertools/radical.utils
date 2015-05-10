@@ -8,9 +8,11 @@ import sys
 import threading
 import radical.utils as ru
 
+SIZE = 10
+MAX  = 4
 
-def debug(*arg):
-    #print arg
+def debug(arg):
+  # print arg
     pass
 # ------------------------------------------------------------------------------
 #
@@ -31,8 +33,8 @@ def test_lease_manager() :
         # ----------------------
         def test(self) :
 
-            self.lm = ru.LeaseManager()
-            self.lm2 = ru.LeaseManager()
+            self.lm = ru.LeaseManager(SIZE)
+          # self.lm2 = ru.LeaseManager()
 
             iw_thread_1 = threading.Thread(target=self.iw_thread, kwargs={'id': 1, 'pool': 'pool1'})
             iw_thread_1.start() # thread will run until lock check
@@ -60,16 +62,22 @@ def test_lease_manager() :
             name = "IW Thread-%d: lease()" % id
 
             while True:
-                debug("%s: lease()" % name)
-                lease = self.lm.lease(pool, dict)
-                debug("%s: leased()" % name)
-                lease.obj['name'] = name
+                leases = list()
+                for i in range(MAX):
+                    debug("%s: lease()" % name)
+                    lease = self.lm.lease(pool, dict)
+                    debug("%s: leased()" % name)
+                    lease.obj['name'] = name
+                    leases.append(lease)
+
                 time.sleep(.1)
-                #self.lm.release('lease')
-                self.lm.release(lease)
-                #self.lm.release(lease, delete=True)
-                #self.lm2.release(lease)
-                debug("%s: released()" % name)
+
+                for lease in leases:
+                    #self.lm.release('lease')
+                    self.lm.release(lease)
+                    #self.lm.release(lease, delete=True)
+                    #self.lm2.release(lease)
+                    debug("%s: released()" % name)
 
 
         # ----------------------
@@ -78,13 +86,19 @@ def test_lease_manager() :
             name = "OW Thread-%d: lease()" % id
 
             while True:
-                debug("%s: lease()" % name)
-                lease = self.lm.lease(pool, dict)
-                debug("%s: leased()" % name)
-                lease.obj['name'] = name
+                leases = list()
+                for i in range(MAX):
+                    debug("%s: lease()" % name)
+                    lease = self.lm.lease(pool, dict)
+                    debug("%s: leased()" % name)
+                    lease.obj['name'] = name
+                    leases.append(lease)
+
                 time.sleep(.1)
-                self.lm.release(lease)
-                debug("%s: released()" % name)
+
+                for lease in leases:
+                    self.lm.release(lease)
+                    debug("%s: released()" % name)
 
 
         # ----------------------
@@ -93,14 +107,20 @@ def test_lease_manager() :
             name = "Mon Thread: lease()"
 
             while True:
-                debug("%s: lease()" % name)
-                lease = self.lm.lease(pool, dict)
-                debug("%s: leased()" % name)
-                lease.obj['name'] = name
+                leases = list()
+                for i in range(MAX):
+                    debug("%s: lease()" % name)
+                    lease = self.lm.lease(pool, dict)
+                    debug("%s: leased()" % name)
+                    lease.obj['name'] = name
+                    leases.append(lease)
+
                 time.sleep(.1)
-                self.lm.release(lease)
-                debug("%s: released()" % name)
-                #sys.exit(1)
+
+                for lease in leases:
+                    self.lm.release(lease)
+                    debug("%s: released()" % name)
+                    #sys.exit(1)
 
 
     # --------------------------------------------------------------------------
