@@ -330,5 +330,51 @@ def window (seq, n=2) :
         yield result
 
 # ------------------------------------------------------------------------------
+# 
+def round_to_base (value, base=1):
+    """
+    This method expects an integer or float value, and will round it to any
+    given integer base.  For example:
 
+      1.5, 2 -> 2
+      3.5, 2 -> 4
+      4.5, 2 -> 4
+
+      11.5, 20 -> 20
+      23.5, 20 -> 20
+      34.5, 20 -> 40
+
+    The default base is '1'.
+    """
+
+    return int(base * round(float(value) / base))
+
+
+# ------------------------------------------------------------------------------
+# 
+def round_upper_bound (value):
+    """
+    This method expects an integer or float value, and will return an integer upper
+    bound suitable for example to define plot ranges.  The upper bound is the
+    smallest value larger than the input value which is a multiple of 1, 2 or
+    5 times the order of magnitude (10**x) of the value.
+    """
+
+    bound = 0
+    order = 0
+    check = [1, 2, 5]
+
+    while True:
+
+        for c in check :
+
+            bound = c*(10**order)
+
+            if value < bound: 
+                return bound
+
+        order += 1
+
+
+# ------------------------------------------------------------------------------
 
