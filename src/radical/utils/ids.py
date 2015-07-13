@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import os
+import uuid
 import threading
 import singleton
 
@@ -58,7 +59,8 @@ class _IDRegistry (object) :
 #
 # we create on private singleton instance for the ID registry.
 _id_registry = _IDRegistry ()
-
+_BASE        = "%s/.radical/utils" % os.environ.get ("HOME", "/tmp")
+os.system ("mkdir -p %s" % _BASE)
 
 # ------------------------------------------------------------------------------
 #
@@ -66,6 +68,7 @@ ID_SIMPLE  = 'simple'
 ID_UNIQUE  = 'unique'
 ID_PRIVATE = 'private'
 ID_CUSTOM  = 'custom'
+ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
@@ -83,14 +86,15 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 
     Examples::
 
-        id_1 = radical.utils.generate_id ('item.')
-        id_2 = radical.utils.generate_id ('item.')
-        id_1 = radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
-        id_2 = radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
-        id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
-        id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
-        id_3 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
-        id_4 = radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
+        print radical.utils.generate_id ('item.')
+        print radical.utils.generate_id ('item.')
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
+        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UUID)
 
     The above will generate the IDs:
 
@@ -102,6 +106,7 @@ def generate_id (prefix, mode=ID_SIMPLE) :
         item.2014.07.30.13.13.44.0002
         item.cameo.merzky.021342.0001
         item.cameo.merzky.021342.0002
+        item.23cacb7e-0b08-11e5-9f0f-08002716eaa9
 
     where 'cameo' is the (short) hostname, 'merzky' is the username, and '02134'
     is 'days since epoch'.  The last element, the counter is unique for each id
@@ -120,6 +125,7 @@ def generate_id (prefix, mode=ID_SIMPLE) :
     elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
     elif mode == ID_PRIVATE: template = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
     elif mode == ID_CUSTOM : template = prefix
+    elif mode == ID_UUID   : template = "%(prefix)s.%(uuid)s"
     else :
         raise ValueError ("mode '%s' not supported for ID generation", mode)
 
@@ -130,6 +136,7 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 def _generate_id (template, prefix, mode) :
 
     import time
+    import uuid
     import fcntl
     import socket
     import getpass
@@ -151,14 +158,17 @@ def _generate_id (template, prefix, mode) :
     info['now'         ]  = now
     info['seconds'     ]  = int(seconds)              # full seconds since epoch
     info['days'        ]  = days                      # full days since epoch
-    info['host'        ]  = socket.gethostname()      # local hostname
     info['user'        ]  = user                      # local username
     info['date'        ]  = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
     info['time'        ]  = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-    info['pid'         ]  = os.getpid ()
+    info['pid'         ]  = os.getpid()
+
+    # the following ones are time consuming, and only done when needed
+    if '%(host)' in template: info['host'] = socket.gethostname() # local hostname
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
 
     if '%(day_counter)' in template :
-        fd = os.open ("/tmp/rp_%s_%s.cnt" % (user, days), os.O_RDWR | os.O_CREAT)
+        fd = os.open ("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
         fcntl.flock (fd, fcntl.LOCK_EX)
         os.lseek (fd, 0, os.SEEK_SET )
         data = os.read (fd, 256)
@@ -169,7 +179,7 @@ def _generate_id (template, prefix, mode) :
         os.close (fd)
 
     if '%(item_counter)' in template :
-        fd = os.open ("/tmp/rp_%s_%s.cnt" % (user, prefix), os.O_RDWR | os.O_CREAT)
+        fd = os.open ("%s/rp_%s_%s.cnt" % (_BASE, user, prefix), os.O_RDWR | os.O_CREAT)
         fcntl.flock (fd, fcntl.LOCK_EX)
         os.lseek (fd, 0, os.SEEK_SET)
         data = os.read (fd, 256)
