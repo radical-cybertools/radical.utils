@@ -205,8 +205,8 @@ def time_diff (dt_abs, dt_stamp) :
 #
 class DebugHelper (object) :
     """
-    When instantiated, and when "RADICAL_DEBUG" is set in the environmant, this
-    class will install a signal handler for SIGUSR1.  When that signal is
+    When instantiated, and when "RADICAL_DEBUG" is set in the environment, this
+    class will install a signal handler for SIGINFO.  When that signal is
     received, a stacktrace for all threads is printed to stdout.  Note that 
     <CTRL-T> also triggers that signal on the terminal.
     """
@@ -216,8 +216,7 @@ class DebugHelper (object) :
         import os
         if 'RADICAL_DEBUG' in os.environ :
             import signal
-            signal.signal(signal.SIGUSR1, self.print_stacktraces) # signum 10
-            signal.signal(signal.SIGQUIT, self.print_stacktraces) # signum  3
+            signal.signal(signal.SIGINFO, self.print_stacktraces) # signum 29
 
   #     print "kill -USR1 %s" % os.getpid()
   #
