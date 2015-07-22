@@ -208,6 +208,7 @@ class DebugHelper (object) :
     When instantiated, and when "RADICAL_DEBUG" is set in the environment, this
     class will install a signal handler for SIGUSR1.  When that signal is
     received, a stacktrace for all threads is printed to stdout.
+    Additionally, we check if SIGINFO is available, which is generally bound to CTRL-T.
     """
 
     def __init__ (self) :
@@ -216,6 +217,12 @@ class DebugHelper (object) :
         if 'RADICAL_DEBUG' in os.environ :
             import signal
             signal.signal(signal.SIGUSR1, self.print_stacktraces) # signum 30
+
+            try:
+                assert signal.SIGINFO
+                signal.signal(signal.SIGINFO, self.print_stacktraces) # signum 29
+            except AttributeError as e:
+                pass
 
   #     print "kill -USR1 %s" % os.getpid()
   #
