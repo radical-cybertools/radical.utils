@@ -5,6 +5,19 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.29 release 2015-07-13
+--------------------------------------------------------------------------------
+
+  - attempt to avoid sdist naming error during pypi installation
+  - add uuid support, avoid counter reset on reboot
+  - add two convenience methods which support range finding
+  - have multiple threads lease from same pool.  Speed up LM test
+  - make sure that the pull is filled during lease manager testing
+  - make sure json is exported as encoded unicode
+  - make sure we write encoded strings for json
+  - add test for LeaseManager
+
+
 Version 0.28 release 2015-04-16
 --------------------------------------------------------------------------------
 
