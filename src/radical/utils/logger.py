@@ -75,7 +75,6 @@ def get_logger(name, target=None, level=None):
 
     if logger.handlers:
         # we already conifgured that logger in the past -- just reuse it
-      # logger.error('logger exists  for %s' % name)
         return logger
 
     # --------------------------------------------------------------------------
@@ -114,8 +113,8 @@ def get_logger(name, target=None, level=None):
 
     formatter = logging.Formatter('%(asctime)s: ' \
                                   '%(name)-20s: ' \
-                                  '%(processName)-20s: ' \
-                                  '%(threadName)-20s: ' \
+                                  '%(processName)-32s: ' \
+                                  '%(threadName)-15s: ' \
                                   '%(levelname)-8s: ' \
                                   '%(message)s')
 
@@ -145,7 +144,6 @@ def get_logger(name, target=None, level=None):
     except:
         pass
 
-  # logger.critical('logger created for %s (%s)(%s)' % (name, logger, level))
     return logger
 
 
