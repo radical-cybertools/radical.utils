@@ -104,7 +104,7 @@ class LeaseManager (object) :
 
         import radical.utils.logger as rul
 
-        self._log = rul.getLogger('radical.utils')
+        self._log = rul.get_logger('radical.utils')
       # self._log.setLevel ('DEBUG')
 
         self._log.debug ('lm new manager')
@@ -235,7 +235,7 @@ class LeaseManager (object) :
 
                         Example:
                             def creator () :
-                                return getLogger (name)
+                                return get_logger (name)
 
                             ret = lease_manager.lease (name, creator)
         """
