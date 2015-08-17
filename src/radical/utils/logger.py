@@ -102,6 +102,10 @@ def get_logger(name, target=None, level=None):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level)
 
+    # backward compatible interpretation of SAGA_VERBOSE
+    if env_name.startswith('radical.saga'):
+        level = os.environ.get('SAGA_VERBOSE', level)
+
     if not target:
         target = '-'
         for i in range(1,len(elems)):
