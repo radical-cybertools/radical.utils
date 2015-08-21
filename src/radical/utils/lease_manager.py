@@ -175,8 +175,10 @@ class LeaseManager (object) :
                 pool['objects'].append (obj)
 
             except Exception as e :
-                obj = None
+                # this exception needs to fall through -- we can't wait
+                # for object creation problems to fix themself over time...
                 self._log.exception ("Could not create lease object")
+                raise
 
             return obj
 
@@ -278,6 +280,12 @@ class LeaseManager (object) :
 
             # no unlocked object found -- create a new one 
             obj = self._create_object (pool_id, creator, args)
+
+            # FIXME: we could try_catch the above error, and then check if the
+            #        pool has anything worth to wait on.  That might be useful
+            #        for creation errors which are transient.  Alas, we don't
+            #        have any means to distinguish them from non-transient
+            #        errors, so we don't do that at this point...
 
             # check if we got an object
             if  obj is not None :
