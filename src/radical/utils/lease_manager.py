@@ -175,8 +175,10 @@ class LeaseManager (object) :
                 pool['objects'].append (obj)
 
             except Exception as e :
-                obj = None
+                # this exception needs to fall through -- we can't wait
+                # for object creation problems to fix themself over time...
                 self._log.exception ("Could not create lease object")
+                raise
 
             return obj
 
