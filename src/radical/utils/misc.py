@@ -2,6 +2,7 @@
 
 import os
 import regex
+import signal
 import url as ruu
 
 
