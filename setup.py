@@ -183,6 +183,7 @@ setup_args = {
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
+                            'bin/radical-utils-version',
                             'bin/radical-utils-pylint.sh'],
     'package_data'       : {'': ['*.sh', '*.json', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {
