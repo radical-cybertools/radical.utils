@@ -5,7 +5,13 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
-Version 0.29 release 2015-07-13
+Version 0.29 release                                                  2015-08-27
+--------------------------------------------------------------------------------
+
+  - small bugfix release
+
+
+Version 0.29 release                                                  2015-07-13
 --------------------------------------------------------------------------------
 
   - attempt to avoid sdist naming error during pypi installation
@@ -18,7 +24,7 @@ Version 0.29 release 2015-07-13
   - add test for LeaseManager
 
 
-Version 0.28 release 2015-04-16
+Version 0.28 release                                                  2015-04-16
 --------------------------------------------------------------------------------
 
   - minimize an unlock/release race
