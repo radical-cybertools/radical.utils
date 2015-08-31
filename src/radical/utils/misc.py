@@ -2,6 +2,7 @@
 
 import os
 import regex
+import signal
 import url as ruu
 
 
@@ -201,6 +202,23 @@ def time_diff (dt_abs, dt_stamp) :
     return seconds
 
 
+# --------------------------------------------------------------------
+#
+def get_trace():
+
+    trace = sys.exc_info ()[2]
+
+    if  trace :
+        stack           = traceback.extract_tb  (trace)
+        traceback_list  = traceback.format_list (stack)
+        return "".join (traceback_list)
+
+    else :
+        stack           = traceback.extract_stack ()
+        traceback_list  = traceback.format_list (stack)
+        return "".join (traceback_list[:-1])
+
+
 # ------------------------------------------------------------------------------
 #
 class DebugHelper (object) :
@@ -213,82 +231,84 @@ class DebugHelper (object) :
 
     def __init__ (self) :
 
-        import os
         if 'RADICAL_DEBUG' in os.environ :
-            import signal
-            signal.signal(signal.SIGUSR1, self.print_stacktraces) # signum 30
+            signal.signal(signal.SIGUSR1, print_stacktraces) # signum 30
+            signal.signal(signal.SIGQUIT, print_stacktraces) # signum  3
 
             try:
                 assert signal.SIGINFO
-                signal.signal(signal.SIGINFO, self.print_stacktraces) # signum 29
+                signal.signal(signal.SIGINFO, print_stacktraces) # signum 29
             except AttributeError as e:
                 pass
 
-  #     print "kill -USR1 %s" % os.getpid()
-  #
-  #     import threading
-  #     t=threading.Thread (target=self.test, name='test')
-  #     t.start()
-  #
-  # def test(self):
-  #     print 'test'
-  #     import time
-  #     time.sleep (10)
 
+# ------------------------------------------------------------------------------
+#
+def print_stacktraces (self, a=None, b=None) :
 
-    def print_stacktraces (self, a, b) :
+    this_tid = threading.currentThread().ident
 
-        import threading
-        this_tid = threading.currentThread().ident
+    # if multiple processes (ie. a process group) get the signal, then all
+    # traces are mixed together.  Thus we waid 'pid%100' milliseconds, in
+    # the hope that this will stagger the prints.
+    pid = int(os.getpid())
+    time.sleep((pid%100)/1000)
 
-        print "==============================================================="
-        print "RADICAL Utils -- Debug Helper -- Stacktraces"
+    out  = "===============================================================\n"
+    out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
+    try :
         info = self.get_stacktraces ()
+    except Exception as e:
+        out += 'skipping frame (%s) [%s]' % (self, type(self))
+        info = None
 
-
+    if info:
         for tid, tname in info :
 
             if tid == this_tid : marker = '[active]'
             else               : marker = ''
-            print "---------------------------------------------------------------"
-            print "Thread: %s %s" % (tname, marker)
-            print "  PID : %s "   % os.getpid()
-            print "  TID : %s "   % tid
+            out += "---------------------------------------------------------------\n"
+            out += "Thread: %s %s\n" % (tname, marker)
+            out += "  PID : %s \n"   % os.getpid()
+            out += "  TID : %s \n"   % tid
             for fname, lineno, method, code in info[tid,tname] :
 
                 code = code.strip()
                 if not code :
                     code = '<no code>'
 
-                # [:-1]: .py vs. .pyc :/
-                if not (__file__[:-1] in fname and \
-                        method in ['get_stacktraces', 'print_stacktraces']) :
-                    print "  File: %s, line %d, in %s" % (fname, lineno, method)
-                    print "        %s" % code
+              # # [:-1]: .py vs. .pyc :/
+              # if not (__file__[:-1] in fname and \
+              #         method in ['get_stacktraces', 'print_stacktraces']) :
+              # if method not in ['get_stacktraces', 'print_stacktraces'] :
+                if True:
+                    out += "  File: %s, line %d, in %s\n" % (fname, lineno, method)
+                    out += "        %s\n" % code
 
-        print "==============================================================="
+    out += "==============================================================="
 
-        return True
+    sys.stdout.write("%s\n" % out)
+
+    if 'RADICAL_DEBUG' in os.environ:
+        with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
+            f.write ("%s\n" % out)
+
+    return True
 
 
-    # --------------------------------------------------------------------------
-    #
-    def get_stacktraces (self) :
-    
-        import sys
-        import threading
-        import traceback
+# --------------------------------------------------------------------------
+#
+def get_stacktraces (self) :
 
-        id2name = {}
-        for th in threading.enumerate():
-            id2name[th.ident] = th.name
-    
-        ret = dict()
-        for tid, stack in sys._current_frames().items():
-            ret[tid,id2name[tid]] = traceback.extract_stack(stack)
-    
-        return ret
+    id2name = {}
+    for th in threading.enumerate():
+        id2name[th.ident] = th.name
 
+    ret = dict()
+    for tid, stack in sys._current_frames().items():
+        ret[tid,id2name[tid]] = traceback.extract_stack(stack)
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
@@ -379,6 +399,28 @@ def round_upper_bound (value):
                 return bound
 
         order += 1
+
+
+# ------------------------------------------------------------------------------
+#
+def islist(thing):
+    """
+    return True if a thing is a list thing, False otherwise
+    """
+
+    return isinstance(thing, list)
+
+
+# ------------------------------------------------------------------------------
+#
+def tolist(thing):
+    """
+    return a non-list thing into a list thing
+    """
+
+    if islist(thing):
+        return thing
+    return [thing]
 
 
 # ------------------------------------------------------------------------------

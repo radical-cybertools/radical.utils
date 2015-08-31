@@ -10,7 +10,7 @@ import os
 import copy
 import threading
 
-import radical.utils as ru
+from ..singleton import Singleton
 
 from   configfile import ConfigFileReader
 
@@ -90,7 +90,7 @@ class _Configurations (object) :
     """
     This singleton class maintains references to all global configurations.
     """
-    __metaclass__ = ru.Singleton
+    __metaclass__ = Singleton
     _rlock = threading.RLock ()
 
     # --------------------------------------------------------------------------
@@ -291,7 +291,7 @@ class Configuration (object):
                         value = tmp_value
 
                 elif ev is not None:
-                    #getLogger('engine').debug("Using environment variable '%s' to set config option '%s.%s' to '%s'." \
+                    #get_logger('saga.engine').debug("Using environment variable '%s' to set config option '%s.%s' to '%s'." \
                     #    % (option['env_variable'], option['category'], option['name'], ev))
                     tmp_value = ev
                     if option['type'] == list:

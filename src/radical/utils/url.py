@@ -107,6 +107,19 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     ##
+    @rus.takes   ('Url')
+    @rus.returns (bool)
+    def __nonzero__(self) :
+
+        if str(self):
+            return 1
+        else:
+            return 0
+
+
+    # --------------------------------------------------------------------------
+    #
+    ##
     @rus.takes   ('Url', 
                   rus.optional(basestring),
                   rus.optional(basestring),
