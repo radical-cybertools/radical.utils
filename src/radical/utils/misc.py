@@ -232,6 +232,10 @@ class DebugHelper (object) :
 
     def __init__ (self) :
 
+        if 'MainThread' not in threading.current_thread().name:
+            # python only supports signals in main threads :/
+            return
+
         if 'RADICAL_DEBUG' in os.environ :
             signal.signal(signal.SIGUSR1, print_stacktraces) # signum 30
             signal.signal(signal.SIGQUIT, print_stacktraces) # signum  3
