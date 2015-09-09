@@ -146,7 +146,11 @@ def _generate_id (template, prefix, mode) :
     seconds = time.time ()
     now     = datetime.datetime.fromtimestamp (seconds)
     days    = int(seconds / (60*60*24))
-    user    = getpass.getuser()
+
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = 'nobody'
 
     info = dict()
 
