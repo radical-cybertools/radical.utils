@@ -103,7 +103,7 @@ def get_logger(name, target=None, level=None):
             level    = os.environ.get(env_test, level)
 
     # backward compatible interpretation of SAGA_VERBOSE
-    if env_name.startswith('radical.saga'):
+    if env_name.startswith('RADICAL_SAGA'):
         level = os.environ.get('SAGA_VERBOSE', level)
 
     if not target:
