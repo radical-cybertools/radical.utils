@@ -429,4 +429,19 @@ def tolist(thing):
 
 
 # ------------------------------------------------------------------------------
+#
+# to keep RU 2.6 compatible, we provide import_module which works around some
+# quirks of __import__ when being used with dotted names. This is what the
+# python docs recommend to use.  This basically steps down the module path and
+# loads the respective submodule until arriving at the target.
+#
+def import_module(name):
+
+    mod = __import__(name)
+    for s in name.split('.')[1:]:
+        mod = getattr(mod, s)
+    return mod
+
+
+# ------------------------------------------------------------------------------
 
