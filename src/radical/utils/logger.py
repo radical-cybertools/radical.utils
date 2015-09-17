@@ -80,6 +80,9 @@ def get_logger(name, target=None, level=None):
         # we already conifgured that logger in the past -- just reuse it
         return logger
 
+    # default log level
+    logger.setLevel('ERROR')
+
     # --------------------------------------------------------------------------
     # unconfigured loggers get configured.  We try to get the log level and
     # target from the environment.  We try env vars like this:
@@ -103,11 +106,15 @@ def get_logger(name, target=None, level=None):
         level  = 'CRITICAL'
         for i in range(1,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
-            level    = os.environ.get(env_test, level)
+            level    = os.environ.get(env_test, level).upper()
 
     # backward compatible interpretation of SAGA_VERBOSE
     if env_name.startswith('RADICAL_SAGA'):
-        level = os.environ.get('SAGA_VERBOSE', level)
+        level = os.environ.get('SAGA_VERBOSE', level).upper()
+
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL']:
+        logger.error("log level %s not supported -- reset to 'ERROR'")
+        level = 'ERROR'
 
     if not target:
         target = '-'
