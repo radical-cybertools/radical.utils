@@ -250,6 +250,9 @@ class DebugHelper (object) :
 # ------------------------------------------------------------------------------
 #
 def print_stacktraces (self, a=None, b=None) :
+    """
+    a, b exist only to satisfy signal handler signature requirements
+    """
 
     this_tid = threading.currentThread().ident
 
