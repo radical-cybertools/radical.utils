@@ -6,7 +6,10 @@ __license__   = "MIT"
 import os
 import sys
 import logging
+import threading
 import colorama
+
+from .misc import import_module
 
 
 # ------------------------------------------------------------------------------
@@ -140,11 +143,17 @@ def get_logger(name, target=None, level=None):
     # if the given name points to a version or version_detail, log those
     try:
         logger.info("%-20s version: %s", 'python.interpreter', ' '.join(sys.version.split()))
-        tmp = __import__(name, globals(), locals(), [], -1)
+        tmp = import_module(name)
         if hasattr(tmp, 'version_detail'):
             logger.info("%-20s version: %s", name, getattr(tmp, 'version_detail'))
         elif hasattr(tmp, 'version'):
             logger.info("%-20s version: %s", name, getattr(tmp, 'version'))
+    except:
+        pass
+
+    try:
+        logger.info("%-20s pid: %s", '', os.getpid())
+        logger.info("%-20s tid: %s", '', threading.current_thread().name)
     except:
         pass
 

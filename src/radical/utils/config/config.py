@@ -287,8 +287,12 @@ class Configuration (object):
                         else:
                           raise ValueTypeError(option['category'], option['name'],
                               tmp_value, option['type'])
+                    elif option['type'] == int:
+                        value = int(tmp_value)
+                    elif option['type'] == float:
+                        value = float(tmp_value)
                     else:
-                        value = tmp_value
+                        value = str(tmp_value)
 
                 elif ev is not None:
                     #get_logger('saga.engine').debug("Using environment variable '%s' to set config option '%s.%s' to '%s'." \
@@ -308,6 +312,10 @@ class Configuration (object):
                         else:
                           raise ValueTypeError(option['category'], option['name'],
                               tmp_value, option['type'])
+                    elif option['type'] == int:
+                        value = int(tmp_value)
+                    elif option['type'] == float:
+                        value = float(tmp_value)
                     else:
                         value = tmp_value
                 else:
