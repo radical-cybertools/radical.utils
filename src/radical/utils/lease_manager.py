@@ -10,7 +10,7 @@ import lockable
 import singleton
 import threading
 
-from . import get_logger
+from .logger import get_logger
 
 # default settings for lease manager
 MAX_POOL_SIZE = 15     # unlimited

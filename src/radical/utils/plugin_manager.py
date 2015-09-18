@@ -11,7 +11,7 @@ import glob
 
 import singleton
 
-from . import get_logger
+from .logger import get_logger
 
 
 # ------------------------------------------------------------------------------
