@@ -55,10 +55,17 @@ class ColorStreamHandler(logging.StreamHandler):
 
 # ------------------------------------------------------------------------------
 #
-def getLogger(name, tag=None):
-    # deprecated, but retained for backward compatinbility
-    return get_logger(name)
+# deprecated, but retained for backward compatibility
+#
+class logger():
+    class logger():
+        @staticmethod
+        def getLogger(name, tag=None):
+            return get_logger(name)
 
+
+# ------------------------------------------------------------------------------
+#
 def get_logger(name, target=None, level=None):
     """
     Get a logging handle.
