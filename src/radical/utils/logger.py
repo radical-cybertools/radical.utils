@@ -103,11 +103,16 @@ def get_logger(name, target=None, level=None):
         level  = 'CRITICAL'
         for i in range(1,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
-            level    = os.environ.get(env_test, level)
+            level    = os.environ.get(env_test, level).upper()
 
     # backward compatible interpretation of SAGA_VERBOSE
     if env_name.startswith('RADICAL_SAGA'):
-        level = os.environ.get('SAGA_VERBOSE', level)
+        level = os.environ.get('SAGA_VERBOSE', level).upper()
+
+    level_warning = None
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL']:
+        level_warning = "log level '%s' not supported -- reset to 'ERROR'" % level
+        level = 'ERROR'
 
     if not target:
         target = '-'
@@ -139,6 +144,9 @@ def get_logger(name, target=None, level=None):
         logger.addHandler(handle)
 
     logger.setLevel(level)
+
+    if level_warning:
+        logger.error(level_warning)
 
     # if the given name points to a version or version_detail, log those
     try:
