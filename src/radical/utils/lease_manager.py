@@ -10,6 +10,8 @@ import lockable
 import singleton
 import threading
 
+from . import get_logger
+
 # default settings for lease manager
 MAX_POOL_SIZE = 15     # unlimited
 MAX_POOL_WAIT = 60     # seconds
@@ -104,7 +106,7 @@ class LeaseManager (object) :
 
         import radical.utils.logger as rul
 
-        self._log = rul.get_logger('radical.utils')
+        self._log = get_logger('radical.utils')
       # self._log.setLevel ('DEBUG')
 
         self._log.debug ('lm new manager')
