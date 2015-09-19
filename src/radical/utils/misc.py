@@ -281,7 +281,8 @@ def print_stacktraces (signum=None, sigframe=None) :
             out += "  TID : %s \n"   % tid
             for fname, lineno, method, code in info[tid,tname] :
 
-                code = code.strip()
+                if code:
+                    code = code.strip()
                 if not code :
                     code = '<no code>'
 
