@@ -11,6 +11,7 @@ import colorama
 
 from .misc import import_module
 
+_DEFAULT_LEVEL = 'ERROR'
 
 # ------------------------------------------------------------------------------
 #
@@ -125,10 +126,18 @@ def get_logger(name, target=None, level=None):
     if env_name.startswith('RADICAL_SAGA'):
         level = os.environ.get('SAGA_VERBOSE', level).upper()
 
+    # translate numeric levels into symbolic ones
+    level = {50 : 'CRITICAL',
+             40 : 'ERROR',
+             30 : 'WARNING',
+             20 : 'INFO',
+             10 : 'DEBUG',
+              0 : _DEFAULT_LEVEL}.get(level, level)
+
     level_warning = None
     if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL']:
-        level_warning = "log level '%s' not supported -- reset to 'ERROR'" % level
-        level = 'ERROR'
+        level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
+        level = _DEFAULT_LEVEL
 
     if not target:
         target = '-'
