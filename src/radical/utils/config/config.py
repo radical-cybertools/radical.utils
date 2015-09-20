@@ -295,8 +295,6 @@ class Configuration (object):
                         value = str(tmp_value)
 
                 elif ev is not None:
-                    #get_logger('saga.engine').debug("Using environment variable '%s' to set config option '%s.%s' to '%s'." \
-                    #    % (option['env_variable'], option['category'], option['name'], ev))
                     tmp_value = ev
                     if option['type'] == list:
                         value = tmp_value.split(",")
