@@ -249,9 +249,9 @@ class DebugHelper (object) :
 
 # ------------------------------------------------------------------------------
 #
-def print_stacktraces (self, a=None, b=None) :
+def print_stacktraces (signum=None, sigframe=None) :
     """
-    a, b exist only to satisfy signal handler signature requirements
+    signum, sigframe exist to satisfy signal handler signature requirements
     """
 
     this_tid = threading.currentThread().ident
@@ -265,9 +265,9 @@ def print_stacktraces (self, a=None, b=None) :
     out  = "===============================================================\n"
     out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
     try :
-        info = self.get_stacktraces ()
+        info = get_stacktraces ()
     except Exception as e:
-        out += 'skipping frame (%s) [%s]' % (self, type(self))
+        out += 'skipping frame'
         info = None
 
     if info:
@@ -281,7 +281,8 @@ def print_stacktraces (self, a=None, b=None) :
             out += "  TID : %s \n"   % tid
             for fname, lineno, method, code in info[tid,tname] :
 
-                code = code.strip()
+                if code:
+                    code = code.strip()
                 if not code :
                     code = '<no code>'
 
@@ -306,7 +307,7 @@ def print_stacktraces (self, a=None, b=None) :
 
 # --------------------------------------------------------------------------
 #
-def get_stacktraces (self) :
+def get_stacktraces () :
 
     id2name = {}
     for th in threading.enumerate():
