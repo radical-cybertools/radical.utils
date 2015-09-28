@@ -8,7 +8,6 @@ import sys
 import singleton
 # import colorama as c
 
-
 # ------------------------------------------------------------------------------
 #
 class Reporter(object):
@@ -198,6 +197,9 @@ class Reporter(object):
     #
     def _format(self, msg, settings):
 
+        if not msg:
+            msg = ''
+
         color   = settings.get('color',   '')
         style   = settings.get('style',   '')
         segment = settings.get('segment', '')
@@ -246,7 +248,7 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def title(self, title=None):
+    def title(self, title=''):
 
         if not title:
             title = self._title
@@ -260,7 +262,7 @@ class Reporter(object):
     
     # --------------------------------------------------------------------------
     #
-    def header(self, msg):
+    def header(self, msg=''):
 
         if msg:
             fmt = "%%-%ds\n" % self.LINE_LENGTH
@@ -271,28 +273,28 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def info(self, msg):
+    def info(self, msg=''):
 
         self._format(msg, self._settings['info'])
 
 
     # --------------------------------------------------------------------------
     #
-    def ok(self, msg):
+    def ok(self, msg=''):
 
         self._format(msg, self._settings['ok'])
 
 
     # --------------------------------------------------------------------------
     #
-    def warn(self, msg):
+    def warn(self, msg=''):
 
         self._format(msg, self._settings['warn'])
 
 
     # --------------------------------------------------------------------------
     #
-    def error(self, msg):
+    def error(self, msg=''):
         
         self._format(msg, self._settings['error'])
 
