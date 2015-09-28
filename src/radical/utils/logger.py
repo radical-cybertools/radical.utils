@@ -9,9 +9,19 @@ import logging
 import threading
 import colorama
 
-from .misc import import_module
+from .misc     import import_module
+from .reporter import Reporter
 
 _DEFAULT_LEVEL = 'ERROR'
+
+# the demo level is used for demo prints.  log.demo(msg) prints will *only*
+# occur if the log level is set to the exact string 'DEMO'.  The numerical value
+# below will determing what equivalent log level will be used for other log
+# messages.  eg.,  if set to 49 (ERROR), then error and crit messages will be
+# shown next to demo messages, but no others.
+DEMO = 40
+
+
 
 # ------------------------------------------------------------------------------
 #
@@ -114,11 +124,14 @@ def get_logger(name, target=None, level=None):
 
 
     env_name = name.upper().replace('.', '_')
-    elems    = env_name.split('_')
+    if '_' in env_name:
+        elems = env_name.split('_')
+    else:
+        elems = [env_name]
 
     if not level:
-        level  = 'CRITICAL'
-        for i in range(1,len(elems)):
+        level = 'ERROR'
+        for i in range(0,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level).upper()
 
@@ -135,9 +148,12 @@ def get_logger(name, target=None, level=None):
               0 : _DEFAULT_LEVEL}.get(level, level)
 
     level_warning = None
-    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL']:
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'DEMO']:
         level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
+
+    if level == 'DEMO':
+        level = DEMO
 
     if not target:
         target = '-'
@@ -190,6 +206,27 @@ def get_logger(name, target=None, level=None):
     except:
         pass
 
+    # we also equip our logger with reporting capabilities, so that we can
+    # report, for example, demo output whereever we have a logger.
+    def report(logger, style, msg):
+        if logger._report:
+            if   style == 'title' : logger._reporter.title(msg)
+            elif style == 'header': logger._reporter.header(msg)
+            elif style == 'info'  : logger._reporter.info(msg)
+            elif style == 'ok'    : logger._reporter.ok(msg)
+            elif style == 'warn'  : logger._reporter.warn(msg)
+            elif style == 'error' : logger._reporter.error(msg)
+            else                  : logger._reporter.plain(msg)
+
+    import functools
+    logger._reporter = Reporter()
+    logger.report    = functools.partial(report, logger)
+    logger.demo      = logger.report
+
+    if logger.getEffectiveLevel() == DEMO:
+        logger._report = True
+    else:
+        logger._report = False
     return logger
 
 
