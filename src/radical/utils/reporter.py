@@ -63,8 +63,8 @@ class Reporter(object):
 
 
     # Define terminal colors for the reporter
-    TITLE   = 'bold blue'
-    HEADER  = 'bold blue'
+    TITLE   = 'inverse lightblue'
+    HEADER  = 'bold yellow'
     INFO    = 'bold blue'
     OK      = 'bold green'
     WARN    = 'bold yellow'
@@ -251,12 +251,20 @@ class Reporter(object):
         if not title:
             title = self._title
 
+        if title:
+            fmt   = " %%-%ds\n" % (self.LINE_LENGTH-1)
+            title = fmt % title
+
         self._format(title, self._settings['title'])
 
     
     # --------------------------------------------------------------------------
     #
     def header(self, msg):
+
+        if msg:
+            fmt = "%%-%ds\n" % self.LINE_LENGTH
+            msg = fmt % msg
 
         self._format(msg, self._settings['header'])
 
@@ -306,4 +314,18 @@ if __name__ == "__main__":
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')
 
+    i = 0
+    j = 0
+    for cname,col in r.COLORS.items():
+        if cname == 'reset':
+            continue
+        i+=1
+        for mname,mod in r.COLOR_MODS.items():
+            if mname == 'reset':
+                continue
+            j+=1
+            sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
+            sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
+        sys.stdout.write("\n")
+        j = 0
 
