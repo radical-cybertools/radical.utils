@@ -106,12 +106,12 @@ class Reporter(object):
                 'info' : {
                     'color'   : self.INFO,
                     'style'   : 'M',
-                    'segment' : self.DOTTED
-                },
+                    'segment' : self.EMPTY
+                    },
                 'progress' : {
                     'color'   : self.PROGRESS,
                     'style'   : 'M',
-                    'segment' : self.DOTTED
+                    'segment' : self.EMPTY
                     },
                 'ok' : {
                     'color'   : self.OK,
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     r.warn    ('warn    \n')
     r.error   ('error   \n')
     r.plain   ('plain   \n')
-    
+
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')
 
