@@ -292,6 +292,8 @@ class Reporter(object):
     #
     def progress(self, msg=''):
 
+        if msg is None:
+            msg = '.'
         self._format(msg, self._settings['progress'])
 
 
