@@ -61,12 +61,13 @@ class Reporter(object):
 
 
     # Define terminal colors for the reporter
-    TITLE   = 'inverse lightblue'
-    HEADER  = 'bold yellow'
-    INFO    = 'bold blue'
-    OK      = 'bold green'
-    WARN    = 'bold yellow'
-    ERROR   = 'bold red'
+    TITLE    = 'inverse lightblue'
+    HEADER   = 'bold yellow'
+    INFO     = 'bold blue'
+    PROGRESS = 'bold white'
+    OK       = 'bold green'
+    WARN     = 'bold yellow'
+    ERROR    = 'bold red'
 
     EMPTY   = '_'
     DOTTED  = '.'
@@ -104,6 +105,11 @@ class Reporter(object):
                     },
                 'info' : {
                     'color'   : self.INFO,
+                    'style'   : 'M',
+                    'segment' : self.DOTTED
+                },
+                'progress' : {
+                    'color'   : self.PROGRESS,
                     'style'   : 'M',
                     'segment' : self.DOTTED
                     },
@@ -279,6 +285,13 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
+    def progress(self, msg=''):
+
+        self._format(msg, self._settings['progress'])
+
+
+    # --------------------------------------------------------------------------
+    #
     def ok(self, msg=''):
 
         self._format(msg, self._settings['ok'])
@@ -306,11 +319,12 @@ if __name__ == "__main__":
     
     r = ru.Reporter(title='test')
     
-    r.header('header')
-    r.info  ('info  ')
-    r.ok    ('ok    ')
-    r.warn  ('warn  ')
-    r.error ('error ')
+    r.header  ('header  ')
+    r.info    ('info    ')
+    r.progress('progress')
+    r.ok      ('ok      ')
+    r.warn    ('warn    ')
+    r.error   ('error   ')
     
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')

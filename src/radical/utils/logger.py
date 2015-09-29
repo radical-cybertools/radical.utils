@@ -210,13 +210,14 @@ def get_logger(name, target=None, level=None):
     # report, for example, demo output whereever we have a logger.
     def report(logger, style, msg):
         if logger._report:
-            if   style == 'title' : logger._reporter.title(msg)
-            elif style == 'header': logger._reporter.header(msg)
-            elif style == 'info'  : logger._reporter.info(msg)
-            elif style == 'ok'    : logger._reporter.ok(msg)
-            elif style == 'warn'  : logger._reporter.warn(msg)
-            elif style == 'error' : logger._reporter.error(msg)
-            else                  : logger._reporter.plain(msg)
+            if   style == 'title'   : logger._reporter.title(msg)
+            elif style == 'header'  : logger._reporter.header(msg)
+            elif style == 'info'    : logger._reporter.info(msg)
+            elif style == 'progress': logger._reporter.progress(msg)
+            elif style == 'ok'      : logger._reporter.ok(msg)
+            elif style == 'warn'    : logger._reporter.warn(msg)
+            elif style == 'error'   : logger._reporter.error(msg)
+            else                    : logger._reporter.plain(msg)
 
     import functools
     logger._reporter = Reporter()
