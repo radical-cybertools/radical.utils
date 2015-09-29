@@ -208,7 +208,7 @@ def get_logger(name, target=None, level=None):
 
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
-    def report(logger, style, msg):
+    def report(logger, style, msg=None):
         if logger._report:
             if   style == 'title'   : logger._reporter.title(msg)
             elif style == 'header'  : logger._reporter.header(msg)
