@@ -127,6 +127,11 @@ class Reporter(object):
                     'color'   : self.ERROR,
                     'style'   : 'M',
                     'segment' : self.EMPTY
+                    },
+                'plain' : {
+                    'color'   : '',
+                    'style'   : 'M',
+                    'segment' : '',
                     }
                 }
 
@@ -200,26 +205,26 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def _format(self, msg, settings):
+    def _format(self, msg, settings=None):
 
         if not msg:
             msg = ''
 
+        if not settings:
+            settings = {}
+
         color   = settings.get('color',   '')
-        style   = settings.get('style',   '')
+        style   = settings.get('style',   'M')
         segment = settings.get('segment', '')
 
         color_mod = ''
         if  ' ' in color:
             color_mod, color = color.split(' ', 2)
 
-        if  color.lower() not in self.COLORS:
-            raise LookupError('reporter does not support color "%s"' % color)
+        color     = self.COLORS.get(color.lower(), '')
+        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
 
-        color     = self.COLORS[color.lower()]
-        color_mod = self.COLOR_MODS[color_mod.lower()]
-
-        color  += color_mod
+        color += color_mod
 
         for c in style:
 
@@ -311,6 +316,13 @@ class Reporter(object):
         self._format(msg, self._settings['error'])
 
 
+    # --------------------------------------------------------------------------
+    #
+    def plain(self, msg=''):
+
+        self._format(msg)
+
+
 # ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -319,12 +331,13 @@ if __name__ == "__main__":
     
     r = ru.Reporter(title='test')
     
-    r.header  ('header  ')
-    r.info    ('info    ')
-    r.progress('progress')
-    r.ok      ('ok      ')
-    r.warn    ('warn    ')
-    r.error   ('error   ')
+    r.header  ('header  \n')
+    r.info    ('info    \n')
+    r.progress('progress\n')
+    r.ok      ('ok      \n')
+    r.warn    ('warn    \n')
+    r.error   ('error   \n')
+    r.plain   ('plain   \n')
     
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')
