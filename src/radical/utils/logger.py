@@ -140,7 +140,7 @@ def get_logger(name, target=None, level=None):
         level = _DEFAULT_LEVEL
 
     if not target:
-        target = '-'
+        target = 'stderr'
         for i in range(1,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_LOG_TARGET'
             target   = os.environ.get(env_test, target)
