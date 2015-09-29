@@ -69,7 +69,7 @@ class Reporter(object):
     WARN     = 'bold yellow'
     ERROR    = 'bold red'
 
-    EMPTY   = '_'
+    EMPTY   = ''
     DOTTED  = '.'
     SINGLE  = '-'
     DOUBLE  = '='
@@ -131,7 +131,7 @@ class Reporter(object):
                 'plain' : {
                     'color'   : '',
                     'style'   : 'M',
-                    'segment' : '',
+                    'segment' : self.EMPTY,
                     }
                 }
 
