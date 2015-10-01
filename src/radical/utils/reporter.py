@@ -13,7 +13,7 @@ import singleton
 class Reporter(object):
 
     # we want reporter style to be consistent in the scope of an application
-  # __metaclass__ = singleton.Singleton
+    __metaclass__ = singleton.Singleton
 
     # COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
     #           'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
@@ -169,27 +169,51 @@ class Reporter(object):
     #
     def _out(self, color, msg):
 
-        # '\\' in the string will, at it's place, insert sufficient spaces to
-        # make the remainder of the string right-aligned.  Only one \\ is
-        # interpreted, linebreaks before it are ignored
-        slash_f = msg.find('\\')
+        # make sure we count tab length on line start correctly
+        msg = msg.replace('\n\t', '\n        ')
+
+        # special control characters:
+        #
+        #   * '>>' will, at it's place, insert sufficient spaces to make the
+        #     remainder of the string right-aligned.  Only one >> is
+        #     interpreted, linebreaks before it are ignored
+        #
+        #   * '<<' will insert a line break if the position is not already on
+        #     the beginning of a line
+        #
+      # print "[%s:%s]" % (self.__hash__(), self._pos),
+        slash_f  = msg.find('>>')
         if slash_f >= 0:
             copy   = msg[slash_f+1:].strip()
-            spaces = self.LINE_LENGTH - self._pos - len(copy)
+            spaces = self.LINE_LENGTH - self._pos - len(copy) + 1 # '>>'
             if spaces < 0:
                 spaces = 0
-            msg = msg.replace('\\', spaces * ' ')
+            msg = msg.replace('>>', spaces * ' ')
 
+        slash_cr = msg.find('<<')
+        if slash_cr >= 0:
+          # print "{%s:%s}" % (self.__hash__(), self._pos),
+            if self._pos + slash_cr > 0:
+                msg = msg.replace('<<', ' \\\n')
+            else:
+                msg = msg.replace('<<', '')
+
+        if self._pos >= (self.LINE_LENGTH-1):
+            msg += '\n        '
+            self._pos = 8
+
+      # print "<%s>" % (self._pos),
         # find the last \n and then count how many chars we are writing after it
         slash_n = msg.rfind('\n')
         if slash_n >= 0:
+          # print "(%s" % (self._pos),
             self._pos = len(msg) - slash_n - 1
+          # print ": %s)" % (self._pos),
         else:
+          # print "'%s'[%s" % (msg, self._pos),
             self._pos += len(msg)
+          # print ": %s]" % (self._pos),
 
-        if self._pos >= self.LINE_LENGTH:
-            msg += '\n        '
-            self._pos = 8
 
 
         for stream in self._color_streams:
@@ -292,7 +316,7 @@ class Reporter(object):
     #
     def progress(self, msg=''):
 
-        if msg is None:
+        if not msg:
             msg = '.'
         self._format(msg, self._settings['progress'])
 
