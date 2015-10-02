@@ -172,6 +172,10 @@ class Reporter(object):
         # make sure we count tab length on line start correctly
         msg = msg.replace('\n\t', '\n        ')
 
+        # make sure we don't extent a long line further
+        if self._pos >= (self.LINE_LENGTH) and msg and msg[0] != '\n':
+            msg = '\n        %s' % msg
+
         # special control characters:
         #
         #   * '>>' will, at it's place, insert sufficient spaces to make the
@@ -198,10 +202,6 @@ class Reporter(object):
             else:
                 msg = msg.replace('<<', '')
 
-        if self._pos >= (self.LINE_LENGTH-1):
-            msg += '\n        '
-            self._pos = 8
-
       # print "<%s>" % (self._pos),
         # find the last \n and then count how many chars we are writing after it
         slash_n = msg.rfind('\n')
@@ -213,7 +213,6 @@ class Reporter(object):
           # print "'%s'[%s" % (msg, self._pos),
             self._pos += len(msg)
           # print ": %s]" % (self._pos),
-
 
 
         for stream in self._color_streams:
