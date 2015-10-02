@@ -19,7 +19,7 @@ _DEFAULT_LEVEL = 'ERROR'
 # below will determing what equivalent log level will be used for other log
 # messages.  eg.,  if set to 49 (ERROR), then error and crit messages will be
 # shown next to demo messages, but no others.
-DEMO = 40
+DEMO = 35
 
 
 
@@ -217,6 +217,7 @@ def get_logger(name, target=None, level=None):
             elif style == 'ok'      : logger._reporter.ok(msg)
             elif style == 'warn'    : logger._reporter.warn(msg)
             elif style == 'error'   : logger._reporter.error(msg)
+            elif style == 'plain'   : logger._reporter.plain(msg)
             else                    : logger._reporter.plain(msg)
 
     import functools
@@ -232,4 +233,113 @@ def get_logger(name, target=None, level=None):
 
 
 # -----------------------------------------------------------------------------
+#
+class LogReporter(object):
+    """
+    This class provides a wrapper around the Logger and (indirectly) Reporter
+    classes, which adds uniform output filtering for the reporter while
+    preserving the Reporter's API.
+    """
+
+    def __init__(self, title=None, targets=['stdout'], name='radical'):
+
+        self._logger = get_logger(name=name, target=targets)
+        if title:
+            self._logger.demo('title', title)
+
+    def set_style(self, which, color=None, style=None, segment=None):
+
+        raise NotImplementedError('set_style is not supported in this wrapper')
+
+
+    # --------------------------------------------------------------------------
+    #
+    def title(self, title=''):
+
+        self._logger.demo('title', title)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def header(self, msg=''):
+
+        self._logger.demo('header', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def info(self, msg=''):
+
+        self._logger.demo('info', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def progress(self, msg=''):
+
+        self._logger.demo('progress', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def ok(self, msg=''):
+
+        self._logger.demo('ok', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def warn(self, msg=''):
+
+        self._logger.demo('warn', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def error(self, msg=''):
+
+        self._logger.demo('error', msg)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def plain(self, msg=''):
+
+        self._logger.demo('plain', msg)
+
+
+# ------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+
+    import radical.utils as ru
+
+    r = ru.Reporter(title='test')
+
+    r.header  ('header  \n')
+    r.info    ('info    \n')
+    r.progress('progress\n')
+    r.ok      ('ok      \n')
+    r.warn    ('warn    \n')
+    r.error   ('error   \n')
+    r.plain   ('plain   \n')
+
+    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
+    r.error('error ')
+
+    i = 0
+    j = 0
+    for cname,col in r.COLORS.items():
+        if cname == 'reset':
+            continue
+        i+=1
+        for mname,mod in r.COLOR_MODS.items():
+            if mname == 'reset':
+                continue
+            j+=1
+            sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
+            sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
+        sys.stdout.write("\n")
+        j = 0
+
 
