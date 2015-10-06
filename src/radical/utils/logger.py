@@ -241,12 +241,18 @@ class LogReporter(object):
     preserving the Reporter's API.
     """
 
-    def __init__(self, title=None, targets=['stdout'], name='radical'):
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, title=None, targets=['stdout'], name='radical',
+                 level=None):
 
-        self._logger = get_logger(name=name, target=targets)
+        self._logger = get_logger(name=name, target=targets, level=level)
         if title:
             self._logger.demo('title', title)
 
+
+    # --------------------------------------------------------------------------
+    #
     def set_style(self, which, color=None, style=None, segment=None):
 
         raise NotImplementedError('set_style is not supported in this wrapper')

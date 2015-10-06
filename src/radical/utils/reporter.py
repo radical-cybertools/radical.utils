@@ -61,13 +61,13 @@ class Reporter(object):
 
 
     # Define terminal colors for the reporter
-    TITLE    = 'inverse lightblue'
-    HEADER   = 'bold yellow'
-    INFO     = 'bold blue'
-    PROGRESS = 'bold white'
-    OK       = 'bold green'
-    WARN     = 'bold yellow'
-    ERROR    = 'bold red'
+    TITLE    = 'bold lightblue'
+    HEADER   = 'bold lightyellow'
+    INFO     = 'lightblue'
+    PROGRESS = 'lightwhite'
+    OK       = 'lightgreen'
+    WARN     = 'lightyellow'
+    ERROR    = 'lightred'
 
     EMPTY   = ''
     DOTTED  = '.'
@@ -100,7 +100,7 @@ class Reporter(object):
                     },
                 'header' : {
                     'color'   : self.HEADER,
-                    'style'   : 'EMLE',
+                    'style'   : 'ELME',
                     'segment' : self.SINGLE
                     },
                 'info' : {
