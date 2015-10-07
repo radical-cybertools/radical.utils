@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import sys
+import string
 import singleton
 # import colorama as c
 
@@ -64,6 +65,7 @@ class Reporter(object):
     TITLE    = 'bold lightblue'
     HEADER   = 'bold lightyellow'
     INFO     = 'lightblue'
+    IDLE     = 'lightwhite'
     PROGRESS = 'lightwhite'
     OK       = 'lightgreen'
     WARN     = 'lightyellow'
@@ -108,6 +110,11 @@ class Reporter(object):
                     'style'   : 'M',
                     'segment' : self.EMPTY
                     },
+                'idle' : {
+                    'color'   : self.IDLE,
+                    'style'   : 'M',
+                    'segment' : self.EMPTY
+                    },
                 'progress' : {
                     'color'   : self.PROGRESS,
                     'style'   : 'M',
@@ -134,6 +141,8 @@ class Reporter(object):
                     'segment' : self.EMPTY,
                     }
                 }
+        self._idle_sequence = '-\\|/'
+        self._idle_pos      = dict()
 
         # set up the output target streams
         self._color_streams = list()
@@ -169,6 +178,16 @@ class Reporter(object):
     #
     def _out(self, color, msg):
 
+        color_mod = ''
+        if  ' ' in color:
+            color_mod, color = color.split(' ', 2)
+
+        color     = self.COLORS.get(color.lower(), '')
+        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
+
+        color += color_mod
+
+
         # make sure we count tab length on line start correctly
         msg = msg.replace('\n\t', '\n        ')
 
@@ -202,16 +221,19 @@ class Reporter(object):
             else:
                 msg = msg.replace('<<', '')
 
+        mlen  = len(filter(lambda x: x in string.printable, msg))
+        mlen -= msg.count('\b')
+
       # print "<%s>" % (self._pos),
         # find the last \n and then count how many chars we are writing after it
         slash_n = msg.rfind('\n')
         if slash_n >= 0:
           # print "(%s" % (self._pos),
-            self._pos = len(msg) - slash_n - 1
+            self._pos = mlen - slash_n - 1
           # print ": %s)" % (self._pos),
         else:
           # print "'%s'[%s" % (msg, self._pos),
-            self._pos += len(msg)
+            self._pos += mlen
           # print ": %s]" % (self._pos),
 
 
@@ -239,15 +261,6 @@ class Reporter(object):
         color   = settings.get('color',   '')
         style   = settings.get('style',   'M')
         segment = settings.get('segment', '')
-
-        color_mod = ''
-        if  ' ' in color:
-            color_mod, color = color.split(' ', 2)
-
-        color     = self.COLORS.get(color.lower(), '')
-        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
-
-        color += color_mod
 
         for c in style:
 
@@ -313,6 +326,29 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
+    def idle(self, c=None, mode=None, color=None, idle_id=None):
+
+        if not idle_id:
+            idle_id = 'default'
+
+        if color: col = self._settings[color]['color']
+        else    : col = self._settings['idle']['color']
+
+        pos = 0
+        if   mode == 'start': self._out(col, ' O')
+        elif mode == 'stop' : self._out(col, '\b')
+        else:
+            if not c:
+                pos  = self._idle_pos.get(idle_id, 0)
+                c    = self._idle_sequence[pos % len(self._idle_sequence)]
+                pos += 1
+            self._out(col, '\b%s' % c)
+
+        self._idle_pos[idle_id] = pos
+
+
+    # --------------------------------------------------------------------------
+    #
     def progress(self, msg=''):
 
         if not msg:
@@ -364,9 +400,6 @@ if __name__ == "__main__":
     r.error   ('error   \n')
     r.plain   ('plain   \n')
 
-    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
-    r.error('error ')
-
     i = 0
     j = 0
     for cname,col in r.COLORS.items():
@@ -381,4 +414,22 @@ if __name__ == "__main__":
             sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
         sys.stdout.write("\n")
         j = 0
+
+    import time
+    r.info('test idler:')
+    r.idle(mode='start')
+    for i in range(3):
+        r.idle()
+        time.sleep(1)
+    r.idle(color='ok', c='.')
+    r.idle(color='error', c='.')
+    for i in range(3):
+        r.idle()
+        time.sleep(1)
+
+    r.idle(mode='stop')
+    r.ok('>>done\n')
+
+    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
+    r.error('error ')
 

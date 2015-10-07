@@ -210,20 +210,19 @@ def get_logger(name, target=None, level=None):
     # report, for example, demo output whereever we have a logger.
     def report(logger, style, msg=None):
         if logger._report:
-            if   style == 'title'   : logger._reporter.title(msg)
-            elif style == 'header'  : logger._reporter.header(msg)
-            elif style == 'info'    : logger._reporter.info(msg)
-            elif style == 'progress': logger._reporter.progress(msg)
-            elif style == 'ok'      : logger._reporter.ok(msg)
-            elif style == 'warn'    : logger._reporter.warn(msg)
-            elif style == 'error'   : logger._reporter.error(msg)
-            elif style == 'plain'   : logger._reporter.plain(msg)
-            else                    : logger._reporter.plain(msg)
+            if   style == 'title'   : logger.report.title(msg)
+            elif style == 'header'  : logger.report.header(msg)
+            elif style == 'info'    : logger.report.info(msg)
+            elif style == 'progress': logger.report.progress(msg)
+            elif style == 'ok'      : logger.report.ok(msg)
+            elif style == 'warn'    : logger.report.warn(msg)
+            elif style == 'error'   : logger.report.error(msg)
+            elif style == 'plain'   : logger.report.plain(msg)
+            else                    : logger.report.plain(msg)
 
     import functools
-    logger._reporter = Reporter()
-    logger.report    = functools.partial(report, logger)
-    logger.demo      = logger.report
+    logger.report    = Reporter()
+    logger.demo      = functools.partial(report, logger)
 
     if logger.getEffectiveLevel() == DEMO:
         logger._report = True
