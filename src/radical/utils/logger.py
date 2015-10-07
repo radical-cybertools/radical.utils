@@ -19,7 +19,8 @@ _DEFAULT_LEVEL = 'ERROR'
 # below will determing what equivalent log level will be used for other log
 # messages.  eg.,  if set to 49 (ERROR), then error and crit messages will be
 # shown next to demo messages, but no others.
-DEMO = 35
+DEMO   = 35
+REPORT = 35
 
 
 
@@ -148,11 +149,11 @@ def get_logger(name, target=None, level=None):
               0 : _DEFAULT_LEVEL}.get(level, level)
 
     level_warning = None
-    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'DEMO']:
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'DEMO', 'REPORT']:
         level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
 
-    if level == 'DEMO':
+    if level in ['DEMO', 'REPORT']:
         level = DEMO
 
     if not target:
@@ -208,26 +209,74 @@ def get_logger(name, target=None, level=None):
 
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
-    def report(logger, style, msg=None):
-        if logger._report:
-            if   style == 'title'   : logger.report.title(msg)
-            elif style == 'header'  : logger.report.header(msg)
-            elif style == 'info'    : logger.report.info(msg)
-            elif style == 'progress': logger.report.progress(msg)
-            elif style == 'ok'      : logger.report.ok(msg)
-            elif style == 'warn'    : logger.report.warn(msg)
-            elif style == 'error'   : logger.report.error(msg)
-            elif style == 'plain'   : logger.report.plain(msg)
-            else                    : logger.report.plain(msg)
+    class _LogReporter(object):
+
+        def __init__(self, logger):
+            self._logger   = logger
+            self._reporter = Reporter()
+            if logger.getEffectiveLevel() in [DEMO, REPORT]:
+                self._enabled = True
+            else:
+                self._enabled = False
+
+        def title(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.title(*args, **kwargs)
+
+        def header(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.header(*args, **kwargs)
+
+        def info(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.info(*args, **kwargs)
+
+        def idle(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.idle(*args, **kwargs)
+
+        def progress(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.progress(*args, **kwargs)
+
+        def ok(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.ok(*args, **kwargs)
+
+        def warn(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.warn(*args, **kwargs)
+
+        def error(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.error(*args, **kwargs)
+
+        def plain(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.plain(*args, **kwargs)
+
+        def set_style(self, *args, **kwargs):
+            self._reporter.set_style(args, kwargs)
+
+
+    # we also equip our logger with reporting capabilities, so that we can
+    # report, for example, demo output whereever we have a logger.
+    def _report(logger, style, *args, **kwargs):
+        if   style == 'title'   : logger.report.title(*args, **kwargs)
+        elif style == 'header'  : logger.report.header(*args, **kwargs)
+        elif style == 'info'    : logger.report.info(*args, **kwargs)
+        elif style == 'idle'    : logger.report.idle(*args, **kwargs)
+        elif style == 'progress': logger.report.progress(*args, **kwargs)
+        elif style == 'ok'      : logger.report.ok(*args, **kwargs)
+        elif style == 'warn'    : logger.report.warn(*args, **kwargs)
+        elif style == 'error'   : logger.report.error(*args, **kwargs)
+        elif style == 'plain'   : logger.report.plain(*args, **kwargs)
+        else                    : logger.report.plain(*args, **kwargs)
 
     import functools
-    logger.report    = Reporter()
-    logger.demo      = functools.partial(report, logger)
+    logger.report = _LogReporter(logger)
+    logger.demo   = functools.partial(_report, logger)
 
-    if logger.getEffectiveLevel() == DEMO:
-        logger._report = True
-    else:
-        logger._report = False
     return logger
 
 
@@ -247,70 +296,18 @@ class LogReporter(object):
 
         self._logger = get_logger(name=name, target=targets, level=level)
         if title:
-            self._logger.demo('title', title)
+            self._logger.report.title(title)
 
+        self.title     = self._logger.report.title
+        self.header    = self._logger.report.header
+        self.info      = self._logger.report.info
+        self.progress  = self._logger.report.progress
+        self.ok        = self._logger.report.ok
+        self.warn      = self._logger.report.warn
+        self.error     = self._logger.report.error
+        self.plain     = self._logger.report.plain
+        self.set_style = self._logger.report.set_style
 
-    # --------------------------------------------------------------------------
-    #
-    def set_style(self, which, color=None, style=None, segment=None):
-
-        raise NotImplementedError('set_style is not supported in this wrapper')
-
-
-    # --------------------------------------------------------------------------
-    #
-    def title(self, title=''):
-
-        self._logger.demo('title', title)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def header(self, msg=''):
-
-        self._logger.demo('header', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def info(self, msg=''):
-
-        self._logger.demo('info', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def progress(self, msg=''):
-
-        self._logger.demo('progress', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def ok(self, msg=''):
-
-        self._logger.demo('ok', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def warn(self, msg=''):
-
-        self._logger.demo('warn', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def error(self, msg=''):
-
-        self._logger.demo('error', msg)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def plain(self, msg=''):
-
-        self._logger.demo('plain', msg)
 
 
 # ------------------------------------------------------------------------------
