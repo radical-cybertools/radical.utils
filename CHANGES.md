@@ -5,7 +5,7 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
-Version 0.36 release                                                  2015-09-25
+Version 0.36 release                                                  2015-10-08
 --------------------------------------------------------------------------------
 
   - clean up logging (getLogger -> get_logger)
