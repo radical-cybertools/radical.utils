@@ -14,12 +14,11 @@ from .reporter import Reporter
 
 _DEFAULT_LEVEL = 'ERROR'
 
-# the demo level is used for demo prints.  log.demo(msg) prints will *only*
-# occur if the log level is set to the exact string 'DEMO'.  The numerical value
-# below will determing what equivalent log level will be used for other log
-# messages.  eg.,  if set to 49 (ERROR), then error and crit messages will be
-# shown next to demo messages, but no others.
-DEMO   = 35
+# the 'REPORT' level is used for demo output and the like.  log.report.info(msg)
+# prints will *only* occur if the log level is set to the exact value of
+# 'REPORT'.  The numerical value below will determing what equivalent log level
+# will be used for other log messages.  eg.,  if set to 49 (ERROR), then error
+# and crit messages will be shown next to the 'report' messages, but no others.
 REPORT = 35
 
 
@@ -149,12 +148,12 @@ def get_logger(name, target=None, level=None):
               0 : _DEFAULT_LEVEL}.get(level, level)
 
     level_warning = None
-    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'DEMO', 'REPORT']:
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'REPORT']:
         level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
 
-    if level in ['DEMO', 'REPORT']:
-        level = DEMO
+    if level in ['REPORT']:
+        level = REPORT
 
     if not target:
         target = '-'
@@ -214,7 +213,7 @@ def get_logger(name, target=None, level=None):
         def __init__(self, logger):
             self._logger   = logger
             self._reporter = Reporter()
-            if logger.getEffectiveLevel() in [DEMO, REPORT]:
+            if logger.getEffectiveLevel() in [REPORT]:
                 self._enabled = True
             else:
                 self._enabled = False
@@ -261,21 +260,7 @@ def get_logger(name, target=None, level=None):
 
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
-    def _report(logger, style, *args, **kwargs):
-        if   style == 'title'   : logger.report.title(*args, **kwargs)
-        elif style == 'header'  : logger.report.header(*args, **kwargs)
-        elif style == 'info'    : logger.report.info(*args, **kwargs)
-        elif style == 'idle'    : logger.report.idle(*args, **kwargs)
-        elif style == 'progress': logger.report.progress(*args, **kwargs)
-        elif style == 'ok'      : logger.report.ok(*args, **kwargs)
-        elif style == 'warn'    : logger.report.warn(*args, **kwargs)
-        elif style == 'error'   : logger.report.error(*args, **kwargs)
-        elif style == 'plain'   : logger.report.plain(*args, **kwargs)
-        else                    : logger.report.plain(*args, **kwargs)
-
-    import functools
     logger.report = _LogReporter(logger)
-    logger.demo   = functools.partial(_report, logger)
 
     return logger
 
