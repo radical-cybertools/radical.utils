@@ -141,7 +141,7 @@ class Reporter(object):
                     'segment' : self.EMPTY,
                     }
                 }
-        self._idle_sequence = '-\\|/'
+        self._idle_sequence = '/-\\|'
         self._idle_pos      = dict()
 
         # set up the output target streams
@@ -191,8 +191,13 @@ class Reporter(object):
         # make sure we count tab length on line start correctly
         msg = msg.replace('\n\t', '\n        ')
 
+        # printable message (no unprintable chars)
+        pmsg = filter(lambda x: x in string.printable, msg)
+
         # make sure we don't extent a long line further
         if self._pos >= (self.LINE_LENGTH) and msg and msg[0] != '\n':
+            while msg[0] == '\b':
+                msg = msg[1:]
             msg = '\n        %s' % msg
 
         # special control characters:
@@ -217,7 +222,8 @@ class Reporter(object):
         if slash_cr >= 0:
           # print "{%s:%s}" % (self.__hash__(), self._pos),
             if self._pos + slash_cr > 0:
-                msg = msg.replace('<<', ' \\\n')
+                spaces = self.LINE_LENGTH - self._pos - 1
+                msg = msg.replace('<<', '%s\\\n' % (spaces * ' '))
             else:
                 msg = msg.replace('<<', '')
 
@@ -334,17 +340,20 @@ class Reporter(object):
         if color: col = self._settings[color]['color']
         else    : col = self._settings['idle']['color']
 
-        pos = 0
-        if   mode == 'start': self._out(col, ' O')
-        elif mode == 'stop' : self._out(col, '\b')
+        idx = 0
+        if   mode == 'start': self._out(col, 'O')
+        elif mode == 'stop' : self._out(col, '\b ')
         else:
             if not c:
-                pos  = self._idle_pos.get(idle_id, 0)
-                c    = self._idle_sequence[pos % len(self._idle_sequence)]
-                pos += 1
-            self._out(col, '\b%s' % c)
+                idx  = self._idle_pos.get(idle_id, 0)
+                c    = self._idle_sequence[idx % len(self._idle_sequence)]
+                idx += 1
+                self._out(col, '\b%s' % c)
+            else:
+                idx += 1
+                self._out(col, '\b%s|' % c)
 
-        self._idle_pos[idle_id] = pos
+        self._idle_pos[idle_id] = idx
 
 
     # --------------------------------------------------------------------------
@@ -416,19 +425,31 @@ if __name__ == "__main__":
         j = 0
 
     import time
-    r.info('test idler:')
-    r.idle(mode='start')
-    for i in range(3):
-        r.idle()
-        time.sleep(1)
-    r.idle(color='ok', c='.')
-    r.idle(color='error', c='.')
-    for i in range(3):
-        r.idle()
-        time.sleep(1)
+  # r.info('test idler:')
+  # r.idle(mode='start')
+  # for i in range(3):
+  #     r.idle()
+  #     time.sleep(0.3)
+  # r.idle(color='ok', c='.')
+  # r.idle(color='error', c='.')
+  # for i in range(3):
+  #     r.idle()
+  #     time.sleep(0.1)
+  #
+  # r.idle(mode='stop')
+  # r.ok('>>done\n')
 
+    r.info('idle test\n')
+    r.info('1234567891         2         3         4         5         6         7         8\n\t')
+    r.info('.0.........0.........0.........0.........0.........0.........0.........0')
+    r.idle(mode='start')
+    for i in range(200):
+        r.idle(); time.sleep(0.3)
+        r.idle(); time.sleep(0.3)
+        r.idle(); time.sleep(0.3)
+        r.idle(); time.sleep(0.3)
+        r.idle(color='ok', c="+")
     r.idle(mode='stop')
-    r.ok('>>done\n')
 
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')
