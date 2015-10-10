@@ -250,6 +250,10 @@ def get_logger(name, target=None, level=None):
             if self._enabled:
                 self._reporter.error(*args, **kwargs)
 
+        def exit(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.exit(*args, **kwargs)
+
         def plain(self, *args, **kwargs):
             if self._enabled:
                 self._reporter.plain(*args, **kwargs)
@@ -290,6 +294,7 @@ class LogReporter(object):
         self.ok        = self._logger.report.ok
         self.warn      = self._logger.report.warn
         self.error     = self._logger.report.error
+        self.exit      = self._logger.report.exit 
         self.plain     = self._logger.report.plain
         self.set_style = self._logger.report.set_style
 
@@ -329,4 +334,5 @@ if __name__ == "__main__":
         sys.stdout.write("\n")
         j = 0
 
+    r.exit    ('exit    \n', 2)
 

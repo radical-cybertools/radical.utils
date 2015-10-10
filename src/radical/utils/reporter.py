@@ -199,6 +199,7 @@ class Reporter(object):
             while msg[0] == '\b':
                 msg = msg[1:]
             msg = '\n        %s' % msg
+                
 
         # special control characters:
         #
@@ -388,6 +389,14 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
+    def exit(self, msg='', exit_code=0):
+        
+        self.error(msg)
+        sys.exit(exit_code)
+
+
+    # --------------------------------------------------------------------------
+    #
     def plain(self, msg=''):
 
         self._format(msg)
@@ -444,13 +453,15 @@ if __name__ == "__main__":
     r.info('.0.........0.........0.........0.........0.........0.........0.........0')
     r.idle(mode='start')
     for i in range(200):
-        r.idle(); time.sleep(0.3)
-        r.idle(); time.sleep(0.3)
-        r.idle(); time.sleep(0.3)
-        r.idle(); time.sleep(0.3)
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
         r.idle(color='ok', c="+")
     r.idle(mode='stop')
 
     r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
     r.error('error ')
+
+    r.exit    ('exit    \n', 1)
 
