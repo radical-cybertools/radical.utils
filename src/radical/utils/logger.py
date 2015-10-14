@@ -143,6 +143,7 @@ def get_logger(name, target=None, level=None):
     level = {50 : 'CRITICAL',
              40 : 'ERROR',
              30 : 'WARNING',
+             35 : 'REPORT',
              20 : 'INFO',
              10 : 'DEBUG',
               0 : _DEFAULT_LEVEL}.get(level, level)
