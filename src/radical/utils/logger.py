@@ -14,12 +14,12 @@ from .reporter import Reporter
 
 _DEFAULT_LEVEL = 'ERROR'
 
-# the demo level is used for demo prints.  log.demo(msg) prints will *only*
-# occur if the log level is set to the exact string 'DEMO'.  The numerical value
-# below will determing what equivalent log level will be used for other log
-# messages.  eg.,  if set to 49 (ERROR), then error and crit messages will be
-# shown next to demo messages, but no others.
-DEMO = 40
+# the 'REPORT' level is used for demo output and the like.  log.report.info(msg)
+# prints will *only* occur if the log level is set to the exact value of
+# 'REPORT'.  The numerical value below will determing what equivalent log level
+# will be used for other log messages.  eg.,  if set to 49 (ERROR), then error
+# and crit messages will be shown next to the 'report' messages, but no others.
+REPORT = 35
 
 
 
@@ -148,12 +148,12 @@ def get_logger(name, target=None, level=None):
               0 : _DEFAULT_LEVEL}.get(level, level)
 
     level_warning = None
-    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'DEMO']:
+    if level not in ['DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'REPORT']:
         level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
 
-    if level == 'DEMO':
-        level = DEMO
+    if level in ['REPORT']:
+        level = REPORT
 
     if not target:
         target = 'stderr'
@@ -208,28 +208,131 @@ def get_logger(name, target=None, level=None):
 
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
-    def report(logger, style, msg=None):
-        if logger._report:
-            if   style == 'title'   : logger._reporter.title(msg)
-            elif style == 'header'  : logger._reporter.header(msg)
-            elif style == 'info'    : logger._reporter.info(msg)
-            elif style == 'progress': logger._reporter.progress(msg)
-            elif style == 'ok'      : logger._reporter.ok(msg)
-            elif style == 'warn'    : logger._reporter.warn(msg)
-            elif style == 'error'   : logger._reporter.error(msg)
-            else                    : logger._reporter.plain(msg)
+    class _LogReporter(object):
 
-    import functools
-    logger._reporter = Reporter()
-    logger.report    = functools.partial(report, logger)
-    logger.demo      = logger.report
+        def __init__(self, logger):
+            self._logger   = logger
+            self._reporter = Reporter()
+            if logger.getEffectiveLevel() in [REPORT]:
+                self._enabled = True
+            else:
+                self._enabled = False
 
-    if logger.getEffectiveLevel() == DEMO:
-        logger._report = True
-    else:
-        logger._report = False
+        def title(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.title(*args, **kwargs)
+
+        def header(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.header(*args, **kwargs)
+
+        def info(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.info(*args, **kwargs)
+
+        def idle(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.idle(*args, **kwargs)
+
+        def progress(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.progress(*args, **kwargs)
+
+        def ok(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.ok(*args, **kwargs)
+
+        def warn(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.warn(*args, **kwargs)
+
+        def error(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.error(*args, **kwargs)
+
+        def exit(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.exit(*args, **kwargs)
+
+        def plain(self, *args, **kwargs):
+            if self._enabled:
+                self._reporter.plain(*args, **kwargs)
+
+        def set_style(self, *args, **kwargs):
+            self._reporter.set_style(args, kwargs)
+
+
+    # we also equip our logger with reporting capabilities, so that we can
+    # report, for example, demo output whereever we have a logger.
+    logger.report = _LogReporter(logger)
+
     return logger
 
 
 # -----------------------------------------------------------------------------
+#
+class LogReporter(object):
+    """
+    This class provides a wrapper around the Logger and (indirectly) Reporter
+    classes, which adds uniform output filtering for the reporter while
+    preserving the Reporter's API.
+    """
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, title=None, targets=['stdout'], name='radical',
+                 level=None):
+
+        self._logger = get_logger(name=name, target=targets, level=level)
+        if title:
+            self._logger.report.title(title)
+
+        self.title     = self._logger.report.title
+        self.header    = self._logger.report.header
+        self.info      = self._logger.report.info
+        self.progress  = self._logger.report.progress
+        self.ok        = self._logger.report.ok
+        self.warn      = self._logger.report.warn
+        self.error     = self._logger.report.error
+        self.exit      = self._logger.report.exit 
+        self.plain     = self._logger.report.plain
+        self.set_style = self._logger.report.set_style
+
+
+
+# ------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+
+    import radical.utils as ru
+
+    r = ru.Reporter(title='test')
+
+    r.header  ('header  \n')
+    r.info    ('info    \n')
+    r.progress('progress\n')
+    r.ok      ('ok      \n')
+    r.warn    ('warn    \n')
+    r.error   ('error   \n')
+    r.plain   ('plain   \n')
+
+    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
+    r.error('error ')
+
+    i = 0
+    j = 0
+    for cname,col in r.COLORS.items():
+        if cname == 'reset':
+            continue
+        i+=1
+        for mname,mod in r.COLOR_MODS.items():
+            if mname == 'reset':
+                continue
+            j+=1
+            sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
+            sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
+        sys.stdout.write("\n")
+        j = 0
+
+    r.exit    ('exit    \n', 2)
 

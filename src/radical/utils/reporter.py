@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import sys
+import string
 import singleton
 # import colorama as c
 
@@ -13,7 +14,7 @@ import singleton
 class Reporter(object):
 
     # we want reporter style to be consistent in the scope of an application
-  # __metaclass__ = singleton.Singleton
+    __metaclass__ = singleton.Singleton
 
     # COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
     #           'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
@@ -61,13 +62,14 @@ class Reporter(object):
 
 
     # Define terminal colors for the reporter
-    TITLE    = 'inverse lightblue'
-    HEADER   = 'bold yellow'
-    INFO     = 'bold blue'
-    PROGRESS = 'bold white'
-    OK       = 'bold green'
-    WARN     = 'bold yellow'
-    ERROR    = 'bold red'
+    TITLE    = 'bold lightblue'
+    HEADER   = 'bold lightyellow'
+    INFO     = 'lightblue'
+    IDLE     = 'lightwhite'
+    PROGRESS = 'lightwhite'
+    OK       = 'lightgreen'
+    WARN     = 'lightyellow'
+    ERROR    = 'lightred'
 
     EMPTY   = ''
     DOTTED  = '.'
@@ -100,11 +102,16 @@ class Reporter(object):
                     },
                 'header' : {
                     'color'   : self.HEADER,
-                    'style'   : 'EMLE',
+                    'style'   : 'ELME',
                     'segment' : self.SINGLE
                     },
                 'info' : {
                     'color'   : self.INFO,
+                    'style'   : 'M',
+                    'segment' : self.EMPTY
+                    },
+                'idle' : {
+                    'color'   : self.IDLE,
                     'style'   : 'M',
                     'segment' : self.EMPTY
                     },
@@ -134,6 +141,8 @@ class Reporter(object):
                     'segment' : self.EMPTY,
                     }
                 }
+        self._idle_sequence = '/-\\|'
+        self._idle_pos      = dict()
 
         # set up the output target streams
         self._color_streams = list()
@@ -169,27 +178,70 @@ class Reporter(object):
     #
     def _out(self, color, msg):
 
-        # '\\' in the string will, at it's place, insert sufficient spaces to
-        # make the remainder of the string right-aligned.  Only one \\ is
-        # interpreted, linebreaks before it are ignored
-        slash_f = msg.find('\\')
+        color_mod = ''
+        if  ' ' in color:
+            color_mod, color = color.split(' ', 2)
+
+        color     = self.COLORS.get(color.lower(), '')
+        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
+
+        color += color_mod
+
+
+        # make sure we count tab length on line start correctly
+        msg = msg.replace('\n\t', '\n        ')
+
+        # printable message (no unprintable chars)
+        pmsg = filter(lambda x: x in string.printable, msg)
+
+        # make sure we don't extent a long line further
+        if self._pos >= (self.LINE_LENGTH) and msg and msg[0] != '\n':
+            while msg[0] == '\b':
+                msg = msg[1:]
+            msg = '\n        %s' % msg
+                
+
+        # special control characters:
+        #
+        #   * '>>' will, at it's place, insert sufficient spaces to make the
+        #     remainder of the string right-aligned.  Only one >> is
+        #     interpreted, linebreaks before it are ignored
+        #
+        #   * '<<' will insert a line break if the position is not already on
+        #     the beginning of a line
+        #
+      # print "[%s:%s]" % (self.__hash__(), self._pos),
+        slash_f  = msg.find('>>')
         if slash_f >= 0:
             copy   = msg[slash_f+1:].strip()
-            spaces = self.LINE_LENGTH - self._pos - len(copy)
+            spaces = self.LINE_LENGTH - self._pos - len(copy) + 1 # '>>'
             if spaces < 0:
                 spaces = 0
-            msg = msg.replace('\\', spaces * ' ')
+            msg = msg.replace('>>', spaces * ' ')
 
+        slash_cr = msg.find('<<')
+        if slash_cr >= 0:
+          # print "{%s:%s}" % (self.__hash__(), self._pos),
+            if self._pos + slash_cr > 0:
+                spaces = self.LINE_LENGTH - self._pos - 1
+                msg = msg.replace('<<', '%s\\\n' % (spaces * ' '))
+            else:
+                msg = msg.replace('<<', '')
+
+        mlen  = len(filter(lambda x: x in string.printable, msg))
+        mlen -= msg.count('\b')
+
+      # print "<%s>" % (self._pos),
         # find the last \n and then count how many chars we are writing after it
         slash_n = msg.rfind('\n')
         if slash_n >= 0:
-            self._pos = len(msg) - slash_n - 1
+          # print "(%s" % (self._pos),
+            self._pos = mlen - slash_n - 1
+          # print ": %s)" % (self._pos),
         else:
-            self._pos += len(msg)
-
-        if self._pos >= self.LINE_LENGTH:
-            msg += '\n        '
-            self._pos = 8
+          # print "'%s'[%s" % (msg, self._pos),
+            self._pos += mlen
+          # print ": %s]" % (self._pos),
 
 
         for stream in self._color_streams:
@@ -216,15 +268,6 @@ class Reporter(object):
         color   = settings.get('color',   '')
         style   = settings.get('style',   'M')
         segment = settings.get('segment', '')
-
-        color_mod = ''
-        if  ' ' in color:
-            color_mod, color = color.split(' ', 2)
-
-        color     = self.COLORS.get(color.lower(), '')
-        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
-
-        color += color_mod
 
         for c in style:
 
@@ -290,9 +333,35 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
+    def idle(self, c=None, mode=None, color=None, idle_id=None):
+
+        if not idle_id:
+            idle_id = 'default'
+
+        if color: col = self._settings[color]['color']
+        else    : col = self._settings['idle']['color']
+
+        idx = 0
+        if   mode == 'start': self._out(col, 'O')
+        elif mode == 'stop' : self._out(col, '\b ')
+        else:
+            if not c:
+                idx  = self._idle_pos.get(idle_id, 0)
+                c    = self._idle_sequence[idx % len(self._idle_sequence)]
+                idx += 1
+                self._out(col, '\b%s' % c)
+            else:
+                idx += 1
+                self._out(col, '\b%s|' % c)
+
+        self._idle_pos[idle_id] = idx
+
+
+    # --------------------------------------------------------------------------
+    #
     def progress(self, msg=''):
 
-        if msg is None:
+        if not msg:
             msg = '.'
         self._format(msg, self._settings['progress'])
 
@@ -320,6 +389,14 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
+    def exit(self, msg='', exit_code=0):
+        
+        self.error(msg)
+        sys.exit(exit_code)
+
+
+    # --------------------------------------------------------------------------
+    #
     def plain(self, msg=''):
 
         self._format(msg)
@@ -341,9 +418,6 @@ if __name__ == "__main__":
     r.error   ('error   \n')
     r.plain   ('plain   \n')
 
-    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
-    r.error('error ')
-
     i = 0
     j = 0
     for cname,col in r.COLORS.items():
@@ -358,4 +432,36 @@ if __name__ == "__main__":
             sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
         sys.stdout.write("\n")
         j = 0
+
+    import time
+  # r.info('test idler:')
+  # r.idle(mode='start')
+  # for i in range(3):
+  #     r.idle()
+  #     time.sleep(0.3)
+  # r.idle(color='ok', c='.')
+  # r.idle(color='error', c='.')
+  # for i in range(3):
+  #     r.idle()
+  #     time.sleep(0.1)
+  #
+  # r.idle(mode='stop')
+  # r.ok('>>done\n')
+
+    r.info('idle test\n')
+    r.info('1234567891         2         3         4         5         6         7         8\n\t')
+    r.info('.0.........0.........0.........0.........0.........0.........0.........0')
+    r.idle(mode='start')
+    for i in range(200):
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
+        r.idle(); time.sleep(0.01)
+        r.idle(color='ok', c="+")
+    r.idle(mode='stop')
+
+    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
+    r.error('error ')
+
+    r.exit    ('exit    \n', 1)
 
