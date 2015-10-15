@@ -5,6 +5,14 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.37 release                                                  2015-10-15
+--------------------------------------------------------------------------------
+
+  - fix reporter log level
+  - several changes to reporter class
+  - align reporter, logger, and logreporter
+
+
 Version 0.36 release                                                  2015-10-08
 --------------------------------------------------------------------------------
 

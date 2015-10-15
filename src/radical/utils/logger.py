@@ -161,6 +161,8 @@ def get_logger(name, target=None, level=None):
         for i in range(1,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_LOG_TARGET'
             target   = os.environ.get(env_test, target)
+            env_test = '_'.join(elems[:i+1]) + '_LOG_TGT'
+            target   = os.environ.get(env_test, target)
 
     if not isinstance(target, list):
         target = target.split(',')
