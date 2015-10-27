@@ -12,15 +12,21 @@ import colorama
 from .misc     import import_module
 from .reporter import Reporter
 
+
+# The 'REPORT' level is used for demo output and the like.  
+# log.report.info(msg) style messages always go to stdout, and are enabled if:
+#   - log level is set exactly to 'REPORT' (35)
+#   - log level is < than 'REPORT' (ie. DEBUG, INFO, REPORT), AND 'stdout' is
+#     not in the log target list
+#
+# To redirect debug logging to some file and have the reporter enabled, use:
+#   - export RADICAL_PILOT_VERBOSE=DEBUG
+#   - export RADICAL_PILOT_LOG_TGT=rp.log
+#
+# To interleave both log and reporter on screen, set the log target to 'stderr'.
+
 _DEFAULT_LEVEL = 'ERROR'
-
-# the 'REPORT' level is used for demo output and the like.  log.report.info(msg)
-# prints will *only* occur if the log level is set to the exact value of
-# 'REPORT'.  The numerical value below will determing what equivalent log level
-# will be used for other log messages.  eg.,  if set to 49 (ERROR), then error
-# and crit messages will be shown next to the 'report' messages, but no others.
 REPORT = 35
-
 
 
 # ------------------------------------------------------------------------------
@@ -110,10 +116,13 @@ def get_logger(name, target=None, level=None):
     # --------------------------------------------------------------------------
     # unconfigured loggers get configured.  We try to get the log level and
     # target from the environment.  We try env vars like this:
+    #
     #     name  : radical.saga.pty
+    #
     #     level : RADICAL_SAGA_PTY_VERBOSE
     #             RADICAL_SAGA_VERBOSE
     #             RADICAL_VERBOSE
+    #
     #     target: RADICAL_SAGA_PTY_LOG_TARGET
     #             RADICAL_SAGA_LOG_TARGET
     #             RADICAL_LOG_TARGET
@@ -158,14 +167,16 @@ def get_logger(name, target=None, level=None):
 
     if not target:
         target = 'stderr'
-        for i in range(1,len(elems)):
+        for i in range(0,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_LOG_TARGET'
             target   = os.environ.get(env_test, target)
             env_test = '_'.join(elems[:i+1]) + '_LOG_TGT'
             target   = os.environ.get(env_test, target)
 
-    if not isinstance(target, list):
-        target = target.split(',')
+    if isinstance(target, list):
+        targets = target
+    else:
+        targets = target.split(',')
 
     formatter = logging.Formatter('%(asctime)s: ' \
                                   '%(name)-20s: ' \
@@ -175,7 +186,8 @@ def get_logger(name, target=None, level=None):
                                   '%(message)s')
 
     # add a handler for each targets (using the same format)
-    for t in target:
+    logger.targets = targets
+    for t in logger.targets:
         if t in ['-', '1', 'stdout']:
             handle = ColorStreamHandler(sys.stdout)
         elif t in ['=', '2', 'stderr']:
@@ -216,10 +228,20 @@ def get_logger(name, target=None, level=None):
         def __init__(self, logger):
             self._logger   = logger
             self._reporter = Reporter()
-            if logger.getEffectiveLevel() in [REPORT]:
+
+            # we always enable report if the log level is REPORT
+            # otherwise, we enable report if log level  < REPORT and targets does
+            # not contain stdout.
+            if logger.getEffectiveLevel() == REPORT:
                 self._enabled = True
             else:
-                self._enabled = False
+                if  logger.getEffectiveLevel() < REPORT and \
+                    '-'      not in logger.targets      and \
+                    '1'      not in logger.targets      and \
+                    'stdout' not in logger.targets      :
+                    self._enabled = True
+                else:
+                    self._enabled = False
 
         def title(self, *args, **kwargs):
             if self._enabled:
