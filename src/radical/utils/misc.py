@@ -1,9 +1,11 @@
-
-
 import os
+import sys
+import time
 import regex
+import signal
+import threading
+import traceback
 import url as ruu
-
 
 # ------------------------------------------------------------------------------
 #
@@ -201,89 +203,121 @@ def time_diff (dt_abs, dt_stamp) :
     return seconds
 
 
+# --------------------------------------------------------------------
+#
+def get_trace():
+
+    trace = sys.exc_info ()[2]
+
+    if  trace :
+        stack           = traceback.extract_tb  (trace)
+        traceback_list  = traceback.format_list (stack)
+        return "".join (traceback_list)
+
+    else :
+        stack           = traceback.extract_stack ()
+        traceback_list  = traceback.format_list (stack)
+        return "".join (traceback_list[:-1])
+
+
 # ------------------------------------------------------------------------------
 #
 class DebugHelper (object) :
     """
-    When instantiated, and when "RADICAL_DEBUG" is set in the environmant, this
+    When instantiated, and when "RADICAL_DEBUG" is set in the environment, this
     class will install a signal handler for SIGUSR1.  When that signal is
-    received, a stacktrace for all threads is printed to stdout.  Note that 
-    <CTRL-T> also triggers that signal on the terminal.
+    received, a stacktrace for all threads is printed to stdout.
+    Additionally, we check if SIGINFO is available, which is generally bound to CTRL-T.
     """
 
     def __init__ (self) :
 
-        import os
+        if 'MainThread' not in threading.current_thread().name:
+            # python only supports signals in main threads :/
+            return
+
         if 'RADICAL_DEBUG' in os.environ :
-            import signal
-            signal.signal(signal.SIGUSR1, self.print_stacktraces) # signum 10
-            signal.signal(signal.SIGQUIT, self.print_stacktraces) # signum  3
+            signal.signal(signal.SIGUSR1, print_stacktraces) # signum 30
+            signal.signal(signal.SIGQUIT, print_stacktraces) # signum  3
 
-  #     print "kill -USR1 %s" % os.getpid()
-  #
-  #     import threading
-  #     t=threading.Thread (target=self.test, name='test')
-  #     t.start()
-  #
-  # def test(self):
-  #     print 'test'
-  #     import time
-  #     time.sleep (10)
+            try:
+                assert signal.SIGINFO
+                signal.signal(signal.SIGINFO, print_stacktraces) # signum 29
+            except AttributeError as e:
+                pass
 
 
-    def print_stacktraces (self, a, b) :
+# ------------------------------------------------------------------------------
+#
+def print_stacktraces (signum=None, sigframe=None) :
+    """
+    signum, sigframe exist to satisfy signal handler signature requirements
+    """
 
-        import threading
-        this_tid = threading.currentThread().ident
+    this_tid = threading.currentThread().ident
 
-        print "==============================================================="
-        print "RADICAL Utils -- Debug Helper -- Stacktraces"
-        info = self.get_stacktraces ()
+    # if multiple processes (ie. a process group) get the signal, then all
+    # traces are mixed together.  Thus we waid 'pid%100' milliseconds, in
+    # the hope that this will stagger the prints.
+    pid = int(os.getpid())
+    time.sleep((pid%100)/1000)
 
+    out  = "===============================================================\n"
+    out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
+    try :
+        info = get_stacktraces ()
+    except Exception as e:
+        out += 'skipping frame'
+        info = None
 
+    if info:
         for tid, tname in info :
 
             if tid == this_tid : marker = '[active]'
             else               : marker = ''
-            print "---------------------------------------------------------------"
-            print "Thread: %s %s" % (tname, marker)
-            print "  PID : %s "   % os.getpid()
-            print "  TID : %s "   % tid
+            out += "---------------------------------------------------------------\n"
+            out += "Thread: %s %s\n" % (tname, marker)
+            out += "  PID : %s \n"   % os.getpid()
+            out += "  TID : %s \n"   % tid
             for fname, lineno, method, code in info[tid,tname] :
 
-                code = code.strip()
+                if code:
+                    code = code.strip()
                 if not code :
                     code = '<no code>'
 
-                # [:-1]: .py vs. .pyc :/
-                if not (__file__[:-1] in fname and \
-                        method in ['get_stacktraces', 'print_stacktraces']) :
-                    print "  File: %s, line %d, in %s" % (fname, lineno, method)
-                    print "        %s" % code
+              # # [:-1]: .py vs. .pyc :/
+              # if not (__file__[:-1] in fname and \
+              #         method in ['get_stacktraces', 'print_stacktraces']) :
+              # if method not in ['get_stacktraces', 'print_stacktraces'] :
+                if True:
+                    out += "  File: %s, line %d, in %s\n" % (fname, lineno, method)
+                    out += "        %s\n" % code
 
-        print "==============================================================="
+    out += "==============================================================="
 
-        return True
+    sys.stdout.write("%s\n" % out)
+
+    if 'RADICAL_DEBUG' in os.environ:
+        with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
+            f.write ("%s\n" % out)
+
+    return True
 
 
-    # --------------------------------------------------------------------------
-    #
-    def get_stacktraces (self) :
-    
-        import sys
-        import threading
-        import traceback
+# --------------------------------------------------------------------------
+#
+def get_stacktraces () :
 
-        id2name = {}
-        for th in threading.enumerate():
-            id2name[th.ident] = th.name
-    
-        ret = dict()
-        for tid, stack in sys._current_frames().items():
-            ret[tid,id2name[tid]] = traceback.extract_stack(stack)
-    
-        return ret
+    id2name = {}
+    for th in threading.enumerate():
+        id2name[th.ident] = th.name
 
+    ret = dict()
+    for tid, stack in sys._current_frames().items():
+        ret[tid,id2name[tid]] = traceback.extract_stack(stack)
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
@@ -330,5 +364,88 @@ def window (seq, n=2) :
         yield result
 
 # ------------------------------------------------------------------------------
+# 
+def round_to_base (value, base=1):
+    """
+    This method expects an integer or float value, and will round it to any
+    given integer base.  For example:
 
+      1.5, 2 -> 2
+      3.5, 2 -> 4
+      4.5, 2 -> 4
+
+      11.5, 20 -> 20
+      23.5, 20 -> 20
+      34.5, 20 -> 40
+
+    The default base is '1'.
+    """
+
+    return int(base * round(float(value) / base))
+
+
+# ------------------------------------------------------------------------------
+# 
+def round_upper_bound (value):
+    """
+    This method expects an integer or float value, and will return an integer upper
+    bound suitable for example to define plot ranges.  The upper bound is the
+    smallest value larger than the input value which is a multiple of 1, 2 or
+    5 times the order of magnitude (10**x) of the value.
+    """
+
+    bound = 0
+    order = 0
+    check = [1, 2, 5]
+
+    while True:
+
+        for c in check :
+
+            bound = c*(10**order)
+
+            if value < bound: 
+                return bound
+
+        order += 1
+
+
+# ------------------------------------------------------------------------------
+#
+def islist(thing):
+    """
+    return True if a thing is a list thing, False otherwise
+    """
+
+    return isinstance(thing, list)
+
+
+# ------------------------------------------------------------------------------
+#
+def tolist(thing):
+    """
+    return a non-list thing into a list thing
+    """
+
+    if islist(thing):
+        return thing
+    return [thing]
+
+
+# ------------------------------------------------------------------------------
+#
+# to keep RU 2.6 compatible, we provide import_module which works around some
+# quirks of __import__ when being used with dotted names. This is what the
+# python docs recommend to use.  This basically steps down the module path and
+# loads the respective submodule until arriving at the target.
+#
+def import_module(name):
+
+    mod = __import__(name)
+    for s in name.split('.')[1:]:
+        mod = getattr(mod, s)
+    return mod
+
+
+# ------------------------------------------------------------------------------
 

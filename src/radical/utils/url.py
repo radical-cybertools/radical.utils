@@ -47,7 +47,7 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     @rus.takes   ('Url', 
-                  rus.optional (basestring, 'Url'))
+                  rus.optional ((basestring, 'Url')))
     @rus.returns (rus.nothing)
     def __init__(self, url_in=''):
         """ 
@@ -107,6 +107,19 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     ##
+    @rus.takes   ('Url')
+    @rus.returns (bool)
+    def __nonzero__(self) :
+
+        if str(self):
+            return 1
+        else:
+            return 0
+
+
+    # --------------------------------------------------------------------------
+    #
+    ##
     @rus.takes   ('Url', 
                   rus.optional(basestring),
                   rus.optional(basestring),
@@ -143,9 +156,8 @@ class Url (object):
     def _renew_url (self, scheme='', netloc='', path='', 
                           params='', query='',  fragment='', force_path=False) :
 
-        # always normalize the path
-        if  path :
-            path = os.path.normpath (path)
+        # always normalize the path.  
+        path = self.normpath(path)
 
         if  force_path :
             forced_path = path or ''
@@ -161,6 +173,25 @@ class Url (object):
                                        fragment or self._urlobj.fragment))
 
         self._urlobj = urlparse.urlparse (newurl)
+
+
+    def normpath(self, path):
+
+        if  path :
+
+            # Alas, os.path.normpath removes trailing slashes, 
+            # so we re-add them.
+            if len(path) > 1 and path.endswith('/'):
+                trailing_slash=True
+            else:
+                trailing_slash=False
+
+            path = os.path.normpath (path)
+
+            if trailing_slash and not path.endswith('/'):
+                path += '/'
+
+        return path
 
 
     # --------------------------------------------------------------------------
@@ -395,10 +426,7 @@ class Url (object):
         if  '?' in path :
             (path, query) = path
 
-        if  path :
-            return os.path.normpath(path)
-        else :
-            return path
+        return self.normpath (path)
 
     path = property(get_path, set_path)
     """ The path component.  """

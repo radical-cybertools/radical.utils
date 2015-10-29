@@ -10,7 +10,7 @@ import os
 import copy
 import threading
 
-import radical.utils as ru
+from ..singleton import Singleton
 
 from   configfile import ConfigFileReader
 
@@ -90,7 +90,7 @@ class _Configurations (object) :
     """
     This singleton class maintains references to all global configurations.
     """
-    __metaclass__ = ru.Singleton
+    __metaclass__ = Singleton
     _rlock = threading.RLock ()
 
     # --------------------------------------------------------------------------
@@ -287,12 +287,14 @@ class Configuration (object):
                         else:
                           raise ValueTypeError(option['category'], option['name'],
                               tmp_value, option['type'])
+                    elif option['type'] == int:
+                        value = int(tmp_value)
+                    elif option['type'] == float:
+                        value = float(tmp_value)
                     else:
-                        value = tmp_value
+                        value = str(tmp_value)
 
                 elif ev is not None:
-                    #getLogger('engine').debug("Using environment variable '%s' to set config option '%s.%s' to '%s'." \
-                    #    % (option['env_variable'], option['category'], option['name'], ev))
                     tmp_value = ev
                     if option['type'] == list:
                         value = tmp_value.split(",")
@@ -308,6 +310,10 @@ class Configuration (object):
                         else:
                           raise ValueTypeError(option['category'], option['name'],
                               tmp_value, option['type'])
+                    elif option['type'] == int:
+                        value = int(tmp_value)
+                    elif option['type'] == float:
+                        value = float(tmp_value)
                     else:
                         value = tmp_value
                 else:

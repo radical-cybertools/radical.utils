@@ -20,12 +20,15 @@ from lease_manager  import LeaseManager
 from daemonize      import Daemon
 
 # import utility methods
+from logging        import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL
+from logger         import get_logger, logger, LogReporter
 from ids            import *
 from read_json      import *
 from tracer         import trace, untrace
 from which          import which
 from misc           import *
 from get_version    import get_version
+from algorithms     import *
 
 # import decorators
 from timing         import timed_method
@@ -41,9 +44,7 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version        = open (_mod_root + "/VERSION",     "r").readline ().strip ()
-version_detail = open (_mod_root + "/VERSION.git", "r").readline ().strip ()
-
+version, version_detail, version_branch, sdist_name, sdist_path = get_version()
 
 # ------------------------------------------------------------------------------
 

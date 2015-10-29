@@ -65,9 +65,9 @@ class ObjectCache (object) :
 
                   Example:
                       def creator () :
-                          return getLogger (name)
+                          return get_logger (name)
 
-                      ret   = object_cache.get_object (name, creator)
+                      ret = object_cache.get_object (name, creator)
         """
 
         with self :
