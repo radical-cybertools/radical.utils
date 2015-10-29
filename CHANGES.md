@@ -5,7 +5,38 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
-Version 0.29 release 2015-07-13
+Version 0.37 release                                                  2015-10-15
+--------------------------------------------------------------------------------
+
+  - fix reporter log level
+  - several changes to reporter class
+  - align reporter, logger, and logreporter
+
+
+Version 0.36 release                                                  2015-10-08
+--------------------------------------------------------------------------------
+
+  - clean up logging (getLogger -> get_logger)
+  - log pid and tid on log creation 
+  - fix type conversion on some config data types 
+  - make uid generation independent if getpwuid
+  - fix log message for warning about log level 
+  - add boolean test for url 
+  - add SAGA_VERBOSE backport 
+  - fix some more import shadowing 
+  - fix layer violation: make logs look nice in RP, finally
+  - do not use signals in threads... 
+  - rename and install version tool. 
+  - fix the debug helper 
+
+
+Version 0.35 release                                                  2015-08-27
+--------------------------------------------------------------------------------
+
+  - small bugfix release
+
+
+Version 0.29 release                                                  2015-07-13
 --------------------------------------------------------------------------------
 
   - attempt to avoid sdist naming error during pypi installation
@@ -18,7 +49,7 @@ Version 0.29 release 2015-07-13
   - add test for LeaseManager
 
 
-Version 0.28 release 2015-04-16
+Version 0.28 release                                                  2015-04-16
 --------------------------------------------------------------------------------
 
   - minimize an unlock/release race
