@@ -16,14 +16,14 @@ def test_singleton():
     """ Test if the logger behaves like a singleton
     """
     # make sure singleton works
-    assert ru.get_logger()                == ru.get_logger()
-    assert ru.get_logger('radical.utils') == ru.get_logger('radical.utils')
+    assert ru.ObjectCache()                == ru.ObjectCache()
+    assert ru.ObjectCache('radical.utils') == ru.ObjectCache('radical.utils')
 
 def test_logger():
     """ Print out some messages with different log levels
     """
-    cl = ru.get_logger('engine')
-    cl = ru.get_logger('engine')
+    cl = ru.get_logger('radical.utils.test')
+    cl = ru.get_logger('radical.utils.test')
     cl.setLevel('DEBUG')
     
     assert cl is not None
