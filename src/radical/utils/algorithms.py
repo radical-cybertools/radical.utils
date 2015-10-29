@@ -67,6 +67,9 @@ def partition(space, nparts):
     '''
     create balanced partitions from an iterable space.  This method preserves
     contiguous order.
+
+    kudos:
+    http://code.activestate.com/recipes/425397-split-a-list-into-roughly-equal-sized-pieces/
     '''
 
     n   = len(space)
