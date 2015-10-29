@@ -14,7 +14,7 @@ def collapse_ranges (ranges):
 
     We first sort the ranges by their starting point.  We then start with the
     range with the smallest starting point [start_1, end_1], and compare to
-    the next following range [start_2, end_2], where we now know that 
+    the next following range [start_2, end_2], where we now know that
     start_1 <= start_2.  We have now two cases:
 
     a) when start_2 <= end_1, then the ranges overlap, and we collapse them into
@@ -61,26 +61,49 @@ def collapse_ranges (ranges):
     return final
 
 
+# ------------------------------------------------------------------------------
+#
+def partition(space, nparts):
+    '''
+    create balanced partitions from an iterable space.  This method preserves
+    contiguous order.
+    '''
+
+    n   = len(space)
+    b   = 0
+    ret = list()
+
+    for k in range(nparts):
+
+        q, r = divmod(n-k, nparts)
+        a, b = b, b + q + (r!=0)
+
+        ret.append(space[a:b])
+
+    return ret
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test = [ [ 0, 10],
              [20, 30],
-             [40, 50], 
-             [60, 70], 
-             [80, 90], 
-             [ 5, 15], 
+             [40, 50],
+             [60, 70],
+             [80, 90],
+             [ 5, 15],
              [35, 55] ]
 
     import pprint
     pprint.pprint (test)
     pprint.pprint (collapse_ranges (test))
 
-             
-
-
-
+    space = range(75)
+    parts = partition(space, 8)
+    for part in parts:
+        print "%3d: %s" % (len(part), part)
 
 
 # ------------------------------------------------------------------------------
-
 
