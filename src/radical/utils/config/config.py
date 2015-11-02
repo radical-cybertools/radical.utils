@@ -296,7 +296,11 @@ class Configuration (object):
 
                 elif ev is not None:
                     tmp_value = ev
-                    if option['type'] == list:
+                    if option['type'] == float:
+                        value = float(tmp_value)
+                    elif option['type'] == int:
+                        value = int(tmp_value)
+                    elif option['type'] == list:
                         value = tmp_value.split(",")
                     elif option['type'] == bool:
                         if tmp_value.lower() == 'true':
