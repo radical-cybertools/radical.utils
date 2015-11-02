@@ -288,9 +288,8 @@ def print_stacktraces (signum=None, sigframe=None) :
 
               # # [:-1]: .py vs. .pyc :/
               # if not (__file__[:-1] in fname and \
-              #         method in ['get_stacktraces', 'print_stacktraces']) :
-              # if method not in ['get_stacktraces', 'print_stacktraces'] :
-                if True:
+              #         method in ['get_stacktraces', 'print_stacktraces']):
+                if method not in ['get_stacktraces', 'print_stacktraces']:
                     out += "  File: %s, line %d, in %s\n" % (fname, lineno, method)
                     out += "        %s\n" % code
 
