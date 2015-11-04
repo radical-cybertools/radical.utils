@@ -26,8 +26,8 @@ def split_dburl(dburl, default_dburl=None) :
         url.path = dburl
 
     # NOTE: add other data base schemes here...
-    if url.schema not in ['mongodb', 'ssl+mongodb'] :
-        raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
+    if url.schema not in ['mongodb', 'ssl+mongodb', 'mongodb+ssl'] :
+        raise ValueError ("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
