@@ -59,7 +59,7 @@ class Url (object):
         if  not url_in :
             url_in = ""
 
-        self._urlobj = urlparse.urlparse (str (url_in))
+        self._urlobj = urlparse.urlparse (str (url_in), allow_fragments=True)
         self._renew_url ()
 
     # --------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class Url (object):
                                        query    or self._urlobj.query,
                                        fragment or self._urlobj.fragment))
 
-        self._urlobj = urlparse.urlparse (newurl)
+        self._urlobj = urlparse.urlparse (newurl, allow_fragments=True)
 
 
     def normpath(self, path):
