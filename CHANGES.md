@@ -5,6 +5,12 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.38 release                                                  2015-11-06
+--------------------------------------------------------------------------------
+
+  - support install on anaconda
+
+
 Version 0.37 release                                                  2015-10-15
 --------------------------------------------------------------------------------
 
