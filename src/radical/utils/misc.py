@@ -281,10 +281,8 @@ def print_stacktraces (signum=None, sigframe=None) :
             out += "  TID : %s \n"   % tid
             for fname, lineno, method, code in info[tid,tname] :
 
-                if code:
-                    code = code.strip()
-                if not code :
-                    code = '<no code>'
+                if code: code = code.strip()
+                else   : code = '<no code>'
 
               # # [:-1]: .py vs. .pyc :/
               # if not (__file__[:-1] in fname and \
