@@ -9,7 +9,7 @@ import url as ruu
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (dburl, default_dburl=None) :
+def split_dburl(dburl, default_dburl=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -21,19 +21,24 @@ def split_dburl (dburl, default_dburl=None) :
     
     url = ruu.Url (dburl)
 
-    if  not url.schema and not url.host :
+    if not url.schema and not url.host :
         url      = ruu.Url (default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...
-    if  url.schema not in ['mongodb'] :
-        raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
+    if 'mongodb' not in url.schema.split('+'):
+        raise ValueError ("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
     path = url.path
     user = url.username
     pwd  = url.password
+    ssl  = False
+
+    if 'ssl' in url.schema.split('+'):
+        ssl = True
+        url.schema = 'mongodb'
 
     if not host:
         host = 'localhost'
@@ -61,7 +66,7 @@ def split_dburl (dburl, default_dburl=None) :
     if  dbname == '.' : 
         dbname = None
 
-    return [host, port, dbname, cname, pname, user, pwd]
+    return [host, port, dbname, cname, pname, user, pwd, ssl]
 
 
 # ------------------------------------------------------------------------------
@@ -83,9 +88,9 @@ def mongodb_connect (dburl, default_dburl=None) :
         msg += "the second one for installation from pypi.\n\n"
         raise ImportError (msg)
 
-    [host, port, dbname, cname, pname, user, pwd] = split_dburl (dburl, default_dburl)
+    [host, port, dbname, cname, pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
 
-    mongo = pymongo.MongoClient (host=host, port=port)
+    mongo = pymongo.MongoClient (host=host, port=port, ssl=ssl)
     db    = None
 
     if  dbname :
