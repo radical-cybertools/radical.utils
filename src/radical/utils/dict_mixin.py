@@ -97,7 +97,7 @@ class DictMixin :
         for key in other.keys():
             self[key] = other[key]
 
-    def get(self, key, default):
+    def get(self, key, default=None):
         if key in self:
             return self[key]
         return default
