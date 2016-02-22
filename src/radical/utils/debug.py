@@ -51,15 +51,9 @@ class DebugHelper (object) :
 
         self._name       = name
         self._info       = info
-        self._fs_handle  = None
-        self._fs_barrier = None
 
         if not self._name:
             self._name = str(id(self))
-
-        self._fs_barrier = "/tmp/ru.dh.%s" % self._name
-        self._fs_handle  = open(self._fs_barrier, 'w+')
-        self._fs_snap()
 
         if 'MainThread' not in threading.current_thread().name:
             # python only supports signals in main threads :/
@@ -78,50 +72,39 @@ class DebugHelper (object) :
 
     # --------------------------------------------------------------------------
     #
-    def __del__(self):
-
-        try:
-            self._fs_handle.close()
-            os.unlink(self._fs_barrier)
-        except Exception as e:
-            pass
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _fs_snap(self, info=None):
-        """
-        dump state in barrier file
-        """
-
-        self._fs_handle.seek(0,0)
-        self._fs_handle.write(get_trace())
-        self._fs_handle.write("\n\n%s\n\n" % time.time())
-
-        if self._info:
-            self._fs_handle.write("\n\n%s\n\n" % pprint.pformat(self._info))
-
-        if info:
-            self._fs_handle.write("\n\n%s\n\n" % pprint.pformat(info))
-
-        self._fs_handle.flush()
-
-
-    # --------------------------------------------------------------------------
-    #
     def fs_block(self, info=None):
         """
-        dump state in barrier file, and wait for it tou be touched or read or
-        removed, then continue
+        Dump state, info in barrier file, and wait for it tou be touched or 
+        read or removed, then continue.  Leave no trace.
         """
 
-        self._fs_snap(info)
-        new = os.stat(self._fs_barrier)
-        old = new
+        try:
+            pid = os.getpid()
+            tid = threading.currentThread().ident
 
-        while old == new:
-            new = os.stat(self._fs_barrier)
-            time.sleep(1)
+            fs_barrier = "/tmp/ru.dh.%s.%s.%s" % (self._name, pid, tid)
+            fs_handle  = open(fs_barrier, 'w+')
+            fs_handle.seek(0,0)
+            fs_handle.write("\nSTACK TRACE:\n%s\n%s\n" % (time.time(), get_trace()))
+            fs_handle.write("\nSTATIC INFO:\n%s\n\n" % pprint.pformat(self._info))
+            fs_handle.write("\nINFO:\n%s\n\n" % pprint.pformat(info))
+            fs_handle.flush()
+
+            new = os.stat(fs_barrier)
+            old = new
+
+         #  while old == new:
+         #      new = os.stat(fs_barrier)
+         #      time.sleep(1)
+
+            fs_handle.close()
+         #  os.unlink(fs_barrier)
+
+        except Exception as e:
+            # we don't care (much)...
+            print get_trace()
+            print e
+            pass
 
 
 # ------------------------------------------------------------------------------
