@@ -93,12 +93,12 @@ class DebugHelper (object) :
             new = os.stat(fs_barrier)
             old = new
 
-         #  while old == new:
-         #      new = os.stat(fs_barrier)
-         #      time.sleep(1)
+            while old == new:
+                new = os.stat(fs_barrier)
+                time.sleep(1)
 
             fs_handle.close()
-         #  os.unlink(fs_barrier)
+            os.unlink(fs_barrier)
 
         except Exception as e:
             # we don't care (much)...
