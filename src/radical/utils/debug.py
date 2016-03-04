@@ -127,7 +127,7 @@ def print_stacktraces (signum=None, sigframe=None) :
     try :
         info = get_stacktraces ()
     except Exception as e:
-        out += 'skipping frame'
+        out += 'skipping frame (%s)' % e
         info = None
 
     if info:
@@ -172,7 +172,10 @@ def get_stacktraces () :
 
     ret = dict()
     for tid, stack in sys._current_frames().items():
-        ret[tid,id2name[tid]] = traceback.extract_stack(stack)
+        if tid in id2name:
+            ret[tid,id2name[tid]] = traceback.extract_stack(stack)
+        else:
+            ret[tid,'noname'] = traceback.extract_stack(stack)
 
     return ret
 
