@@ -26,6 +26,7 @@ from ids            import *
 from read_json      import *
 from tracer         import trace, untrace
 from which          import which
+from debug          import *
 from misc           import *
 from get_version    import get_version
 from algorithms     import *
