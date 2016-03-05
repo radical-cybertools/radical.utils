@@ -124,6 +124,7 @@ def print_stacktraces (signum=None, sigframe=None) :
 
     out  = "===============================================================\n"
     out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read() 
     try :
         info = get_stacktraces ()
     except Exception as e:

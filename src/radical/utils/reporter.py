@@ -244,11 +244,17 @@ class Reporter(object):
             stream.write(msg)
             stream.write(self.COLORS['reset'])
             stream.write(self.COLOR_MODS['reset'])
-            stream.flush()
+            try:
+                stream.flush()
+            except Exception as e:
+                pass
 
         for stream in self._streams:
             stream.write(msg)
-            stream.flush()
+            try:
+                stream.flush()
+            except Exception as e:
+                pass
 
     # --------------------------------------------------------------------------
     #

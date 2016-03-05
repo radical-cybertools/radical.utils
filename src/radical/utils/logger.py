@@ -139,7 +139,7 @@ def get_logger(name, target=None, level=None):
         elems = [env_name]
 
     if not level:
-        level = 'ERROR'
+        level = _DEFAULT_LEVEL
         for i in range(0,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level).upper()
@@ -193,7 +193,7 @@ def get_logger(name, target=None, level=None):
         elif t in ['=', '2', 'stderr']:
             handle = ColorStreamHandler(sys.stderr)
         elif t in ['.']:
-            handle = logging.StreamHandler("./%s.log" % name)
+            handle = logging.FileHandler("./%s.log" % name)
         else:
             handle = logging.FileHandler(t)
         handle.setFormatter(formatter)
