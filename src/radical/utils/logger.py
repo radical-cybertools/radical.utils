@@ -139,7 +139,7 @@ def get_logger(name, target=None, level=None):
         elems = [env_name]
 
     if not level:
-        level = 'ERROR'
+        level = _DEFAULT_LEVEL
         for i in range(0,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level).upper()
@@ -166,7 +166,7 @@ def get_logger(name, target=None, level=None):
         level = REPORT
 
     if not target:
-        target = 'stderr'
+        target = '.'
         for i in range(0,len(elems)):
             env_test = '_'.join(elems[:i+1]) + '_LOG_TARGET'
             target   = os.environ.get(env_test, target)
