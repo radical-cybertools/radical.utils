@@ -193,7 +193,7 @@ def get_logger(name, target=None, level=None):
         elif t in ['=', '2', 'stderr']:
             handle = ColorStreamHandler(sys.stderr)
         elif t in ['.']:
-            handle = logging.StreamHandler("./%s.log" % name)
+            handle = logging.FileHandler("./%s.log" % name)
         else:
             handle = logging.FileHandler(t)
         handle.setFormatter(formatter)
