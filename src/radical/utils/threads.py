@@ -11,7 +11,7 @@ import traceback
 import misc  as rumisc
 
 
-_out_lock = threading.RLock ()
+_out_lock = threading.RLock()
 
 
 # ------------------------------------------------------------------------------
@@ -24,89 +24,96 @@ FAILED  = 'Failed'
 
 # ------------------------------------------------------------------------------
 #
-def lout (txt, stream=sys.stdout) :
+def lout(txt, stream=sys.stdout):
 
-    with _out_lock :
-        stream.write (txt)
-        stream.flush ()
-
-
-# ------------------------------------------------------------------------------
-#
-def Event (*args, **kwargs) :
-    return threading.Event (*args, **kwargs)
+    with _out_lock:
+        stream.write(txt)
+        stream.flush()
 
 
 # ------------------------------------------------------------------------------
 #
-class RLock (object) :
-    # 
-    # see http://stackoverflow.com/questions/6780613/
-    #     is-it-possible-to-subclass-lock-objects-in-python-if-not-other-ways-to-debug
+def Event(*args, **kwargs):
+    return threading.Event(*args, **kwargs)
+
+
+# ------------------------------------------------------------------------------
+#
+class RLock(object):
+    """
+    This threading.RLock wrapper is supportive of lock debugging.  The only
+    semantic difference to threading.RLock is that a lock acquired via the
+    'with' statement can be released within the 'with' scope, w/o penalty when
+    leaving the locked scope.  This supports up-calling callback semantics, but
+    should be used with utter care, and rarely (such as on close()).
+
+    see http://stackoverflow.com/questions/6780613/
+         is-it-possible-to-subclass-lock-objects-in-python-if-not-other-ways-to-debug
+    """
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, obj=None) :
+    def __init__(self, obj=None):
 
-        self._lock = threading.RLock ()
+        self._lock = threading.RLock()
 
-      # with self._lock :
+      # with self._lock:
       #     self._obj = obj
       #     self._cnt = 0
 
 
     # --------------------------------------------------------------------------
     #
-    def acquire (self) :
+    def acquire(self):
 
       # ind = (self._cnt)*' '+'>'+(30-self._cnt)*' '
-      # lout ("%s -- %-10s %50s acquire  - %s\n" % (ind, threading.current_thread().name, self, self._lock))
+      # lout("%s -- %-10s %50s acquire  - %s\n" % (ind, threading.current_thread().name, self, self._lock))
 
-        self._lock.acquire ()
+        self._lock.acquire()
 
       # self._cnt += 1
       # ind = (self._cnt)*' '+'|'+(30-self._cnt)*' '
-      # lout ("%s    %-10s %50s acquired - %s\n" % (ind, threading.current_thread().name, self, self._lock))
+      # lout("%s    %-10s %50s acquired - %s\n" % (ind, threading.current_thread().name, self, self._lock))
 
 
     # --------------------------------------------------------------------------
     #
-    def release (self) :
+    def release(self):
 
       # ind = (self._cnt)*' '+'-'+(30-self._cnt)*' '
-      # lout ("%s    %-10s %50s release  - %s\n" % (ind, threading.current_thread().name, self, self._lock))
+      # lout("%s    %-10s %50s release  - %s\n" % (ind, threading.current_thread().name, self, self._lock))
 
-        # locks can be gone during shutdown, so make sure we still have it
-        # before releasing
-        # FIXME: this is still a race, of course, albeit a smaller one...
-        if self._lock: 
-            self._lock.release ()
+        try:
+            self._lock.release()
+        except RuntimeError as e:
+            # lock has been released meanwhile - we allow that
+          # print 'ignore double lock release'
+            pass
 
       # self._cnt -= 1
       # ind = (self._cnt)*' '+'<'+(30-self._cnt)*' '
-      # lout ("%s -- %-10s %50s released - %s\n" % (ind, threading.current_thread().name, self, self._lock))
+      # lout("%s -- %-10s %50s released - %s\n" % (ind, threading.current_thread().name, self, self._lock))
 
 
     # --------------------------------------------------------------------------
     #
-    def __enter__ (self)                         : self.acquire () 
-    def __exit__  (self, type, value, traceback) : self.release ()
-
+    def __enter__(self)                        : self.acquire() 
+    def __exit__ (self, type, value, traceback): self.release()
 
 
 # ------------------------------------------------------------------------------
 #
-class Thread (threading.Thread) :
+class Thread(threading.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, call, *args, **kwargs) :
+    def __init__(self, call, *args, **kwargs):
 
-        if not callable (call) :
-            raise ValueError ("Thread requires a callable to function, not %s" \
-                           % (str(call)))
+        if not callable(call):
+            raise ValueError("Thread requires a callable to function, not %s" \
+                            % (str(call)))
 
-        threading.Thread.__init__ (self)
+        threading.Thread.__init__(self)
 
         self._call      = call
         self._args      = args
@@ -120,30 +127,30 @@ class Thread (threading.Thread) :
     # --------------------------------------------------------------------------
     #
     @classmethod
-    def Run (self, call, *args, **kwargs) :
+    def Run(self, call, *args, **kwargs):
 
-        t = self (call, *args, **kwargs)
-        t.start ()
+        t = self(call, *args, **kwargs)
+        t.start()
         return t
 
 
     # --------------------------------------------------------------------------
     #
     @property 
-    def tid (self) :
+    def tid(self):
         return self.tid
 
 
     # --------------------------------------------------------------------------
     #
-    def run (self) :
+    def run(self):
 
-        try :
+        try:
             self._state     = RUNNING
-            self._result    = self._call (*self._args, **self._kwargs)
+            self._result    = self._call(*self._args, **self._kwargs)
             self._state     = DONE
 
-        except Exception as e :
+        except Exception as e:
             tb = traceback.format_exc()
             print "thread got exception: %s:%s%s" % (type(e).__name__, str(e), tb)
 
@@ -153,15 +160,15 @@ class Thread (threading.Thread) :
 
     # --------------------------------------------------------------------------
     #
-    def wait (self) :
+    def wait(self):
 
-        if  self.isAlive () :
-            self.join ()
+        if  self.isAlive():
+            self.join()
 
 
     # --------------------------------------------------------------------------
     #
-    def cancel (self) :
+    def cancel(self):
         # FIXME: this is not really implementable generically, so we ignore 
         # cancel requests for now.
         pass
@@ -169,34 +176,34 @@ class Thread (threading.Thread) :
 
     # --------------------------------------------------------------------------
     #
-    def get_state (self) :
+    def get_state(self):
         return self._state 
 
-    state = property (get_state)
+    state = property(get_state)
 
 
     # --------------------------------------------------------------------------
     #
-    def get_result (self) :
+    def get_result(self):
 
-        if  self._state == DONE :
+        if  self._state == DONE:
             return self._result
 
         return None
 
-    result = property (get_result)
+    result = property(get_result)
 
 
     # --------------------------------------------------------------------------
     #
-    def get_exception (self) :
+    def get_exception(self):
 
-        if  self._state == FAILED :
+        if  self._state == FAILED:
             return self._exception 
 
         return None
 
-    exception = property (get_exception)
+    exception = property(get_exception)
 
 
 # ------------------------------------------------------------------------------

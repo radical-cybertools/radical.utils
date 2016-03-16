@@ -335,4 +335,21 @@ def import_module(name):
 
 
 # ------------------------------------------------------------------------------
+#
+def gettid():
+    """
+    Python is not able to give us the native thread ID.  We thus use a syscall
+    to do so.  Since this is not portable, we fall back to None in case of error
+    (Hi MacOS).
+    """
+    try:
+        import ctypes
+        SYS_gettid = 186
+        libc = ctypes.cdll.LoadLibrary('libc.so.6')
+        return str(libc.syscall(SYS_gettid))
+    except:
+        return None
+
+
+# ------------------------------------------------------------------------------
 
