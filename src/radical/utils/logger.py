@@ -35,13 +35,12 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 import os
 import sys
 import time
-import atfork
 import threading
-import atfork.stdlib_fixer
 
+from .atfork import *
 
-atfork.stdlib_fixer.fix_logging_module()
-atfork.monkeypatch_os_fork_functions()
+stdlib_fixer.fix_logging_module()
+monkeypatch_os_fork_functions()
 
 # ------------------------------------------------------------------------------
 #
@@ -91,7 +90,7 @@ def _atfork_parent():
 def _atfork_child():
     _after_fork()
 
-atfork.atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 #
 # ------------------------------------------------------------------------------

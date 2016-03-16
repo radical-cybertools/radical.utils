@@ -28,6 +28,9 @@ License
 This software is released under the 
 [MIT License](http://opensource.org/licenses/MIT).
 
+Parts of the module (radical.utils.atfork) are licensed under the [Apache-v2.0
+license](http://www.apache.org/licenses/).
+
 
 Installation 
 ------------

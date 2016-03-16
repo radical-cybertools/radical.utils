@@ -6,6 +6,10 @@ __license__   = "MIT"
 import re
 import fnmatch
 
+PRESERVE  = 'preserve'
+OVERWRITE = 'overwrite'
+
+
 # see http://code.activestate.com/recipes/117236-dictionary-mixin-framework/
 
 # ------------------------------------------------------------------------------
@@ -116,10 +120,10 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
 
     Merge Policies :
         None (default) : raise an exception on conflicts
-        preserve       : original value in a are preserved, new values 
+        PRESERVE       : original value in a are preserved, new values 
                          from b are only added where the original value 
                          is None / 0 / ''
-        overwrite      : values in a are overwritten by new values from b
+        OVERWRITE      : values in a are overwritten by new values from b
 
     """
 
@@ -157,12 +161,12 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
             pass # keep no a value
 
         else:
-            if  policy == 'preserve' :
+            if  policy == PRESERVE:
                 if  logger :
                     logger.debug ("preserving key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
                 pass # keep original value
 
-            elif policy == 'overwrite' :
+            elif policy == OVERWRITE:
                 if  logger :
                     logger.debug ("overwriting key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
                 a[key] = b[key] # use new value
