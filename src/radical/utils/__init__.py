@@ -11,6 +11,7 @@ from .singleton      import Singleton
 from .threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from .url            import Url
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
+from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
 from .registry       import Registry, READONLY, READWRITE
 from .regex          import ReString, ReSult
@@ -20,6 +21,7 @@ from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 
 # import utility methods
+from .atfork         import *
 from .logger         import *
 from .ids            import *
 from .read_json      import *
