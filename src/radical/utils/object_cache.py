@@ -30,6 +30,8 @@ class ObjectCache (object) :
     # TODO: we should introduce namespaces -- this is a singleton, but we may want
     # to use it in several places, thus need to make sure to not use colliding
     # names...
+    #
+    # FIXME: this class is not thread-safe!
 
     __metaclass__ = singleton.Singleton
 
@@ -46,7 +48,6 @@ class ObjectCache (object) :
 
         self._timeout = timeout
         self._cache   = dict()
-
 
 
     # --------------------------------------------------------------------------
@@ -154,5 +155,4 @@ class ObjectCache (object) :
 
 
 # ------------------------------------------------------------------------------
-
 

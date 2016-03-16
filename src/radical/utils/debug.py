@@ -74,7 +74,7 @@ class DebugHelper (object) :
     #
     def fs_block(self, info=None):
         """
-        Dump state, info in barrier file, and wait for it tou be touched or 
+        Dump state, info in barrier file, and wait for it tou be touched or
         read or removed, then continue.  Leave no trace.
         """
 
@@ -109,7 +109,7 @@ class DebugHelper (object) :
 
 # ------------------------------------------------------------------------------
 #
-def print_stacktraces (signum=None, sigframe=None) :
+def print_stacktraces(signum=None, sigframe=None):
     """
     signum, sigframe exist to satisfy signal handler signature requirements
     """
@@ -124,15 +124,15 @@ def print_stacktraces (signum=None, sigframe=None) :
 
     out  = "===============================================================\n"
     out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
-    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read() 
-    try :
-        info = get_stacktraces ()
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    try:
+        info = get_stacktraces()
     except Exception as e:
         out += 'skipping frame (%s)' % e
         info = None
 
     if info:
-        for tid, tname in info :
+        for tid,tname in info:
 
             if tid == this_tid : marker = '[active]'
             else               : marker = ''
@@ -140,7 +140,7 @@ def print_stacktraces (signum=None, sigframe=None) :
             out += "Thread: %s %s\n" % (tname, marker)
             out += "  PID : %s \n"   % os.getpid()
             out += "  TID : %s \n"   % tid
-            for fname, lineno, method, code in info[tid,tname] :
+            for fname,lineno,method,code in info[tid,tname]:
 
                 if code: code = code.strip()
                 else   : code = '<no code>'
@@ -165,7 +165,7 @@ def print_stacktraces (signum=None, sigframe=None) :
 
 # --------------------------------------------------------------------------
 #
-def get_stacktraces () :
+def get_stacktraces():
 
     id2name = {}
     for th in threading.enumerate():
@@ -180,4 +180,76 @@ def get_stacktraces () :
 
     return ret
 
+
+# --------------------------------------------------------------------------
+#
+def print_stacktrace(msg=None):
+
+    if not msg:
+        msg = ''
+
+    pid  = int(os.getpid())
+    out  = "--------------\n"
+    out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
+    out += "%s\n" % msg
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    for line in get_stacktrace():
+        out += line.strip()
+        out += "\n"
+    out += "--------------\n"
+
+    sys.stdout.write(out)
+
+# --------------------------------------------------------------------------
+#
+def get_stacktrace():
+
+    return traceback.format_stack()[:-1]
+
+
+# ------------------------------------------------------------------------------
+#
+def get_caller_name(skip=2):
+    """
+    Get a name of a caller in the format module.class.method
+
+    `skip` specifies how many levels of stack to skip while getting caller
+    name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+
+    An empty string is returned if skipped levels exceed stack height
+
+    Kudos: http://stackoverflow.com/questions/2654113/ \
+            python-how-to-get-the-callers-method-name-in-the-called-method
+    """
+    import inspect
+
+    stack = inspect.stack()
+    start = 0 + skip
+    if len(stack) < start + 1:
+        return ''
+
+    parentframe = stack[start][0]
+
+    name   = []
+    module = inspect.getmodule(parentframe)
+
+    # `modname` can be None when frame is executed directly in console
+    # TODO(techtonik): consider using __main__
+    if module:
+        name.append(module.__name__)
+
+    # detect classname
+    if 'self' in parentframe.f_locals:
+        name.append(parentframe.f_locals['self'].__class__.__name__)
+
+    codename = parentframe.f_code.co_name
+
+    if codename != '<module>':  # top level usually
+        name.append(codename)   # function or a method
+
+    del parentframe
+
+    return ".".join(name)
+
+# --------------------------------------------------------------------------
 
