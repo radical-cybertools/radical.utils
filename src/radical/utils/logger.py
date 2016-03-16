@@ -27,9 +27,7 @@ purpose, we create a process-singletone of all the loggers we hand out via
 
 Logging locks are 'threading.RLock' instances.  As such they can be locked
 multiple times (from within the same thread), and we have to unlock them that
-many times.  There is no clean way to inspect the number of unlock calls needed
-(unless we want to monkey-patch another system lib), so we just unlock until the
-locks complain.
+many times.  We use a shortcut, and create a new, unlocked lock.
 """
 
 # ------------------------------------------------------------------------------
@@ -291,7 +289,6 @@ def get_logger(name, target=None, level=None):
             handle = logging.FileHandler(t)
         handle.setFormatter(formatter)
         handle.name = '%s.%s' % (logger.name, str(t))
-      # handle.lock = threading.RLock()
         logger.addHandler(handle)
 
     if level in [OFF, 'OFF']:
