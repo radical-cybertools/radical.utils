@@ -228,9 +228,6 @@ def get_logger(name, target=None, level=None):
     if env_name.startswith('RADICAL_SAGA'):
         level = os.environ.get('SAGA_VERBOSE', level)
 
-    # we want levels to be uppercase
-    level = level.upper()
-
     # translate numeric levels into symbolic ones
     level = {50 : 'CRITICAL',
              40 : 'ERROR',
@@ -239,7 +236,10 @@ def get_logger(name, target=None, level=None):
              20 : 'INFO',
              10 : 'DEBUG',
               0 : _DEFAULT_LEVEL,
-             -1 : 'OFF'}.get(level, level)
+             -1 : 'OFF'}.get(level, str(level))
+
+    # we want levels to be uppercase
+    level = level.upper()
 
     level_warning = None
     if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'REPORT']:
