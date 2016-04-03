@@ -163,7 +163,20 @@ class ColorStreamHandler(logging.StreamHandler):
 
 # ------------------------------------------------------------------------------
 #
-def get_logger(name, target=None, level=None):
+class FSHandler(logging.FileHandler):
+
+    def __init__(self, target):
+
+        try:
+            os.makedirs(os.path.abspath(os.path.dirname(target)))
+        except:
+            pass # exists
+        logging.FileHandler.__init__(self, target)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_logger(name, target=None, path=None, level=None):
     """
     Get a logging handle.
 
@@ -184,7 +197,16 @@ def get_logger(name, target=None, level=None):
     if not name:
         name = 'radical'
 
-    name.replace('/', '_')
+    if not path:
+        path = os.getcwd()
+
+    if '/' in name:
+        try:
+            os.makedirs(os.path.normpath(os.path.dirname(name)))
+        except:
+            # dir exists
+            pass
+
     logger = logging.getLogger(name)
     logger.propagate = False   # let messages not trickle upward
     logger.name = name
@@ -228,6 +250,9 @@ def get_logger(name, target=None, level=None):
     if env_name.startswith('RADICAL_SAGA'):
         level = os.environ.get('SAGA_VERBOSE', level)
 
+    # we want levels to be uppercase
+    level = level.upper()
+
     # translate numeric levels into symbolic ones
     level = {50 : 'CRITICAL',
              40 : 'ERROR',
@@ -236,10 +261,7 @@ def get_logger(name, target=None, level=None):
              20 : 'INFO',
              10 : 'DEBUG',
               0 : _DEFAULT_LEVEL,
-             -1 : 'OFF'}.get(level, str(level))
-
-    # we want levels to be uppercase
-    level = level.upper()
+             -1 : 'OFF'}.get(level, level)
 
     level_warning = None
     if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'REPORT']:
@@ -283,9 +305,11 @@ def get_logger(name, target=None, level=None):
         elif t in ['=', '2', 'stderr']:
             handle = ColorStreamHandler(sys.stderr)
         elif t in ['.']:
-            handle = logging.FileHandler("./%s.log" % name)
+            handle = FSHandler("%s/%s.log" % (path, name))
+        elif t.startswith('/'):
+            handle = FSHandler(t)
         else:
-            handle = logging.FileHandler(t)
+            handle = FSHandler("%s/%s" % (path, t))
         handle.setFormatter(formatter)
         handle.name = '%s.%s' % (logger.name, str(t))
         logger.addHandler(handle)
@@ -403,7 +427,7 @@ class LogReporter(object):
     # --------------------------------------------------------------------------
     #
     def __init__(self, title=None, targets=['stdout'], name='radical',
-                 level=None):
+                 level='REPORT'):
 
         self._logger = get_logger(name=name, target=targets, level=level)
         if title:
