@@ -4,6 +4,7 @@ import sys
 import time
 import pprint
 import signal
+import thread
 import threading
 import traceback
 
@@ -254,5 +255,21 @@ def get_caller_name(skip=2):
 
     return ".".join(name)
 
-# --------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#
+def is_main_thread():
+    return isinstance(threading.current_thread(), threading._MainThread)
+
+
+# ------------------------------------------------------------------------------
+#
+def cancel_main_thread():
+    if not is_main_thread():
+        import thread
+        thread.interrupt_main()
+        sys.exit()
+
+
+# ------------------------------------------------------------------------------
 
