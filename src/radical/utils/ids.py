@@ -38,39 +38,39 @@ class _IDRegistry(object):
 
 
     # --------------------------------------------------------------------------
-    def get_counter(self, prefix, mode='any'):
+    def get_counter(self, prefix):
         """
-        Obtain the next number in the sequence for the given prefix and mode.
-        If the mode or prefix are not known, a new registry counter is created.
+        Obtain the next number in the sequence for the given prefix.
+        If the prefix is not known, a new registry counter is created.
         """
 
         with self._rlock:
 
-            if not mode in self._registry:
-                self._registry[mode] = dict()
+            if not prefix in self._registry:
+                self._registry[prefix] = 0
 
-            if not prefix in self._registry[mode]:
-                self._registry[mode][prefix] = 0
+            ret = self._registry[prefix]
 
-            ret = self._registry[mode][prefix]
-
-            self._registry[mode][prefix] += 1
+            self._registry[prefix] += 1
 
             return ret
 
 
     # --------------------------------------------------------------------------
-    def reset_counter(self, prefix, mode='any'):
+    def reset_counter(self, prefix, reset_all_others=False):
         """
-        Reset the given counter to zero.  This ap
+        Reset the given counter to zero.
         """
 
         with self._rlock:
-
-            if not mode in self._registry:
-                self._registry[mode] = dict()
-
-            self._registry[mode][prefix] = 0
+            
+            if reset_all_others:
+                # reset all counters *but* the one given
+                for p in self._registry:
+                    if p != prefix:
+                        self._registry[p] = 0
+            else:
+                self._registry[prefix] = 0
 
 
 # ------------------------------------------------------------------------------
@@ -147,11 +147,11 @@ def generate_id(prefix, mode=ID_SIMPLE):
     else:
         raise ValueError("mode '%s' not supported for ID generation", mode)
 
-    return _generate_id(template, prefix, mode)
+    return _generate_id(template, prefix)
 
 # ------------------------------------------------------------------------------
 #
-def _generate_id(template, prefix, mode):
+def _generate_id(template, prefix):
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
@@ -175,7 +175,6 @@ def _generate_id(template, prefix, mode):
     info['item_counter']  = 0
     info['counter'     ]  = 0
     info['prefix'      ]  = prefix
-    info['mode'        ]  = mode
     info['now'         ]  = now
     info['seconds'     ]  = int(seconds)              # full seconds since epoch
     info['days'        ]  = days                      # full days since epoch
@@ -211,7 +210,7 @@ def _generate_id(template, prefix, mode):
         os.close(fd)
 
     if '%(counter)' in template:
-        info['counter'] = _id_registry.get_counter(prefix.replace('%', ''), mode)
+        info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
 
 
     ret = template % info
@@ -228,13 +227,13 @@ def _generate_id(template, prefix, mode):
 
 # ------------------------------------------------------------------------------
 #
-def reset_id_counters(prefix=None, mode=ID_SIMPLE):
+def reset_id_counters(prefix=None, reset_all_others=False):
 
     if not isinstance(prefix, list):
         prefix = [prefix]
 
     for p in prefix:
-        _id_registry.reset_counter(p.replace('%', ''), mode=mode)
+        _id_registry.reset_counter(p.replace('%', ''), reset_all_others)
 
 
 # ------------------------------------------------------------------------------

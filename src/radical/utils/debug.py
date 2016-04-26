@@ -78,6 +78,9 @@ class DebugHelper (object) :
         read or removed, then continue.  Leave no trace.
         """
 
+        if not 'RADICAL_DEBUG' in os.environ:
+            return
+
         try:
             pid = os.getpid()
             tid = threading.currentThread().ident

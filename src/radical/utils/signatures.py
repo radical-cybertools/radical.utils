@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 import sys
+import os
 
 
 # ------------------------------------------------------------------------------
@@ -154,8 +155,11 @@ __all__ = [ "takes",    "returns",   "optional", "nothing",
             "anything", "list_of",   "tuple_of", "dict_of",
             "by_regex", "with_attr", "one_of",   "set_of" ]
 
-no_check        = False  # set this to True to turn all checks off
+no_check        = True  # set this to True to turn all checks off
 no_return_check = True   # set this to True to turn return value cchecks off
+
+if 'RADICAL_DEBUG_SIG' in os.environ:
+    no_check    = False  # set this to True to turn all checks off
 
 # ------------------------------------------------------------------------------
 
@@ -412,30 +416,31 @@ def create_type_exception (method, arg0, i, arg, spectype, kwname="") :
 def takes (*args, **kwargs):
     "Method signature checking decorator"
 
-    # convert decorator arguments into a list of checkers
-
-    checkers = []
-    for i, arg in enumerate (args):
-        checker = Checker.create (arg)
-        if checker is None:
-            raise TypeError ("@takes decorator got parameter %d of unsupported "
-                             "type %s" % (i + 1, type_name(arg)))
-        checkers.append (checker)
-
-    kwcheckers = {}
-    for kwname, kwarg in kwargs.iteritems ():
-        checker = Checker.create (kwarg)
-        if checker is None:
-            raise TypeError ("@takes decorator got parameter %s of unsupported "
-                             "type %s" % (kwname, type_name (kwarg)))
-        kwcheckers[kwname] = checker
-
     if no_check: # no type checking is performed, return decorated method itself
 
         def takes_proxy (method):
-            return wraps(method)
+            return method
 
     else:
+
+        # convert decorator arguments into a list of checkers
+
+        checkers = []
+        for i, arg in enumerate (args):
+            checker = Checker.create (arg)
+            if checker is None:
+                raise TypeError ("@takes decorator got parameter %d of unsupported "
+                                 "type %s" % (i + 1, type_name(arg)))
+            checkers.append (checker)
+
+        kwcheckers = {}
+        for kwname, kwarg in kwargs.iteritems ():
+            checker = Checker.create (kwarg)
+            if checker is None:
+                raise TypeError ("@takes decorator got parameter %s of unsupported "
+                                 "type %s" % (kwname, type_name (kwarg)))
+            kwcheckers[kwname] = checker
+
 
         def takes_proxy (method):
             
@@ -481,19 +486,19 @@ def takes (*args, **kwargs):
 def returns (sometype):
     "Return type checking decorator"
 
-    # convert decorator argument into a checker
-    
-    checker = Checker.create(sometype)
-    if checker is None:
-        raise TypeError ("@returns decorator got parameter of unsupported "
-                         "type %s" % type_name (sometype))
-
     if no_check: # no type checking is performed, return decorated method itself
 
         def returns_proxy (method):
-            return wraps(method)
+            return method
 
     else:
+
+        # convert decorator argument into a checker
+        
+        checker = Checker.create(sometype)
+        if checker is None:
+            raise TypeError ("@returns decorator got parameter of unsupported "
+                             "type %s" % type_name (sometype))
 
         def returns_proxy (method):
             
