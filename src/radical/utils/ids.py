@@ -5,14 +5,18 @@ __license__   = "MIT"
 
 
 import os
+import time
 import uuid
+import fcntl
+import socket
+import datetime
 import threading
 import singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class _IDRegistry (object) :
+class _IDRegistry(object):
     """
     This helper class (which is not exposed to any user of radical.utils)
     generates a sequence of continous numbers for each known ID prefix.  It is
@@ -24,43 +28,57 @@ class _IDRegistry (object) :
 
 
     # --------------------------------------------------------------------------
-    def __init__ (self) :
+    def __init__(self):
         """
         Initialized the registry dict and the threading lock
         """
 
-        self._rlock    = threading.RLock ()
+        self._rlock    = threading.RLock()
         self._registry = dict()
 
 
     # --------------------------------------------------------------------------
-    def get_counter (self, prefix, mode='any') :
+    def get_counter(self, prefix):
         """
-        Obtain the next number in the sequence for the given prefix and mode.
-        If the mode or prefix are not known, a new registry counter is created.
+        Obtain the next number in the sequence for the given prefix.
+        If the prefix is not known, a new registry counter is created.
         """
 
-        with self._rlock :
+        with self._rlock:
 
-            if  not mode in self._registry :
-                self._registry[mode] =  dict()
+            if not prefix in self._registry:
+                self._registry[prefix] = 0
 
-            if  not prefix in self._registry[mode] :
-                self._registry[mode][prefix] =  0
+            ret = self._registry[prefix]
 
-            ret = self._registry[mode][prefix]
-
-            self._registry[mode][prefix] += 1
+            self._registry[prefix] += 1
 
             return ret
+
+
+    # --------------------------------------------------------------------------
+    def reset_counter(self, prefix, reset_all_others=False):
+        """
+        Reset the given counter to zero.
+        """
+
+        with self._rlock:
+            
+            if reset_all_others:
+                # reset all counters *but* the one given
+                for p in self._registry:
+                    if p != prefix:
+                        self._registry[p] = 0
+            else:
+                self._registry[prefix] = 0
 
 
 # ------------------------------------------------------------------------------
 #
 # we create on private singleton instance for the ID registry.
-_id_registry = _IDRegistry ()
-_BASE        = "%s/.radical/utils" % os.environ.get ("HOME", "/tmp")
-os.system ("mkdir -p %s" % _BASE)
+_id_registry = _IDRegistry()
+_BASE        = "%s/.radical/utils" % os.environ.get("HOME", "/tmp")
+os.system("mkdir -p %s" % _BASE)
 
 # ------------------------------------------------------------------------------
 #
@@ -72,7 +90,7 @@ ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id (prefix, mode=ID_SIMPLE) :
+def generate_id(prefix, mode=ID_SIMPLE):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -86,15 +104,15 @@ def generate_id (prefix, mode=ID_SIMPLE) :
 
     Examples::
 
-        print radical.utils.generate_id ('item.')
-        print radical.utils.generate_id ('item.')
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_SIMPLE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UNIQUE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_PRIVATE)
-        print radical.utils.generate_id ('item.', mode=radical.utils.ID_UUID)
+        print radical.utils.generate_id('item.')
+        print radical.utils.generate_id('item.')
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE)
+        print radical.utils.generate_id('item.', mode=radical.utils.ID_UUID)
 
     The above will generate the IDs:
 
@@ -115,9 +133,9 @@ def generate_id (prefix, mode=ID_SIMPLE) :
     and can thus span multiple applications.
     """
 
-    if  not prefix or \
-        not isinstance (prefix, basestring) :
-        raise TypeError ("ID generation expect prefix in basestring type")
+    if not prefix or \
+        not isinstance(prefix, basestring):
+        raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""
 
@@ -126,29 +144,24 @@ def generate_id (prefix, mode=ID_SIMPLE) :
     elif mode == ID_PRIVATE: template = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
     elif mode == ID_CUSTOM : template = prefix
     elif mode == ID_UUID   : template = "%(prefix)s.%(uuid)s"
-    else :
-        raise ValueError ("mode '%s' not supported for ID generation", mode)
+    else:
+        raise ValueError("mode '%s' not supported for ID generation", mode)
 
-    return _generate_id (template, prefix, mode)
+    return _generate_id(template, prefix)
 
 # ------------------------------------------------------------------------------
 #
-def _generate_id (template, prefix, mode) :
+def _generate_id(template, prefix):
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
 
-    import time
-    import uuid
-    import fcntl
-    import socket
     import getpass
-    import datetime
 
-    # seconds since epoch (float), and timestamp
-    seconds = time.time ()
-    now     = datetime.datetime.fromtimestamp (seconds)
+    # seconds since epoch(float), and timestamp
+    seconds = time.time()
+    now     = datetime.datetime.fromtimestamp(seconds)
     days    = int(seconds / (60*60*24))
 
     try:
@@ -162,7 +175,6 @@ def _generate_id (template, prefix, mode) :
     info['item_counter']  = 0
     info['counter'     ]  = 0
     info['prefix'      ]  = prefix
-    info['mode'        ]  = mode
     info['now'         ]  = now
     info['seconds'     ]  = int(seconds)              # full seconds since epoch
     info['days'        ]  = days                      # full days since epoch
@@ -175,42 +187,53 @@ def _generate_id (template, prefix, mode) :
     if '%(host)' in template: info['host'] = socket.gethostname() # local hostname
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
 
-    if '%(day_counter)' in template :
-        fd = os.open ("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
-        fcntl.flock (fd, fcntl.LOCK_EX)
-        os.lseek (fd, 0, os.SEEK_SET )
-        data = os.read (fd, 256)
-        if not data : data = 0
+    if '%(day_counter)' in template:
+        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        os.lseek(fd, 0, os.SEEK_SET )
+        data = os.read(fd, 256)
+        if not data: data = 0
         info['day_counter'] = int(data)
-        os.lseek (fd, 0, os.SEEK_SET )
-        os.write (fd, "%d\n" % (info['day_counter']+1))
-        os.close (fd)
+        os.lseek(fd, 0, os.SEEK_SET )
+        os.write(fd, "%d\n" % (info['day_counter']+1))
+        os.close(fd)
 
-    if '%(item_counter)' in template :
-        fd = os.open ("%s/rp_%s_%s.cnt" % (_BASE, user, prefix), os.O_RDWR | os.O_CREAT)
-        fcntl.flock (fd, fcntl.LOCK_EX)
-        os.lseek (fd, 0, os.SEEK_SET)
-        data = os.read (fd, 256)
-        if not data : data = 0
+    if '%(item_counter)' in template:
+        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, prefix), os.O_RDWR | os.O_CREAT)
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        os.lseek(fd, 0, os.SEEK_SET)
+        data = os.read(fd, 256)
+        if not data: data = 0
         info['item_counter'] = int(data)
-        os.lseek (fd, 0, os.SEEK_SET)
-        os.write (fd, "%d\n" % (info['item_counter']+1))
-        os.close (fd)
+        os.lseek(fd, 0, os.SEEK_SET)
+        os.write(fd, "%d\n" % (info['item_counter']+1))
+        os.close(fd)
 
-    if '%(counter)' in template :
-        info['counter'] = _id_registry.get_counter (prefix.replace ('%', ''), mode)
+    if '%(counter)' in template:
+        info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
 
 
     ret = template % info
 
-    if '%(' in ret :
+    if '%(' in ret:
         import pprint
-        pprint.pprint (info)
+        pprint.pprint(info)
         print template
         print ret
-        raise ValueError ('unknown replacement pattern in template (%s)' % template)
+        raise ValueError('unknown replacement pattern in template (%s)' % template)
 
     return ret
+
+
+# ------------------------------------------------------------------------------
+#
+def reset_id_counters(prefix=None, reset_all_others=False):
+
+    if not isinstance(prefix, list):
+        prefix = [prefix]
+
+    for p in prefix:
+        _id_registry.reset_counter(p.replace('%', ''), reset_all_others)
 
 
 # ------------------------------------------------------------------------------

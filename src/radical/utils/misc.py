@@ -4,12 +4,11 @@ import time
 import regex
 import signal
 import threading
-import traceback
 import url as ruu
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl (dburl, default_dburl=None) :
+def split_dburl(dburl, default_dburl=None) :
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -21,19 +20,24 @@ def split_dburl (dburl, default_dburl=None) :
     
     url = ruu.Url (dburl)
 
-    if  not url.schema and not url.host :
+    if not url.schema and not url.host :
         url      = ruu.Url (default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...
-    if  url.schema not in ['mongodb'] :
-        raise ValueError ("url must be a 'mongodb://' url, not %s" % dburl)
+    if 'mongodb' not in url.schema.split('+'):
+        raise ValueError ("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
     path = url.path
     user = url.username
     pwd  = url.password
+    ssl  = False
+
+    if 'ssl' in url.schema.split('+'):
+        ssl = True
+        url.schema = 'mongodb'
 
     if not host:
         host = 'localhost'
@@ -61,7 +65,7 @@ def split_dburl (dburl, default_dburl=None) :
     if  dbname == '.' : 
         dbname = None
 
-    return [host, port, dbname, cname, pname, user, pwd]
+    return [host, port, dbname, cname, pname, user, pwd, ssl]
 
 
 # ------------------------------------------------------------------------------
@@ -83,9 +87,9 @@ def mongodb_connect (dburl, default_dburl=None) :
         msg += "the second one for installation from pypi.\n\n"
         raise ImportError (msg)
 
-    [host, port, dbname, cname, pname, user, pwd] = split_dburl (dburl, default_dburl)
+    [host, port, dbname, cname, pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
 
-    mongo = pymongo.MongoClient (host=host, port=port)
+    mongo = pymongo.MongoClient (host=host, port=port, ssl=ssl)
     db    = None
 
     if  dbname :
@@ -201,123 +205,6 @@ def time_diff (dt_abs, dt_stamp) :
     # get seconds as float 
     seconds = delta.seconds + delta.microseconds/1E6
     return seconds
-
-
-# --------------------------------------------------------------------
-#
-def get_trace():
-
-    trace = sys.exc_info ()[2]
-
-    if  trace :
-        stack           = traceback.extract_tb  (trace)
-        traceback_list  = traceback.format_list (stack)
-        return "".join (traceback_list)
-
-    else :
-        stack           = traceback.extract_stack ()
-        traceback_list  = traceback.format_list (stack)
-        return "".join (traceback_list[:-1])
-
-
-# ------------------------------------------------------------------------------
-#
-class DebugHelper (object) :
-    """
-    When instantiated, and when "RADICAL_DEBUG" is set in the environment, this
-    class will install a signal handler for SIGUSR1.  When that signal is
-    received, a stacktrace for all threads is printed to stdout.
-    Additionally, we check if SIGINFO is available, which is generally bound to CTRL-T.
-    """
-
-    def __init__ (self) :
-
-        if 'MainThread' not in threading.current_thread().name:
-            # python only supports signals in main threads :/
-            return
-
-        if 'RADICAL_DEBUG' in os.environ :
-            signal.signal(signal.SIGUSR1, print_stacktraces) # signum 30
-            signal.signal(signal.SIGQUIT, print_stacktraces) # signum  3
-
-            try:
-                assert signal.SIGINFO
-                signal.signal(signal.SIGINFO, print_stacktraces) # signum 29
-            except AttributeError as e:
-                pass
-
-
-# ------------------------------------------------------------------------------
-#
-def print_stacktraces (signum=None, sigframe=None) :
-    """
-    signum, sigframe exist to satisfy signal handler signature requirements
-    """
-
-    this_tid = threading.currentThread().ident
-
-    # if multiple processes (ie. a process group) get the signal, then all
-    # traces are mixed together.  Thus we waid 'pid%100' milliseconds, in
-    # the hope that this will stagger the prints.
-    pid = int(os.getpid())
-    time.sleep((pid%100)/1000)
-
-    out  = "===============================================================\n"
-    out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
-    try :
-        info = get_stacktraces ()
-    except Exception as e:
-        out += 'skipping frame'
-        info = None
-
-    if info:
-        for tid, tname in info :
-
-            if tid == this_tid : marker = '[active]'
-            else               : marker = ''
-            out += "---------------------------------------------------------------\n"
-            out += "Thread: %s %s\n" % (tname, marker)
-            out += "  PID : %s \n"   % os.getpid()
-            out += "  TID : %s \n"   % tid
-            for fname, lineno, method, code in info[tid,tname] :
-
-                if code:
-                    code = code.strip()
-                if not code :
-                    code = '<no code>'
-
-              # # [:-1]: .py vs. .pyc :/
-              # if not (__file__[:-1] in fname and \
-              #         method in ['get_stacktraces', 'print_stacktraces']) :
-              # if method not in ['get_stacktraces', 'print_stacktraces'] :
-                if True:
-                    out += "  File: %s, line %d, in %s\n" % (fname, lineno, method)
-                    out += "        %s\n" % code
-
-    out += "==============================================================="
-
-    sys.stdout.write("%s\n" % out)
-
-    if 'RADICAL_DEBUG' in os.environ:
-        with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
-            f.write ("%s\n" % out)
-
-    return True
-
-
-# --------------------------------------------------------------------------
-#
-def get_stacktraces () :
-
-    id2name = {}
-    for th in threading.enumerate():
-        id2name[th.ident] = th.name
-
-    ret = dict()
-    for tid, stack in sys._current_frames().items():
-        ret[tid,id2name[tid]] = traceback.extract_stack(stack)
-
-    return ret
 
 
 # ------------------------------------------------------------------------------
@@ -445,6 +332,23 @@ def import_module(name):
     for s in name.split('.')[1:]:
         mod = getattr(mod, s)
     return mod
+
+
+# ------------------------------------------------------------------------------
+#
+def gettid():
+    """
+    Python is not able to give us the native thread ID.  We thus use a syscall
+    to do so.  Since this is not portable, we fall back to None in case of error
+    (Hi MacOS).
+    """
+    try:
+        import ctypes
+        SYS_gettid = 186
+        libc = ctypes.cdll.LoadLibrary('libc.so.6')
+        return str(libc.syscall(SYS_gettid))
+    except:
+        return None
 
 
 # ------------------------------------------------------------------------------

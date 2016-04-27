@@ -57,7 +57,7 @@ class Reporter(object):
                   'bold'         : '\033[1m',
                   'underline'    : '\033[4m',
                   'blink'        : '\033[5m',
-                  'inverse'      : '\033[7m', 
+                  'inverse'      : '\033[7m',
                   ''             : ''}
 
 
@@ -173,7 +173,6 @@ class Reporter(object):
             self.title(self._title)
 
 
-
     # --------------------------------------------------------------------------
     #
     def _out(self, color, msg):
@@ -191,15 +190,11 @@ class Reporter(object):
         # make sure we count tab length on line start correctly
         msg = msg.replace('\n\t', '\n        ')
 
-        # printable message (no unprintable chars)
-        pmsg = filter(lambda x: x in string.printable, msg)
-
         # make sure we don't extent a long line further
         if self._pos >= (self.LINE_LENGTH) and msg and msg[0] != '\n':
             while msg[0] == '\b':
                 msg = msg[1:]
             msg = '\n        %s' % msg
-                
 
         # special control characters:
         #
@@ -249,11 +244,17 @@ class Reporter(object):
             stream.write(msg)
             stream.write(self.COLORS['reset'])
             stream.write(self.COLOR_MODS['reset'])
-            stream.flush()
+            try:
+                stream.flush()
+            except Exception as e:
+                pass
 
         for stream in self._streams:
             stream.write(msg)
-            stream.flush()
+            try:
+                stream.flush()
+            except Exception as e:
+                pass
 
     # --------------------------------------------------------------------------
     #
@@ -283,7 +284,7 @@ class Reporter(object):
             elif c == 'L':
                 if segment:
                     self._out(color, "%s\n" % (self.LINE_LENGTH * segment))
-    
+
 
     # --------------------------------------------------------------------------
     #
@@ -294,7 +295,7 @@ class Reporter(object):
 
         settings = self._settings[which]
 
-        if color  : settings['color']   = color 
+        if color  : settings['color']   = color
         if style  : settings['style']   = style
         if segment: settings['segment'] = segment
 
@@ -312,7 +313,7 @@ class Reporter(object):
 
         self._format(title, self._settings['title'])
 
-    
+
     # --------------------------------------------------------------------------
     #
     def header(self, msg=''):
@@ -383,14 +384,14 @@ class Reporter(object):
     # --------------------------------------------------------------------------
     #
     def error(self, msg=''):
-        
+
         self._format(msg, self._settings['error'])
 
 
     # --------------------------------------------------------------------------
     #
     def exit(self, msg='', exit_code=0):
-        
+
         self.error(msg)
         sys.exit(exit_code)
 
@@ -407,9 +408,9 @@ class Reporter(object):
 if __name__ == "__main__":
 
     import radical.utils as ru
-    
+
     r = ru.Reporter(title='test')
-    
+
     r.header  ('header  \n')
     r.info    ('info    \n')
     r.progress('progress\n')

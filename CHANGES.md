@@ -5,6 +5,24 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.40 release                                                  2016-02-03
+--------------------------------------------------------------------------------
+
+  - add an algorithm to create balanced partitions of a space 
+  - add ssl support to mongodb_connect 
+  - allow fragment parsing in Url class
+  - allow reporter and debug log to coexist if log target is set. 
+  - fix default for get in dict mixin 
+  - fix type conversion for int, float configurables from env vars 
+  - implement reset_id_counters 
+
+
+Version 0.38 release                                                  2015-11-06
+--------------------------------------------------------------------------------
+
+  - support install on anaconda
+
+
 Version 0.37 release                                                  2015-10-15
 --------------------------------------------------------------------------------
 
@@ -135,4 +153,5 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
+
 
