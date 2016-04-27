@@ -4,6 +4,7 @@ import sys
 import time
 import pprint
 import signal
+import thread
 import threading
 import traceback
 
@@ -77,6 +78,9 @@ class DebugHelper (object) :
         Dump state, info in barrier file, and wait for it tou be touched or
         read or removed, then continue.  Leave no trace.
         """
+
+        if not 'RADICAL_DEBUG' in os.environ:
+            return
 
         try:
             pid = os.getpid()
@@ -251,5 +255,21 @@ def get_caller_name(skip=2):
 
     return ".".join(name)
 
-# --------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#
+def is_main_thread():
+    return isinstance(threading.current_thread(), threading._MainThread)
+
+
+# ------------------------------------------------------------------------------
+#
+def cancel_main_thread():
+    if not is_main_thread():
+        import thread
+        thread.interrupt_main()
+        sys.exit()
+
+
+# ------------------------------------------------------------------------------
 
