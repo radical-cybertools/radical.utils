@@ -121,6 +121,7 @@ class Thread(threading.Thread):
         self._state     = NEW
         self._result    = None
         self._exception = None
+        self._traceback = None
         self.daemon     = True
 
 
@@ -152,8 +153,7 @@ class Thread(threading.Thread):
 
         except Exception as e:
             tb = traceback.format_exc()
-            print "thread got exception: %s:%s%s" % (type(e).__name__, str(e), tb)
-
+            self._traceback = tb
             self._exception = e
             self._state     = FAILED
 
@@ -198,12 +198,18 @@ class Thread(threading.Thread):
     #
     def get_exception(self):
 
-        if  self._state == FAILED:
-            return self._exception 
-
-        return None
+        return self._exception
 
     exception = property(get_exception)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def get_traceback(self):
+
+        return self._traceback
+
+    traceback = property(get_traceback)
 
 
 # ------------------------------------------------------------------------------
