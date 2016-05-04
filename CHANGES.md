@@ -5,6 +5,23 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.41.RC1                                                      2016-05-04
+--------------------------------------------------------------------------------
+
+  - add a fs barrier to the debug helper 
+  - add get_traceback 
+  - clean up counter management 
+  - fix log handler 
+  - fix path creation for logfile output 
+  - fix thread inspection problem 
+  - include 'atfork' in RU 
+  - keep doc in sync with implementation 
+  - make sig checking conditional 
+  - make sure log level is string before calling "upper()" 
+  - monkeypatch python's logging module 
+  - scattered small fixes to logging 
+
+
 Version 0.40 release                                                  2016-02-03
 --------------------------------------------------------------------------------
 
@@ -153,5 +170,4 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
-
 
