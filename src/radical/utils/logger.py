@@ -176,7 +176,7 @@ class FSHandler(logging.FileHandler):
 
 # ------------------------------------------------------------------------------
 #
-def get_logger(name, target=None, path=None, level=None):
+def get_logger(name, target=None, path=None, level=None, header=True):
     """
     Get a logging handle.
 
@@ -192,6 +192,7 @@ def get_logger(name, target=None, path=None, level=None):
              '.'      : logfile named ./<name>.log
              <string> : logfile named <string>
     'level'  log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    'header' print some version info on log open
     """
 
     if not name:
@@ -323,21 +324,22 @@ def get_logger(name, target=None, path=None, level=None):
         logger.warn(level_warning)
 
     # if the given name points to a version or version_detail, log those
-    try:
-        logger.info("%-20s version: %s", 'python.interpreter', ' '.join(sys.version.split()))
-        tmp = import_module(name)
-        if hasattr(tmp, 'version_detail'):
-            logger.info("%-20s version: %s", name, getattr(tmp, 'version_detail'))
-        elif hasattr(tmp, 'version'):
-            logger.info("%-20s version: %s", name, getattr(tmp, 'version'))
-    except:
-        pass
+    if header:
+        try:
+            logger.info("%-20s version: %s", 'python.interpreter', ' '.join(sys.version.split()))
+            tmp = import_module(name)
+            if hasattr(tmp, 'version_detail'):
+                logger.info("%-20s version: %s", name, getattr(tmp, 'version_detail'))
+            elif hasattr(tmp, 'version'):
+                logger.info("%-20s version: %s", name, getattr(tmp, 'version'))
+        except:
+            pass
 
-    try:
-        logger.info("%-20s pid: %s", '', os.getpid())
-        logger.info("%-20s tid: %s", '', threading.current_thread().name)
-    except:
-        pass
+        try:
+            logger.info("%-20s pid: %s", '', os.getpid())
+            logger.info("%-20s tid: %s", '', threading.current_thread().name)
+        except:
+            pass
 
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
