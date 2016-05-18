@@ -1,5 +1,5 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
@@ -20,6 +20,7 @@ from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 
+
 # import utility methods
 from .atfork         import *
 from .logger         import *
@@ -35,8 +36,11 @@ from .algorithms     import *
 # import decorators
 from .timing         import timed_method
 
+# imprt submodules
+
 # import sub-modules
-# from config         import Configuration, Configurable, ConfigOption, getConfig
+from .               import scheduler
+# from .               import config
 
 
 # ------------------------------------------------------------------------------
