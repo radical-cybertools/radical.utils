@@ -42,11 +42,11 @@ else:
     PPN       = 24              # cores per node
     
     REQ_MIN   = 1               # minimal number of cores requested
-    REQ_MAX   = 72              # maximal number of cores requested
+    REQ_MAX   = 10              # maximal number of cores requested
     REQ_STEP  = 1               # step size in request range above
-    REQ_BULK  = 1024            # number of requests to handle in bulk
+    REQ_BULK  = 1024*16         # number of requests to handle in bulk
     
-    REL_PROB  = 0.05            # probablility of release per cycle
+    REL_PROB  = 0.01            # probablility of release per cycle
 
     ALIGN     = True            # small req on single node
     SCATTER   = True            # allow scattered as fallback
@@ -116,10 +116,18 @@ def drive_scheduler(scheduler, viz):
             dealloc_stop = time.time()
             dealloc_total += len(to_release)
 
+            if (alloc_stop == alloc_start):
+                alloc_rate = -1
+            else:
+                alloc_rate   = len(requests)   / (alloc_stop   - alloc_start)
+
+            if (dealloc_stop == dealloc_start):
+                dealloc_rate = -1
+            else:
+                dealloc_rate = len(to_release) / (dealloc_stop - dealloc_start)
+
             print "%6d alloc (%8.1f/s)  %6d dealloc (%8.1f/s)  %6d free" % \
-                    (alloc_total,   len(requests)  /(  alloc_stop-  alloc_start), 
-                     dealloc_total, len(to_release)/(dealloc_stop-dealloc_start), 
-                     scheduler._cores.count())
+                    (alloc_total, alloc_rate, dealloc_total, dealloc_rate, scheduler._cores.count())
 
         
 
