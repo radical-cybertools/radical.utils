@@ -46,9 +46,9 @@ else:
     REQ_STEP  = 1               # step size in request range above
     REQ_BULK  = 1024            # number of requests to handle in bulk
     
-    REL_PROB  = 0.05          # probablility of release per cycle
+    REL_PROB  = 0.05            # probablility of release per cycle
 
-    ALIGN     = False          # small req on single node
+    ALIGN     = True            # small req on single node
     SCATTER   = True            # allow scattered as fallback
 
 
@@ -57,7 +57,7 @@ else:
 def drive_scheduler(scheduler, viz):
         
     # leave some time for win mapping
-    time.sleep(2)
+    time.sleep(3)
 
     # ------------------------------------------------------------------------------
     #
@@ -78,11 +78,11 @@ def drive_scheduler(scheduler, viz):
     # ------------------------------------------------------------------------------
     
     
-    a_times = list()        # list of timings for allocation cycles
-    d_times = list()        # list of timings for de-allocation cycles
-          
     running = list()
     done    = list()
+
+    alloc_total   = 0
+    dealloc_total = 0
     
     while True:
 
@@ -91,17 +91,16 @@ def drive_scheduler(scheduler, viz):
         #   free  512 chunks of  8 or 16 cores (random)
         for cycle in range(CYCLES):
 
-            print '.'
-        
             # we randomly request cores in a certain range
             requests = list()
             for _ in range(REQ_BULK):
                 requests.append(random.randint(REQ_MIN,REQ_MAX))
         
-            start = time.time()
+            alloc_start = time.time()
             for req in requests:
                 running.append(scheduler.alloc(req))
-            stop = time.time()
+            alloc_stop = time.time()
+            alloc_total += len(requests)
         
             # build a list of release candidates and, well, release them
             to_release = list()
@@ -110,13 +109,19 @@ def drive_scheduler(scheduler, viz):
                     to_release.append(running[idx])
                     del(running[idx])
         
-            start = time.time()
+            dealloc_start = time.time()
             for res in to_release:
                 scheduler.dealloc(res)
                 done.append(res)
-            stop = time.time()
+            dealloc_stop = time.time()
+            dealloc_total += len(to_release)
+
+            print "%6d alloc (%8.1f/s)  %6d dealloc (%8.1f/s)  %6d free" % \
+                    (alloc_total,   len(requests)  /(  alloc_stop-  alloc_start), 
+                     dealloc_total, len(to_release)/(dealloc_stop-dealloc_start), 
+                     scheduler._cores.count())
+
         
-        print '-'
 
 class MyViz(QtGui.QWidget):
 
