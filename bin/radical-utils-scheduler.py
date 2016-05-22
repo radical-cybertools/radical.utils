@@ -15,7 +15,7 @@ import radical.utils as ru
 dh = ru.DebugHelper()
 
 CORES   = 1024*1024  # number of cores to schedule over (sqrt must be int)
-PPN     = 32         # cores per node, used for alignment
+PPN     =   24       # cores per node, used for alignment
         
 ALIGN   = True       # align small req onto single node
 SCATTER = True       # allow scattered allocattions as fallback
@@ -59,7 +59,7 @@ def drive_scheduler(scheduler, viz, term, lock):
         REQ_MIN   =    1            # minimal number of cores requested
         REQ_MAX   =   64            # maximal number of cores requested
         REQ_BULK  = 1024            # number of requests to handle in bulk
-        REL_PROB  = 0.011           # probablility of release per cycle
+        REL_PROB  = 0.01            # probablility of release per cycle
 
         # ----------------------------------------------------------------------
 
@@ -174,17 +174,17 @@ def drive_scheduler(scheduler, viz, term, lock):
         print ' %3d : %5d' % (i, stats['node_free'].get(i, ''))
 
     print
-    print 'total cores  : %7d' % stats['total']
-    print '      free   : %7d' % stats['free']
-    print '      busy   : %7d' % stats['busy']
-    print '      alloc  : %7d' % total_alloc
-    print '      align  : %7d' % total_align
-    print '      scatter: %7d' % total_scatter
-    print '      dealloc: %7d' % total_dealloc
-    print '      runtime: %7.1fs'  % (total_stop - total_start)
-    print '      ops/sec: %7.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start))
+    print 'total cores  : %9d' % stats['total']
+    print '      free   : %9d' % stats['free']
+    print '      busy   : %9d' % stats['busy']
+    print '      alloc  : %9d' % total_alloc
+    print '      align  : %9d' % total_align
+    print '      scatter: %9d' % total_scatter
+    print '      dealloc: %9d' % total_dealloc
+    print '      runtime: %9.1fs'  % (total_stop - total_start)
+    print '      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start))
 
-    if True:
+    if False:
         idx = 0
         with open('cores', 'w') as f:
             node = '%5d : ' % idx

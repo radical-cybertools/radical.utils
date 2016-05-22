@@ -175,12 +175,12 @@ class BitarrayScheduler(SchedulerBase):
                 scattered = True
 
         if not loc:
-            with open('ba_cores.bin', 'w') as f:
-                self._cores.tofile(f)
-            with open('ba_pat.bin', 'w') as f:
-                pat.tofile(f)
-            with open('ba_req.bin', 'w') as f:
-                f.write('%d\n' % req)
+          # with open('ba_cores.bin', 'w') as f:
+          #     self._cores.tofile(f)
+          # with open('ba_pat.bin', 'w') as f:
+          #     pat.tofile(f)
+          # with open('ba_req.bin', 'w') as f:
+          #     f.write('%d\n' % req)
             self._pos = 0
             raise RuntimeError('out of cores (%s cores requested)' % req)
 
@@ -215,6 +215,7 @@ class BitarrayScheduler(SchedulerBase):
 
         req, loc, scattered, _ = res
 
+      # print 'd1 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
         if scattered:
             # we got a scattered list of cores
             for i in loc:
@@ -222,7 +223,9 @@ class BitarrayScheduler(SchedulerBase):
                 self._cores[i] = True
         else:
             # we got a continuous block
-            self._cores.setrange(loc, loc+req, True)
+            self._cores.setrange(loc, loc+req-1, True)
+
+      # print 'd1 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
 
 
     # --------------------------------------------------------------------------
