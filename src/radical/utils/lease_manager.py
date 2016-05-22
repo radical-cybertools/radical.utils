@@ -390,11 +390,6 @@ class LeaseManager (object) :
 
             for pool_id in self._pools :
 
-                if instance in self._pools [pool_id]['freed']:
-                    # for now we ignore double-frees
-                    # FIXME: log warning
-                    return
-
                 for obj in self._pools [pool_id]['objects'] :
                     if  instance is not obj :
                         # this is not the object you are looking for.
@@ -423,7 +418,9 @@ class LeaseManager (object) :
                     # object has been released
                     return 
 
-            raise RuntimeError ("cannot release object -- not managed")
+            # FIXME: log warning
+            # for now we ignore double-frees
+            # raise RuntimeError ("cannot release object -- not managed")
 
 
 # ------------------------------------------------------------------------------
