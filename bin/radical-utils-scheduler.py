@@ -18,7 +18,7 @@ CORES   = 1024*1024  # number of cores to schedule over (sqrt must be int)
 PPN     = 32         # cores per node, used for alignment
         
 ALIGN   = True       # align small req onto single node
-SCATTER = False      # allow scattered allocattions as fallback
+SCATTER = True       # allow scattered allocattions as fallback
 
 # ------------------------------------------------------------------------------
 #
@@ -59,13 +59,14 @@ def drive_scheduler(scheduler, viz, term, lock):
         REQ_MIN   =    1            # minimal number of cores requested
         REQ_MAX   =   64            # maximal number of cores requested
         REQ_BULK  = 1024            # number of requests to handle in bulk
-        REL_PROB  = 0.02            # probablility of release per cycle
+        REL_PROB  = 0.011           # probablility of release per cycle
 
         # ----------------------------------------------------------------------
 
         running = list()
         done    = list()
 
+        total_start   = time.time()
         total_alloc   = 0
         total_dealloc = 0
         total_align   = 0
@@ -74,10 +75,14 @@ def drive_scheduler(scheduler, viz, term, lock):
         # for range 1024:
         #   find 1024 chunks of 16  cores
         #   free  512 chunks of  8 or 16 cores (random)
+        abort_cycles = False
         for cycle in range(CYCLES):
 
             if term.is_set():
                 return
+
+            if abort_cycles:
+                break
 
             # we randomly request cores in a certain range
             requests = list()
@@ -87,8 +92,12 @@ def drive_scheduler(scheduler, viz, term, lock):
             tmp = list()
             with lock:
                 start = time.time()
-                for req in requests:
-                    tmp.append(scheduler.alloc(req))
+                try:
+                    for req in requests:
+                        tmp.append(scheduler.alloc(req))
+                except Exception as e:
+                    print e
+                    abort_cycles = True
                 stop = time.time()
 
             for res in tmp:
@@ -104,37 +113,51 @@ def drive_scheduler(scheduler, viz, term, lock):
             else:
                 alloc_rate = len(requests) / (stop - start)
 
-        
-            # build a list of release candidates and, well, release them
-            to_release = list()
-            for idx in reversed(range(len(running))):
-                if random.random() < REL_PROB:
-                    to_release.append(running[idx])
-                    del(running[idx])
-        
-            with lock:
-                start = time.time()
-                for res in to_release:
-                    scheduler.dealloc(res)
-                    done.append(res)
-                stop   = time.time()
-                total_dealloc += len(to_release)
-
-            if (stop == start):
+            if abort_cycles:
+                # don't dealloc, as it screws with statistics
                 dealloc_rate = -1
+                
             else:
-                dealloc_rate = len(to_release) / (stop - start)
+        
+                # build a list of release candidates and, well, release them
+                to_release = list()
+                for idx in reversed(range(len(running))):
+                    if random.random() < REL_PROB:
+                        to_release.append(running[idx])
+                        del(running[idx])
+        
+                with lock:
+                    start = time.time()
+                    try:
+                        for res in to_release:
+                            scheduler.dealloc(res)
+                            done.append(res)
+                    except Exception as e:
+                        print e
+                        abort_cycles = True
+                    stop   = time.time()
+                    total_dealloc += len(to_release)
+
+                if (stop == start):
+                    dealloc_rate = -1
+                else:
+                    dealloc_rate = len(to_release) / (stop - start)
 
             print "%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
                     (cycle, total_alloc, alloc_rate, 
                             total_dealloc, dealloc_rate, 
                             scheduler._cores.count())
-        print 'all cycles done'
+
+        if abort_cycles:
+            print 'cycle aborted'
+        else:
+            print 'cycles done'
 
     except Exception as e:
         import traceback
         print traceback.format_exc(sys.exc_info())
    
+    total_stop = time.time()
     stats = scheduler.get_stats()
     
     print
@@ -144,31 +167,38 @@ def drive_scheduler(scheduler, viz, term, lock):
         print '%5d : %5s : %5s' % (count, 
                 stats['free_dist'].get(count, ''), 
                 stats['busy_dist'].get(count, ''))
-    
+
     print
     print 'free : nodes'
     for i in sorted(stats['node_free'].keys()):
         print ' %3d : %5d' % (i, stats['node_free'].get(i, ''))
-    
-    print
-    print 'total cores: %7d' % stats['total'] 
-    print '      free : %7d' % stats['free'] 
-    print '      busy : %7d' % stats['busy'] 
-    
-  # idx = 0
-  # with open('ba', 'w') as f:
-  #     node = ''
-  #     for b in scheduler._cores:
-  #         if not idx % PPN:
-  #             node += '\n'
-  #         if b:
-  #             node += '#'
-  #         else:
-  #             node += ' '
-  #         idx += 1
-  #     f.write(node)
 
-    print '\nuse <ctrl-q> in viz-window to quit\n'
+    print
+    print 'total cores  : %7d' % stats['total']
+    print '      free   : %7d' % stats['free']
+    print '      busy   : %7d' % stats['busy']
+    print '      alloc  : %7d' % total_alloc
+    print '      align  : %7d' % total_align
+    print '      scatter: %7d' % total_scatter
+    print '      dealloc: %7d' % total_dealloc
+    print '      runtime: %7.1fs'  % (total_stop - total_start)
+    print '      ops/sec: %7.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start))
+
+    if True:
+        idx = 0
+        with open('cores', 'w') as f:
+            node = '%5d : ' % idx
+            for b in scheduler._cores:
+                if not idx % PPN:
+                    node += '\n'
+                if b:
+                    node += '#'
+                else:
+                    node += ' '
+                idx += 1
+            f.write(node)
+
+    print '\nuse <Esc> in viz-window to quit\n'
 
 
 # ------------------------------------------------------------------------------
@@ -179,11 +209,7 @@ class MyViz(QtGui.QWidget):
 
         QtGui.QWidget.__init__(self)
 
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self, self.close)
-
-      # self.actionExit = QtGui.QAction(_('E&xit'),self)
-      # self.actionExit.setShortcut('Ctrl+Q')
-      # self.connect(self.actionExit, QtCore.SIGNAL('triggered()'), QtCore.SLOT('close()'))
+        QtGui.QShortcut(QtGui.QKeySequence("Esc"), self, self.close)
 
         self._scheduler = scheduler
         self._term      = term
