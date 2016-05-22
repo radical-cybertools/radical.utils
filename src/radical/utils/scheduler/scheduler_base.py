@@ -19,6 +19,12 @@ class SchedulerBase(object):
         """ 
         allocate a slice of the available resources to satisfy the request, and
         return that allocation.
+
+        The returned allocation is a tuple [loc, req], where 'req' is the reqest
+        passed as argument, and 'loc' is eithen one of the following:
+          - int:          start index from the beginning of the resource list
+          - list of ints: set of indexes in the resource list
+
         """
         raise NotImplementedError('base class is virtual')
 

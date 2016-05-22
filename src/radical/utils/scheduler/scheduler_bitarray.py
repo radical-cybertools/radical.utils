@@ -43,9 +43,10 @@ class BitarrayScheduler(SchedulerBase):
     #
     def get_layout(self):
 
-        return {'cores' : 1024*1024,
-                'cols'  : 1024,
-                'rows'  : 1024}
+        import math
+        return {'cores' : self._size,
+                'rows'  : math.sqrt(self._size),
+                'cols'  : math.sqrt(self._size)}
 
 
     # --------------------------------------------------------------------------
@@ -57,62 +58,101 @@ class BitarrayScheduler(SchedulerBase):
 
     # --------------------------------------------------------------------------
     #
-    def _align(self, pat, req, res):
+    def _align(self, pat, req, loc):
 
+        log = list()
         if not self._flag_align:
-            return res
+            # alignment is disabled
+            return loc, False
 
-        # we only align continuous blocks
-        if isinstance(res[0], list):
-            return
+        if req > self._ppn:
+            # we can't align allocations spanning nodes
+            return loc, False
 
-        # make sure that small requests remain on a single node
-        if res and self._flag_align  and req < self._ppn:
+        # we check if the allocation is on a single node.  If that is not the
+        # case, we search again from the point of allocation, and check again.
+        # We do that until we cycle around the full core list once, reaching 
+        # the original location again
+        orig_loc   = loc
+        pos        = loc
+        start_node =  pos            / self._ppn
+        end_node   = (pos + req - 1) / self._ppn
 
-            start_node =  res[0]        / self._ppn
-            end_node   = (res[0] + req) / self._ppn
+        if start_node == end_node:
+            # already aligned
+            return loc, False
 
-            while res and (start_node != end_node):
+      # print ' > : %5d : %5d : %5d : %3d - %3d' % (pos, req, loc, start_node, end_node)
+        log.append(' > : %5d : %5d : %5d : %3d - %3d' % (pos, req, loc, start_node, end_node))
 
-                # we need to renew the allocation -- we search further from pos
-                # until we find something
-                res = self._cores.search(pat, 1, res[0]+1)
+        # we search from pos=loc to the end of cores, then rewind to pos=0
+        # and search again from the beginning until again pos=loc.
+        aligned    = False
+        rewound    = False
+        while (pos <= self._size and not rewound) or \
+              (pos <  orig_loc   and     rewound)    :
+        
+            if pos > self._size:
+                pos     = 0
+                rewound = True
 
-                if res:
-                    start_node =  res[0]        / self._ppn
-                    end_node   = (res[0] + req) / self._ppn
+            # we need to renew the allocation -- we search further from pos
+            # until we find something
+            loc = self._cores.search(pat, 1, pos+1)
 
-            # we either found a suitable place, or we reached end of cores.  In the
-            # latter case, we will try once more from the beginning.
-            if not res:
+            if not loc:
+                loc     = -1
+                pos     =  0
+                rewound = True
+                continue
 
-                res = self._cores.search(pat, 1, 0)
+            pos        = loc[0]
+            start_node =  pos            / self._ppn
+            end_node   = (pos + req - 1) / self._ppn
 
-                if not res:
-                    # could not align, restart search from origin
-                    res = self._cores.search(pat, 1, 0)
+          # print '>> : %5d : %5d : %5d : %3d - %3d' % (pos, req, pos, start_node, end_node)
+            log.append('>> : %5d : %5d : %5d : %3d - %3d' % (pos, req, pos, start_node, end_node))
 
-                if not res:
-                    raise RuntimeError('out of cheese')
+            if start_node == end_node:
+                # found an alignment
+                log.append('=> : %5d : %5d : %5d : %3d - %3d' % (pos, req, pos, start_node, end_node))
+                return pos, True
 
-        return res
+            # found new loc, but no dice wrt. alignment -- try again
+            loc = pos
+
+        print pos
+        print req
+        print loc
+        print start_node
+        print end_node
+        log.append('!> : %5d : %5d : %5d : %3d - %3d' % (pos, req, loc, start_node, end_node))
+        print '\n'.join(log)
+        raise RuntimeError('alignment error (%s cores requested)' % req)
 
 
     # ------------------------------------------------------------------------------
     #
     def alloc(self, req):
 
-        loc = list()
-        pat = ba(req)   # keep dict of patterns?
+        scattered = False
+        aligned   = False
+        loc       = list()
+        pat       = ba(req)   # keep dict of patterns?
         pat.setall(True)
+
+      # print ' 0 : %5d : %5d : ----- : %s' % (self._pos, req, self._cores)
 
         # simple search
         loc = self._cores.search(pat, 1, self._pos)
 
         if not loc:
-            # FIXME: assume we first search from pos 100 to 1000, then
-            #        rewind, then search from 0 to 1000 -- that is 900
-            #        cores searched twice.
+            # FIXME: assume we first search from pos 100 to 1000, then rewind, 
+            #        then search from 0 to 1000, 900 cores being searched twice.
+            #        We should add an 'end_pos' parameter to ba.search.
+            #        But then again, rewind should be rare if cores are on
+            #        average much larger than requests -- and if that is not the
+            #        case, we won't be able to allocate many requests anyway...
             self._pos = 0
             loc = self._cores.search(pat, 1, self._pos)
 
@@ -121,21 +161,13 @@ class BitarrayScheduler(SchedulerBase):
             loc = self._cores.search(self._one, req, self._pos)
             if loc:
                 self._pos = loc[-1]
+                scattered = True
 
         if not loc:
             self._pos = 0
-            raise RuntimeError('out of cheese error')
+            raise RuntimeError('out of cores (%s cores requested)' % req)
 
-        if self._flag_align:
-            loc = self._align(pat, req, loc)
-
-        if not loc:
-            self._pos = 0
-            raise RuntimeError('cheese alignment error')
-
-        loc = loc[0]
-
-        if isinstance(loc, list):
+        if scattered:
             # we got a scattered list of cores
             self._pos = loc[-1] + 1
             for i in loc:
@@ -143,19 +175,30 @@ class BitarrayScheduler(SchedulerBase):
                 self._cores[i] = False
         else:
             # we got a continuous block
-            self._pos = loc + 1
-            self._cores.setrange(loc, loc+req, False)
+            loc = loc[0]
 
-        return [req, loc]
+          # print ' 1 : %5d : %5d : %5d : %s' % (self._pos, req, loc, '1')
+            if self._flag_align:
+                loc, aligned = self._align(pat, req, loc)
+          # print ' 2 : %5d : %5d : %5d : %s' % (self._pos, req, loc, self._cores)
+
+            self._pos = loc + req
+            self._cores.setrange(loc, self._pos-1, False)
+          # print ' 3 : %5d : %5d : %5d : %s' % (self._pos, req, loc, self._cores)
+
+      # print ' 4 : %5d : %5d : %5d : %s' % (self._pos, req, loc, self._cores)
+      # print
+
+        return [req, loc, scattered, aligned]
 
 
     # --------------------------------------------------------------------------
     #
     def dealloc(self, res):
 
-        req, loc = res
+        req, loc, scattered, _ = res
 
-        if isinstance(loc, list):
+        if scattered:
             # we got a scattered list of cores
             for i in loc:
                 # FIXME: bulk op?
@@ -163,6 +206,53 @@ class BitarrayScheduler(SchedulerBase):
         else:
             # we got a continuous block
             self._cores.setrange(loc, loc+req, True)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def get_stats(self):
+
+        # determine frequency and length of stretches of free and busy cores
+        free_dict = dict()
+        free_cnt = 0
+        busy_dict = dict()
+        busy_cnt = 0
+        for b in self._cores:
+            if b:
+                free_cnt += 1
+                if busy_cnt:
+                    if busy_cnt not in busy_dict:
+                        busy_dict[busy_cnt] = 0
+                    busy_dict[busy_cnt] += 1
+                    busy_cnt = 0
+            else:
+                busy_cnt += 1
+                if free_cnt:
+                    if free_cnt not in free_dict:
+                        free_dict[free_cnt] = 0
+                    free_dict[free_cnt] += 1
+                    free_cnt = 0
+
+        # determine frequency of free core counts per node
+        node = 0
+        node_free = dict()
+        for i in range(self._ppn+1):
+            node_free[i] = 0
+        while node * (self._ppn+1) < self._size:
+            free_count = 0
+            for i in range(self._ppn):
+                if self._cores[node*self._ppn+i]:
+                    free_count += 1
+            node_free[free_count] += 1
+            node += 1
+
+
+        return {'total'     : self._size, 
+                'free'      : self._cores.count(),
+                'busy'      : self._size - self._cores.count(),
+                'free_dist' : free_dict, 
+                'busy_dist' : busy_dict, 
+                'node_free' : node_free}
 
 
 # ------------------------------------------------------------------------------

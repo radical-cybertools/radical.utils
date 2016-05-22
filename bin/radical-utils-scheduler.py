@@ -4,6 +4,7 @@ import sys
 import time
 import numpy
 import random
+import thread
 import threading as mt
 
 from   PyQt4 import QtCore
@@ -11,96 +12,98 @@ from   PyQt4 import QtGui
 
 import radical.utils as ru
 
-CYCLES  = 3 
-VERBOSE = True
-VERBOSE = False
-TEST    = True
-TEST    = False
+dh = ru.DebugHelper()
 
-if TEST:
-    ROWS      = 32              # for plotting
-    COLUMNS   = 32              # for plotting
-    CORES     = ROWS * COLUMNS  # total number of cores
-    PPN       = 16              # cores per node
-    
-    REQ_MIN   = 1               # minimal number of cores requested
-    REQ_MAX   = 16              # maximal number of cores requested
-    REQ_STEP  = 1               # step size in request range above
-    REQ_BULK  = 10              # number of requests to handle in bulk
-    
-    REL_PROB  = 0.200           # probablility of release per cycle
-              
-    ALIGN     = True            # small req on single node
-    SCATTER   = True            # allow scattered as fallback
-
-else:
-    ROWS      = 1024            # for plotting
-    COLUMNS   = 1024            # for plotting
-    CORES     = ROWS * COLUMNS  # total number of cores
-    CORES     = 1024*1024       # total number of cores
-    COLUMNS   = 1024            # for plotting
-    PPN       = 24              # cores per node
-    
-    REQ_MIN   = 1               # minimal number of cores requested
-    REQ_MAX   = 10              # maximal number of cores requested
-    REQ_STEP  = 1               # step size in request range above
-    REQ_BULK  = 1024*16         # number of requests to handle in bulk
-    
-    REL_PROB  = 0.01            # probablility of release per cycle
-
-    ALIGN     = True            # small req on single node
-    SCATTER   = True            # allow scattered as fallback
-
+CORES   = 1024*1024  # number of cores to schedule over (sqrt must be int)
+PPN     = 32         # cores per node, used for alignment
+        
+ALIGN   = True       # align small req onto single node
+SCATTER = False      # allow scattered allocattions as fallback
 
 # ------------------------------------------------------------------------------
 #
-def drive_scheduler(scheduler, viz):
+def drive_scheduler(scheduler, viz, term, lock):
         
-    # leave some time for win mapping
-    time.sleep(3)
+    try:
+        # leave some time for win mapping
+        time.sleep(1)
 
-    # ------------------------------------------------------------------------------
-    #
-    # This implementation will first create a number of requests, specifically
-    # 'REQ_BULK' requests, and will allocate all of them, storing them in
-    # a 'running' list.  After that requested list is allocated, all items in
-    # 'running' are up for release, with a certain probaility REL_PROB.  Eg., for 
-    # 'REL_PROB = 0.01', entries will be approx. be released after approx 100 
-    # cycles.
-    #
-    # The above cycle repeats, but with a now (potentially) non-empty 
-    # 'running' list to which the alloc portion will append.  The load on the
-    # scheduler is thus continuously increasing as cores remain allocated over
-    # cycles.
-    #
-    # This scheme repeats for CYCLES cycles.
-    #
-    # ------------------------------------------------------------------------------
-    
-    
-    running = list()
-    done    = list()
+        # ----------------------------------------------------------------------
+        #
+        # This implementation will first create a number of requests,
+        # specifically 'REQ_BULK' requests, each randomly distributed between
+        # 'REQ_MIN' and 'REQ_MAX'.  Those requests are the scheduled via calls
+        # to 'scheduler.allocate(req)', and the results are stored in
+        # a 'running' list.
+        #
+        # After that requested bulk is allocated, all items in 'running'
+        # (including those allocated in earlier cycles)  are up for release,
+        # with a certain probaility REL_PROB.  For example, for 'REL_PROB
+        # = 0.01',  approximately 1% of the entries will be released, via a call
+        # to 'scheduler.deallocate(res)'.
+        #
+        # The above cycle repeats 'CYCLES' times, with a (potentially) ever
+        # increasing 'running' list, The load on the scheduler is thus
+        # continuously increasing as cores remain allocated over cycles, and the
+        # scheduler needs to search harder for free cores
+        #
+        # This thread finishes when:
+        #   - all cycles are completed
+        #   - the scheduler cannot find anough cores for a request
+        #   - the scheduler can't align an allocation (if 'ALIGN' is set)
+        #
+        # ----------------------------------------------------------------------
+        
+        CYCLES    = 1024            # number of cycles 
+        
+        REQ_MIN   =    1            # minimal number of cores requested
+        REQ_MAX   =   64            # maximal number of cores requested
+        REQ_BULK  = 1024            # number of requests to handle in bulk
+        REL_PROB  = 0.02            # probablility of release per cycle
 
-    alloc_total   = 0
-    dealloc_total = 0
-    
-    while True:
+        # ----------------------------------------------------------------------
+
+        running = list()
+        done    = list()
+
+        total_alloc   = 0
+        total_dealloc = 0
+        total_align   = 0
+        total_scatter = 0
 
         # for range 1024:
         #   find 1024 chunks of 16  cores
         #   free  512 chunks of  8 or 16 cores (random)
         for cycle in range(CYCLES):
 
+            if term.is_set():
+                return
+
             # we randomly request cores in a certain range
             requests = list()
             for _ in range(REQ_BULK):
                 requests.append(random.randint(REQ_MIN,REQ_MAX))
         
-            alloc_start = time.time()
-            for req in requests:
-                running.append(scheduler.alloc(req))
-            alloc_stop = time.time()
-            alloc_total += len(requests)
+            tmp = list()
+            with lock:
+                start = time.time()
+                for req in requests:
+                    tmp.append(scheduler.alloc(req))
+                stop = time.time()
+
+            for res in tmp:
+                total_alloc += 1
+                if res[2]:
+                    total_scatter += 1
+                if res[3]:
+                    total_align += 1
+            running += tmp
+
+            if (stop == start):
+                alloc_rate = -1
+            else:
+                alloc_rate = len(requests) / (stop - start)
+
         
             # build a list of release candidates and, well, release them
             to_release = list()
@@ -109,47 +112,95 @@ def drive_scheduler(scheduler, viz):
                     to_release.append(running[idx])
                     del(running[idx])
         
-            dealloc_start = time.time()
-            for res in to_release:
-                scheduler.dealloc(res)
-                done.append(res)
-            dealloc_stop = time.time()
-            dealloc_total += len(to_release)
+            with lock:
+                start = time.time()
+                for res in to_release:
+                    scheduler.dealloc(res)
+                    done.append(res)
+                stop   = time.time()
+                total_dealloc += len(to_release)
 
-            if (alloc_stop == alloc_start):
-                alloc_rate = -1
-            else:
-                alloc_rate   = len(requests)   / (alloc_stop   - alloc_start)
-
-            if (dealloc_stop == dealloc_start):
+            if (stop == start):
                 dealloc_rate = -1
             else:
-                dealloc_rate = len(to_release) / (dealloc_stop - dealloc_start)
+                dealloc_rate = len(to_release) / (stop - start)
 
-            print "%6d alloc (%8.1f/s)  %6d dealloc (%8.1f/s)  %6d free" % \
-                    (alloc_total, alloc_rate, dealloc_total, dealloc_rate, scheduler._cores.count())
+            print "%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
+                    (cycle, total_alloc, alloc_rate, 
+                            total_dealloc, dealloc_rate, 
+                            scheduler._cores.count())
+        print 'all cycles done'
 
-        
+    except Exception as e:
+        import traceback
+        print traceback.format_exc(sys.exc_info())
+   
+    stats = scheduler.get_stats()
+    
+    print
+    print '\ncores :  free :  busy'
+    counts = set(stats['free_dist'].keys() + stats['busy_dist'].keys())
+    for count in sorted(counts):
+        print '%5d : %5s : %5s' % (count, 
+                stats['free_dist'].get(count, ''), 
+                stats['busy_dist'].get(count, ''))
+    
+    print
+    print 'free : nodes'
+    for i in sorted(stats['node_free'].keys()):
+        print ' %3d : %5d' % (i, stats['node_free'].get(i, ''))
+    
+    print
+    print 'total cores: %7d' % stats['total'] 
+    print '      free : %7d' % stats['free'] 
+    print '      busy : %7d' % stats['busy'] 
+    
+  # idx = 0
+  # with open('ba', 'w') as f:
+  #     node = ''
+  #     for b in scheduler._cores:
+  #         if not idx % PPN:
+  #             node += '\n'
+  #         if b:
+  #             node += '#'
+  #         else:
+  #             node += ' '
+  #         idx += 1
+  #     f.write(node)
 
+    print '\nuse <ctrl-q> in viz-window to quit\n'
+
+
+# ------------------------------------------------------------------------------
+#
 class MyViz(QtGui.QWidget):
 
-    def __init__(self, scheduler):
+    def __init__(self, scheduler, term, lock):
 
         QtGui.QWidget.__init__(self)
+
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self, self.close)
+
+      # self.actionExit = QtGui.QAction(_('E&xit'),self)
+      # self.actionExit.setShortcut('Ctrl+Q')
+      # self.connect(self.actionExit, QtCore.SIGNAL('triggered()'), QtCore.SLOT('close()'))
+
         self._scheduler = scheduler
+        self._term      = term
+        self._lock      = lock
 
         self._layout = self._scheduler.get_layout()
         self._rows   = self._layout['rows']
         self._cols   = self._layout['cols']
         self._size   = self._layout['cores']
 
-        self.resize(1024, 1024)
+        self.resize(self._rows+5, self._cols+5)
         self.horizontalLayout = QtGui.QHBoxLayout(self)
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setMargin(0)
         self.scrollArea = QtGui.QScrollArea(self)
-        self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.scrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.scrollArea.setWidgetResizable(False)
         self.scrollAreaWidgetContents = QtGui.QWidget()
         self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 416, 236))
@@ -175,33 +226,70 @@ class MyViz(QtGui.QWidget):
         ### DISPLAY WINDOWS
         self.show()
 
+        self._thr = mt.Thread(target=self.time_updates)
+        self._thr.start()
+
+    
+
+    # --------------------------------------------------------------------------
+    #
+    def close(self):
+
+        self._term.set()
+
+    
+
+    # --------------------------------------------------------------------------
+    #
+    def __del__(self):
+
+        self._term.set()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def time_updates(self):
+
+        while not self._term.is_set():
+          # time.sleep(0.01)
+            with self._lock:
+                vals = scheduler.get_map().unpack()
+
+            for i in range(len(vals)):
+                self._pmap.data[i] = vals[i] 
+
 
     # --------------------------------------------------------------------------
     #
     def updateData(self):
-    
-        vals = scheduler.get_map().unpack()
-        for i in range(len(vals)):
-            self._pmap.data[i] = vals[i] 
-    
-        QI  = QtGui.QImage(self._pmap.data, self._cols, self._rows, QtGui.QImage.Format_Indexed8)    
+
+        if self._term.is_set():
+            sys.exit()
+
+        QI = QtGui.QImage(self._pmap.data, self._cols, self._rows, 
+             QtGui.QImage.Format_Indexed8)    
         QI.setColorTable(self._colors)
         self.label.setPixmap(QtGui.QPixmap.fromImage(QI))    
-    
+
 
 # ------------------------------------------------------------------------------
 #
 if __name__ == "__main__":
 
-    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : 1024*1024, 
-                                                'ppn'     : 32, 
+    lock      = mt.RLock()
+    term      = mt.Event()
+    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : CORES, 
+                                                'ppn'     : PPN, 
                                                 'align'   : ALIGN, 
                                                 'scatter' : SCATTER})
     app = QtGui.QApplication(sys.argv)
-    viz = MyViz(scheduler)
-
-    thr = mt.Thread(target=drive_scheduler, args=[scheduler, viz])
+    viz = MyViz(scheduler, term, lock)
+    thr = mt.Thread(target=drive_scheduler, args=[scheduler, viz, term, lock])
     thr.start()
 
-    sys.exit(app.exec_())
+    app.exec_()
+    thr.join()
+
+#
+# ------------------------------------------------------------------------------
 	
