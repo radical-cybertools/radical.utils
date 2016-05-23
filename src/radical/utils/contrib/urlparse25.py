@@ -29,7 +29,7 @@ uses_params = ['ftp', 'hdl', 'prospero', 'http', 'imap',
                'https', 'shttp', 'rtsp', 'rtspu', 'sip', 'sips',
                'mms', '', 'sftp']
 uses_query = ['http', 'wais', 'imap', 'https', 'shttp', 'mms',
-              'gopher', 'rtsp', 'rtspu', 'sip', 'sips', '']
+              'gopher', 'rtsp', 'rtspu', 'sip', 'sips', 'srm', '']
 uses_fragment = ['ftp', 'hdl', 'http', 'gopher', 'news',
                  'nntp', 'wais', 'https', 'shttp', 'snews',
                  'file', 'prospero', '']
