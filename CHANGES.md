@@ -5,7 +5,7 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
-Version 0.41 release                                                  2016-06-02
+Version 0.41.1 release                                                2016-06-02
 --------------------------------------------------------------------------------
 
   - add fs barrier to debug helper 
