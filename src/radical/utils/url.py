@@ -423,10 +423,10 @@ class Url (object):
 
         path = self._urlobj.path
 
-        if  '?' in path :
-            (path, query) = path
+        if '?' in path:
+            (path, query) = path.split('?')
 
-        return self.normpath (path)
+        return self.normpath(path)
 
     path = property(get_path, set_path)
     """ The path component.  """

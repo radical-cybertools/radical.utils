@@ -176,7 +176,7 @@ class FSHandler(logging.FileHandler):
 
 # ------------------------------------------------------------------------------
 #
-def get_logger(name, target=None, path=None, level=None, header=True):
+def get_logger(name, target=None, level=None, path=None, header=True):
     """
     Get a logging handle.
 
