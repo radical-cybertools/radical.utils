@@ -204,6 +204,27 @@ def print_stacktrace(msg=None):
 
     sys.stdout.write(out)
 
+
+# --------------------------------------------------------------------------
+#
+def print_exception_trace(msg=None):
+
+    if not msg:
+        msg = ''
+
+    pid  = int(os.getpid())
+    out  = "--------------\n"
+    out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
+    out += "%s\n" % msg
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    for line in traceback.format_exc().split('\n'):
+        out += line.strip()
+        out += "\n"
+    out += "--------------\n"
+
+    sys.stdout.write(out)
+
+
 # --------------------------------------------------------------------------
 #
 def get_stacktrace():
