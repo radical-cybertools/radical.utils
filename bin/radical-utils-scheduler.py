@@ -309,7 +309,13 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 3:
 
-        config = ru.read_json("%s/radical-utils-scheduler.json" % os.path.dirname(__file__))
+        if not '/' in __file__:
+            path = '.'
+        elif __file__:
+            path = os.path.dirname(__file__)
+        else:
+            path = os.path.dirname(sys.argv[0])
+        config = ru.read_json("%s/radical-utils-scheduler.json" % path)
 
         cluster_id  = sys.argv[1]
         workload_id = sys.argv[2]
