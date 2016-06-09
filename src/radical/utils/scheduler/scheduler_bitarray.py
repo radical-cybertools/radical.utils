@@ -59,8 +59,12 @@ class BitarrayScheduler(SchedulerBase):
     # --------------------------------------------------------------------------
     #
     def _align(self, pat, req, loc):
+        """
+        For a given continuous set of cores, try to move the set so that it
+        resides within a single node.  This obviously only works for sets
+        smaller than self.ppn.
+        """
 
-        log = list()
         if not self._flag_align:
             # alignment is disabled
             return loc, False
@@ -73,7 +77,7 @@ class BitarrayScheduler(SchedulerBase):
         # case, we search again from the point of allocation, and check again.
         # We do that until we cycle around the full core list once, reaching 
         # the original location again
-        orig_loc   = loc
+        orig_pos   = loc
         pos        = loc
         start_node =  pos            / self._ppn
         end_node   = (pos + req - 1) / self._ppn
@@ -82,15 +86,11 @@ class BitarrayScheduler(SchedulerBase):
             # already aligned
             return loc, False
 
-      # print ' > : %8d : %8d : %8d : %3d - %3d' % (pos, req, loc, start_node, end_node)
-      # log.append(' > : %8d : %8d : %8d : %3d - %3d' % (pos, req, loc, start_node, end_node))
-
         # we search from pos=loc to the end of cores, then rewind to pos=0
         # and search again from the beginning until again pos=loc.
-        aligned    = False
-        rewound    = False
+        rewound = False
         while (pos <= self._size and not rewound) or \
-              (pos <  orig_loc   and     rewound)    :
+              (pos <  orig_pos   and     rewound)    :
         
             if pos > self._size:
                 pos     = 0
@@ -101,7 +101,6 @@ class BitarrayScheduler(SchedulerBase):
             loc = self._cores.search(pat, 1, pos+1)
 
             if not loc:
-                loc     = -1
                 pos     =  0
                 rewound = True
                 continue
@@ -110,24 +109,13 @@ class BitarrayScheduler(SchedulerBase):
             start_node =  pos            / self._ppn
             end_node   = (pos + req - 1) / self._ppn
 
-          # print '>> : %8d : %8d : %8d : %3d - %3d' % (pos, req, pos, start_node, end_node)
-          # log.append('>> : %8d : %8d : %8d : %3d - %3d' % (pos, req, pos, start_node, end_node))
-
             if start_node == end_node:
                 # found an alignment
-              # log.append('=> : %8d : %8d : %8d : %3d - %3d' % (pos, req, pos, start_node, end_node))
                 return pos, True
 
             # found new loc, but no dice wrt. alignment -- try again
-            loc = pos
 
-      # print pos
-      # print req
-      # print loc
-      # print start_node
-      # print end_node
-      # log.append('!> : %8d : %8d : %8d : %3d - %3d' % (pos, req, loc, start_node, end_node))
-      # print '\n'.join(log)
+
         raise RuntimeError('alignment error (%s cores requested)' % req)
 
 
@@ -137,17 +125,14 @@ class BitarrayScheduler(SchedulerBase):
 
         scattered = False
         aligned   = False
-        opos      = self._pos
+        orig_pos  = self._pos
         loc       = list()
         pat       = ba(req)   # keep dict of patterns?
         pat.setall(True)
 
-
-      # print ' 0 : %8d : %8d : ----- : %s' % (self._pos, req, pat)
-
         # simple search
         loc = self._cores.search(pat, 1, self._pos)
-      # print ' 0 : %s' % loc
+
 
         if not loc:
             # FIXME: assume we first search from pos 100 to 1000, then rewind, 
@@ -157,22 +142,20 @@ class BitarrayScheduler(SchedulerBase):
             #        average much larger than requests -- and if that is not the
             #        case, we won't be able to allocate many requests anyway...
             self._pos = 0
-          # print ' 0x: %8d : %8d : ----- : %s' % (self._pos, req, pat)
             loc = self._cores.search(pat, 1, self._pos)
-          # print ' 0x: %s' % loc
+
 
         if not loc and self._flag_scatter:
 
+            scattered = True
+
             # search for non-continuous free cores
-            loc = self._cores.search(self._one, req, opos)
+            loc = self._cores.search(self._one, req, orig_pos)
 
             if not loc:
                 # try again from start
                 loc = self._cores.search(self._one, req, 0)
 
-            if loc:
-                self._pos = loc[-1]
-                scattered = True
 
         if not loc:
           # with open('ba_cores.bin', 'w') as f:
@@ -184,27 +167,27 @@ class BitarrayScheduler(SchedulerBase):
             self._pos = 0
             raise RuntimeError('out of cores (%s cores requested)' % req)
 
+
+        # found a match - update pos
         if scattered:
+
             # we got a scattered list of cores
             self._pos = loc[-1] + 1
-            for i in loc:
-                # FIXME: bulk op?
-                self._cores[i] = False
+            self._cores.setlist(loc, False)
+          # for i in loc:
+          #     # FIXME: bulk op?
+          #     self._cores[i] = False
+
         else:
             # we got a continuous block
             loc = loc[0]
 
-          # print ' 1 : %8d : %8d : %8d : %s' % (self._pos, req, loc, '1')
             if self._flag_align:
                 loc, aligned = self._align(pat, req, loc)
-          # print ' 2 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
 
             self._pos = loc + req
             self._cores.setrange(loc, self._pos-1, False)
-          # print ' 3 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
 
-      # print ' 4 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
-      # print
 
         return [req, loc, scattered, aligned]
 
@@ -215,17 +198,15 @@ class BitarrayScheduler(SchedulerBase):
 
         req, loc, scattered, _ = res
 
-      # print 'd1 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
         if scattered:
             # we got a scattered list of cores
-            for i in loc:
-                # FIXME: bulk op?
-                self._cores[i] = True
+            self._cores.setlist(loc, True)
+          # for i in loc:
+          #     # FIXME: bulk op?
+          #     self._cores[i] = True
         else:
             # we got a continuous block
             self._cores.setrange(loc, loc+req-1, True)
-
-      # print 'd1 : %8d : %8d : %8d : %s' % (self._pos, req, loc, self._cores)
 
 
     # --------------------------------------------------------------------------

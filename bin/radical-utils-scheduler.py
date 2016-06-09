@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import time
 import numpy
 import random
+import pprint
 import thread
 import threading as mt
 
@@ -14,15 +16,22 @@ import radical.utils as ru
 
 dh = ru.DebugHelper()
 
-CORES   = 1024*1024  # number of cores to schedule over (sqrt must be int)
-PPN     =   24       # cores per node, used for alignment
-        
-ALIGN   = True       # align small req onto single node
-SCATTER = True       # allow scattered allocattions as fallback
+CORES     =  1024*1024   # number of cores to schedule over (sqrt must be int)
+PPN       =    32        # cores per node, used for alignment
+          
+ALIGN     = False        # align small req onto single node
+SCATTER   = False        # allow scattered allocattions as fallback
+
+CYCLES    =    10        # number of cycles 
+REQ_MIN   =     1        # minimal number of cores requested
+REQ_MAX   =     1        # maximal number of cores requested
+REQ_BULK  =  1024        # number of requests to handle in bulk
+REL_PROB  =     0.001    # probablility of release per cycle
 
 # ------------------------------------------------------------------------------
 #
-def drive_scheduler(scheduler, viz, term, lock):
+def drive_scheduler(scheduler, viz, term, lock, 
+                    cycles, req_min, req_max, req_bulk, rel_prob):
         
     try:
         # leave some time for win mapping
@@ -54,14 +63,6 @@ def drive_scheduler(scheduler, viz, term, lock):
         #
         # ----------------------------------------------------------------------
         
-        CYCLES    = 1024            # number of cycles 
-        
-        REQ_MIN   =    1            # minimal number of cores requested
-        REQ_MAX   =   64            # maximal number of cores requested
-        REQ_BULK  = 1024            # number of requests to handle in bulk
-        REL_PROB  = 0.01            # probablility of release per cycle
-
-        # ----------------------------------------------------------------------
 
         running = list()
         done    = list()
@@ -76,7 +77,7 @@ def drive_scheduler(scheduler, viz, term, lock):
         #   find 1024 chunks of 16  cores
         #   free  512 chunks of  8 or 16 cores (random)
         abort_cycles = False
-        for cycle in range(CYCLES):
+        for cycle in range(cycles):
 
             if term.is_set():
                 return
@@ -86,8 +87,8 @@ def drive_scheduler(scheduler, viz, term, lock):
 
             # we randomly request cores in a certain range
             requests = list()
-            for _ in range(REQ_BULK):
-                requests.append(random.randint(REQ_MIN,REQ_MAX))
+            for _ in range(req_bulk):
+                requests.append(random.randint(req_min,req_max))
         
             tmp = list()
             with lock:
@@ -122,7 +123,7 @@ def drive_scheduler(scheduler, viz, term, lock):
                 # build a list of release candidates and, well, release them
                 to_release = list()
                 for idx in reversed(range(len(running))):
-                    if random.random() < REL_PROB:
+                    if random.random() < rel_prob:
                         to_release.append(running[idx])
                         del(running[idx])
         
@@ -160,14 +161,17 @@ def drive_scheduler(scheduler, viz, term, lock):
     total_stop = time.time()
     stats = scheduler.get_stats()
     
-    print
-    print '\ncores :  free :  busy'
-    counts = set(stats['free_dist'].keys() + stats['busy_dist'].keys())
-    for count in sorted(counts):
-        print '%5d : %5s : %5s' % (count, 
-                stats['free_dist'].get(count, ''), 
-                stats['busy_dist'].get(count, ''))
+    # continuous stretches of #free/busy cores
+    if False:
+        print
+        print '\ncores :  free :  busy'
+        counts = set(stats['free_dist'].keys() + stats['busy_dist'].keys())
+        for count in sorted(counts):
+            print '%5d : %5s : %5s' % (count, 
+                    stats['free_dist'].get(count, ''), 
+                    stats['busy_dist'].get(count, ''))
 
+    # distributions of free cores over nodes
     print
     print 'free : nodes'
     for i in sorted(stats['node_free'].keys()):
@@ -189,7 +193,7 @@ def drive_scheduler(scheduler, viz, term, lock):
         with open('cores', 'w') as f:
             node = '%5d : ' % idx
             for b in scheduler._cores:
-                if not idx % PPN:
+                if not idx % ppn:
                     node += '\n'
                 if b:
                     node += '#'
@@ -302,15 +306,55 @@ class MyViz(QtGui.QWidget):
 #
 if __name__ == "__main__":
 
+
+    if len(sys.argv) >= 3:
+
+        config = ru.read_json("%s/radical-utils-scheduler.json" % os.path.dirname(__file__))
+
+        cluster_id  = sys.argv[1]
+        workload_id = sys.argv[2]
+
+        cluster  = config['cluster'][cluster_id]
+        workload = config['workload'][workload_id]
+
+        print 'using cluster: %s'  % pprint.pformat(cluster)
+        print 'using workload: %s' % pprint.pformat(workload)
+
+        cores   =  int(cluster['cores'])
+        ppn     =  int(cluster['ppn'])
+        align   = bool(cluster['align'])
+        scatter = bool(cluster['scatter'])
+
+        cycles   =   int(workload['cycles'])
+        req_min  =   int(workload['req_min'])
+        req_max  =   int(workload['req_max'])
+        req_bulk =   int(workload['req_bulk'])
+        rel_prob = float(workload['rel_prob'])
+
+    else:
+        cores   = CORES
+        ppn     = PPN
+        align   = ALIGN
+        scatter = SCATTER
+
+        cycles   = CYCLES
+        req_min  = REQ_MIN
+        req_max  = REQ_MAX
+        req_bulk = REQ_BULK
+        rel_prob = REL_PROB
+
+
     lock      = mt.RLock()
     term      = mt.Event()
-    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : CORES, 
-                                                'ppn'     : PPN, 
-                                                'align'   : ALIGN, 
-                                                'scatter' : SCATTER})
+    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : cores, 
+                                                'ppn'     : ppn, 
+                                                'align'   : align, 
+                                                'scatter' : scatter})
     app = QtGui.QApplication(sys.argv)
     viz = MyViz(scheduler, term, lock)
-    thr = mt.Thread(target=drive_scheduler, args=[scheduler, viz, term, lock])
+    thr = mt.Thread(target=drive_scheduler, 
+            args=[scheduler, viz, term, lock, 
+                  cycles, req_min, req_max, req_bulk, rel_prob])
     thr.start()
 
     app.exec_()
