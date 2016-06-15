@@ -257,19 +257,4 @@ def get_caller_name(skip=2):
 
 
 # ------------------------------------------------------------------------------
-#
-def is_main_thread():
-    return isinstance(threading.current_thread(), threading._MainThread)
-
-
-# ------------------------------------------------------------------------------
-#
-def cancel_main_thread():
-    if not is_main_thread():
-        import thread
-        thread.interrupt_main()
-        sys.exit()
-
-
-# ------------------------------------------------------------------------------
 
