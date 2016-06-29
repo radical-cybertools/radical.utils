@@ -257,4 +257,46 @@ def get_caller_name(skip=2):
 
 
 # ------------------------------------------------------------------------------
+#
+_raise_on_cnt = dict()
+def raise_on(tag, n, log=None):
+    """
+    This is interpreted as follows: on the n'th invocation of this method with
+    any given tag, an exception is raised.  If n is '0', no exception is ever
+    raised.
+
+    The purpose is to artificially trigger error conditions for testing 
+    purposes, for example when handling the n'th unit, getting the n'th 
+    heartbeat signal, etc.
+    """
+
+    global _raise_on_cnt
+
+    if log:
+        log.debug('raise_on check %s' % tag)
+    else:
+        print 'raise_on check %s' % tag
+
+    if tag not in _raise_on_cnt:
+        _raise_on_cnt[tag] = 0 
+        
+    _raise_on_cnt[tag] += 1
+
+    count = _raise_on_cnt[tag]
+    if log:
+        log.debug('raise_on check %s [%s / %s]' % (tag, count, n))
+    else:
+        print 'raise_on check %s [%s / %s]' % (tag, count, n)
+
+    if n and count >= n:
+        _raise_on_cnt[tag] = 0
+        if log:
+            log.error('raise_on for %s [%s]' % (tag, n))
+        else:
+            print 'raise_on for %s [%s]' % (tag, n)
+        raise RuntimeError('raise_on for %s [%s]' % (tag, n))
+
+
+
+# ------------------------------------------------------------------------------
 
