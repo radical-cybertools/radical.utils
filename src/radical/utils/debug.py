@@ -284,7 +284,7 @@ def raise_on(tag, log=None):
         if tag not in _raise_on_state:
             _raise_on_state[tag] = { 
                     'count' : 0,
-                    'limit' : os.environ('RU_RAISE_ON_%s' % tag.upper(), 0) 
+                    'limit' : os.environ.get('RU_RAISE_ON_%s' % tag.upper(), 0) 
                     }
             
         _raise_on_state[tag]['count'] += 1

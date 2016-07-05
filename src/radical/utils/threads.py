@@ -275,6 +275,8 @@ def cancel_main_thread(signame=None, once=False):
             os.kill(os.getpid(), signal)
         else:
             # this sends a SIGINT, resulting in a KeyboardInterrupt.
+            # NOTE: see http://bugs.python.org/issue23395 for problems on using
+            #       SIGINT in combination with signal handlers!
             thread.interrupt_main()
 
         # record the signal sending
