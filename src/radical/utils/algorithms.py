@@ -30,6 +30,8 @@ def collapse_ranges (ranges):
     the list of final ranges then, and that list is returned.
     """
 
+    # FIXME: does tuple and set conversion really add anything?
+
     # Ranges must be unique: we do not count timings when they start and end at
     # exactly the same time. By using a set, we do not repeat ranges.
     # we convert to a list before return.
@@ -39,19 +41,19 @@ def collapse_ranges (ranges):
     if not ranges:
         return final
 
-    # sort ranges into a copy list
-    _ranges = sorted(ranges, key=lambda x: x[0])
-
     START = 0
     END   = 1
+
+    # sort ranges into a copy list, by their start time
+    _ranges = sorted(ranges, key=lambda x: x[START])
 
     # sat 'base' to the earliest range (smallest starting point)
     base = _ranges[0]
 
     for _range in _ranges[1:]:
 
-        # if range is know, skip it
-        if _range[0] == _range[1]:
+        # if range is empty, skip it
+        if _range[START] == _range[END]:
             continue
 
         if _range[START] <= base[END]:
