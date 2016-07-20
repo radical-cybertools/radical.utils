@@ -100,6 +100,30 @@ def partition(space, nparts):
 
 # ------------------------------------------------------------------------------
 #
+def in_range(value, ranges):
+    """
+    checks if a float value `value` is in any of the given `ranges`, which are
+    assumed to be a list of tuples (or a single tuple) of start end end points
+    (floats).
+    Returns `True` or `False`.
+    """
+
+    # is there anythin to check?
+    if not ranges or not len(ranges):
+        return False
+
+    if not isinstance(ranges[0], list):
+        ranges = [ranges]
+
+    for r in ranges:
+        if value >= r[0] and value <= r[1]:
+            return True
+
+    return False
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test = [ [ 0, 10],
