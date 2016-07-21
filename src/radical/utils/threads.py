@@ -4,7 +4,10 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import os
 import sys
+import signal
+import thread
 import threading
 import traceback
 
@@ -221,14 +224,117 @@ def is_main_thread():
 
 # ------------------------------------------------------------------------------
 #
-def cancel_main_thread():
+_signal_lock = threading.Lock()
+_signal_sent = dict()
+def cancel_main_thread(signame=None, once=False):
+    """
+    This method will call thread.interrupt_main from any calling subthread.
+    That will cause a 'KeyboardInterrupt' exception in the main thread.  This
+    can be excepted via `except KeyboardInterrupt`
+    
+    The main thread MUST NOT have a SIGINT signal handler installed (other than
+    the default handler or SIGIGN), otherwise this call will cause an exception
+    in the core python signal handling (see http://bugs.python.org/issue23395).
 
+    The thread will exit after this, via sys.exit(0), and can then be joined
+    from the main thread.
+
+    When being called *from* the main thread, no interrupt will be generated,
+    but sys.exit() will still be called.  This can be excepted in the code via 
+    `except SystemExit:`.
+
+    Another way to avoid the SIGINT problem is to send a different signal to the
+    main thread.  We do so if `signal` is specified.
+
+    After sending the signal, any sub-thread will call sys.exit(), and thus
+    finish.  We leave it to the main thread thogh to decide if it will exit at
+    this point or not.  Either way, it will have to handle the signal first.
+
+    If `once` is set to `True`, we will send the given signal at most once.
+    This will mitigate races between multiple error causes, specifically during
+    finalization.
+    """
+
+    global _signal_lock
+    global _signal_sent
+
+
+    if signame: signal = get_signal_by_name(signame)
+    else      : signal = None
+
+
+    with _signal_lock:
+
+        if once:
+            if signal in _signal_sent:
+                # don't signal again
+                return
+
+        if signal:
+            # send the given signal to the process to which this thread belongs
+            os.kill(os.getpid(), signal)
+        else:
+            # this sends a SIGINT, resulting in a KeyboardInterrupt.
+            # NOTE: see http://bugs.python.org/issue23395 for problems on using
+            #       SIGINT in combination with signal handlers!
+            thread.interrupt_main()
+
+        # record the signal sending
+        _signal_sent[signal] = True
+
+
+    # the sub thread will at this point also exit.
     if not is_main_thread():
-        import thread
-        thread.interrupt_main()
+        sys.exit()
 
-    # this applies to the sub thread and the main thread
-    sys.exit()
+
+# ------------------------------------------------------------------------------
+#
+def get_signal_by_name(signame):
+    """
+    Translate a signal name into the respective signal number.  If `signame` is
+    not found to be a valid signal name, this method will raise a `KeyError`
+    exception.  Lookup is case insensitive.
+    """
+
+    table = {'abrt'    : signal.SIGABRT,
+             'alrm'    : signal.SIGALRM,
+             'bus'     : signal.SIGBUS,
+             'chld'    : signal.SIGCHLD,
+             'cld'     : signal.SIGCLD,
+             'cont'    : signal.SIGCONT,
+             'fpe'     : signal.SIGFPE,
+             'hup'     : signal.SIGHUP,
+             'ill'     : signal.SIGILL,
+             'int'     : signal.SIGINT,
+             'io'      : signal.SIGIO,
+             'iot'     : signal.SIGIOT,
+             'kill'    : signal.SIGKILL,
+             'pipe'    : signal.SIGPIPE,
+             'poll'    : signal.SIGPOLL,
+             'prof'    : signal.SIGPROF,
+             'pwr'     : signal.SIGPWR,
+             'quit'    : signal.SIGQUIT,
+             'rtmax'   : signal.SIGRTMAX,
+             'rtmin'   : signal.SIGRTMIN,
+             'segv'    : signal.SIGSEGV,
+             'stop'    : signal.SIGSTOP,
+             'sys'     : signal.SIGSYS,
+             'term'    : signal.SIGTERM,
+             'trap'    : signal.SIGTRAP,
+             'tstp'    : signal.SIGTSTP,
+             'ttin'    : signal.SIGTTIN,
+             'ttou'    : signal.SIGTTOU,
+             'urg'     : signal.SIGURG,
+             'usr1'    : signal.SIGUSR1,
+             'usr2'    : signal.SIGUSR2,
+             'vtalrm'  : signal.SIGVTALRM,
+             'winch'   : signal.SIGWINCH,
+             'xcpu'    : signal.SIGXCPU,
+             'xfsz'    : signal.SIGXFSZ,
+             }
+    
+    return table[signame.lower()]
 
 
 # ------------------------------------------------------------------------------
