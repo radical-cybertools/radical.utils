@@ -292,6 +292,10 @@ def attach_pudb(logger=None):
     else:
         print 'debugger open: telnet %s %d' % (host, port)
 
+    import pudb
+    import signal
+    pudb.DEFAULT_SIGNAL = signal.SIGALRM
+
     from pudb.remote import set_trace
     set_trace(host=host, port=port, term_size=(200, 50))
 
