@@ -8,6 +8,7 @@ import thread
 import threading
 import traceback
 
+from .misc import gettid
 
 # --------------------------------------------------------------------
 #
@@ -275,6 +276,24 @@ def get_caller_name(skip=2):
     del parentframe
 
     return ".".join(name)
+
+
+# ------------------------------------------------------------------------------
+#
+def attach_pudb(logger=None):
+
+    host = '127.0.0.1'
+  # host = gethostip()
+    tid  = gettid()
+    port = tid + 10000
+
+    if logger:
+        logger.info('debugger open: telnet %s %d', host, port)
+    else:
+        print 'debugger open: telnet %s %d' % (host, port)
+
+    from pudb.remote import set_trace
+    set_trace(host=host, port=port, term_size=(200, 50))
 
 
 # ------------------------------------------------------------------------------
