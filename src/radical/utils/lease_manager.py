@@ -391,9 +391,7 @@ class LeaseManager (object) :
             for pool_id in self._pools :
 
                 for obj in self._pools [pool_id]['objects'] :
-
                     if  instance is not obj :
-
                         # this is not the object you are looking for.
                         continue
 
@@ -403,16 +401,13 @@ class LeaseManager (object) :
                     obj.release ()
 
                     if  delete :
-
                         # remove the object from the pool (decreasing its 
                         # ref counter and thus making it eligible for 
                         # garbage collection).  
-
                         self._pools [pool_id]['objects'].remove (obj)
                         self._pools [pool_id]['freed'] = None
 
                     else :
-
                         # mark the object as freed for lease.  
                         self._pools [pool_id]['freed'] = obj
 
@@ -423,7 +418,9 @@ class LeaseManager (object) :
                     # object has been released
                     return 
 
-            raise RuntimeError ("cannot release object -- not managed")
+            # FIXME: log warning
+            # for now we ignore double-frees
+            # raise RuntimeError ("cannot release object -- not managed")
 
 
 # ------------------------------------------------------------------------------
