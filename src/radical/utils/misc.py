@@ -346,7 +346,7 @@ def gettid():
         import ctypes
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
-        return str(libc.syscall(SYS_gettid))
+        return int(libc.syscall(SYS_gettid))
     except:
         return None
 

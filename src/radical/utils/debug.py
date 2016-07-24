@@ -8,6 +8,7 @@ import thread
 import threading
 import traceback
 
+from .misc import gettid
 
 # --------------------------------------------------------------------
 #
@@ -204,6 +205,27 @@ def print_stacktrace(msg=None):
 
     sys.stdout.write(out)
 
+
+# --------------------------------------------------------------------------
+#
+def print_exception_trace(msg=None):
+
+    if not msg:
+        msg = ''
+
+    pid  = int(os.getpid())
+    out  = "--------------\n"
+    out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
+    out += "%s\n" % msg
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    for line in traceback.format_exc().split('\n'):
+        out += line.strip()
+        out += "\n"
+    out += "--------------\n"
+
+    sys.stdout.write(out)
+
+
 # --------------------------------------------------------------------------
 #
 def get_stacktrace():
@@ -304,6 +326,27 @@ def raise_on(tag, log=None):
             _raise_on_state[tag]['count'] = 0
             raise RuntimeError('raise_on for %s [%s]' % (tag, limit))
 
+
+# ------------------------------------------------------------------------------
+#
+def attach_pudb(logger=None):
+
+    host = '127.0.0.1'
+  # host = gethostip()
+    tid  = gettid()
+    port = tid + 10000
+
+    if logger:
+        logger.info('debugger open: telnet %s %d', host, port)
+    else:
+        print 'debugger open: telnet %s %d' % (host, port)
+
+    import pudb
+    import signal
+    pudb.DEFAULT_SIGNAL = signal.SIGALRM
+
+    from pudb.remote import set_trace
+    set_trace(host=host, port=port, term_size=(200, 50))
 
 
 # ------------------------------------------------------------------------------
