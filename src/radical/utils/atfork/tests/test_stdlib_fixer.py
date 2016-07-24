@@ -18,6 +18,7 @@
 #
 # Author: Gregory P. Smith <greg@krypto.org>
 
+from __future__ import absolute_import
 import logging
 import unittest
 import warnings

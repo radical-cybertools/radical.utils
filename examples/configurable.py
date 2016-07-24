@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import input
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -91,26 +94,26 @@ class FancyEcho (ruc.Configurable):
         self._cfg = self.get_config ('config')
 
         self._mode = self._cfg['casing'].get_value ()
-        print "mode: %s" % self._mode
+        print("mode: %s" % self._mode)
 
         self._excl = self._cfg['excluded'].get_value ()
-        print "excl: %s" % type(self._excl)
-        print "excl: %s" % self._excl
+        print("excl: %s" % type(self._excl))
+        print("excl: %s" % self._excl)
 
 
         if  not 'sp3' in self._excl :
-            print 'running sp3'
+            print('running sp3')
 
         if  not 'sparks' in self._excl :
-            print 'running sparks'
+            print('running sparks')
 
         if  not 'pftools' in self._excl :
-            print 'running pftools'
+            print('running pftools')
 
         # use sp3 configuration
         self._sp3 = self.get_config ('sp3.cd')
-        print self._sp3['exe'].get_value ()
-        print self._sp3['args'].get_value ()
+        print(self._sp3['exe'].get_value ())
+        print(self._sp3['args'].get_value ())
 
 
     #-----------------------------------------------------------------
@@ -141,9 +144,9 @@ fc  = FancyEcho ()
 src = ''
 
 while 'quit' != src :
-    src = raw_input ('> ')
+    src = input ('> ')
     tgt = fc.echo (src)
-    print '  ' + tgt
+    print('  ' + tgt)
 
 
 # ------------------------------------------------------------------------------

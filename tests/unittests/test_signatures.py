@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -8,7 +10,7 @@ import radical.utils.signatures as rus
 
 
 # ------------------------------------------------------------------------------
-@rus.takes   (basestring, int, rus.optional (float))
+@rus.takes   (six.string_types, int, rus.optional (float))
 @rus.returns (int)
 def sigtest (string, intger, float=3.1415926) :
     return 1

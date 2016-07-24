@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -7,8 +9,8 @@ __license__   = "MIT"
 import os
 import sys
 
-import singleton as rs
-import read_json as rj
+from . import singleton as rs
+from . import read_json as rj
 
 
 # ------------------------------------------------------------------------------
@@ -61,9 +63,9 @@ class TestConfig (dict) :
         """Maps attributes to values.
         Only if we are initialised
         """
-        if not self.__dict__.has_key('_D__initialized'):  # this test allows attributes to be set in the __init__ method
+        if '_D__initialized' not in self.__dict__:  # this test allows attributes to be set in the __init__ method
             return dict.__setattr__(self, item, value)
-        elif self.__dict__.has_key(item):       # any normal attributes are handled normally
+        elif item in self.__dict__:       # any normal attributes are handled normally
             dict.__setattr__(self, item, value)
         else:
             self.__setitem__(item, value)
@@ -87,15 +89,15 @@ class Testing (object) :
         try:
             module = __import__ (modname)
         
-        except Exception, e:
+        except Exception as e:
             srcdir = "%s/../" % os.path.dirname (os.path.realpath (basedir))
             sys.path.insert (0, os.path.abspath(srcdir))
             module = __import__ (modname)
 
 
-        print "______________________________________________________________________"
-        print "Using %s from: %s" % (modname, module.__path__[0])
-        print "______________________________________________________________________"
+        print("______________________________________________________________________")
+        print("Using %s from: %s" % (modname, module.__path__[0]))
+        print("______________________________________________________________________")
 
         try :
             import nose
@@ -178,13 +180,13 @@ class Testing (object) :
             config.stream     = sys.stderr
         
             # and run tests
-            print "______________________________________________________________________"
-            print "%s" % test_suite
-            print "______________________________________________________________________"
+            print("______________________________________________________________________")
+            print("%s" % test_suite)
+            print("______________________________________________________________________")
             rc = nose.core.run (argv=[sys.argv[0]], config=config)
             results.append(rc)
-            print "RC: %s" % rc
-            print "______________________________________________________________________"
+            print("RC: %s" % rc)
+            print("______________________________________________________________________")
         
         # if we get a 'false' results it means that something went wrong. in
         # that case we return a non-zero exit code

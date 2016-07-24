@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -58,10 +60,10 @@ def write_json (data,  filename) :
     # http://stackoverflow.com/questions/956867/#13105359
     def _byteify(input):
         if isinstance(input, dict):
-            return {_byteify(key):_byteify(value) for key,value in input.iteritems()}
+            return {_byteify(key):_byteify(value) for key,value in six.iteritems(input)}
         elif isinstance(input, list):
             return [_byteify(element) for element in input]
-        elif isinstance(input, unicode):
+        elif isinstance(input, six.text_type):
             return input.encode('utf-8')
         else:
             return input
@@ -109,7 +111,7 @@ def _unicode_to_strings (unicode_data) :
 
     if isinstance (unicode_data, dict) :
         ret = dict ()
-        for key, value in unicode_data.iteritems() :
+        for key, value in six.iteritems(unicode_data) :
             ret[_unicode_to_strings(key)] = _unicode_to_strings(value) 
         return ret
 
@@ -119,7 +121,7 @@ def _unicode_to_strings (unicode_data) :
             ret.append (_unicode_to_strings (element))
         return ret
 
-    elif isinstance (unicode_data, unicode) :
+    elif isinstance (unicode_data, six.text_type) :
         return unicode_data.encode ('utf-8')
 
     else:

@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -239,16 +241,18 @@ def urlsplit(url, scheme='', allow_fragments=True):
     _parse_cache[key] = v
     return v
 
-def urlunparse((scheme, netloc, url, params, query, fragment)):
+def urlunparse(xxx_todo_changeme):
     """Put a parsed URL back together again.  This may result in a
     slightly different, but equivalent URL, if the URL that was parsed
     originally had redundant delimiters, e.g. a ? with an empty query
     (the draft states that these are equivalent)."""
+    (scheme, netloc, url, params, query, fragment) = xxx_todo_changeme
     if params:
         url = "%s;%s" % (url, params)
     return urlunsplit((scheme, netloc, url, query, fragment))
 
-def urlunsplit((scheme, netloc, url, query, fragment)):
+def urlunsplit(xxx_todo_changeme1):
+    (scheme, netloc, url, query, fragment) = xxx_todo_changeme1
     if netloc or (scheme and url[:2] != '//'):
         if url and url[:1] != '/': url = '/' + url
         url = '//' + (netloc or '') + url
@@ -380,15 +384,15 @@ def test():
             continue
         url = words[0]
         parts = urlparse(url)
-        print '%-10s : %s' % (url, parts)
+        print('%-10s : %s' % (url, parts))
         abs = urljoin(base, url)
         if not base:
             base = abs
         wrapped = '<URL:%s>' % abs
-        print '%-10s = %s' % (url, wrapped)
+        print('%-10s = %s' % (url, wrapped))
         if len(words) == 3 and words[1] == '=':
             if wrapped != words[2]:
-                print 'EXPECTED', words[2], '!!!!!!!!!!'
+                print('EXPECTED', words[2], '!!!!!!!!!!')
 
 if __name__ == '__main__':
     test()

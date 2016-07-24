@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -12,7 +15,7 @@ import threading
 
 from ..singleton import Singleton
 
-from   configfile import ConfigFileReader
+from   .configfile import ConfigFileReader
 
 
 # ------------------------------------------------------------------------------
@@ -86,11 +89,10 @@ class ConfigOption(object):
 #
 # a singleton class which keeps all configurations
 #
-class _Configurations (object) :
+class _Configurations (six.with_metaclass(Singleton, object)) :
     """
     This singleton class maintains references to all global configurations.
     """
-    __metaclass__ = Singleton
     _rlock = threading.RLock ()
 
     # --------------------------------------------------------------------------
@@ -244,7 +246,7 @@ class Configuration (object):
                 if uconf in os.environ :
                     usr_cfg = os.environ[uconf]
                     if  not os.path.exists (usr_cfg) :
-                        print "WARNING: %s set to %s, but file does not exist" % (uconf, usr_cfg)
+                        print("WARNING: %s set to %s, but file does not exist" % (uconf, usr_cfg))
                 else:
                     usr_cfg = '%s/.%s.cfg' % (os.path.expanduser("~"), self._name)
 

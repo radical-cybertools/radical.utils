@@ -45,6 +45,7 @@ about resource usage by references your callable holds, consider using
 weakref's within your callable.
 """
 
+from __future__ import absolute_import
 import os
 import sys
 import threading

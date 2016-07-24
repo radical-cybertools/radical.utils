@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -11,20 +14,18 @@ import fcntl
 import socket
 import datetime
 import threading
-import singleton
+from . import singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class _IDRegistry(object):
+class _IDRegistry(six.with_metaclass(singleton.Singleton, object)):
     """
     This helper class (which is not exposed to any user of radical.utils)
     generates a sequence of continous numbers for each known ID prefix.  It is
     a singleton, and thread safe (assuming that the Singleton metaclass supports
     thread safe construction).
     """
-
-    __metaclass__ = singleton.Singleton
 
 
     # --------------------------------------------------------------------------
@@ -134,7 +135,7 @@ def generate_id(prefix, mode=ID_SIMPLE):
     """
 
     if not prefix or \
-        not isinstance(prefix, basestring):
+        not isinstance(prefix, six.string_types):
         raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""
@@ -218,8 +219,8 @@ def _generate_id(template, prefix):
     if '%(' in ret:
         import pprint
         pprint.pprint(info)
-        print template
-        print ret
+        print(template)
+        print(ret)
         raise ValueError('unknown replacement pattern in template (%s)' % template)
 
     return ret

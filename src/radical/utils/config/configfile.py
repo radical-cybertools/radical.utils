@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -7,12 +10,12 @@ __license__   = "MIT"
 ''' Provides utilities to work with configuration files and query strings.  '''
 
 from copy import deepcopy
-import ConfigParser, os
+import six.moves.configparser, os
 
 class ConfigFileReader(object):
 
     def __init__(self, filenames):
-        config = ConfigParser.RawConfigParser()
+        config = six.moves.configparser.RawConfigParser()
         config.read(filenames)
 
         self.config_dict = dict()
@@ -45,7 +48,7 @@ class BaseConfig(object):
         else:
             # re-genereate query string
             new_query_string = ''
-            for (key, value) in self._dictionary.iteritems():
+            for (key, value) in six.iteritems(self._dictionary):
                 if value is None:
                     new_query_string += "&%s" % key
                 else:
@@ -99,13 +102,13 @@ class ConfigQuery(BaseConfig):
 
 def _test_():
     cq = ConfigQuery("WhenToTransferOutput=ON_EXIT&should_transfer_files=YES&notifications=Always")
-    print cq.as_dict()
+    print(cq.as_dict())
     cq.set_option('VERBOSE')
-    print cq.as_query_string()
+    print(cq.as_query_string())
     cq.set_option('VERBOSE',False)
-    print cq.as_query_string()
+    print(cq.as_query_string())
     cq.remove_option('VERBOSE')
-    print cq.as_dict()
+    print(cq.as_dict())
 
 
 

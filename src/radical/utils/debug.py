@@ -1,10 +1,12 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 import time
 import pprint
 import signal
-import thread
+import six.moves._thread
 import threading
 import traceback
 
@@ -106,8 +108,8 @@ class DebugHelper (object) :
 
         except Exception as e:
             # we don't care (much)...
-            print get_trace()
-            print e
+            print(get_trace())
+            print(e)
             pass
 
 

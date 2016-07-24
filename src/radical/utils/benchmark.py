@@ -1,4 +1,8 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
+from six.moves import range
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -12,8 +16,8 @@ import socket
 import threading
 import traceback
 
-import threads as rut
-import testing as rutest
+from . import threads as rut
+from . import testing as rutest
 
 
 # --------------------------------------------------------------------
@@ -26,7 +30,7 @@ class Benchmark (object) :
 
         try:
             import numpy
-        except ImportError, e:
+        except ImportError as e:
             raise RuntimeError ("Benchmark depends on numpy which is not installed")
     
         self.pre    = func_pre
@@ -36,12 +40,12 @@ class Benchmark (object) :
         self.lock   = rut.RLock ()
         self.events = dict()
     
-        if  isinstance (config, basestring) :
+        if  isinstance (config, six.string_types) :
             app_cfg = rutest.TestConfig (config)
         elif isinstance (config, dict) :
             app_cfg = config
         else :
-            print 'warning: no valid benchmarl config (neither filename nor dict) -- ignore'
+            print('warning: no valid benchmarl config (neither filename nor dict) -- ignore')
             app_cfg = dict()
 
         if  'benchmarks' in app_cfg :

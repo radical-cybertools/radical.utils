@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -8,12 +10,10 @@ import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
-class _Test () :
+class _Test (six.with_metaclass(ru.Singleton)) :
     """
     singleton helper class
     """
-
-    __metaclass__ = ru.Singleton
 
 
 # ------------------------------------------------------------------------------

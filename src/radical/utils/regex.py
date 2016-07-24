@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -158,7 +161,7 @@ class ReSult (object) :
 
             for i, m in enumerate (self) :
                 if m != other[i] :
-                    print '%s != %s' % (m, other[i])
+                    print('%s != %s' % (m, other[i]))
                     return len(m) - len(other[i])
             return 0
 
@@ -214,7 +217,7 @@ class ReString (str) :
     def __floordiv__ (self, regex) :
 
         compiled_regex = None
-        if  isinstance (regex, basestring) :
+        if  isinstance (regex, six.string_types) :
             compiled_regex = re.compile (regex)
         else :
             # assume we got a compiled regex
@@ -252,14 +255,14 @@ def _example_re_string () :
     
     with txt // '(\s.u)(?P<x>.*?j\S+)' as res :
 
-        if res : print 'Matched!'               # boolean check
-        print "res      : '%s' " % res          # list of results
-        print "res[0]   : '%s' " % res[0]       # index by number ...
-        print "res[1]   : '%s' " % res[1]       # ... for all matches
-        print "res['x'] : '%s' " % res['x']     # index by match name
-        print "res.x    : '%s' " % res.x        # ...   as properties
+        if res : print('Matched!')               # boolean check
+        print("res      : '%s' " % res)          # list of results
+        print("res[0]   : '%s' " % res[0])       # index by number ...
+        print("res[1]   : '%s' " % res[1])       # ... for all matches
+        print("res['x'] : '%s' " % res['x'])     # index by match name
+        print("res.x    : '%s' " % res.x)        # ...   as properties
         for i, r in enumerate (res) :
-            print "res %d    : '%s' " % (i, r)  # matches as iterable
+            print("res %d    : '%s' " % (i, r))  # matches as iterable
 
         assert (len(res) == 2)                  # number of matches
         assert (res == [' qu', 'ick brown fox jumps'])  # compare to list
@@ -272,7 +275,7 @@ def _example_re_string () :
         res = txt.get ()
     
     else :
-        print 'no match'
+        print('no match')
 
 
 # ------------------------------------------------------------------------------

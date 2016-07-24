@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -45,7 +47,7 @@ class DictMixin :
     # second level definitions which assume only getitem and keys
     #
     def has_key(self, key):
-         return key in self.keys()
+         return key in list(self.keys())
 
     def __iter__(self):
         for k in self.keys():
@@ -57,7 +59,7 @@ class DictMixin :
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return self.has_key(key)            
+        return key in self            
 
     def iteritems(self):
         for k in self:
@@ -69,7 +71,8 @@ class DictMixin :
     # fourth level uses second and third levels instead of first
     #
     def iterkeys(self):
-        return self.__iter__()
+        for k in self:
+            yield k
 
     def itervalues(self):
         for _, v in self.iteritems():
@@ -92,7 +95,7 @@ class DictMixin :
         return self[key]
 
     def popitem(self):
-        key = self.keys()[0]
+        key = list(self.keys())[0]
         value = self[key]
         del self[key]
         return (key, value)
@@ -242,8 +245,8 @@ def dict_stringexpand (target, sources=None) :
 
     repl_source = dict()
     for source in sources :
-        for (key, val) in source.iteritems() :
-            if  isinstance (val, basestring) or \
+        for (key, val) in source.items() :
+            if  isinstance (val, six.string_types) or \
                 isinstance (val, int       ) or \
                 isinstance (val, float     ) :
                 repl_source[key] = val
@@ -276,7 +279,7 @@ def _generic_stringexpand (target, source) :
   # print 'generic (%s) (%s) (%s)' % (type(target), id(target), target)
 
 
-    if  isinstance (target, basestring) : 
+    if  isinstance (target, six.string_types) : 
         return _string_stringexpand (target, source)
 
     elif  isinstance (target, list) : 
@@ -319,7 +322,7 @@ def _dict_stringexpand (target, source) :
     assert (isinstance(source, dict))
 
     all_again = 0
-    for (key, val) in target.iteritems() :
+    for (key, val) in target.items() :
       # print 'key: %s' % key
         target[key], again = _generic_stringexpand (val, source)
         all_again += again
@@ -333,7 +336,7 @@ def _string_stringexpand (target, source) :
 
   # print 'string %s' % target
 
-    assert (isinstance(target, basestring))
+    assert (isinstance(target, six.string_types))
     assert (isinstance(source, dict))
 
     orig = str(target)

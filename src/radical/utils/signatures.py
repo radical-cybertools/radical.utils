@@ -1,4 +1,9 @@
 
+from __future__ import absolute_import
+import six
+from six.moves import map
+from six.moves import zip
+from functools import reduce
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -165,7 +170,10 @@ if 'RADICAL_DEBUG_SIG' in os.environ:
 
 from traceback import extract_stack
 from inspect   import getargspec, isclass
-from types     import NoneType
+try:
+    from types     import NoneType
+except ImportError:
+    NoneType = type(None)
 from re        import compile as regex
 from functools import wraps
 
@@ -228,14 +236,14 @@ Checker._registered.append ((lambda x: isinstance (x, str), StrChecker))
 class TupleChecker (Checker):
 
     def __init__ (self, reference):
-        self.reference = map (Checker.create, reference)
+        self.reference = list(map (Checker.create, reference))
         self.spectype  = reference
 
     def check (self, value):
         return reduce (lambda r, c: r or c.check (value), self.reference, False)
 
 Checker._registered.append ((lambda x: isinstance (x, tuple) and not
-                     filter (lambda y: Checker.create (y) is None, x), 
+                     [y for y in x if Checker.create (y) is None], 
                      TupleChecker))
 
 optional = lambda *args: args + (NoneType, )
@@ -263,7 +271,7 @@ class ListOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, list) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 list_of = lambda *args: ListOfChecker (*args).check
 
@@ -276,7 +284,7 @@ class TupleOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, tuple) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 tuple_of = lambda *args: TupleOfChecker (*args).check
 
@@ -289,7 +297,7 @@ class SetOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, set) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 set_of = lambda *args: SetOfChecker (*args).check
 
@@ -303,8 +311,8 @@ class DictOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, dict) and \
-               not filter (lambda e: not self.key_reference.check   (e), value.iterkeys  ()) and \
-               not filter (lambda e: not self.value_reference.check (e), value.itervalues())
+               not [e for e in six.iterkeys(value) if not self.key_reference.check   (e)] and \
+               not [e for e in six.itervalues(value) if not self.value_reference.check (e)]
 
 dict_of = lambda *args: DictOfChecker (*args).check
 
@@ -316,7 +324,7 @@ class RegexChecker (Checker):
         self.reference = regex (reference)
 
     def check (self, value):
-        return isinstance (value, basestring) and self.reference.match (value)
+        return isinstance (value, six.string_types) and self.reference.match (value)
 
 by_regex = lambda *args: RegexChecker (*args).check
 
@@ -329,7 +337,7 @@ class AttrChecker (Checker):
 
     def check (self, value):
         return reduce (lambda r, c: r and c, 
-                  map (lambda a: hasattr (value, a), self.attrs), True)
+                  [hasattr (value, a) for a in self.attrs], True)
 
 with_attr = lambda *args: AttrChecker (*args).check
 
@@ -434,7 +442,7 @@ def takes (*args, **kwargs):
             checkers.append (checker)
 
         kwcheckers = {}
-        for kwname, kwarg in kwargs.iteritems ():
+        for kwname, kwarg in six.iteritems(kwargs):
             checker = Checker.create (kwarg)
             if checker is None:
                 raise TypeError ("@takes decorator got parameter %s of unsupported "
@@ -460,21 +468,19 @@ def takes (*args, **kwargs):
                 for i, (arg, checker) in enumerate (zip (pargs, checkers)):
                     if  not checker.check (arg):
                       # print 'Checker.spectype %s' % checker.spectype
-                        raise (create_type_exception (method, pargs[0], i,
-                                                      arg, checker.spectype))
+                        raise create_type_exception
 
-                for kwname, checker in kwcheckers.iteritems ():
+                for kwname, checker in six.iteritems(kwcheckers):
                     if  not checker.check (pkwargs.get (kwname, None)):
                       # print 'checker.spectype %s' % checker.spectype
-                        raise (create_type_exception (method, pargs[0], i,
-                                                      arg, checker.spectype, kwname))
+                        raise create_type_exception
 
                 try :
                     return method(*pargs, **pkwargs)
                 except :
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et, ei, tb.tb_next
+                    six.reraise(et, ei, tb.tb_next)
 
             signature_check.__name__ = method.__name__
             return signature_check
@@ -510,13 +516,13 @@ def returns (sometype):
                 except :
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et, ei, tb.tb_next
+                    six.reraise(et, ei, tb.tb_next)
                 
                 if  not checker.check (result):
                     
                     if not  no_return_check:
                       # print 'Checker.spectype %s' % checker.spectype
-                        raise (create_return_exception (method, checker.spectype, result))
+                        raise create_return_exception
 
                 return result
     

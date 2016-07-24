@@ -1,4 +1,5 @@
 
+from __future__ import absolute_import
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -86,7 +87,7 @@ def test_lockable () :
     # check double unlock
     try                      : t.unlock (); assert (not t.locked())
     except RuntimeError as e : pass 
-    except Exception    as e : assert (False), "RuntimeError != %s" % type(e)
+    except Exception as e : assert (False), "RuntimeError != %s" % type(e)
     else                     : assert (False), "expected RuntimeError Exception, got nothing"
 
 

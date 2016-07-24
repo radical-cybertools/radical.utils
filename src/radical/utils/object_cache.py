@@ -1,12 +1,14 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
 import threading
-import lockable
-import singleton
+from . import lockable
+from . import singleton
 
 
 # ------------------------------------------------------------------------------
@@ -20,20 +22,12 @@ _DEFAULT_NS = 'global'
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
-class ObjectCache (object) :
+class ObjectCache (six.with_metaclass(singleton.Singleton, object)) :
 
     """ 
     This is a singleton object caching class -- it maintains a reference
     counted registry of existing objects.
     """
-    
-    # TODO: we should introduce namespaces -- this is a singleton, but we may want
-    # to use it in several places, thus need to make sure to not use colliding
-    # names...
-    #
-    # FIXME: this class is not thread-safe!
-
-    __metaclass__ = singleton.Singleton
 
     # --------------------------------------------------------------------------
     #

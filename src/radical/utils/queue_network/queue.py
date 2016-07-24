@@ -1,4 +1,5 @@
 
+from __future__ import absolute_import
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2014, RADICAL@Rutgers"
 __license__   = "MIT"

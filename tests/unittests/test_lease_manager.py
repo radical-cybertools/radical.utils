@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from six.moves import range
 __author__    = "Radical.Utils Development Team (Mark Santcroos)"
 __copyright__ = "Copyright 2015, RADICAL@Rutgers"
 __license__   = "MIT"

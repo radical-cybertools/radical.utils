@@ -1,4 +1,5 @@
 
+from __future__ import absolute_import
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -34,14 +35,14 @@ def test_dict_mixin () :
             return self._d.__delitem__ (key)
 
         def keys(self):
-            return self._d.keys ()
+            return list(self._d.keys ())
 
 
     # --------------------------------------------------------------------------
     t = Test ()
 
     assert (t['val']        == 1       )
-    assert (t.keys()        == ['val'] )
+    assert (list(t.keys())        == ['val'] )
 
     assert ('val'       in t)
     assert ('test1' not in t)
@@ -57,13 +58,13 @@ def test_dict_mixin () :
     assert (t['val']        == 1       )
     assert (t['test1']      == 'test'  )
     assert (t['test2']      == ['test'])
-    assert (t.keys().sort() == ['val', 'test1', 'test2'].sort()), "%s" % str(t.keys())
+    assert (list(t.keys()).sort() == ['val', 'test1', 'test2'].sort()), "%s" % str(list(t.keys()))
 
     del t['test1']
 
     assert (t['val']        == 1       )
     assert (t['test2']      == ['test'])
-    assert (t.keys().sort() == ['val', 'test2'].sort()), "%s" % str(t.keys())
+    assert (list(t.keys()).sort() == ['val', 'test2'].sort()), "%s" % str(list(t.keys()))
 
     assert ('val'       in t)
     assert ('test1' not in t)
@@ -89,7 +90,7 @@ def test_dict_merge () :
 
     ru.dict_merge (dict_1, dict_2, policy='preserve')
 
-    assert (dict_1.keys()        == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (list(dict_1.keys())        == ['key_orig_1', 'key_orig_2', 'key_shared'])
     assert (dict_1['key_shared'] == 'val_shared_1')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
@@ -97,7 +98,7 @@ def test_dict_merge () :
 
     ru.dict_merge (dict_1, dict_2, policy='overwrite')
 
-    assert (dict_1.keys()        == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (list(dict_1.keys())        == ['key_orig_1', 'key_orig_2', 'key_shared'])
     assert (dict_1['key_shared'] == 'val_shared_2')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
@@ -117,7 +118,7 @@ def test_dict_stringexpand () :
 
     ru.dict_stringexpand (target, source)
 
-    assert (target.keys()      == ['workdir', 'resource'])
+    assert (list(target.keys())      == ['workdir', 'resource'])
     assert (target['workdir']  == '/home/peer_gynt/work/')
     assert (target['resource'] == 'ssh://localhost/')
 

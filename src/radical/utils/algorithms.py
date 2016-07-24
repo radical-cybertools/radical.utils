@@ -1,6 +1,9 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
-import regex
+from . import regex
+from six.moves import range
 
 
 # ------------------------------------------------------------------------------
@@ -102,10 +105,10 @@ if __name__ == '__main__':
     pprint.pprint (test)
     pprint.pprint (collapse_ranges (test))
 
-    space = range(75)
+    space = list(range(75))
     parts = partition(space, 8)
     for part in parts:
-        print "%3d: %s" % (len(part), part)
+        print("%3d: %s" % (len(part), part))
 
 
 # ------------------------------------------------------------------------------

@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import range
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -60,13 +63,13 @@ def test_plugin_manager () :
 
     import resource
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (0, mem)
+    print("%5d  %d" % (0, mem))
 
     pmgr = ru.PluginManager ('radical.utils')
 
     import resource
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (0, mem)
+    print("%5d  %d" % (0, mem))
 
     for i in range (1000000) :
         plugin_4 = pmgr.load ('unittests_2', 'default_2')
@@ -76,10 +79,10 @@ def test_plugin_manager () :
 
         if not i % 100000 :
             mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            print "%5d  %d" % (i, mem)
+            print("%5d  %d" % (i, mem))
 
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (i+1, mem)
+    print("%5d  %d" % (i+1, mem))
 
 
 

@@ -1,4 +1,5 @@
 
+from __future__ import absolute_import
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -8,7 +9,7 @@ import sys
 import threading
 import traceback
 
-import misc  as rumisc
+from . import misc  as rumisc
 
 
 _out_lock = threading.RLock()
@@ -224,8 +225,8 @@ def is_main_thread():
 def cancel_main_thread():
 
     if not is_main_thread():
-        import thread
-        thread.interrupt_main()
+        import six.moves._thread
+        six.moves._thread.interrupt_main()
 
     # this applies to the sub thread and the main thread
     sys.exit()

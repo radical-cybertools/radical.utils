@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -16,12 +18,10 @@ PLUGIN_DESCRIPTION = {
 
 # ------------------------------------------------------------------------------
 #
-class PLUGIN_CLASS (object) :
+class PLUGIN_CLASS (six.with_metaclass(ru.Singleton, object)) :
     """
     This class implements the (empty) default unittest plugin for radical.utils.
     """
-
-    __metaclass__ = ru.Singleton
     _created      = False # singleton test
 
 

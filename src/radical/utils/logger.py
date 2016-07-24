@@ -1,4 +1,7 @@
 
+from __future__ import absolute_import
+import six
+from six.moves import range
 __copyright__ = "Copyright 2013-2014, http://radical.rutgers.edu"
 __license__   = "MIT"
 
@@ -49,7 +52,6 @@ if not 'RADICAL_UTILS_NOATFORK' in os.environ:
 class _LoggerRegistry(object):
 
     from .singleton import Singleton
-    __metaclass__ = Singleton
 
     def __init__(self):
         self._registry = list()

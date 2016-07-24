@@ -1,4 +1,6 @@
 
+from __future__ import absolute_import
+import six
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -48,17 +50,17 @@ def test_ids () :
     assert (id_d_1 != id_d_2         ), "'%s' != '%s'"   % (id_d_1, id_d_2)
     assert (id_e_1 != id_e_2         ), "'%s' != '%s'"   % (id_e_1, id_e_2)
 
-    assert (isinstance (id_a_1, basestring)), "isinstance('%s', basestring)" % (id_a_1)
-    assert (isinstance (id_a_2, basestring)), "isinstance('%s', basestring)" % (id_a_2)
-    assert (isinstance (id_a_3, basestring)), "isinstance('%s', basestring)" % (id_a_3)
-    assert (isinstance (id_b_1, basestring)), "isinstance('%s', basestring)" % (id_b_1)
-    assert (isinstance (id_b_2, basestring)), "isinstance('%s', basestring)" % (id_b_2)
-    assert (isinstance (id_c_1, basestring)), "isinstance('%s', basestring)" % (id_c_1)
-    assert (isinstance (id_c_2, basestring)), "isinstance('%s', basestring)" % (id_c_2)
-    assert (isinstance (id_c_1, basestring)), "isinstance('%s', basestring)" % (id_c_1)
-    assert (isinstance (id_c_2, basestring)), "isinstance('%s', basestring)" % (id_c_2)
-    assert (isinstance (id_d_1, basestring)), "isinstance('%s', basestring)" % (id_d_1)
-    assert (isinstance (id_e_1, basestring)), "isinstance('%s', basestring)" % (id_e_1)
+    assert (isinstance (id_a_1, six.string_types)), "isinstance('%s', basestring)" % (id_a_1)
+    assert (isinstance (id_a_2, six.string_types)), "isinstance('%s', basestring)" % (id_a_2)
+    assert (isinstance (id_a_3, six.string_types)), "isinstance('%s', basestring)" % (id_a_3)
+    assert (isinstance (id_b_1, six.string_types)), "isinstance('%s', basestring)" % (id_b_1)
+    assert (isinstance (id_b_2, six.string_types)), "isinstance('%s', basestring)" % (id_b_2)
+    assert (isinstance (id_c_1, six.string_types)), "isinstance('%s', basestring)" % (id_c_1)
+    assert (isinstance (id_c_2, six.string_types)), "isinstance('%s', basestring)" % (id_c_2)
+    assert (isinstance (id_c_1, six.string_types)), "isinstance('%s', basestring)" % (id_c_1)
+    assert (isinstance (id_c_2, six.string_types)), "isinstance('%s', basestring)" % (id_c_2)
+    assert (isinstance (id_d_1, six.string_types)), "isinstance('%s', basestring)" % (id_d_1)
+    assert (isinstance (id_e_1, six.string_types)), "isinstance('%s', basestring)" % (id_e_1)
 
     try                   : id_x = ru.generate_id (None)
     except TypeError      : pass

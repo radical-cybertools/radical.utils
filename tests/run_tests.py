@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from __future__ import print_function
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     for config in sys.argv[1:] :
 
         if  not os.path.exists (config) :
-            print "ERROR: Directory/file '%s' doesn't exist." % config
+            print("ERROR: Directory/file '%s' doesn't exist." % config)
             sys.exit (-1)
 
         # for each config, set up the test config singleton and run the tests

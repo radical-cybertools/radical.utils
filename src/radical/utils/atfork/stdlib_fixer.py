@@ -39,6 +39,7 @@ In 2.4.5 the following additional stdlib modules use locks:
   _strptime
 """
 
+from __future__ import absolute_import
 import sys
 import warnings
 

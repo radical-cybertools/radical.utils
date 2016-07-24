@@ -1,10 +1,12 @@
+from __future__ import absolute_import
 import os
 import sys
 import time
-import regex
+from . import regex
 import signal
 import threading
-import url as ruu
+from . import url as ruu
+import six
 
 # ------------------------------------------------------------------------------
 #
@@ -149,7 +151,7 @@ def parse_file_staging_directives (directives) :
 
     for directive in directives :
 
-        if  not isinstance (directive, basestring) :
+        if  not isinstance (directive, six.string_types) :
             raise TypeError ("file staging directives muct by of type string, "
                              "not %s" % type(directive))
 
@@ -171,7 +173,7 @@ def parse_file_staging_directives (directives) :
 def time_stamp (spec) :
 
     if  isinstance (spec, int)   or \
-        isinstance (spec, long)  or \
+        isinstance (spec, int)  or \
         isinstance (spec, float) :
 
         import datetime
@@ -193,7 +195,7 @@ def time_diff (dt_abs, dt_stamp) :
 
     # make it easy to use seconds since epoch instead of datetime objects
     if  isinstance (delta, int)   or \
-        isinstance (delta, long)  or \
+        isinstance (delta, int)  or \
         isinstance (delta, float) :
         return delta
 
