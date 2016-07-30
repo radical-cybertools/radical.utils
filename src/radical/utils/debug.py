@@ -290,12 +290,12 @@ def raise_on(tag, log=None):
 
     The tag parameter is interpreted as follows: on the `n`'th invocation of
     this method with any given `tag`, an exception is raised, and the counter
-    for that tag is rest.
+    for that tag is reset.
     
     The limit `n` is set via an environment variable `RU_RAISE_ON_<tag>`, with
     `tag` in upper casing.  The environment will only be inspected during the
     first invocation of the method with any given tag.  The tag counter is
-    process local, but is shared amongst threads of that process.
+    process-local, but is shared amongst threads of that process.
     """
 
     global _raise_on_state
