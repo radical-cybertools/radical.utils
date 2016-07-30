@@ -189,7 +189,9 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : ['colorama'],
+    'install_requires'   : ['colorama', 
+                            'netifaces'
+                           ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
         'nose'           : ['nose']
