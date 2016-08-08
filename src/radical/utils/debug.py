@@ -282,7 +282,7 @@ def get_caller_name(skip=2):
 #
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
-def raise_on(tag, log=None):
+def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
     testing purposes, for example when handling the n'th unit, getting the n'th
@@ -306,7 +306,7 @@ def raise_on(tag, log=None):
         if tag not in _raise_on_state:
             _raise_on_state[tag] = { 
                     'count' : 0,
-                    'limit' : int(os.environ.get('RU_RAISE_ON_%s' % tag.upper()), 0)
+                    'limit' : int(os.environ.get('RU_RAISE_ON_%s' % tag.upper(), 0))
                     }
             
         _raise_on_state[tag]['count'] += 1
@@ -314,13 +314,15 @@ def raise_on(tag, log=None):
         count = _raise_on_state[tag]['count']
         limit = _raise_on_state[tag]['limit']
 
-        if log: log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
-        else:   print     'raise_on checked   %s [%s / %s]' % (tag, count, limit)
+        if msg: info = '%s [%s / %s] [%s]' % (tag, count, limit, msg)
+        else  : info = '%s [%s / %s]'      % (tag, count, limit     )
+
+        if log: log.debug('raise_on checked   %s' , info)
+        else:   print     'raise_on checked   %s' % info
 
         if limit and count == limit:
-
-            if log: log.error('raise_on triggered %s [%s]' % (tag, limit))
-            else:   print     'raise_on triggered %s [%s]' % (tag, limit)
+            if log: log.error('raise_on triggered %s' , info)
+            else:   print     'raise_on triggered %s' % info
 
             # reset counter and raise exception
             _raise_on_state[tag]['count'] = 0

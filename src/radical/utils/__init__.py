@@ -10,6 +10,7 @@ from .plugin_manager import PluginManager
 from .singleton      import Singleton
 from .threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from .threads        import is_main_thread, cancel_main_thread
+from .threads        import set_cancellation_handler, unset_cancellation_handler
 from .url            import Url
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
