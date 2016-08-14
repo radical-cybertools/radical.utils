@@ -169,6 +169,15 @@ class ColorStreamHandler(logging.StreamHandler):
 class FSHandler(logging.FileHandler):
 
     def __init__(self, target):
+        """
+        The RU FS log handler allows to globally overwite log targets.  The
+        motivatin use case is OSG, where we want all RP pilot logs redirected to
+        a single target, which can then be streamed to the submission host.
+        """
+
+        overwrite = os.environ.get('RU_LOG_OVERWRITE')
+        if overwrite:
+            target = overwrite
 
         try:
             os.makedirs(os.path.abspath(os.path.dirname(target)))
