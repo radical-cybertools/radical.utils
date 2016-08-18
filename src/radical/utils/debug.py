@@ -306,7 +306,7 @@ def raise_on(tag, log=None):
         if tag not in _raise_on_state:
             _raise_on_state[tag] = { 
                     'count' : 0,
-                    'limit' : int(os.environ.get('RU_RAISE_ON_%s' % tag.upper()), 0)
+                    'limit' : int(os.environ.get('RU_RAISE_ON_%s' % tag.upper(), 0))
                     }
             
         _raise_on_state[tag]['count'] += 1
@@ -315,7 +315,7 @@ def raise_on(tag, log=None):
         limit = _raise_on_state[tag]['limit']
 
         if log: log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
-        else:   print     'raise_on checked   %s [%s / %s]' % (tag, count, limit)
+      # else:   print     'raise_on checked   %s [%s / %s]' % (tag, count, limit)
 
         if limit and count == limit:
 
