@@ -338,4 +338,44 @@ def get_signal_by_name(signame):
 
 
 # ------------------------------------------------------------------------------
+#
+class ThreadExit(SystemExit):
+    pass
+
+def raise_in_thread(e=None, tname=None, tident=None):
+    """
+    This method uses an internal Python function to inject an exception 'e' 
+    into any given thread.  That thread can be specified by its name ('tname')
+    or thread id ('tid').  If not specified, the exception is sent to the
+    MainThread.
+
+    The target thread will receive the exception with some delay.  More
+    specifically, it needs to call up to 100 op codes before the exception 
+    is evaluated and raised.
+
+    The default exception raised is 'radical.utils.ThreadExit' which inherits
+    from 'SystemExit'.
+    """
+
+    if not tident:
+        if not tname:
+            tname = 'MainThread'
+
+        for th in threading.enumerate():
+            if tname  == th.name:
+                tident = th.ident
+                break
+
+    if not tident:
+        raise ValueError('no target thread given/found')
+
+    if not e:
+        e = ThreadExit
+
+    import ctypes
+    ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tident),
+                                               ctypes.py_object(e))
+
+
+# ------------------------------------------------------------------------------
 
