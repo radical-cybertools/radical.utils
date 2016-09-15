@@ -342,6 +342,16 @@ def get_signal_by_name(signame):
 class ThreadExit(SystemExit):
     pass
 
+class SignalRaised(SystemExit):
+
+    def __init__(self, msg, signum=None):
+        if signum:
+            msg = '%s [signal: %s]' % (msg, signum)
+        SystemExit.__init__(self, msg)
+
+
+# ------------------------------------------------------------------------------
+#
 def raise_in_thread(e=None, tname=None, tident=None):
     """
     This method uses an internal Python function to inject an exception 'e' 
@@ -355,6 +365,15 @@ def raise_in_thread(e=None, tname=None, tident=None):
 
     The default exception raised is 'radical.utils.ThreadExit' which inherits
     from 'SystemExit'.
+
+    NOTE: this is not reliable: the exception is not raised immediately, but is
+          *scheduled* for raising at some point, ie. in general after about 100
+          opcodes (`sys.getcheckinterval()`).  Depending on when exactly the 
+          exception is finally raised, the interpreter might silently swallow
+          it, if that happens in a generic try/except clause.  Those exist in
+          the Python core, even if discouraged by some PEP or the other.
+
+          See https://bugs.python.org/issue1779233
     """
 
     if not tident:
