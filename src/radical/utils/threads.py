@@ -374,6 +374,11 @@ def raise_in_thread(e=None, tname=None, tident=None):
           the Python core, even if discouraged by some PEP or the other.
 
           See https://bugs.python.org/issue1779233
+
+
+    NOTE: we can only raise exception *types*, not exception *instances*
+
+          See https://bugs.python.org/issue1538556
     """
 
     if not tident:
