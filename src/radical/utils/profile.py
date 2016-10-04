@@ -13,7 +13,6 @@ from   .read_json import read_json    as ru_read_json
 
 # ------------------------------------------------------------------------------
 #
-_prof_fields  = ['time', 'name', 'uid', 'state', 'event', 'msg']
 
 
 # ------------------------------------------------------------------------------
@@ -25,6 +24,8 @@ class Profiler(object):
     Any profiling intelligence is applied when reading and evaluating the 
     created profiles.
     """
+
+    fields  = ['time', 'name', 'uid', 'state', 'event', 'msg']
 
     # --------------------------------------------------------------------------
     #
@@ -65,6 +66,13 @@ class Profiler(object):
                 print '  %sPROFILE enabled' % env_check
                 break
 
+        # FIXME
+        if 'RADICAL_PILOT_PROFILE' in os.environ:
+            self._enabled = True
+
+        if not self._enabled:
+            return
+
         # profiler is enabled - sync time and open handle
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
@@ -76,7 +84,7 @@ class Profiler(object):
         self._handle = open("%s/%s.prof" % (self._path, self._name), 'a')
 
         # write header and time normalization info
-        self._handle.write("#%s\n" % (','.join(_prof_fields)))
+        self._handle.write("#%s\n" % (','.join(Profiler.fields)))
         self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" % \
                            (self.timestamp(), self._name, "", "", "", 'sync abs',
                             "%s:%s:%s:%s:%s" % (
@@ -204,7 +212,7 @@ def read_profiles(profiles):
     for prof in profiles:
         rows = list()
         with open(prof, 'r') as csvfile:
-            reader = csv.DictReader(csvfile, fieldnames=_prof_fields)
+            reader = csv.DictReader(csvfile, fieldnames=Profiler.fields)
             for row in reader:
 
                 if row['time'].startswith('#'):
