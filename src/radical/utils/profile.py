@@ -29,30 +29,44 @@ class Profiler(object):
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, env_name=None, path=None):
+        """
+        Open the file handle, sync the clock, and write timestam_zero
+        """
 
-        # this init is only called once (globally).  We synchronize clocks and
-        # set timestamp_zero
+        # use the profiler name as basis for the env check
         if not env_name:
-            env_name = '%s_PROFILE' % ru_name2env(name)
-
-        self._handles = dict()
-
-        # we only profile if so instructed
-        if env_name in os.environ:
-            self._enabled = True
-        else:
-            self._enabled = False
-            return
-
-
-        self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
-
+            env_name = '%s' % ru_name2env(name)
 
         if not path:
             path = os.getcwd()
 
-        self._path = path
-        self._name = name
+        self._path    = path
+        self._name    = name
+        self._enabled = False
+
+
+        # example: for RADICAL_PILOT_COMPONENT, we check
+        # RADICAL_PILOT_COMPONENT_PROFILE
+        # RADICAL_PILOT_PROFILE
+        # RADICAL_PROFILE
+        # if any of those is set in env, the profiler is enabled
+        env_elems = env_name.split('_')
+        if env_elems[-1] == 'PROFILE':
+            env_elems = env_elems[:-1]
+
+        print 'profiler %s in %s' % (self._name, self._path)
+
+        env_check = ''
+        for elem in env_elems:
+            env_check += '%s_' % elem
+            print '  %sPROFILE?' % env_check
+            if '%sPROFILE' % env_check in os.environ:
+                self._enabled = True
+                print '  %sPROFILE enabled' % env_check
+                break
+
+        # profiler is enabled - sync time and open handle
+        self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
         try:
             os.makedirs(self._path)
