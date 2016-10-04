@@ -165,8 +165,6 @@ def print_stacktraces(signum=None, sigframe=None):
         with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
             f.write ("%s\n" % out)
 
-    return True
-
 
 # --------------------------------------------------------------------------
 #

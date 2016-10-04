@@ -108,6 +108,10 @@ class RLock(object):
 # ------------------------------------------------------------------------------
 #
 class Thread(threading.Thread):
+    """
+    This `Thread` class is a thin wrapper around Python's native
+    `threading.Thread` class, which adds some convenience methods.  
+    """
 
     # --------------------------------------------------------------------------
     #
