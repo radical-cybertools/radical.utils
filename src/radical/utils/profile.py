@@ -7,7 +7,7 @@ import threading
 
 from   .misc      import name2env     as ru_name2env
 from   .misc      import get_hostname as ru_get_hostname
-from   .misc      import get_ip       as ru_get_ip
+from   .misc      import get_hostip   as ru_get_hostip
 from   .read_json import read_json    as ru_read_json
 
 
@@ -234,7 +234,7 @@ def combine_profiles(profs):
             print 'empty profile %s' % pname
             continue
 
-        if not prof[0]['msg'] or not ':' in if not prof[0]['msg']:
+        if not prof[0]['msg'] or ':' not in prof[0]['msg']:
             print 'unsynced profile %s' % pname
             continue
 
