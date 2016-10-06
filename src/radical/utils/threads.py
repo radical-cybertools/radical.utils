@@ -357,6 +357,20 @@ class SignalRaised(SystemExit):
 
 # ------------------------------------------------------------------------------
 #
+def get_thread_name():
+
+    return threading.current_thread().name
+
+
+# ------------------------------------------------------------------------------
+#
+def get_thread_id():
+
+    return threading.current_thread().ident
+
+
+# ------------------------------------------------------------------------------
+#
 def raise_in_thread(e=None, tname=None, tident=None):
     """
     This method uses an internal Python function to inject an exception 'e' 
