@@ -5,6 +5,7 @@ import time
 import pprint
 import signal
 import thread
+import random
 import threading
 import traceback
 
@@ -302,27 +303,47 @@ def raise_on(tag, log=None):
     with _raise_on_lock:
 
         if tag not in _raise_on_state:
+            env   = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
+            rate  = 1
+            limit = 0
+            if env and env.startswith('RANDOM_'):
+                rate  = (float(env[7:]) / 100.0)
+                limit = 1
+            else:
+                limit = int(env)
+
             _raise_on_state[tag] = { 
                     'count' : 0,
-                    'limit' : int(os.environ.get('RU_RAISE_ON_%s' % tag.upper(), 0))
+                    'rate'  : rate,
+                    'limit' : limit
                     }
             
         _raise_on_state[tag]['count'] += 1
 
         count = _raise_on_state[tag]['count']
         limit = _raise_on_state[tag]['limit']
+        rate  = _raise_on_state[tag]['rate']
 
-        if log: 
-            log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
+        if log: log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
+      # else:   print    ('raise_on checked   %s [%s / %s]' % (tag, count, limit))
 
         if limit and count == limit:
 
-            if log: log.warn('raise_on triggered %s [%s]' % (tag, limit))
-            else:   print    'raise_on triggered %s [%s]' % (tag, limit)
+            if rate == 1:
+                val = limit
+            else:
+                val = random.random()
+                if val > rate:
+                    if log: log.warn('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                  # else:   print   ('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                    return
+
+            if log: log.warn('raise_on triggered %s [%s]' % (tag, val))
+          # else:   print    'raise_on triggered %s [%s]' % (tag, val)
 
             # reset counter and raise exception
             _raise_on_state[tag]['count'] = 0
-            raise RuntimeError('raise_on for %s [%s]' % (tag, limit))
+            raise RuntimeError('raise_on for %s [%s]' % (tag, val))
 
 
 # ------------------------------------------------------------------------------
