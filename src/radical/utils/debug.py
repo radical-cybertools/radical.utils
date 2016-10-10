@@ -309,7 +309,7 @@ def raise_on(tag, log=None):
             if env and env.startswith('RANDOM_'):
                 rate  = (float(env[7:]) / 100.0)
                 limit = 1
-            else:
+            elif env:
                 limit = int(env)
 
             _raise_on_state[tag] = { 
