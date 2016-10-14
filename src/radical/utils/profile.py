@@ -128,13 +128,17 @@ class Profiler(object):
 
     # ------------------------------------------------------------------------------
     #
-    def prof(self, event, uid=None, state=None, msg=None, timestamp=None, logger=None):
+    def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
+             logger=None, name=None):
 
         if not self._enabled:
             return
 
         if not timestamp:
             timestamp = self.timestamp()
+
+        if not name:
+            name = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
@@ -152,7 +156,7 @@ class Profiler(object):
         if None == state: state = ''
 
         self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
-                % (timestamp, self._name, tid, uid, state, event, msg))
+                % (timestamp, name, tid, uid, state, event, msg))
 
 
     # --------------------------------------------------------------------------
