@@ -55,15 +55,11 @@ class Profiler(object):
         if env_elems[-1] == 'PROFILE':
             env_elems = env_elems[:-1]
 
-        print 'profiler %s in %s' % (self._name, self._path)
-
         env_check = ''
         for elem in env_elems:
             env_check += '%s_' % elem
-            print '  %sPROFILE?' % env_check
             if '%sPROFILE' % env_check in os.environ:
                 self._enabled = True
-                print '  %sPROFILE enabled' % env_check
                 break
 
         # FIXME
