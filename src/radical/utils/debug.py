@@ -303,14 +303,19 @@ def raise_on(tag, log=None):
     with _raise_on_lock:
 
         if tag not in _raise_on_state:
-            env   = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
-            rate  = 1
-            limit = 0
+            env = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
             if env and env.startswith('RANDOM_'):
+                # env is rnd spec
                 rate  = (float(env[7:]) / 100.0)
                 limit = 1
             elif env:
+                # env is int
+                rate  = 1
                 limit = int(env)
+            else:
+                # no env set
+                rate  = 1
+                limit = 0
 
             _raise_on_state[tag] = { 
                     'count' : 0,

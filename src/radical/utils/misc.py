@@ -471,4 +471,15 @@ def watch_condition(cond, target=None, timeout=None, interval=0.1):
 
 
 # ------------------------------------------------------------------------------
+#
+def name2env(name):
+    """
+    convert a name of the for 'radical.pilot' to an env vare base named
+    'RADICAL_PILOT'.
+    """
+    
+    return name.replace('.', '_').upper()
+
+
+# ------------------------------------------------------------------------------
 
