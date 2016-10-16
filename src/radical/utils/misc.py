@@ -452,4 +452,15 @@ def get_hostip(req=None, logger=None):
 
 
 # ------------------------------------------------------------------------------
+#
+def name2env(name):
+    """
+    convert a name of the for 'radical.pilot' to an env vare base named
+    'RADICAL_PILOT'.
+    """
+    
+    return name.replace('.', '_').upper()
+
+
+# ------------------------------------------------------------------------------
 

@@ -32,6 +32,7 @@ from .debug          import *
 from .misc           import *
 from .get_version    import get_version
 from .algorithms     import *
+from .profile        import *
 
 # import decorators
 from .timing         import timed_method
