@@ -22,6 +22,7 @@ from .reporter       import Reporter
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .config         import Config
 
 # import utility methods
 from .atfork         import *
@@ -40,7 +41,6 @@ from .profile        import *
 from .timing         import timed_method
 
 # import sub-modules
-# from config         import Configuration, Configurable, ConfigOption, getConfig
 
 
 # ------------------------------------------------------------------------------
