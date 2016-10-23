@@ -272,6 +272,8 @@ class Config(object):
     
         cfg = Config(module='radical.pilot', name='resource_*')
         pprint.pprint(cfg.as_dict()['yale'])
+        print cfg.query('yale.grace.agent_launch_method')
+        print cfg.query('yale.grace.no_launch_method')
 
 
 # ------------------------------------------------------------------------------
