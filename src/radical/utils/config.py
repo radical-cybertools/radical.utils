@@ -198,8 +198,6 @@ class Config(object):
 
         if starred:
 
-            print 'starred'
-
             star_idx    = path.find('*')
             prefix_len  = star_idx
             postfix_len = len(path) - star_idx - 1
@@ -217,8 +215,6 @@ class Config(object):
                 usr_cfg[base] = read_json(usr_fname)
 
         else: # not starred
-
-            print 'not starred'
 
             sys_fname = sys_fspec
             usr_fname = usr_fspec
