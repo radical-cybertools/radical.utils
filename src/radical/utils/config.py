@@ -222,9 +222,6 @@ class Config(object):
             if not os.path.isfile(sys_fname): sys_fname += '.json' 
             if not os.path.isfile(usr_fname): usr_fname += '.json'
 
-            if not os.path.isfile(sys_fname): print 'no sys %s' % sys_fname
-            if not os.path.isfile(usr_fname): print 'no usr %s' % usr_fname
-
             if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
             if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
