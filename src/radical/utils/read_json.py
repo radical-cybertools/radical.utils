@@ -23,8 +23,6 @@ def read_json (filename) :
 
     """
 
-    print 'json read: %s' % filename
-
     with open (filename) as f:
 
         content = ''
