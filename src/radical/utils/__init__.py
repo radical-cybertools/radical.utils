@@ -22,7 +22,7 @@ from .reporter       import Reporter
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
-from .config         import Config
+from .config         import Config, get_config
 
 # import utility methods
 from .atfork         import *

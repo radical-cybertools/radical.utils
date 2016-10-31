@@ -133,21 +133,46 @@ import re
 from .dict_mixin import dict_merge
 from .read_json  import read_json
 
+
+def get_config(name):
+    """
+    This is a convenience method which for any given name 'a.b.c' will create
+    a Config like:
+
+      return Config(module='a.b', name='c')
+
+    where 'name' will never contain a '.'.
+    """
+    if not '.' in name:
+        raise ValueError('name must be of form "module.config"')
+
+    elems   = name.split('.')
+    modname = '.'.join(elems[:-1])
+    cfgname = elems[-1]
+
+    return Config(module=modname, name=cfgname)
+
+
 # ------------------------------------------------------------------------------
 #
 class Config(object):
+
+    # FIXME: we should do some magic on values, like, convert to into, float,
+    #        bool, list of those, after env expansion.  For now, typing is the
+    #        repsonsibility of the consumer.
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, module, path=None, name=None):
 
-        modpkg  = pkgutil.get_loader(module)
-        modfile = modpkg.filename
+        modpkg = pkgutil.get_loader(module)
 
-        home = os.environ.get('HOME', '/tmp')
-        home = os.environ.get('RADICAL_UTILS_CONFIG_USR_DIR', home)
+        if not modpkg:
+            raise ValueError("Cannot load config for module %s" % module)
 
-        sys_dir = "%s/configs" % (modfile)
+        home    = os.environ.get('HOME', '/tmp')
+        home    = os.environ.get('RADICAL_UTILS_CONFIG_USR_DIR', home)
+        sys_dir = "%s/configs" % (modpkg.filename)
         usr_dir = "%s/.%s"     % (home, module.replace('.', '/'))
 
         if path and name:
@@ -173,6 +198,8 @@ class Config(object):
 
         if starred:
 
+            print 'starred'
+
             star_idx    = path.find('*')
             prefix_len  = star_idx
             postfix_len = len(path) - star_idx - 1
@@ -191,11 +218,16 @@ class Config(object):
 
         else: # not starred
 
+            print 'not starred'
+
             sys_fname = sys_fspec
             usr_fname = usr_fspec
 
             if not os.path.isfile(sys_fname): sys_fname += '.json' 
             if not os.path.isfile(usr_fname): usr_fname += '.json'
+
+            if not os.path.isfile(sys_fname): print 'no sys %s' % sys_fname
+            if not os.path.isfile(usr_fname): print 'no usr %s' % usr_fname
 
             if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
             if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
@@ -236,7 +268,10 @@ class Config(object):
 
     # --------------------------------------------------------------------------
     #
-    def query(self, key):
+    def get(self, key, default=None):
+        return self.query(key, default)
+
+    def query(self, key, default=None):
 
         elems = key.split('.')
 
@@ -252,7 +287,7 @@ class Config(object):
             pos = pos.get(elem)
 
             if None == pos:
-                return None
+                return default
 
         return pos
 
