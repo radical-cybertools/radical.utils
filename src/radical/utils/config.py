@@ -82,20 +82,14 @@ __license__   = "MIT"
 #
 # We support two types of queries on the resulting parsed configs:
 #
-#   - the `as_dict()`  method returns a Python dict representation
+#   - dict like queries (via `ru.DictMixin`)
 #   - the `query(key)` method returns a single value, or 'None' if not found.
 #
 # In the latter `query()` case, the `key` can be specified as dot-separated
 # path, so that the following two snippets are equivalent:
 #
-#   cfg = config.as_dict()
 #   val = cfg['foo']['bar'].get('baz')
-#
-#   val = config.query('foo.bar.baz')
-#
-# Note that `as_dict()` will return a deepcopy of the configuration, `query()`
-# will operate on the *original* configuration, and thus may return references
-# into the original cofig dict.
+#   val = cfg.query('foo.bar.baz')
 #
 #
 # Environment
@@ -130,7 +124,7 @@ import glob
 import os
 import re
 
-from .dict_mixin import dict_merge
+from .dict_mixin import dict_merge, DictMixin
 from .read_json  import read_json
 
 
@@ -146,6 +140,8 @@ def get_config(name):
     if not '.' in name:
         raise ValueError('name must be of form "module.config"')
 
+    print 'load config for %s' % name
+
     elems   = name.split('.')
     modname = '.'.join(elems[:-1])
     cfgname = elems[-1]
@@ -155,7 +151,7 @@ def get_config(name):
 
 # ------------------------------------------------------------------------------
 #
-class Config(object):
+class Config(object, DictMixin):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -254,16 +250,23 @@ class Config(object):
 
     # --------------------------------------------------------------------------
     #
-    def as_dict(self):
+    # first level definitions should be implemented for the dict mixin
+    #
+    def __getitem__(self, key):
+        return self._cfg[key]
 
-        return copy.deepcopy(self._cfg)
+    def __setitem__(self, key, value):
+        self._cfg[key] = value
+
+    def __delitem__(self, key):
+        del(self._cfg[key])
+
+    def keys(self):
+        return self._cfg.keys()
 
 
     # --------------------------------------------------------------------------
     #
-    def get(self, key, default=None):
-        return self.query(key, default)
-
     def query(self, key, default=None):
 
         elems = key.split('.')
@@ -285,7 +288,6 @@ class Config(object):
         return pos
 
 
-
     # --------------------------------------------------------------------------
     #
     @classmethod
@@ -299,7 +301,7 @@ class Config(object):
         os.environ['FOO'] = 'GSISSH'
     
         cfg = Config(module='radical.pilot', name='resource_*')
-        pprint.pprint(cfg.as_dict()['yale'])
+        pprint.pprint(cfg['yale'])
         print cfg.query('yale.grace.agent_launch_method')
         print cfg.query('yale.grace.no_launch_method')
 
