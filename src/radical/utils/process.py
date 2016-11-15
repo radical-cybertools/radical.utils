@@ -39,17 +39,17 @@ _TERM_TIMEOUT  = 5.0  # time to wait for voluntary process termination
 #
 #                         while True:
 #                           if self._rup_term.is_set():
-#                             self._rup_terminfo = 'terminated'
+#                             self._rup_terminfo.value = 'terminated'
 #                             break
 #
 #                           if not parent.is_alive():
-#                             self._rup_terminfo = 'orphaned'
+#                             self._rup_terminfo.value = 'orphaned'
 #                             break
 #
 #                           try:
 #                               self.work()
 #                           except:
-#                             self._rup_terminfo = 'exception %s'
+#                             self._rup_terminfo.value = 'exception %s'
 #                             break
 #
 #                         self.finalize()  # overload
@@ -69,7 +69,7 @@ class Process(mp.Process):
         self._rup_alive    = mp.Event()   # set after child process startup,
                                           # unset after demise
         self._rup_term     = mp.Event()   # set in stop() to terminate child
-        self._rup_terminfo = mp.Value(ctypes.c_char_p, '', lock=True) 
+        self._rup_terminfo = mp.Array(ctypes.c_char, 1024*' ', lock=True) 
                                           # report on termination causes
         self._rup_log      = log          # ru.logger for debug output
         self._rup_ppid     = os.getpid()  # get parent process ID
@@ -112,14 +112,25 @@ class Process(mp.Process):
         # start `self.run()` in the child process, and wait for it's
         # initalization to finish, which will set `self._rup_alive`.
         mp.Process.start(self)
-        self._rup_alive.wait(timeout)
+
+        # wait until we find any of:
+        #   - that child has died
+        #   - child sends alive event
+        #   - timeout
+        start = time.time()
+        while True:
+            if not mp.Process.is_alive(self): break
+            if self._rup_alive.is_set()     : break
+            if time.time()-start > timeout  : break
+            time.sleep(0.01)
 
         # if that did't work out, we consider te child failed.
         if not self.is_alive():
 
             # startup failed.  Terminate whatever is left and raise
             if  self._rup_log:
-                self._rup_log.debug('start process failed', self._rup_terminfo)
+                self._rup_log.debug('start process failed: %s',
+                                    self._rup_terminfo.value)
 
             try:
                 # child is likely dead - but we'll make sure
@@ -127,7 +138,8 @@ class Process(mp.Process):
                 self.join()       # collect process
             except:
                 pass
-            raise RuntimeError('child startup failed [%s]' % self._rup_terminfo)
+            raise RuntimeError('child startup failed [%s]' %
+                               self._rup_terminfo.value)
 
         if  self._rup_log:
             self._rup_log.debug('start process ok')
@@ -231,18 +243,25 @@ class Process(mp.Process):
        this implementation.
        '''
 
-       self.initialize()     # overloaded
+       try:
+           self.initialize()     # overloaded
+       except BaseException as e:
+           if  self._rup_log:
+               self._rup_log.exception('initialize() raised exception: %s', e)
+           self._rup_terminfo.value = 'exception %s' % repr(e)
+           sys.exit(1)
+
        self._rup_alive.set() # signal successful child startup
  
        # enter loop to repeatedly call 'work()'.
        while True:
 
            if self._rup_term.is_set():
-               self._rup_terminfo = 'terminated'
+               self._rup_terminfo.value = 'terminated'
                break
  
            if not self._parent_is_alive():
-               self._rup_terminfo = 'orphaned'
+               self._rup_terminfo.value = 'orphaned'
                break
  
            try:
@@ -253,14 +272,22 @@ class Process(mp.Process):
                # it this way!
                if  self._rup_log:
                    self._rup_log.exception('work() raised exception: %s', e)
-               self._rup_terminfo = 'exception %s' % repr(e)
+               self._rup_terminfo.value = 'exception %s' % repr(e)
                break
  
        if  self._rup_log:
-           self._rup_log.info('child is terminating: %s', self._rup_terminfo)
+           self._rup_log.info('child is terminating: %s',
+                              self._rup_terminfo.value)
 
-       self.finalize()  # overloaded
-       sys.exit()       # terminate child process
+       try:
+           self.finalize()     # overloaded
+       except BaseException as e:
+           if  self._rup_log:
+               self._rup_log.exception('finalize() raised exception: %s', e)
+           self._rup_terminfo.value = 'exception %s' % repr(e)
+           sys.exit(1)
+
+       sys.exit(0) # terminate child process
 
 
     # --------------------------------------------------------------------------

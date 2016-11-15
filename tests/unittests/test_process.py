@@ -22,14 +22,11 @@ def test_process_basic():
     '''
 
     class P(ru.Process):
-
         def __init__(self, log):
             ru.Process.__init__(self, log)
-
         def work(self):
             time.sleep(1)
-            # only run once!
-            sys.exit(0)
+            sys.exit(0) # only run once!
 
     log = ru.get_logger('radical.util')
     p = P(log)
@@ -40,10 +37,36 @@ def test_process_basic():
     assert(stop-start > 1.0)
     assert(stop-start < 2.0)
 
+
+# ------------------------------------------------------------------------------
+#
+def test_process_init_fail():
+    '''
+    make sure the parent gets notified on failing init
+    '''
+
+    class P(ru.Process):
+        def __init__(self, log):
+            ru.Process.__init__(self, log)
+        def initialize(self):
+            raise RuntimeError('oops')
+        def work(self):
+            time.sleep(0.1)
+
+    log = ru.get_logger('radical.util')
+    p = P(log)
+    try:
+        p.start()
+    except RuntimeError as e:
+        assert('oops' in str(e)), str(e)
+
+    assert(not p.is_alive())
+
 # ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
+    test_process_init_fail()
     test_process_basic()
 
 
