@@ -257,7 +257,7 @@ def combine_profiles(profs):
             continue
 
         if not prof[0]['msg'] or ':' not in prof[0]['msg']:
-            print 'unsynced profile %s' % pname
+          # print 'unsynced profile %s' % pname
             continue
 
         t_prof = prof[0]['time']
