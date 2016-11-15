@@ -35,6 +35,7 @@ from .misc           import *
 from .get_version    import get_version
 from .algorithms     import *
 from .profile        import *
+from .process        import Process
 
 # import decorators
 from .timing         import timed_method

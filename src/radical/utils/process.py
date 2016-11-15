@@ -31,7 +31,7 @@ _TERM_TIMEOUT  = 5.0  # time to wait for voluntary process termination
 #
 # Semantics:
 #
-#   def start(timeout): mp.start()
+#   def start(timeout): mp.Process.start()
 #                       self._alive.wait(timeout)
 #   def run(self):      # must NOT be overloaded
 #                         self.initialize() # overload
@@ -56,8 +56,8 @@ _TERM_TIMEOUT  = 5.0  # time to wait for voluntary process termination
 #                         sys.exit()
 #
 #   def stop():         self._rup_term.set()
-#   def terminate():    mp.terminate()
-#   def join(timeout):  mp.join(timeout)
+#   def terminate():    mp.Process.terminate()
+#   def join(timeout):  mp.Process.join(timeout)
 #
 # 
 class Process(mp.Process):
@@ -72,7 +72,7 @@ class Process(mp.Process):
         self._rup_terminfo = mp.Value(ctypes.c_char_p, '', lock=True) 
                                           # report on termination causes
         self._rup_log      = log          # ru.logger for debug output
-        self._rup_ppid     = os.get_pid() # get parent process ID
+        self._rup_ppid     = os.getpid()  # get parent process ID
 
         mp.Process.__init__(self)
 
@@ -86,13 +86,13 @@ class Process(mp.Process):
         '''
 
         if  self._rup_log:
-            self._rup_log('is_alive flag/proc: %s/%s', 
-                          self._rup_alive.is_set(), mp.is_alive(self))
+            self._rup_log.debug('is_alive flag/proc: %s/%s', 
+                                self._rup_alive.is_set(), mp.Process.is_alive(self))
 
         if not self._rup_alive.is_set():
             return False
 
-        return mp.is_alive(self)
+        return mp.Process.is_alive(self)
 
 
     # --------------------------------------------------------------------------
@@ -111,15 +111,15 @@ class Process(mp.Process):
 
         # start `self.run()` in the child process, and wait for it's
         # initalization to finish, which will set `self._rup_alive`.
-        mp.start(self)
+        mp.Process.start(self)
         self._rup_alive.wait(timeout)
 
         # if that did't work out, we consider te child failed.
-        if not self._is_alive():
+        if not self.is_alive():
 
             # startup failed.  Terminate whatever is left and raise
             if  self._rup_log:
-                self._rup_log.debug('start process failed', self._rup_terminfo))
+                self._rup_log.debug('start process failed', self._rup_terminfo)
 
             try:
                 # child is likely dead - but we'll make sure
@@ -144,6 +144,29 @@ class Process(mp.Process):
 
         if  self._rup_log:
             self._rup_log.debug('initialized (NOOP)')
+
+
+    # --------------------------------------------------------------------------
+    #
+    def work(self):
+        '''
+        This method MUST be overloaded.  It represents the workload of the
+        process, and will be called over and over again.  
+
+        This has several implications:
+
+          * `work()` needs to enforce any call rate limits on its own!
+          * in order to terminate the child, `work()` needs to either raise an
+            exception, or call `sys.exit()` (which actually also raises an
+            exception).
+
+        Before the first invocation, `self.initialize()` will be called.  After
+        the last invocation, `self.finalize()` will be called, if possible.  The
+        latter will not always be possible if the child is terminated by
+        a signal, such as when the parent process calls `child.terminate()` --
+        `child.stop()` should be used instead.
+        '''
+        raise NotImplementedError('ru.Process.work() MUST be overloaded')
 
 
     # --------------------------------------------------------------------------
@@ -208,8 +231,8 @@ class Process(mp.Process):
        this implementation.
        '''
 
-       self.initialize() # overload
-       self._alive.set() # signal successful child startup
+       self.initialize()     # overloaded
+       self._rup_alive.set() # signal successful child startup
  
        # enter loop to repeatedly call 'work()'.
        while True:
@@ -224,16 +247,20 @@ class Process(mp.Process):
  
            try:
                self.work()
-           except:
+           except BaseException as e:
+               # this is a very global except, and also catches sys.exit(),
+               # keyboard interrupts, etc.  Ignore pylint and PEP-8, we want 
+               # it this way!
                if  self._rup_log:
                    self._rup_log.exception('work() raised exception: %s', e)
-               self._rup_terminfo = 'exception %s'
+               self._rup_terminfo = 'exception %s' % repr(e)
                break
  
        if  self._rup_log:
            self._rup_log.info('child is terminating: %s', self._rup_terminfo)
-       self.finalize()  # overload
-       sys.exit()
+
+       self.finalize()  # overloaded
+       sys.exit()       # terminate child process
 
 
     # --------------------------------------------------------------------------
@@ -267,7 +294,7 @@ class Process(mp.Process):
         if  self._rup_log:
             self._rup_log.debug('kill child')
 
-        return mp.terminate(self)
+        return mp.Process.terminate(self)
 
 
     # --------------------------------------------------------------------------
@@ -280,7 +307,7 @@ class Process(mp.Process):
         if  self._rup_log:
             self._rup_log.debug('join child')
 
-        return mp.join(self, timeout)
+        return mp.Process.join(self, timeout)
 
 
 # ------------------------------------------------------------------------------
