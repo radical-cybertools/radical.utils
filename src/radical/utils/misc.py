@@ -453,6 +453,25 @@ def get_hostip(req=None, logger=None):
 
 # ------------------------------------------------------------------------------
 #
+def watch_condition(cond, target=None, timeout=None, interval=0.1):
+    """
+    Watch a given condition (a callable) until it returns the target value, and
+    return that value.  Stop watching on timeout, in that case return None.  The
+    condition is tested approximately every 'interval' seconds.
+    """
+    
+    start = time.time()
+    while True:
+        ret = cond()
+        if ret == target:
+            return ret
+        if timeout and time.time() > start+timeout:
+            return None
+        time.sleep(interval)
+
+
+# ------------------------------------------------------------------------------
+#
 def name2env(name):
     """
     convert a name of the for 'radical.pilot' to an env vare base named

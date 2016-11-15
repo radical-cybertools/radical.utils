@@ -4,7 +4,10 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import os
 import threading
+
+from .atfork import *
 
 
 _singleton_lock = threading.RLock ()
@@ -36,5 +39,20 @@ class Singleton (type) :
 
 # ------------------------------------------------------------------------------
 #
+def _atfork_prepare():
+    pass
+
+def _atfork_parent():
+    pass
+
+def _atfork_child():
+    # release lock
+    _singleton_lock = threading.RLock()
+
+if not 'RADICAL_UTILS_NOATFORK' in os.environ:
+    atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+
+
+# ------------------------------------------------------------------------------
 
 
