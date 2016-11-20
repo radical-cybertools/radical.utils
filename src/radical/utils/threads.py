@@ -263,10 +263,8 @@ def cancel_main_thread(signame=None, once=False):
     global _signal_lock
     global _signal_sent
 
-
     if signame: signal = get_signal_by_name(signame)
     else      : signal = None
-
 
     with _signal_lock:
 
@@ -286,7 +284,6 @@ def cancel_main_thread(signame=None, once=False):
 
         # record the signal sending
         _signal_sent[signal] = True
-
 
     # the sub thread will at this point also exit.
     if not is_main_thread():
