@@ -13,8 +13,16 @@ import socket
 import threading       as mt
 import multiprocessing as mp
 
+from .debug import print_stacktrace, print_stacktraces
+
 _ALIVE_TIMEOUT = 5.0  # time to wait for process startup signal
-_TERM_TIMEOUT  = 5.0  # time to wait for voluntary process termination
+_WATCH_TIMEOUT = 0.1  # time between thread and process health polls
+
+
+def _role(to_watch):
+    if   to_watch == 'parent': return 'child'
+    elif to_watch == 'child' : return 'parent'
+    else                     : return 'unknonwn'
 
 
 # ------------------------------------------------------------------------------
@@ -76,6 +84,10 @@ class Process(mp.Process):
                                           # report on termination causes
         self._rup_log      = log          # ru.logger for debug output
         self._rup_ppid     = os.getpid()  # get parent process ID
+        self._rup_to_watch = list()       # threads and processes to watch
+        self._rup_lock     = mt.RLock()   # thread lock
+
+        self._tmp = False
 
         mp.Process.__init__(self, name=name)
 
@@ -88,22 +100,25 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def _proc_watcher(self, to_watch):
-        """
+    def _rup_watcher(self, to_watch):
+        '''
         When `start()` is called, the parent process will create a socket pair.
         after fork, one end of that pair will be watched by the parent and
         client, respectively, in a separate watcher thread.  If any error
         condition or hangup is detected on the end, it is assumed that the
         process on the other end died, and termination is initiated.
 
+        The rup_watcher will also watch whatever entity is found in the
+        `self._rup_tu_watch` list, which is expected to contain `mt.Thread` and
+        `mp.Process` instances.  If any of those is found to be 
+        `not thing.is_alive()`, termination is initiated.
+
         Since the watch happens in a subthread, any termination requires the
         attention and cooperation of the main thread.  No attempt is made on
-        interrupting the main thread though.
+        interrupting the main thread.
+        '''
 
-        The proc_watcher should be a damon thread, so that the main thread does
-        not need to wait for it - this way we can poll forever, with no timeout!
-        """
-
+      # print "### %s: enumerate: %s" % (os.getpid(), [t.name for t in mt.enumerate()])
 
         # make sure we watch different ends:
         if to_watch == 'parent':
@@ -118,15 +133,66 @@ class Process(mp.Process):
         poller = select.poll()
         poller.register(fd, select.POLLERR | select.POLLHUP)
 
-        event = poller.poll()
-        einfo = self._rup_terminfo.value.strip() # possible termination cause
+        # we watch threads and proces as long as we live
+        while not self._rup_term.is_set():
 
-        self._rup_terminfo.value = '%s died %s: %s' % (to_watch, event, einfo)
+          # print '%s: watch %s' % (os.getpid(), to_watch)
 
-        if self._rup_log:
-            self._rup_log.info(self._rup_terminfo.value)
+            # first check health of parent/child relationship
+            event = poller.poll(0)  # zero timeout: non-blocking
 
-        self._rup_term.set()
+            if event:
+              # print '%s: %s dies' % (os.getpid(), to_watch)
+                # the socket is dead - terminate!
+                einfo = self._rup_terminfo.value.strip()
+                self._rup_terminfo.value = '%s died %s: %s' % (to_watch, event, einfo)
+                break
+
+            # now watch all other registered watchables
+            abort = False
+            for thing in self._rup_to_watch:
+           
+                if not thing.is_alive():
+                    self._rup_terminfo.value = '%s died' % (thing.name)
+                    abort = True
+                    break  #  don't bother about the others
+           
+            if abort:
+                break # stop watching, terminate
+
+            # all is well -- sleep a bit to avoid busy poll
+            time.sleep(_WATCH_TIMEOUT)
+
+        if not self._rup_term.is_set():
+
+            # we broke above, and need to terminate
+            if self._rup_log:
+                self._rup_log.info(self._rup_terminfo.value)
+            self._rup_term.set()
+
+
+        # nmake sure to actually *exit* the thread (we are not a daemon!) - but
+        # remember that the MainThread will not be notified, nor exited this way
+        # https://bugs.python.org/issue6634
+        sys.exit()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def to_watch(self, thing):
+        '''
+        The rup_watcher thread monitors the class' child process, but cajn also
+        watch other processes and threads, as needed.  This method allows to
+        register `mt.Thread` and `mp.Process` instances for watching.    If any
+        of them is found to be not alive (tested via `thing.is_alive()`), all
+        watched threads and processes (including the original child process) are 
+        stopped, and then terminated.
+        '''
+
+        assert(isinstance(thing, mt.Thread) or isinstance(thing, mp.Process))
+
+        with self._rup_lock:
+            self._rup_to_watch.append(thing)
 
 
     # --------------------------------------------------------------------------
@@ -136,6 +202,10 @@ class Process(mp.Process):
         Overload the `mp.Process.is_alive()` method, and check both the job
         state *and* the state of the `self._rup_alive` flag.
         '''
+
+      # print '%s: is_alive flag/proc: %s/%s' % (os.getpid(), 
+      #                                          self._rup_alive.is_set(), 
+      #                                          mp.Process.is_alive(self))
 
         if  self._rup_log:
             self._rup_log.debug('is_alive flag/proc: %s/%s', 
@@ -173,7 +243,7 @@ class Process(mp.Process):
         # NOTE: while this works, we seem to have the socketpair-based detection
         #       stable enough to not need the monkeypatch.
         #
-      # _daemon_fork_patch = """\
+      # _daemon_fork_patch = '''\
       #     *** process_orig.py  Sun Nov 20 20:02:23 2016
       #     --- process_fixed.py Sun Nov 20 20:03:33 2016
       #     ***************
@@ -187,7 +257,7 @@ class Process(mp.Process):
       #           if self._Popen is not None:
       #               Popen = self._Popen
       #     --- 5,10 ----
-      #     """
+      #     '''
       #
       # import patchy
       # patchy.mc_patchface(mp.Process.start, _daemon_fork_patch)
@@ -204,9 +274,11 @@ class Process(mp.Process):
 
         # immediately after the fork we start watching our socketpair end in
         # a separate thread
-        proc_watcher = mt.Thread(target=self._proc_watcher, args=['child'])
+        proc_watcher = mt.Thread(target=self._rup_watcher, args=['child'])
         proc_watcher.daemon = True
         proc_watcher.start()
+
+      # print '%s: p 1 %s' % (os.getpid(), proc_watcher.name)
 
         # wait until we find any of:
         #   - that child has died  <-- self._rup_term.is_set() == True
@@ -217,7 +289,12 @@ class Process(mp.Process):
             if not mp.Process.is_alive(self): break
             if self._rup_alive.is_set()     : break
             if time.time()-start > timeout  : break
-            time.sleep(0.01)
+            time.sleep(0.1)
+
+      # print "%s: -------" % os.getpid()
+      # print "%s: %s" % (os.getpid(), mp.Process.is_alive(self))
+      # print "%s: %s" % (os.getpid(), self._rup_alive.is_set())
+      # print "%s: %s" % (os.getpid(), time.time()-start)
 
         # if that did't work out, we consider the child failed.  To be on the
         # safe side, we send it a kill signal, and then stop.
@@ -231,8 +308,15 @@ class Process(mp.Process):
                 self.stop()
             except:
                 pass
-            raise RuntimeError('child startup failed [%s]' %
-                               self._rup_terminfo.value)
+
+            if self._rup_alive.is_set():
+                # the child actually became alive -- we leave error detection to
+                # the watcher
+                pass
+            else:
+                # the child never made it - report error straight away
+                raise RuntimeError('child failed [%s]' %
+                                   self._rup_terminfo.value)
 
         # if we got this far, then all is well, we are done.
         if  self._rup_log:
@@ -241,7 +325,17 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def initialize(self):
+    def _rup_initialize_child(self):
+        '''
+        Call custom child initializer.
+        '''
+
+        self.initialize_child()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def initialize_child(self):
         '''
         This method can be overloaded, and will then be executed *once* before
         the class' `work()` method.  The child is only considered to be 'alive'
@@ -249,7 +343,7 @@ class Process(mp.Process):
         '''
 
         if  self._rup_log:
-            self._rup_log.debug('initialized (NOOP)')
+            self._rup_log.debug('initialize_child (NOOP)')
 
 
     # --------------------------------------------------------------------------
@@ -266,31 +360,88 @@ class Process(mp.Process):
             exception, or call `sys.exit()` (which actually also raises an
             exception).
 
-        Before the first invocation, `self.initialize()` will be called.  After
-        the last invocation, `self.finalize()` will be called, if possible.  The
-        latter will not always be possible if the child is terminated by
-        a signal, such as when the parent process calls `child.terminate()` --
-        `child.stop()` should be used instead.
+        Before the first invocation, `self.initialize_child()` will be called.
+        After the last invocation, `self.finalize_child()` will be called, if
+        possible.  The latter will not always be possible if the child is
+        terminated by a signal, such as when the parent process calls
+        `child.terminate()` -- `child.stop()` should be used instead.
         '''
+
         raise NotImplementedError('ru.Process.work() MUST be overloaded')
 
 
     # --------------------------------------------------------------------------
     #
-    def finalize(self):
+    def _rup_finalize_child(self):
+        '''
+        Call custom child finalizer.
+        '''
+
+      # for thing in self._rup_to_watch:
+      #     print "%s === stop %s" % (os.getpid(), thing.name) 
+      #     thing.stop()
+      #
+      # for thing in self._rup_to_watch:
+      #     print "%s === term %s" % (os.getpid(), thing.name) 
+      #     thing.terminate()
+      #
+      # for thing in self._rup_to_watch:
+      #     print "%s === join %s" % (os.getpid(), thing.name) 
+      #     thing.join()
+
+        self.finalize_child()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def finalize_child(self):
         '''
         This method can be overloaded, and will then be executed *once* after
         the class' `work()` method.  The child is considered 'alive' until this
         method has been completed.
 
-        note that `self.finalize()` will not be called when `self.initalize()`
-        failed!
+        NOTE: `self.finalize_child()` will not be called when
+        `self.initalize_child()` failed!
         '''
 
         if  self._rup_log:
-            self._rup_log.debug('finalize (NOOP)')
+            self._rup_log.debug('finalize_child (NOOP)')
 
 
+  # # --------------------------------------------------------------------------
+  # #
+  # def _rup_finalize_parent(self):
+  #     '''
+  #     Call custom parent finalizer.
+  #     '''
+  #
+  #     for thing in self._rup_to_watch:
+  #         print "%s === stop %s" % (os.getpid(), thing.name) 
+  #         thing.stop()
+  #
+  #     for thing in self._rup_to_watch:
+  #         print "%s === term %s" % (os.getpid(), thing.name) 
+  #         thing.terminate()
+  #
+  #     for thing in self._rup_to_watch:
+  #         print "%s === join %s" % (os.getpid(), thing.name) 
+  #         thing.join()
+  #
+  #     self.finalize_parent()
+  #
+  #
+  # # --------------------------------------------------------------------------
+  # #
+  # def finalize_parent(self):
+  #     '''
+  #     This method can be overloaded, and will then be executed during
+  #     the class' `stop()` method.
+  #     '''
+  #
+  #     if  self._rup_log:
+  #         self._rup_log.debug('finalize_parent (NOOP)')
+  #
+  #
     # --------------------------------------------------------------------------
     #
     def _parent_is_alive(self):
@@ -305,10 +456,17 @@ class Process(mp.Process):
         '''
 
         try:
+          # print '%s: check parent %s' % (os.getpid(), self._rup_ppid)
             os.kill(self._rup_ppid, 0)
+          # print '%s: check parent %s ok' % (os.getpid(), self._rup_ppid)
             return True
 
+        except Exception as e:
+          # print "%s: %s" % (os.getpid(), e)
+            return False
+
         except:
+          # print '%s: check parent %s nok' % (os.getpid(), self._rup_ppid)
             return False
 
 
@@ -319,39 +477,44 @@ class Process(mp.Process):
         This method MUST NOT be overloaded!
 
         This is the workload of the child process.  It will first call
-        `self.initialize()`, and then repeatedly call `self.work()`, until being
-        terminated.  When terminated, it will call `self.finalize()` and exit.
+        `self.initialize_child()`, and then repeatedly call `self.work()`, until
+        being terminated.  When terminated, it will call `self.finalize_child()`
+        and exit.
 
         The implementation of `work()` needs to make sure that this process is
         not spinning idly -- if there is nothing to do in `work()` at any point
         in time, the routine should at least sleep for a fraction of a second or
         something.
 
-        `finalize()` is only guaranteed to get executed on `self.stop()` --
-        a hard kill via `self.terminate()` may or may not be trigger to run
-        `self.finalize()`.
+        `finalize_child()` is only guaranteed to get executed on `self.stop()`
+        -- a hard kill via `self.terminate()` may or may not be trigger to run
+        `self.finalize_child()`.
 
         The child process will automatically terminate when the parent process
-        dies (then including the call to `self.finalize()`).  It is not possible
-        to create daemon or orphaned processes -- which is an explicit purpose of
-        this implementation.
+        dies (then including the call to `self.finalize_child()`).  It is not
+        possible to create daemon or orphaned processes -- which is an explicit
+        purpose of this implementation.
         '''
 
         # first order of business: watch parent health
-        proc_watcher = mt.Thread(target=self._proc_watcher, args=['parent'])
+        proc_watcher = mt.Thread(target=self._rup_watcher, args=['parent'])
         proc_watcher.daemon = True
         proc_watcher.start()
 
+      # print '%s: =============== c 1 %s' % (os.getpid(), proc_watcher.name)
+      # if proc_watcher.name == 'Thread-2':
+      #     print_stacktraces()
 
         try:
-            self.initialize()     # overloaded
+            self._rup_initialize_child()
         except BaseException as e:
             if  self._rup_log:
-                self._rup_log.exception('initialize() raised exception: %s', e)
+                self._rup_log.exception('initialize_child() raised exception: %s', e)
             self._rup_terminfo.value = 'exception %s' % repr(e)
             sys.exit(1)
 
         self._rup_alive.set() # signal successful child startup
+      # print '%s: c 2' % os.getpid()
  
         # enter loop to repeatedly call 'work()'.
         while True:
@@ -359,10 +522,13 @@ class Process(mp.Process):
             if self._rup_term.is_set():
                 self._rup_terminfo.value = 'terminated'
                 break
+          # print '%s: c 3' % os.getpid()
  
             if not self._parent_is_alive():
                 self._rup_terminfo.value = 'orphaned'
+                self._rup_term.set()
                 break
+          # print '%s: c 4' % os.getpid()
  
             try:
                 self.work()
@@ -370,22 +536,41 @@ class Process(mp.Process):
                 # this is a very global except, and also catches sys.exit(),
                 # keyboard interrupts, etc.  Ignore pylint and PEP-8, we want 
                 # it this way!
+              # print '%s: work failed: %s: %s' % (os.getpid(), type(e), e)
                 if  self._rup_log:
                     self._rup_log.exception('work() raised exception: %s', e)
                 self._rup_terminfo.value = 'exception %s' % repr(e)
+                self._rup_term.set()
                 break
+          # print '%s: c 5' % os.getpid()
+
+        # we sould have no other way of getting here
+        assert(self._rup_term.is_set())
  
         if  self._rup_log:
             self._rup_log.info('child is terminating: %s',
                                self._rup_terminfo.value)
 
         try:
-            self.finalize()     # overloaded
+          # print '%s: c 6a' % os.getpid()
+            self._rup_finalize_child()
+          # print '%s: c 6b' % os.getpid()
         except BaseException as e:
+          # print '%s: c 6c : %s' % (os.getpid(), e)
             if  self._rup_log:
-                self._rup_log.exception('finalize() raised exception: %s', e)
+                self._rup_log.exception('finalize_child() raised exception: %s', e)
             self._rup_terminfo.value = 'exception %s' % repr(e)
             sys.exit(1)
+
+      # print '%s: c 6d'
+      # print '%s: c 7 [child] %s' % (os.getpid(), self._rup_term.is_set())
+        proc_watcher.join(timeout=3.0)
+      # if proc_watcher.is_alive():
+      #     print '%s: c 8: could not join watcher %s' % (os.getpid(), proc_watcher.name)
+      # else:
+      #     print '%s: c 8: could join watcher %s' % (os.getpid(), proc_watcher.name)
+      # print_stacktraces()
+      # print '%s: c 9 [child] OK' % os.getpid()
 
         sys.exit(0) # terminate child process
 
@@ -414,7 +599,7 @@ class Process(mp.Process):
         while mp.Process.is_alive(self):
             if time.time() - start > 5.0:
                 break
-            time.sleep(1)
+            time.sleep(0.1)
 
         if mp.Process.is_alive(self):
             # let it die already...

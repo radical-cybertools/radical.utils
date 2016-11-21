@@ -19,7 +19,7 @@ import radical.utils as ru
 #
 def test_process_basic():
     '''
-    start a 'sleep 1', and expect this to finish within 1.x seconds
+    start a 'sleep 0.1', and expect this to finish within 0.x seconds
     '''
 
     class P(ru.Process):
@@ -32,8 +32,8 @@ def test_process_basic():
     p.start()
     p.join()
     stop = time.time()
-    assert(stop-start > 0.0)
-    assert(stop-start < 0.2)
+    assert(stop-start > 0.1)
+    assert(stop-start < 1.0)
 
 
 # ------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ def test_process_init_fail():
     '''
 
     class P(ru.Process):
-        def initialize(self):
+        def initialize_child(self):
             raise RuntimeError('oops')
         def work(self):
             time.sleep(0.1)
@@ -66,7 +66,7 @@ def test_process_final_fail():
     '''
 
     class P(ru.Process):
-        def finalize(self):
+        def finalize_child(self):
             raise RuntimeError('oops')
         def work(self):
             sys.exit()  # run only once
@@ -89,31 +89,48 @@ def test_process_parent_fail():
     make sure the child dies when the parent dies
     '''
 
-    class Child(ru.Process):
-        def __init__(self, c_pid):
-            self._c_pid = c_pid
-            ru.Process.__init__(self)
-        def work(self):
-            self._c_pid.value = os.getpid()
-            time.sleep(0.1)  # run forever
-
     class Parent(ru.Process):
+
         def __init__(self, c_pid):
             self._c_pid = c_pid
+          # time.sleep(1)
             ru.Process.__init__(self)
-        def initialize(self):
+
+        def initialize_child(self):
             self._c = Child(self._c_pid)
             self._c.start()
             assert(self._c.is_alive())
+            self.to_watch(self._c)
+
         def work(self):
+          # print 'parent.work'
             sys.exit()  # parent dies
+
+        def finalize_child(self):
+            self._c.terminate()
+            self._c.join()
+          # print ' ============= parent.final'
+
+
+    class Child(ru.Process):
+        def __init__(self, c_pid):
+            self._c_pid = c_pid
+          # time.sleep(2)
+            ru.Process.__init__(self)
+
+        def work(self):
+          # print 'child.work'
+            self._c_pid.value = os.getpid()
+            time.sleep(0.1)  # run forever
+
+        def finalize_child(self):
+            pass
+          # print ' ============= child.final'
 
     import multiprocessing as mp
     c_pid = mp.Value('i', 0)
     p = Parent(c_pid)
     p.start()
-    os.kill(c_pid.value, 0)  # child is alive
-    os.kill(p.pid, 9)
     p.join()
     # leave some time for child to die
     time.sleep(0.01)
@@ -131,27 +148,25 @@ def test_process_parent_fail():
 # run tests if called directly
 if __name__ == "__main__":
 
-    N = 10000
+    N = 1000
 
-    print 1
-    for i in range(N):
-        test_process_parent_fail()
-        print '.',
-
-    print 2
     for i in range(N):
         test_process_final_fail()
         print '.',
-
-    print 3
+   
     for i in range(N):
         test_process_init_fail()
         print '.',
 
-    print 4
+    for i in range(N):
+        test_process_parent_fail()
+        print '.',
+   
     for i in range(N):
         test_process_basic()
         print '.',
+   
+    sys.exit()
 
 
 # ------------------------------------------------------------------------------
