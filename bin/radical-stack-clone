@@ -1,0 +1,121 @@
+#!/bin/sh
+
+# this script expects the output of `radical-stack` as input file (first
+# argument), and will then create a respective virtualenv in the given location
+# (second argtument)
+
+tmp="/tmp/radical-stack-tmp.$(id -u)"
+stack=$1
+ve_target=$2
+cwd=`pwd`
+
+usage() {
+    msg=$1
+    echo "\n\t$msg\n\tusage: $0 <stack> <ve_target>\n\n"
+    exit
+}
+
+install() {
+
+    mod="$1"
+    repo="$2"
+    info="$3"
+
+    branch=$(echo "$info" | cut -f 2 -d '@')
+    commit=$(echo "$info" | sed -e 's/.*-g\([a-zA-Z0-9]*\)@.*/\1/g')
+
+    if test "$commit" = "$info"
+    then
+        commit='HEAD'
+    fi
+
+    printf "%-20s  %-55s  %-30s %s\n" "$mod" "$repo" "$branch" "$commit"
+
+    if ! test -d "$tmp/$repo"
+    then
+        git clone $repo $tmp/$repo
+    fi
+
+    cd $tmp/$repo
+  # git checkout $branch
+    git checkout $commit
+    pip uninstall -y $mod
+    pip install .
+    cd $cwd
+}
+
+
+if test -z "$stack"
+then
+    usage 'missing input stack'
+fi
+
+if test -z "$ve_target"
+then
+    usage 'missing input stack'
+fi
+
+if ! test -d "$ve_target"
+then
+    echo "create   $ve_target"
+    virtualenv "$ve_target"
+fi
+
+echo "activate $ve_target"
+. "$ve_target/bin/activate"
+
+stack_info=`cat $stack`
+ru_info=$(echo "$stack_info" | grep -e '^radical.utils')
+rs_info=$(echo "$stack_info" | grep -e '^saga')
+rp_info=$(echo "$stack_info" | grep -e '^radical.pilot')
+ra_info=$(echo "$stack_info" | grep -e '^radical.analytics')
+
+# ------------------------------------------------------------------------------
+#
+if ! test -z "$ru_info"
+then
+    mod=radical.utils
+    repo=git@github.com:radical-cybertools/radical.utils.git
+
+    install "$mod" "$repo" "$ru_info"
+fi
+
+# ------------------------------------------------------------------------------
+#
+if ! test -z "$rs_info"
+then
+    mod=saga
+    repo=git@github.com:radical-cybertools/saga-python.git
+
+    install "$mod" "$repo" "$rs_info"
+fi
+
+# ------------------------------------------------------------------------------
+#
+if ! test -z "$rp_info"
+then
+    mod=radical.pilot
+    repo=git@github.com:radical-cybertools/radical.pilot.git
+
+    install "$mod" "$repo" "$rp_info"
+fi
+
+# ------------------------------------------------------------------------------
+#
+if ! test -z "$ra_info"
+then
+    mod=radical.analytics
+    repo=git@github.com:radical-cybertools/radical.analytics.git
+
+    install "$mod" "$repo" "$ra_info"
+fi
+
+cd $cwd
+
+# verify
+echo '---------------'
+cat $stack
+echo '---------------'
+radical-stack
+echo '---------------'
+
