@@ -24,7 +24,7 @@ def test_process_basic():
 
     class P(ru.Process):
         def work(self):
-            time.sleep(1)
+            time.sleep(0.1)
             sys.exit(0) # only run once!
 
     p = P()
@@ -32,8 +32,8 @@ def test_process_basic():
     p.start()
     p.join()
     stop = time.time()
-    assert(stop-start > 1.0)
-    assert(stop-start < 2.0)
+    assert(stop-start > 0.0)
+    assert(stop-start < 0.2)
 
 
 # ------------------------------------------------------------------------------
@@ -69,7 +69,6 @@ def test_process_final_fail():
         def finalize(self):
             raise RuntimeError('oops')
         def work(self):
-            time.sleep(0.1)
             sys.exit()  # run only once
 
     try:
@@ -113,27 +112,17 @@ def test_process_parent_fail():
     c_pid = mp.Value('i', 0)
     p = Parent(c_pid)
     p.start()
+    os.kill(c_pid.value, 0)  # child is alive
     os.kill(p.pid, 9)
-    print p.pid
-    print c_pid.value
+    p.join()
     # leave some time for child to die
-    time.sleep(1)
+    time.sleep(0.01)
     try:
-        print p.pid
-        os.system('ps -ef --forest | grep -v grep | grep %s' % p.pid)
-        print c_pid.value
-        os.system('ps -ef --forest | grep -v grep | grep %s' % c_pid.value)
         os.kill(c_pid.value, 0)
     except OSError as e:
-        print 2
-        print e
         pass # child is gone
     except:
-        print 3
         assert(False)
-    finally:
-        print 4
-
 
     assert(not p.is_alive())
 
@@ -142,10 +131,27 @@ def test_process_parent_fail():
 # run tests if called directly
 if __name__ == "__main__":
 
-    test_process_parent_fail()
-    test_process_final_fail()
-    test_process_init_fail()
-    test_process_basic()
+    N = 10000
+
+    print 1
+    for i in range(N):
+        test_process_parent_fail()
+        print '.',
+
+    print 2
+    for i in range(N):
+        test_process_final_fail()
+        print '.',
+
+    print 3
+    for i in range(N):
+        test_process_init_fail()
+        print '.',
+
+    print 4
+    for i in range(N):
+        test_process_basic()
+        print '.',
 
 
 # ------------------------------------------------------------------------------

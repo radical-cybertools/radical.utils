@@ -67,7 +67,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, log=None):
+    def __init__(self, name=None, log=None):
 
         self._rup_alive    = mp.Event()   # set after child process startup,
                                           # unset after demise
@@ -77,7 +77,7 @@ class Process(mp.Process):
         self._rup_log      = log          # ru.logger for debug output
         self._rup_ppid     = os.getpid()  # get parent process ID
 
-        mp.Process.__init__(self)
+        mp.Process.__init__(self, name=name)
 
         # we don't want processes to linger around, waiting for children to
         # terminate, and thus create sub-processes as daempns.
@@ -88,7 +88,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def _proc_watcher(self, role):
+    def _proc_watcher(self, to_watch):
         """
         When `start()` is called, the parent process will create a socket pair.
         after fork, one end of that pair will be watched by the parent and
@@ -106,10 +106,10 @@ class Process(mp.Process):
 
 
         # make sure we watch different ends:
-        if role == 'child':
+        if to_watch == 'parent':
             self._rup_sp[0].close()
             fd = self._rup_sp[1]
-        elif role == 'parent':
+        elif to_watch == 'child':
             self._rup_sp[1].close()
             fd = self._rup_sp[0]
         else:
@@ -118,12 +118,14 @@ class Process(mp.Process):
         poller = select.poll()
         poller.register(fd, select.POLLERR | select.POLLHUP)
 
-        event = poller.poll() # timeout in ms
+        event = poller.poll()
+        einfo = self._rup_terminfo.value.strip() # possible termination cause
+
+        self._rup_terminfo.value = '%s died %s: %s' % (to_watch, event, einfo)
 
         if self._rup_log:
-            self._rup_log.info('process watcher %s event: %s' % (role, event))
+            self._rup_log.info(self._rup_terminfo.value)
 
-        self._rup_terminfo.value = '%s detected dying process' % role
         self._rup_term.set()
 
 
@@ -202,7 +204,7 @@ class Process(mp.Process):
 
         # immediately after the fork we start watching our socketpair end in
         # a separate thread
-        proc_watcher = mt.Thread(target=self._proc_watcher, args=['parent'])
+        proc_watcher = mt.Thread(target=self._proc_watcher, args=['child'])
         proc_watcher.daemon = True
         proc_watcher.start()
 
@@ -336,7 +338,7 @@ class Process(mp.Process):
         '''
 
         # first order of business: watch parent health
-        proc_watcher = mt.Thread(target=self._proc_watcher, args=['child'])
+        proc_watcher = mt.Thread(target=self._proc_watcher, args=['parent'])
         proc_watcher.daemon = True
         proc_watcher.start()
 
