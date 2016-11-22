@@ -115,7 +115,7 @@ def test_process_parent_fail():
     class Child(ru.Process):
 
         def __init__(self):
-            with open('/tmp/c_pid', 'w') as f:
+            with open('/tmp/c_pid.%d' % os.getuid(), 'w') as f:
                 f.write(str(os.getpid()))
             ru.Process.__init__(self)
 
@@ -130,9 +130,9 @@ def test_process_parent_fail():
     
     p = Parent()
     p.start()
-    with open('/tmp/c_pid', 'r') as f:
+    with open('/tmp/c_pid.%d' % os.getuid(), 'r') as f:
         c_pid = int(f.read().strip())
-    os.unlink('/tmp/c_pid')
+    os.unlink('/tmp/c_pid.%d' % os.getuid())
     os.kill(p.pid, 9)
 
     # leave some time for child to die
@@ -153,27 +153,18 @@ def test_process_parent_fail():
 # run tests if called directly
 if __name__ == "__main__":
 
-    N = 10000
-
-  # for i in range(N):
-  #     test_process_final_fail()
-  #     print '.',
-  # print
-  #
-  # for i in range(N):
-  #     test_process_init_fail()
-  #     print '.',
-  # print
+    N = 1000000
 
     for i in range(N):
+        test_process_final_fail()
+        print '.',
+        test_process_init_fail()
+        print '.',
         test_process_parent_fail()
         print '.',
-    print
-   
-    for i in range(N):
         test_process_basic()
         print '.',
-    print
+        print i
    
     sys.exit()
 
