@@ -66,10 +66,14 @@ def test_process_final_fail():
     '''
 
     class P(ru.Process):
+        def inialize_child(self):
+            self.i = 0
+        def work(self):
+            self.i += 1
+            if self.i == 5:
+                sys.exit()
         def finalize_child(self):
             raise RuntimeError('oops')
-        def work(self):
-            sys.exit()  # run only once
 
     try:
         p = P()
@@ -91,51 +95,52 @@ def test_process_parent_fail():
 
     class Parent(ru.Process):
 
-        def __init__(self, c_pid):
-            self._c_pid = c_pid
-          # time.sleep(1)
+        def __init__(self):
             ru.Process.__init__(self)
 
         def initialize_child(self):
-            self._c = Child(self._c_pid)
+            self._c = Child()
             self._c.start()
             assert(self._c.is_alive())
             self.to_watch(self._c)
 
         def work(self):
-          # print 'parent.work'
             sys.exit()  # parent dies
 
-        def finalize_child(self):
-            self._c.terminate()
-            self._c.join()
-          # print ' ============= parent.final'
+      # def finalize_child(self):
+      #     self._c.terminate()
+      #     self._c.join()
 
 
     class Child(ru.Process):
-        def __init__(self, c_pid):
-            self._c_pid = c_pid
-          # time.sleep(2)
+
+        def __init__(self):
+            with open('/tmp/c_pid', 'w') as f:
+                f.write(str(os.getpid()))
             ru.Process.__init__(self)
 
         def work(self):
-          # print 'child.work'
-            self._c_pid.value = os.getpid()
             time.sleep(0.1)  # run forever
 
         def finalize_child(self):
             pass
           # print ' ============= child.final'
 
-    import multiprocessing as mp
-    c_pid = mp.Value('i', 0)
-    p = Parent(c_pid)
+
+    
+    p = Parent()
     p.start()
-    p.join()
+    with open('/tmp/c_pid', 'r') as f:
+        c_pid = int(f.read().strip())
+    os.unlink('/tmp/c_pid')
+    os.kill(p.pid, 9)
+
     # leave some time for child to die
     time.sleep(0.01)
     try:
-        os.kill(c_pid.value, 0)
+      # print '.'
+      # print c_pid
+        os.kill(c_pid, 0)
     except OSError as e:
         pass # child is gone
     except:
@@ -148,23 +153,27 @@ def test_process_parent_fail():
 # run tests if called directly
 if __name__ == "__main__":
 
-    N = 1000
+    N = 10000
 
-    for i in range(N):
-        test_process_final_fail()
-        print '.',
-   
-    for i in range(N):
-        test_process_init_fail()
-        print '.',
+  # for i in range(N):
+  #     test_process_final_fail()
+  #     print '.',
+  # print
+  #
+  # for i in range(N):
+  #     test_process_init_fail()
+  #     print '.',
+  # print
 
     for i in range(N):
         test_process_parent_fail()
         print '.',
+    print
    
     for i in range(N):
         test_process_basic()
         print '.',
+    print
    
     sys.exit()
 

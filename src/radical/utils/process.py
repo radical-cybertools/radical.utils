@@ -70,6 +70,8 @@ def _role(to_watch):
 #   def terminate():    mp.Process.terminate()
 #   def join(timeout):  mp.Process.join(timeout)
 #
+# TODO: we should switch to fork/*exec*, if possible...
+#
 # 
 class Process(mp.Process):
 
@@ -79,7 +81,7 @@ class Process(mp.Process):
 
         self._rup_alive    = mp.Event()   # set after child process startup,
                                           # unset after demise
-        self._rup_term     = mp.Event()   # set in stop() to terminate child
+        self._rup_term     = mt.Event()   # set in stop() to terminate child
         self._rup_terminfo = mp.Array(ctypes.c_char, 1024*' ', lock=True) 
                                           # report on termination causes
         self._rup_log      = log          # ru.logger for debug output
@@ -592,6 +594,8 @@ class Process(mp.Process):
         if  self._rup_log:
             self._rup_log.debug('stop child')
 
+        # FIXME: this does not work since switching to mt.Event.  Close the pipe
+        # to trigger termination!
         self._rup_term.set()
 
         # FIXME: make timeout configurable

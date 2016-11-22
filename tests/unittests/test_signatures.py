@@ -26,13 +26,13 @@ import radical.utils.signatures as rus
 # 
 #     try                   : ret = sigtest ('string', 2, 1.1414) 
 #     except Exception as e : assert (False), "exception %s: %s" % (type(e), e)
-
-
-# ------------------------------------------------------------------------------
-# run tests if called directly
-if __name__ == "__main__":
-
-    test_signatures ()
-
-# ------------------------------------------------------------------------------
+#
+#
+# # ------------------------------------------------------------------------------
+# # run tests if called directly
+# if __name__ == "__main__":
+# 
+#     test_signatures ()
+# 
+# # ------------------------------------------------------------------------------
 
