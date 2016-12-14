@@ -330,7 +330,7 @@ def raise_on(tag, log=None):
         rate  = _raise_on_state[tag]['rate']
 
         if log: log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
-      # else:   print    ('raise_on checked   %s [%s / %s]' % (tag, count, limit))
+      # else:   print     'raise_on checked   %s [%s / %s]' % (tag, count, limit)
 
         if limit and count == limit:
 

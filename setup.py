@@ -184,7 +184,8 @@ setup_args = {
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-version',
-                            'bin/radical-utils-pylint.sh'],
+                            'bin/radical-utils-pylint.sh',
+                            'bin/radical-stack'],
     'package_data'       : {'': ['*.sh', '*.json', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {
         'test'           : our_test,
