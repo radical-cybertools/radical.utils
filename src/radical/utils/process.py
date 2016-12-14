@@ -7,16 +7,16 @@ __license__   = "MIT"
 import os
 import sys
 import time
-import Queue
 import select
 import socket
-import signal
 import threading       as mt
 import multiprocessing as mp
 
-from .debug  import print_stacktrace, print_stacktraces
 from .logger import get_logger
 
+
+# ------------------------------------------------------------------------------
+#
 _ALIVE_MSG     = 'alive'  # message to use as alive signal
 _START_TIMEOUT = 5.0      # time to wait for process startup signal.
                           # startup signal: 'alive' message on the socketpair;
@@ -30,48 +30,49 @@ _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 # ------------------------------------------------------------------------------
 #
-# This Process class is a thin wrapper around multiprocessing.Process which
-# specifically manages the process lifetime in a more cautious and copperative
-# way than the base class: *no* attempt on signal handling is made, we expect 
-# to exclusively communicate between parent and child via a socket.  A separate
-# thread in both processes will watch that socket: if the socket disappears, we
-# interpret that as the other process being terminated, and begin process
-# termination, too.
-#
-# NOTE: At this point we do not implement the full mp.Process constructor.
-#
-# The class also implements a number of initialization and finalization methods
-# which can be overloaded by any deriving class.  While this can at first be
-# a confusing richness of methods to overload, it significantly simplifies the
-# implementation of non-trivial child processes.  By default, none of the
-# initialized and finalizers needs to be overloaded.
-#
-# An important semantic difference are the `start()` and `stop()` methods: both
-# accept an optional `timeout` parameter, and both guarantee that the child
-# process successfully started and completed upon return, respectively.  If that
-# does not happen within the given timeout, an exception is raised.  Not that
-# the child startup is *only* considered complete once all of its initialization
-# methods have been completed -- the start timeout value must thus be chosen
-# very carefully.  Note further that the *parent* initialization methods are
-# also part of the `start()` invocation, and must also be considered when
-# choosing the timeout value.  Parent initializers will only be executed once
-# the child is known to be alive, and the parent can thus expect the child
-# bootstrapping to be completed (avoiding the need for additional handshakes
-# etc).  Any error in child or parent initialization will result in an
-# exception, and the child will be terminated.
-#
-# Along the same lines, the parent and child finalizers are executed in the
-# `stop()` method, prompting similar considerations for the `timeout` value.
-#
-# Any class which derives from this Process class *must* overload the 'work()`
-# method.  That method is repeatedly called by the child process' main loop,
-# until:
-#   - an exception occurs (causing the child to fail with an error)
-#   - `False` is returned by `work()` (causing the child to finish w/o error)
-#
-# TODO: We should switch to fork/*exec*, if possible.
-#
 class Process(mp.Process):
+    '''
+    This Process class is a thin wrapper around multiprocessing.Process which
+    specifically manages the process lifetime in a more cautious and copperative
+    way than the base class: *no* attempt on signal handling is made, we expect
+    to exclusively communicate between parent and child via a socket.
+    A separate thread in both processes will watch that socket: if the socket
+    disappears, we interpret that as the other process being terminated, and
+    begin process termination, too.
+   
+    NOTE: At this point we do not implement the full mp.Process constructor.
+   
+    The class also implements a number of initialization and finalization
+    methods which can be overloaded by any deriving class.  While this can at
+    first be a confusing richness of methods to overload, it significantly
+    simplifies the implementation of non-trivial child processes.  By default,
+    none of the initialized and finalizers needs to be overloaded.
+   
+    An important semantic difference are the `start()` and `stop()` methods:
+    both accept an optional `timeout` parameter, and both guarantee that the
+    child process successfully started and completed upon return, respectively.
+    If that does not happen within the given timeout, an exception is raised.
+    Not that the child startup is *only* considered complete once all of its
+    initialization methods have been completed -- the start timeout value must
+    thus be chosen very carefully.  Note further that the *parent*
+    initialization methods are also part of the `start()` invocation, and must
+    also be considered when choosing the timeout value.  Parent initializers
+    will only be executed once the child is known to be alive, and the parent
+    can thus expect the child bootstrapping to be completed (avoiding the need
+    for additional handshakes etc).  Any error in child or parent initialization
+    will result in an exception, and the child will be terminated.
+   
+    Along the same lines, the parent and child finalizers are executed in the
+    `stop()` method, prompting similar considerations for the `timeout` value.
+   
+    Any class which derives from this Process class *must* overload the 'work()`
+    method.  That method is repeatedly called by the child process' main loop,
+    until:
+      - an exception occurs (causing the child to fail with an error)
+      - `False` is returned by `work()` (causing the child to finish w/o error)
+   
+    TODO: We should switch to fork/*exec*, if possible.
+    '''
 
     # --------------------------------------------------------------------------
     #
@@ -253,7 +254,7 @@ class Process(mp.Process):
 
         self._rup_log.debug('start process')
 
-        if timeout == None:
+        if timeout is None:
             timeout = _START_TIMEOUT
 
         # Daemon processes can't fork child processes in Python, because...
@@ -511,7 +512,7 @@ class Process(mp.Process):
             # call parent and child initializers, respectively
             if self._rup_is_parent:
                 self._rup_initialize_common()
-                self._rup_initialize_parent
+                self._rup_initialize_parent()
 
                 self.initialize_common()
                 self.initialize_parent()
@@ -646,7 +647,7 @@ class Process(mp.Process):
                 self.finalize_parent()
                 self.finalize_common()
 
-                self._rup_finalize_parent
+                self._rup_finalize_parent()
                 self._rup_finalize_common()
 
             elif self._rup_is_child:
