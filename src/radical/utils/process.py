@@ -18,13 +18,12 @@ from .debug  import print_stacktrace, print_stacktraces
 from .logger import get_logger
 
 _ALIVE_MSG     = 'alive'  # message to use as alive signal
-_ALIVE_TIMEOUT = 5.0      # time to wait for process startup signal.
+_START_TIMEOUT = 5.0      # time to wait for process startup signal.
                           # startup signal: 'alive' message on the socketpair;
                           # is sent in both directions to ensure correct setup
 _WATCH_TIMEOUT = 0.5      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
-_START_TIMEOUT = 5.0      # time between starting child and finding it alive
 _STOP_TIMEOUT  = 5.0      # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
 
@@ -33,56 +32,44 @@ _BUFSIZE       = 1024     # default buffer size for socket recvs
 #
 # This Process class is a thin wrapper around multiprocessing.Process which
 # specifically manages the process lifetime in a more cautious and copperative
-# way than the base class:
+# way than the base class: *no* attempt on signal handling is made, we expect 
+# to exclusively communicate between parent and child via a socket.  A separate
+# thread in both processes will watch that socket: if the socket disappears, we
+# interpret that as the other process being terminated, and begin process
+# termination, too.
 #
-#  - self._rup_term  signals child to terminate voluntarily before being killed
-#  - self.work()     is the childs main loop (must be overloaded), and is called
-#                    as long as self._rup_term is not set
-#  - *no* attempt on signal handling is made, we expect to exclusively
-#    communicate via the above events.
-#
-# NOTE: Only the watcher thread is ever closeing the socket endpoint, so only
-#       the watcher can send messages over that EP w/o races.  We thus create
-#       a private message queue all threads can write to, and which will be
-#       forwarded to the EP by the watcher -- and ognored after EP close.
 # NOTE: At this point we do not implement the full mp.Process constructor.
 #
+# The class also implements a number of initialization and finalization methods
+# which can be overloaded by any deriving class.  While this can at first be
+# a confusing richness of methods to overload, it significantly simplifies the
+# implementation of non-trivial child processes.  By default, none of the
+# initialized and finalizers needs to be overloaded.
 #
-# Semantics:
+# An important semantic difference are the `start()` and `stop()` methods: both
+# accept an optional `timeout` parameter, and both guarantee that the child
+# process successfully started and completed upon return, respectively.  If that
+# does not happen within the given timeout, an exception is raised.  Not that
+# the child startup is *only* considered complete once all of its initialization
+# methods have been completed -- the start timeout value must thus be chosen
+# very carefully.  Note further that the *parent* initialization methods are
+# also part of the `start()` invocation, and must also be considered when
+# choosing the timeout value.  Parent initializers will only be executed once
+# the child is known to be alive, and the parent can thus expect the child
+# bootstrapping to be completed (avoiding the need for additional handshakes
+# etc).  Any error in child or parent initialization will result in an
+# exception, and the child will be terminated.
 #
-#   def start(timeout): mp.Process.start()
-#                       self._alive.wait(timeout)
-#   def run(self):      # must NOT be overloaded
-#                         self.initialize() # overload
-#                         self._alive.set()
+# Along the same lines, the parent and child finalizers are executed in the
+# `stop()` method, prompting similar considerations for the `timeout` value.
 #
-#                         while True:
-#                           if self._rup_term.is_set():
-#                             break
-#
-#                           if not parent.is_alive():
-#                             break
-#
-#                           try:
-#                               self.work()
-#                           except:
-#                             break
-#
-#                         self.finalize()  # overload
-#                         sys.exit()
-#
-#   def stop():         self._rup_term.set()
-#   def terminate():    mp.Process.terminate()
-#   def join(timeout):  mp.Process.join(timeout)
+# Any class which derives from this Process class *must* overload the 'work()`
+# method.  That method is repeatedly called by the child process' main loop,
+# until:
+#   - an exception occurs (causing the child to fail with an error)
+#   - `False` is returned by `work()` (causing the child to finish w/o error)
 #
 # TODO: We should switch to fork/*exec*, if possible.
-#
-# TODO: At the moment, we receive messages from the other process, log it, and
-#       then forget about it.  We should keep a stack or queue of those messages
-#       to be consumed by the application, so that the channel can be used for
-#       a parent/child communication protocol.  
-#       We could even implement such a protocol framework, if the need for such
-#       arises.
 #
 class Process(mp.Process):
 
@@ -95,7 +82,6 @@ class Process(mp.Process):
 
         # ... or are *shared* between parent and child process.
         self._rup_ppid      = os.getpid()    # get parent process ID
-        self._rup_timeout   = _ALIVE_TIMEOUT # interval to check peer health
 
         # most importantly, we create a socketpair.  Both parent and child will
         # watch one end of that socket, which thus acts as a lifeline between
@@ -103,9 +89,9 @@ class Process(mp.Process):
         # The socket is also used to send messages back and forth.
         self._rup_sp = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM, 0)
 
-        # all others are set to None to make pylint happy, but are actually
-        # initialized later in `start()`/`run()`, and the various initializers.
-        # `initialize_parent()` and `initialize_child()`.
+        # all other members are set to None to make pylint happy, but are
+        # actually initialized later in `start()`/`run()`, and the various
+        # initializers.
         
         self._rup_is_parent = None           # set in start()
         self._rup_is_child  = None           # set in run()
@@ -114,15 +100,17 @@ class Process(mp.Process):
         self._rup_watcher   = None           # watcher thread
 
         if not self._rup_log:
-            # if no logger is passed down, log to stdout
+            # if no logger is passed down, log to null
             self._rup_log = get_logger('radical.util.process', target='null')
 
+        # base class initialization
         mp.Process.__init__(self, name=name)
 
         # we don't want processes to linger around, waiting for children to
         # terminate, and thus create sub-processes as daemons.
         #
         # NOTE: this requires the `patchy.mc_patchface()` fix in `start()`.
+        #
       # self.daemon = True
 
 
@@ -142,10 +130,10 @@ class Process(mp.Process):
         if len(msg) > _BUFSIZE:
             raise ValueError('message is larger than %s: %s' % (_BUFSIZE, msg))
 
-      # print 'parent?%s sends msg %s' % (self._rup_is_parent, msg)
         try:
             self._rup_log.info('send message: %s', msg)
             self._rup_endpoint.send('%s\n' % msg)
+
         except Exception as e:
             self._rup_log.exception('failed to send message %s', msg)
 
@@ -168,6 +156,7 @@ class Process(mp.Process):
             msg = self._rup_endpoint.recv(size, socket.MSG_DONTWAIT)
             self._rup_log.info('recv message: %s', msg)
             return msg
+
         except Exception as e:
             self._rup_log.exception('failed to recv message')
             return ''
@@ -193,20 +182,14 @@ class Process(mp.Process):
         #   * data:   some message from the other end, logged
         #   * error:  child failed   - terminate
         #   * hangup: child finished - terminate
-        # Basically, whatever happens, we terminate... :-P
         poller = select.poll()
         poller.register(self._rup_endpoint, select.POLLERR | select.POLLHUP | select.POLLIN)
 
-        # we watch threads and processes as long as we live, and also take care
-        # of messages to be sent.
-        #
-        # NOTE: messages are usually delayed by _WATCH_TIMEOUT seconds, and
-        #       should not be used for time-critical communication
+        # we watch threads and processes as long as we live, ie. until the main
+        # thread sets `self._rup_term`.
         try:
             while not self._rup_term.is_set() :
 
-                time.sleep(0.3) # FIXME
-              
                 # first check health of parent/child relationship
                 events = poller.poll(_WATCH_TIMEOUT)
                 for _,event in events:
@@ -223,8 +206,7 @@ class Process(mp.Process):
                     # check for messages
                     elif event & select.POLLIN:
                 
-                        # Lets first though check if we
-                        # can get any information about the remote termination cause.
+                        # we get a message!
                         #
                         # FIXME: BUFSIZE should not be hardcoded
                         # FIXME: we do nothing with the message yet, should be
@@ -250,8 +232,8 @@ class Process(mp.Process):
             self._rup_log.exception('watcher failed')
 
         finally:
-            # no matter why we fell out of the loop: terminate the child by
-            # closing the socketpair.
+            # no matter why we fell out of the loop: let the other end of the
+            # socket know by closing the socket endpoint.
             self._rup_endpoint.close()
 
             # `self.stop()` will be called from the main thread upon checking
@@ -260,19 +242,19 @@ class Process(mp.Process):
             self._rup_term.set()
 
 
-
     # --------------------------------------------------------------------------
     #
-    def start(self, timeout=_START_TIMEOUT):
+    def start(self, timeout=None):
         '''
         Overload the `mp.Process.start()` method, and block (with timeout) until
-        the child signals to be alive via a message over our socket pair.
+        the child signals to be alive via a message over our socket pair.  Also
+        run all initializers.
         '''
 
         self._rup_log.debug('start process')
 
-        if timeout != None:
-            self._rup_timeout = timeout
+        if timeout == None:
+            timeout = _START_TIMEOUT
 
         # Daemon processes can't fork child processes in Python, because...
         # Well, they just can't.  We want to use daemons though to avoid hanging
@@ -317,7 +299,7 @@ class Process(mp.Process):
         self._rup_endpoint  = self._rup_sp[0]
         self._rup_sp[1].close()
 
-        # from now on we should invoke `self.stop()` for a clean termination.
+        # from now on we need to invoke `self.stop()` for clean termination.
         # Having said that: the daemonic watcher thread and the socket lifeline
         # to the child should ensure that both will terminate in all cases, but
         # possibly somewhat delayed and apruptly.
@@ -331,9 +313,8 @@ class Process(mp.Process):
             #       kick in, and the child will be considered dead, failed and/or
             #       hung, and will be terminated!  Timeout can be set as parameter
             #       to the `start()` method.
-            # FIXME: rup_timeout shuld be rup_start_timeout, or something.
             try:
-                self._rup_endpoint.settimeout(self._rup_timeout)
+                self._rup_endpoint.settimeout(timeout)
                 msg = self._rup_msg_recv(len(_ALIVE_MSG))
 
                 if msg != 'alive':
@@ -350,13 +331,13 @@ class Process(mp.Process):
             # assumptions about successful child process startup.
             self._rup_initialize()
 
-            # if we got this far, then all is well, we are done.
-            self._rup_log.debug('child process started')
-
         except Exception as e:
             self._rup_log.exception('initialization failed')
             self.stop()
             raise
+
+        # if we got this far, then all is well, we are done.
+        self._rup_log.debug('child process started')
 
         # child is alive and initialized, parent is initialized, watcher thread
         # is started - Wohoo!
@@ -368,25 +349,28 @@ class Process(mp.Process):
         '''
         This method MUST NOT be overloaded!
 
-        This is the workload of the child process.  It will first call
-        `self.initialize_child()`, and then repeatedly call `self.work()`, until
-        being terminated.  When terminated, it will call `self.finalize_child()`
-        and exit.
+        This is the workload of the child process.  It will first call the child
+        initializers and then repeatedly call `self.work()`, until being
+        terminated.  When terminated, it will call the child finalizers and
+        exit.  Note that the child will also terminate once `work()` returns
+        `False`.
 
         The implementation of `work()` needs to make sure that this process is
         not spinning idly -- if there is nothing to do in `work()` at any point
         in time, the routine should at least sleep for a fraction of a second or
         something.
 
-        `finalize_child()` is only guaranteed to get executed on `self.stop()`
-        -- a hard kill via `self.terminate()` may or may not be trigger to run
-        `self.finalize_child()`.
+        Child finalizers are only guaranteed to get called on `self.stop()` --
+        a hard kill via `self.terminate()` may or may not be able to trigger to
+        run the child finalizers.
 
-        The child process will automatically terminate when the parent process
-        dies (then including the call to `self.finalize_child()`).  It is not
-        possible to create daemon or orphaned processes -- which is an explicit
-        purpose of this implementation.
+        The child process will automatically terminate (incl. finalizer calls)
+        when the parent process dies. It is thus not possible to create daemon
+        or orphaned processes -- which is an explicit purpose of this
+        implementation.  
         '''
+
+        # FIXME: ensure that this is not overloaded
 
         # this is the child now - set role flags
         self._rup_is_parent = False
@@ -413,7 +397,8 @@ class Process(mp.Process):
             #
             # In each iteration, we also check if the socket is still open -- if it
             # is closed, we assume the parent to be dead and terminate (break the
-            # loop).
+            # loop).  We consider the eicket closed if `self._rup_term` was set
+            # by the watchewr thread.
             while not self._rup_term.is_set() and \
                       self._parent_is_alive()     :
             
@@ -434,8 +419,8 @@ class Process(mp.Process):
 
 
         try:
-            # note that we *always* call the finalizers, even if an exception
-            # got raised during initialization or in the work loop
+            # note that we always try to call the finalizers, even if an
+            # exception got raised during initialization or in the work loop
             # initializers failed for some reason or the other...
             self._rup_finalize()
 
@@ -444,10 +429,10 @@ class Process(mp.Process):
             self._rup_msg_send('finalize(): %s' % repr(e))
 
         self._rup_msg_send('terminating')
-        self._rup_term.set()
 
         # tear down child watcher
         if self._rup_watcher:
+            self._rup_term.set()
             self._rup_watcher.join(_STOP_TIMEOUT)
 
         # all is done and said - begone!
@@ -474,19 +459,13 @@ class Process(mp.Process):
         #   self.terminate(timeout)
         #   self.join(timeout)
         #
-        # and the signal/kill semantics should move to terminate.  Note that the
-        # timeout can
-
-        # We leave the actual stop handling via the socketpair to the watcher.
-        #
-        # The parent will fall back to a terminate if the watcher does not
-        # appear to be able to kill the child
+        # and the signal/kill semantics should move to terminate.
 
         assert(self._rup_is_parent)
 
         self._rup_log.info('parent stops child')
 
-        # call finalizers
+        # call parent finalizers
         self._rup_finalize()
 
         # tear down watcher
@@ -494,12 +473,16 @@ class Process(mp.Process):
             self._rup_term.set()
             self._rup_watcher.join(timeout)
 
+        # stopping the watcher will close the socket, and the child should begin
+        # termination immediately.  Well, whenever it realizes the socket is
+        # gone, really.  We wait for that termination to complete.
         mp.Process.join(self, timeout)
 
         # make sure child is gone
         if mp.Process.is_alive(self):
             self._rup_log.error('failed to stop child - terminate')
             self.terminate()  # hard kill
+            mp.Process.join(self, timeout)
 
         # don't exit - but signal if child survives
         if mp.Process.is_alive(self):
@@ -513,7 +496,7 @@ class Process(mp.Process):
       # raise RuntimeError('call stop instead!')
       #
       # we can't really raise the exception above, as the mp module calls this
-      # join via at_exit :/
+      # join via `at_exit` :/
         mp.Process.join(self)
 
 
@@ -583,6 +566,9 @@ class Process(mp.Process):
         #         `sys.exit()` invocation happens
         #
         # FIXME: check the conditions above
+        #
+        # FIXME: move to _rup_initialize_common
+        #
         self._rup_term    = mt.Event()
         self._rup_watcher = mt.Thread(target=self._rup_watch)
       # self._rup_watcher.daemon = True
@@ -596,6 +582,9 @@ class Process(mp.Process):
     def _rup_initialize_child(self):
 
         # TODO: should we also get an alive from parent?
+        #
+        # FIXME: move to _rup_initialize_common
+        #
 
         # start the watcher thread
         self._rup_term    = mt.Event()
@@ -627,7 +616,7 @@ class Process(mp.Process):
         considered failed.
         '''
 
-        self._rup_log.debug('initialize_child (NOOP)')
+        self._rup_log.debug('initialize_parent (NOOP)')
 
 
     # --------------------------------------------------------------------------
@@ -769,10 +758,10 @@ class Process(mp.Process):
         This private method checks if the parent process is still alive.  This
         obviously only makes sense when being called in the child process.
 
-        Note that there is a (however unlikely) race: PIDs are reused, and the
-        process could be replaced by another process with the same PID inbetween
-        tests.  We thus also except *all* exception, including permission
-        errors, to capture at least some of those races.
+        Note that there exists a (however unlikely) race: PIDs are reused, and
+        the process could be replaced by another process with the same PID
+        inbetween tests.  We thus also except *all* exception, including
+        permission errors, to capture at least some of those races.
         '''
 
         # This method is an additional fail-safety check to the socketpair
