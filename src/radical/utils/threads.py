@@ -83,6 +83,9 @@ class Thread(threading.Thread):
     `threading.Thread` class, which adds some convenience methods.  
     """
 
+    # TODO: create `run()` wrapper and initializers/finalizers similar to
+    #       the ru.Process class
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, call, *args, **kwargs):
@@ -100,7 +103,8 @@ class Thread(threading.Thread):
         self._result    = None
         self._exception = None
         self._traceback = None
-        self.daemon     = True
+        self.daemon     = True  # we always use daemon threads to simplify
+                                # the overall termination process
 
 
     # --------------------------------------------------------------------------
@@ -140,7 +144,7 @@ class Thread(threading.Thread):
     #
     def wait(self):
 
-        if  self.isAlive():
+        if  self.is_alive():
             self.join()
 
 
@@ -190,6 +194,25 @@ class Thread(threading.Thread):
         return self._traceback
 
     traceback = property(get_traceback)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self, timeout=None):
+        
+        # this currently only exists to make the thread watchable by ru.Process
+        # watcher 
+        self.join(timeout=timeout)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def join(self, timeout=None):
+        
+        # this currently only exists to make the thread watchable by ru.Process
+        # watcher
+        super(Thread, self).join(self, timeout=timeout)
+
 
 
 # ------------------------------------------------------------------------------
