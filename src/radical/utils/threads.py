@@ -88,7 +88,8 @@ class Thread(threading.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, call, *args, **kwargs):
+    def __init__(self, name=None, cprofile=False, 
+                       call=None, args=[], kwargs={}):
 
         if not callable(call):
             raise ValueError("Thread requires a callable to function, not %s" \
@@ -96,6 +97,8 @@ class Thread(threading.Thread):
 
         threading.Thread.__init__(self)
 
+        self._name      = name
+        self._cprofile  = cprofile
         self._call      = call
         self._args      = args
         self._kwargs    = kwargs
@@ -103,6 +106,7 @@ class Thread(threading.Thread):
         self._result    = None
         self._exception = None
         self._traceback = None
+        self._term      = mt.Event()
         self.daemon     = True  # we always use daemon threads to simplify
                                 # the overall termination process
 
@@ -112,7 +116,10 @@ class Thread(threading.Thread):
     @classmethod
     def Run(self, call, *args, **kwargs):
 
-        t = self(call, *args, **kwargs)
+        assert(call)
+        assert(isinstance(call, callable))
+
+        t = self(call=call, args=args, kwargs=kwargs)
         t.start()
         return t
 
@@ -127,17 +134,91 @@ class Thread(threading.Thread):
     # --------------------------------------------------------------------------
     #
     def run(self):
+        '''
+        The RU Thread calss has two execution modes:
 
-        try:
-            self._state     = RUNNING
-            self._result    = self._call(*self._args, **self._kwargs)
-            self._state     = DONE
+          * If a `call` was specified during construction, that call is
+            executed, the result is stored.
 
-        except Exception as e:
-            tb = traceback.format_exc()
-            self._traceback = tb
-            self._exception = e
-            self._state     = FAILED
+          * If no `call` was specified, then we expect this class to be 
+            inherited, and the inheriting class then *MUST* overload the
+            `work()` method.  This method will be called repeatedly until 
+            either one of the following conditions applies:
+
+              * `work()` returns `False`, or
+              * `work()` raises an exception
+              * `stop()` is called on the Thread instance
+
+            This mode is intentioanally very similar to the `ru.Process` syntax
+            and semantics - the same assumptions hold for initializers, error
+            modes, etc.  The main difference is that no attempt is made to watch
+            thread health, and no communication channel is established.  
+
+        NOTE: the underlying Python thread is a daemon thread, and all
+              respective restrictions apply.  Specifically, daemon threads can
+              cause the main application to hang on termination, and daemon
+              threads cannot spawn processes, at least not via the
+              multiprocessing module.
+        '''
+
+        # TODO: implement stop() -> self._term.set(); self.join()
+
+        # 'call' mode
+        if self._call:
+            try:
+                self._state     = RUNNING
+                self._result    = self._call(*self._args, **self._kwargs)
+                self._state     = DONE
+
+            except Exception as e:
+                tb = traceback.format_exc()
+                self._traceback = tb
+                self._exception = e
+                self._state     = FAILED
+
+            # all is done and said - begone!
+            return
+
+        # 'work' mode
+        else:
+            try:
+                # initialize thread class
+                self._rup_initialize()
+
+                # enter the main loop and repeatedly call 'work()'.  
+                #
+                # If `work()` ever returns `False`, we break out of the loop to call the
+                # finalizers and terminate.
+                while not self._term.is_set():
+                
+                    # des Pudel's Kern
+                    if not self.work():
+                        self._log.debug('work finished')
+                        break
+
+                    time.sleep(0.001)  # FIXME: make configurable
+
+            except BaseException as e:
+
+                # This is a very global except, also catches 
+                # sys.exit(), keyboard interrupts, etc.  
+                # Ignore pylint and PEP-8, we want it this way!
+                self._rup_log.exception('abort')
+
+
+            try:
+                # note that we always try to call the finalizers, even if an
+                # exception got raised during initialization or in the work loop
+                # initializers failed for some reason or the other...
+                self._rup_finalize()
+
+            except BaseException as e:
+                self._rup_log.exception('finalization error')
+
+            self._rup_log.exception('terminating')
+
+            # all is done and said - begone!
+            return
 
 
     # --------------------------------------------------------------------------
@@ -200,8 +281,7 @@ class Thread(threading.Thread):
     #
     def stop(self, timeout=None):
         
-        # this currently only exists to make the thread watchable by ru.Process
-        # watcher 
+        self._term.set()
         self.join(timeout=timeout)
 
 
