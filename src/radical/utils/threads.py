@@ -134,6 +134,22 @@ class Thread(threading.Thread):
     # --------------------------------------------------------------------------
     #
     def run(self):
+        if self._cprofile:
+            import cprofile
+            cprofiler = cProfile.Profile()
+            try:
+                return cprofiler.runcall(self._run)
+            finally:
+                self_thread = mt.current_thread()
+                cprofiler.dump_stats('%s.cprof' % (self_thread.name))
+
+        else:
+            return self._run()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _run(self):
         '''
         The RU Thread calss has two execution modes:
 
