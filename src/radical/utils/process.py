@@ -485,11 +485,20 @@ class Process(mp.Process):
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
             # to watch the parent's health (via the socket healt).
-            self._rup_initialize()
+            try:
+                self._rup_initialize()
+
+            except BaseException as e:
+                self._rup_log.exception('abort')
+                self._rup_msg_send(repr(e))
+                sys.stderr.write('initialization error in %s: %s\n' % (self._rup_name, repr(e)))
+                sys.stderr.flush()
+                self._rup_term.set()
 
             # initialization done - we only now send the alive signal, so the
             # parent can make some assumptions about the child's state
-            self._rup_msg_send(_ALIVE_MSG)
+            if self._rup_term.is_set():
+                self._rup_msg_send(_ALIVE_MSG)
 
             # enter the main loop and repeatedly call 'work()'.  
             #
@@ -517,6 +526,8 @@ class Process(mp.Process):
             # Ignore pylint and PEP-8, we want it this way!
             self._rup_log.exception('abort')
             self._rup_msg_send(repr(e))
+            sys.stderr.write('work error in %s: %s\n' % (self._rup_name, repr(e)))
+            sys.stderr.flush()
 
 
         try:
@@ -528,6 +539,8 @@ class Process(mp.Process):
         except BaseException as e:
             self._rup_log.exception('finalization error')
             self._rup_msg_send('finalize(): %s' % repr(e))
+            sys.stderr.write('finalize error in %s: %s\n' % (self._rup_name, repr(e)))
+            sys.stderr.flush()
 
         self._rup_msg_send('terminating')
 
@@ -663,6 +676,9 @@ class Process(mp.Process):
       # we can't really raise the exception above, as the mp module calls this
       # join via `at_exit`.  Which kind of explains hangs on unterminated
       # children...
+      #
+      # FIXME: not that `join()` w/o `stop()` will not call the parent finalizers.  
+      #        We should call those in both cases, but only once.
         super(Process, self).join(timeout=timeout)
 
 
@@ -798,7 +814,7 @@ class Process(mp.Process):
         `start()`, in the child process.  If this fails, the process startup is
         considered failed.
         '''
-
+    
         self._rup_log.debug('initialize_child (NOOP)')
 
 

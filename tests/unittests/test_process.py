@@ -41,6 +41,57 @@ def test_process_basic():
 
 # ------------------------------------------------------------------------------
 #
+def test_process_autostart():
+    '''
+    start the child process on __init__()
+    '''
+
+    class P(ru.Process):
+        def __init__(self):
+
+            self._initalize_common = False
+            self._initalize_parent = False
+            self._initalize_child  = False
+
+            self._finalize_common  = False
+            self._finalize_parent  = False
+            self._finalize_child   = False
+
+            self._work_done        = False
+
+            ru.Process.__init__(self, 'ru.test')
+
+            self.start()
+
+            assert(self._initialize_common), 'no initialize common'
+            assert(self._initialize_parent), 'no initialize parent'
+
+            self.join()  # wait until work is done
+            self.stop()  # make sure finalization happens
+
+            assert(self._finalize_common), 'no finalize common'
+            assert(self._finalize_parent), 'no finalize parent'
+
+        def initialize_common(self): self._initialize_common = True
+        def initialize_parent(self): self._initialize_parent = True
+        def initialize_child (self): self._initialize_child  = True
+ 
+        def finalize_common(self)  : self._finalize_common   = True
+        def finalize_parent(self)  : self._finalize_parent   = True
+        def finalize_child (self)  : self._finalize_child    = True
+
+        def work(self):
+            assert(self._initialize_common), 'no initialize common'
+            assert(self._initialize_child),  'no initialize child'
+            self._work_done = True
+            print 'work'
+            return False # only run once
+
+    p = P()
+
+
+# ------------------------------------------------------------------------------
+#
 def test_process_init_fail():
     '''
     make sure the parent gets notified on failing init
@@ -163,6 +214,8 @@ if __name__ == "__main__":
 
     N = 10000
 
+    test_process_autostart()
+    sys.exit()
     for i in range(N):
         test_process_final_fail()
         print '.',

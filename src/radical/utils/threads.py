@@ -9,7 +9,7 @@ import sys
 import time
 import signal
 import thread
-import threading
+import threading as mt
 import traceback
 
 import misc  as rumisc
@@ -26,15 +26,15 @@ FAILED  = 'Failed'
 # ------------------------------------------------------------------------------
 #
 def Event(*args, **kwargs):
-    return threading.Event(*args, **kwargs)
+    return mt.Event(*args, **kwargs)
 
 
 # ------------------------------------------------------------------------------
 #
 class RLock(object):
     """
-    This threading.RLock wrapper is supportive of lock debugging.  The only
-    semantic difference to threading.RLock is that a lock acquired via the
+    This mt.RLock wrapper is supportive of lock debugging.  The only
+    semantic difference to mt.RLock is that a lock acquired via the
     'with' statement can be released within the 'with' scope, w/o penalty when
     leaving the locked scope.  This supports up-calling callback semantics, but
     should be used with utter care, and rarely (such as on close()).
@@ -46,7 +46,7 @@ class RLock(object):
     #
     def __init__(self, obj=None):
 
-        self._lock = threading.RLock()
+        self._lock = mt.RLock()
 
 
     # --------------------------------------------------------------------------
@@ -77,10 +77,10 @@ class RLock(object):
 
 # ------------------------------------------------------------------------------
 #
-class Thread(threading.Thread):
+class Thread(mt.Thread):
     """
     This `Thread` class is a thin wrapper around Python's native
-    `threading.Thread` class, which adds some convenience methods.  
+    `mt.Thread` class, which adds some convenience methods.  
     """
 
     # TODO: create `run()` wrapper and initializers/finalizers similar to
@@ -95,7 +95,7 @@ class Thread(threading.Thread):
             raise ValueError("Thread requires a callable to function, not %s" \
                             % (repr(call)))
 
-        threading.Thread.__init__(self)
+        mt.Thread.__init__(self)
 
         self._name      = name
         self._cprofile  = cprofile
@@ -109,6 +109,16 @@ class Thread(threading.Thread):
         self._term      = mt.Event()
         self.daemon     = True  # we always use daemon threads to simplify
                                 # the overall termination process
+
+
+        # when cprofile is requested but not available, 
+        # we complain, but continue unprofiled
+        if self._cprofile:
+            try:
+                import cprofile
+            except:
+                self._log.error('cannot import cprofile - disable')
+                self._cprofile = False
 
 
     # --------------------------------------------------------------------------
@@ -134,17 +144,17 @@ class Thread(threading.Thread):
     # --------------------------------------------------------------------------
     #
     def run(self):
-        if self._cprofile:
+
+        # if no profiling is wanted, we just run the workload and exit
+        if not self._cprofile:
+            self._run()
+
+        # otherwise we run inder the profiler, obviously
+        else:
             import cprofile
             cprofiler = cProfile.Profile()
-            try:
-                return cprofiler.runcall(self._run)
-            finally:
-                self_thread = mt.current_thread()
-                cprofiler.dump_stats('%s.cprof' % (self_thread.name))
-
-        else:
-            return self._run()
+            cprofiler.runcall(self._run)
+            cprofiler.dump_stats('%s.cprof' % (self._name))
 
 
     # --------------------------------------------------------------------------
@@ -234,7 +244,6 @@ class Thread(threading.Thread):
             self._rup_log.exception('terminating')
 
             # all is done and said - begone!
-            return
 
 
     # --------------------------------------------------------------------------
@@ -315,12 +324,12 @@ class Thread(threading.Thread):
 #
 def is_main_thread():
 
-    return isinstance(threading.current_thread(), threading._MainThread)
+    return isinstance(mt.current_thread(), mt._MainThread)
 
 
 # ------------------------------------------------------------------------------
 #
-_signal_lock = threading.Lock()
+_signal_lock = mt.Lock()
 _signal_sent = dict()
 def cancel_main_thread(signame=None, once=False):
     """
@@ -447,14 +456,14 @@ class SignalRaised(SystemExit):
 #
 def get_thread_name():
 
-    return threading.current_thread().name
+    return mt.current_thread().name
 
 
 # ------------------------------------------------------------------------------
 #
 def get_thread_id():
 
-    return threading.current_thread().ident
+    return mt.current_thread().ident
 
 
 # ------------------------------------------------------------------------------
@@ -492,7 +501,7 @@ def raise_in_thread(e=None, tname=None, tident=None):
         if not tname:
             tname = 'MainThread'
 
-        for th in threading.enumerate():
+        for th in mt.enumerate():
             if tname  == th.name:
                 tident = th.ident
                 break
@@ -503,7 +512,7 @@ def raise_in_thread(e=None, tname=None, tident=None):
     if not e:
         e = ThreadExit
 
-    self_thread = threading.current_thread()
+    self_thread = mt.current_thread()
     if self_thread.ident == tident:
         # if we are in the target thread, we simply raise the exception.  
         # This specifically also applies to the main thread.
