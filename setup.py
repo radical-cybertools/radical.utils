@@ -191,6 +191,7 @@ setup_args = {
         'test'           : our_test,
     },
     'install_requires'   : ['colorama', 
+                            'psutil',
                             'netifaces==0.10.4'
                            ],
     'extras_require'     : {

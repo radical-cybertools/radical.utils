@@ -187,6 +187,9 @@ def _generate_id(template, prefix):
     if '%(host)' in template: info['host'] = socket.gethostname() # local hostname
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
 
+    # FIXME: os.open should be scoped in a `with` clause, or in
+    #        a `try/except/finally` clause
+
     if '%(day_counter)' in template:
         fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
