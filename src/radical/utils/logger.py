@@ -306,7 +306,7 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     for t in logger.targets:
         if t in ['0', 'null']:
             handle = logging.NullHandler()
-        if t in ['-', '1', 'stdout']:
+        elif t in ['-', '1', 'stdout']:
             handle = ColorStreamHandler(sys.stdout)
         elif t in ['=', '2', 'stderr']:
             handle = ColorStreamHandler(sys.stderr)

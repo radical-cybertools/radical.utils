@@ -92,9 +92,8 @@ class Process(mp.Process):
         # The socket is also used to send messages back and forth.
         self._rup_sp = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM, 0)
 
-        # all other members are set to None (or similar) to make pylint happy,
-        # but are actually initialized later in `start()`/`run()`, and the
-        # various initializers.
+        # note that some members are only really initialized when calling the
+        # `start()`/`run()` methods, and the various initializers.
         self._rup_name        = name           # use for setproctitle
         self._rup_started     = False          # start() has been called
         self._rup_spawned     = None           # set in start(), run()
@@ -103,18 +102,19 @@ class Process(mp.Process):
         self._rup_endpoint    = None           # socket endpoint for sent/recv
         self._rup_term        = None           # set to terminate watcher
         self._rup_watcher     = None           # watcher thread
-        self._rup_things      = None           # list of threads created in
+        self._rup_things_lock = mt.Lock()      # lock for the above
+        self._rup_things      = list()         # list of threads created in
                                                # (parent or child) process
-        self._rup_things_lock = None           # lock for the above
 
         # FIXME: assert that start() was called for some / most methods
 
         if not self._rup_log:
-            # if no logger is passed down, log to null
-            self._rup_log = get_logger('radical.util.process', target='null')
+            # if no logger is passed down, log to null # FIXME
+            self._rup_log = get_logger('radical.util.process', target='rup.log')
+            self._rup_log.debug('name: %s' % self._rup_name)
 
         # base class initialization
-        super(Process, self).__init__(name=name)
+        super(Process, self).__init__(name=self._rup_name)
 
         # we don't want processes to linger around, waiting for children to
         # terminate, and thus create sub-processes as daemons.
@@ -175,8 +175,8 @@ class Process(mp.Process):
             self._rup_log.info('recv message: %s', msg)
             return msg
 
-        except Exception as e:
-            self._rup_log.exception('failed to recv message')
+        except socket.timeout:
+            self._rup_log.warn('recv timed out')
             return ''
 
 
@@ -209,7 +209,7 @@ class Process(mp.Process):
                 # only do any watching if time is up
                 now = time.time()
                 if now - last < _WATCH_TIMEOUT:
-                    time.sleep(1)  #
+                    time.sleep(0.1)  # FIXME: configurable, load tradeoff
                     continue
 
                 self._rup_watch_socket()
@@ -220,7 +220,6 @@ class Process(mp.Process):
               # while True:
               #     try:
               #         msg = self._rup_msg_out.get_nowait()
-              #         print 'out: %s' % msg
               #         self._rup_msg_send(msg)
               #
               #     except Queue.Empty:
@@ -413,7 +412,7 @@ class Process(mp.Process):
                 self._rup_endpoint.settimeout(timeout)
                 msg = self._rup_msg_recv(len(_ALIVE_MSG))
 
-                if msg != 'alive':
+                if msg != _ALIVE_MSG:
                     # attempt to read remainder of message and barf
                     msg += self._rup_msg_recv()
                     raise RuntimeError('unexpected child message (%s)' % msg)
@@ -497,7 +496,8 @@ class Process(mp.Process):
 
             # initialization done - we only now send the alive signal, so the
             # parent can make some assumptions about the child's state
-            if self._rup_term.is_set():
+            if not self._rup_term.is_set():
+                self._rup_log.info('send alive')
                 self._rup_msg_send(_ALIVE_MSG)
 
             # enter the main loop and repeatedly call 'work()'.  
@@ -517,7 +517,7 @@ class Process(mp.Process):
                     self._rup_msg_send('work finished')
                     break
 
-                time.sleep(0.001)  # FIXME: make configurable
+              # time.sleep(0.01)  # FIXME: make configurable
 
         except BaseException as e:
 
@@ -714,8 +714,7 @@ class Process(mp.Process):
     #
     def _rup_initialize_common(self):
 
-        self._rup_things      = list()
-        self._rup_things_lock = mt.Lock()
+        pass
 
 
     # --------------------------------------------------------------------------
@@ -772,6 +771,8 @@ class Process(mp.Process):
         #
         # FIXME: move to _rup_initialize_common
         #
+
+        self._rup_log.info('child (me) initializing')
 
         # start the watcher thread
         self._rup_term    = mt.Event()
