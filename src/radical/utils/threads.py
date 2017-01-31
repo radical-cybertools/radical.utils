@@ -149,7 +149,7 @@ class Thread(mt.Thread):
         if not self._cprofile:
             self._run()
 
-        # otherwise we run inder the profiler, obviously
+        # otherwise we run under the profiler, obviously
         else:
             import cprofile
             cprofiler = cProfile.Profile()
@@ -161,7 +161,7 @@ class Thread(mt.Thread):
     #
     def _run(self):
         '''
-        The RU Thread calss has two execution modes:
+        The RU Thread class has two execution modes:
 
           * If a `call` was specified during construction, that call is
             executed, the result is stored.

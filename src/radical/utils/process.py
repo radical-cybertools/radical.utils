@@ -35,7 +35,7 @@ _BUFSIZE       = 1024     # default buffer size for socket recvs
 class Process(mp.Process):
     '''
     This Process class is a thin wrapper around multiprocessing.Process which
-    specifically manages the process lifetime in a more cautious and copperative
+    specifically manages the process lifetime in a more cautious and cooperative
     way than the base class: *no* attempt on signal handling is made, we expect
     to exclusively communicate between parent and child via a socket.
     A separate thread in both processes will watch that socket: if the socket
@@ -397,7 +397,7 @@ class Process(mp.Process):
         # from now on we need to invoke `self.stop()` for clean termination.
         # Having said that: the daemonic watcher thread and the socket lifeline
         # to the child should ensure that both will terminate in all cases, but
-        # possibly somewhat delayed and apruptly.
+        # possibly somewhat delayed and abruptly.
         #
         # Either way: use a try/except to ensure `stop()` being called.
         try: 
@@ -507,8 +507,8 @@ class Process(mp.Process):
             #
             # In each iteration, we also check if the socket is still open -- if it
             # is closed, we assume the parent to be dead and terminate (break the
-            # loop).  We consider the eicket closed if `self._rup_term` was set
-            # by the watchewr thread.
+            # loop).  We consider the socket closed if `self._rup_term` was set
+            # by the watcher thread.
             while not self._rup_term.is_set() and \
                       self._parent_is_alive()     :
             
@@ -577,7 +577,7 @@ class Process(mp.Process):
     #
     def stop(self, timeout=_STOP_TIMEOUT):
         '''
-        `stop()` is symetric to `start()`, in that it can only be called by the
+        `stop()` is symmetric to `start()`, in that it can only be called by the
         parent process.  It MUST be called from the main thread.  Both
         conditions are asserted.  If a subthread or the child needs to trigger
         the termination of the parent, it should simply terminate/exit its own
