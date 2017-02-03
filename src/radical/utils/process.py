@@ -476,14 +476,14 @@ class Process(mp.Process):
         self._rup_endpoint  = self._rup_sp[1]
         self._rup_sp[0].close()
 
-        # set child name based on name given in c'tor, and use as procitle
+        # set child name based on name given in c'tor, and use as proctitle
         self._rup_name = self._rup_name + '.child'
         spt.setproctitle(self._rup_name)
 
         try:
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
-            # to watch the parent's health (via the socket healt).
+            # to watch the parent's health (via the socket health).
             try:
                 self._rup_initialize()
 
