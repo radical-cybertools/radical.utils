@@ -47,8 +47,6 @@ install() {
     pip uninstall -y $mod >> $log 2>&1
     pip install .         >> $log 2>&1
     cd $cwd
-    echo "--------------------------"
-    echo
 }
 
 
