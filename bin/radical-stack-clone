@@ -148,10 +148,8 @@ install() {
 
     if ! test -d "$tmp/$repo"
     then
-        git clone "$repo" "$tmp/$repo" 2>&1 >> $log
+        git clone "$repo" "$tmp/$repo"          >> $log 2>&1
     fi
-
-  # set -x
 
     cd $tmp/$repo
     git pull --all                              >> $log 2>&1
@@ -161,8 +159,6 @@ install() {
     pip uninstall -y $mod                       >> $log 2>&1
     pip install .                               >> $log 2>&1
     cd $cwd
-
-  # set +x
 }
 
 
