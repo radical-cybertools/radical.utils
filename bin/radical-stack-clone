@@ -10,7 +10,6 @@
 #
 cwd=`pwd`
 tmp="/tmp/radical-stack-tmp.$(id -u)"
-log="$stack.log"
 
 branch="devel"
 tag=
@@ -89,6 +88,10 @@ EOT
 #
 # command line args can overwrite defaults
 #
+
+mkdir -p "$tmp"
+log="$tmp/install.log"
+cp /dev/null $log  # empty log from previous run
 
 while getopts b:t:s:v: opt
 do
