@@ -64,10 +64,10 @@ check  virtualenv ve_test
 source virtualenv ve_test
 
 mod               repo                                                    branch  commit tag
-radical.utils     git@github.com:radical-cybertools/radical.utils.git     devel          titan
-saga-python       git@github.com:radical-cybertools/saga-python.git       devel          titan
-radical.pilot     git@github.com:radical-cybertools/radical.pilot.git     devel          titan
-radical.analytics git@github.com:radical-cybertools/radical.analytics.git devel          titan
+radical.utils     https://github.com/radical-cybertools/radical.utils.git     devel          titan
+saga-python       https://github.com/radical-cybertools/saga-python.git       devel          titan
+radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     devel          titan
+radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
 
 installed:
 python            : 2.7.12+
@@ -199,7 +199,7 @@ then
         then
             echo "skip $mod"
         else
-            repo="git@github.com:radical-cybertools/$mod.git"
+            repo="https://github.com/radical-cybertools/$mod.git"
 
             spec=$(  echo "$info" | cut -f 2 -d ':' | xargs echo)
             branch=$(echo "$spec" | cut -f 2 -d '@' | tr '-' '/')
@@ -213,7 +213,7 @@ then
 else
     for mod in 'radical.utils' 'saga-python' 'radical.pilot' 'radical.analytics'
     do
-        repo="git@github.com:radical-cybertools/$mod.git"
+        repo="https://github.com/radical-cybertools/$mod.git"
 
         install "$mod" "$repo" "$branch" "$tag" "$commit"
         
