@@ -5,6 +5,15 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.45 release                                                  2017-02-28
+--------------------------------------------------------------------------------
+
+  - add radical-stack, radical-stack-clone tools
+  - setup fix 
+  - silence a warning 
+  - Silence empty profile warning 
+
+
 Version 0.44 release                                                  2016-11-01
 --------------------------------------------------------------------------------
 
