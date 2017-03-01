@@ -5,6 +5,39 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+Version 0.45 release                                                  2017-02-28
+--------------------------------------------------------------------------------
+
+  - add radical-stack, radical-stack-clone tools
+  - setup fix 
+  - silence a warning 
+  - Silence empty profile warning 
+
+
+Version 0.44 release                                                  2016-11-01
+--------------------------------------------------------------------------------
+
+  - remote debugging! 
+  - SIGINT is nono in threads 
+  - comment on exception types in raise_in_thread 
+  - add range matching alg 
+  - add condition watcher 
+  - add some tracing methods
+  - add get_thread_name and get_thread_id 
+  - add raise_in_thread 
+  - add netifaces dep 
+  - hardcode the netiface version until it is fixed upstream. 
+  - allow to overwrite profiler name 
+  - fix double releases 
+  - convert atfork monkeypatch exception into warning 
+  - make singleton fork-safe 
+  - move get_hostip and get_hostname to ru 
+  - move profiler from RP to RU 
+  - move raise_on functionality from rpu to ru, to support random 
+    error triggers for stress testing 
+  - make raise_on thread save, get limits from env 
+
+
 Version 0.41.1 release                                                2016-06-02
 --------------------------------------------------------------------------------
 
