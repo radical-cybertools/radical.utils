@@ -62,7 +62,8 @@ def fix_logging_module():
         # these exist, other loggers or not yet added handlers could as well.
         # Its safer to insist that this fix is applied before logging has been
         # configured.
-        raise Error('logging handlers already registered.')
+        warnings.warn('logging handlers already registered.')
+      # raise Error('logging handlers already registered.')
 
     logging._acquireLock()
     try:
