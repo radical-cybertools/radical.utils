@@ -4,118 +4,228 @@
 # argument), and will then create a respective virtualenv in the given location
 # (second argtument)
 
-tmp="/tmp/radical-stack-tmp.$(id -u)"
-stack=$1
-ve_target=$2
+# ------------------------------------------------------------------------------
+#
+# default settings
+#
 cwd=`pwd`
+tmp="/tmp/radical-stack-tmp.$(id -u)"
 
+branch="devel"
+tag=
+stack=
+veloc=
+
+
+# ------------------------------------------------------------------------------
+#
 usage() {
+
     msg=$1
-    echo "\n\t$msg\n\tusage: $0 <stack> <ve_target>\n\n"
+
+    if ! test -z "$msg"
+    then
+        printf "\n    error: $msg\n" 
+    fi
+
+    cat <<EOT
+    
+    usage: $0 -v ve_location 
+             [-s stackfile] 
+             [-b branch]
+             [-t tag]
+
+    This utility will create a new (or update an existing) Python virtualenv
+    with a specific (set of) version(s) of the radical stack, including
+    radical.{pilot,saga,utils,analytics}.  The version to be used can be
+    specified in two ways: as a stackfile or as command line parameters.
+
+      -s stackfile: stackfile to use
+                    The file must be formatted as is the output of the 
+                    'radical-stack' command.
+
+      -b branch   : branch to install
+                    the branch should be exist for all layers -- otherwise
+                    'devel' is being used.
+
+      -b tag      : tag to install
+                    the tag should be exist for all layers -- otherwise the
+                    'devel' branch is being used.
+
+    example:
+
+--------------------------------------------------------------------------------
+$ ./bin/radical-stack-clone -v ve_test -t titan
+
+tag @ branch requested: titan@devel
+ve location  requested: ve_test
+
+check  virtualenv ve_test
+source virtualenv ve_test
+
+mod               repo                                                    branch  commit tag
+radical.utils     https://github.com/radical-cybertools/radical.utils.git     devel          titan
+saga-python       https://github.com/radical-cybertools/saga-python.git       devel          titan
+radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     devel          titan
+radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
+
+installed:
+python            : 2.7.12+
+virtualenv        : /home/merzky/radical/radical.utils/ve_test
+radical.utils     : titan@HEAD-detached-at-titan
+saga-python       : titan@HEAD-detached-at-titan
+radical.pilot     : titan@HEAD-detached-at-titan
+radical.analytics : v0.1-113-gb032808@devel
+--------------------------------------------------------------------------------
+
+EOT
+
     exit
 }
 
+
+# ------------------------------------------------------------------------------
+#
+# command line args can overwrite defaults
+#
+
+mkdir -p "$tmp"
+log="$tmp/install.log"
+cp /dev/null $log  # empty log from previous run
+
+while getopts b:t:s:v: opt
+do
+    case $opt in
+    v)   veloc="$OPTARG";;
+    s)   stack="$OPTARG";;
+    b)   branch="$OPTARG";;
+    t)   tag="$OPTARG";;
+    ?)   usage "cannot handle argument $opt"
+         exit 2;;
+    esac
+done
+
+
+# ------------------------------------------------------------------------------
+#
+# some args are mandatory
+#
+if test -z "$veloc"
+then
+    usage "no virtualenv location specified"
+fi
+
+if test -z "$stack$branch$tag"
+then
+    usage 'missing stack file or branch'
+fi
+
+
+# ------------------------------------------------------------------------------
+#
+# report target stack
+#
+echo
+if ! test -z "$stack"
+then
+    printf "stack config requested: $stack\n$(echo $stack | grep ':')"
+else
+    printf "tag @ branch requested: $tag@$branch\n"
+fi
+
+printf "ve location  requested: $veloc\n\n"
+
+
+# ------------------------------------------------------------------------------
+#
 install() {
 
     mod="$1"
     repo="$2"
-    info="$3"
+    branch="$3"
+    tag="$4"
+    commit="$5"
 
-    branch=$(echo "$info" | cut -f 2 -d '@')
-    commit=$(echo "$info" | sed -e 's/.*-g\([a-zA-Z0-9]*\)@.*/\1/g')
-
-    if test "$commit" = "$info"
-    then
-        commit='HEAD'
-    fi
-
-    printf "%-20s  %-55s  %-30s %s\n" "$mod" "$repo" "$branch" "$commit"
+    printf "%-20s  %-55s  %-30s %-30s %s\n" "$mod" "$repo" "$branch" "$commit" "$tag" \
+        | tee -a $log
 
     if ! test -d "$tmp/$repo"
     then
-        git clone $repo $tmp/$repo
+        git clone "$repo" "$tmp/$repo"          >> $log 2>&1
     fi
 
     cd $tmp/$repo
-  # git checkout $branch
-    git checkout $commit
-    pip uninstall -y $mod
-    pip install .
+    git pull --all                              >> $log 2>&1
+    test -z "$branch" || git checkout "$branch" >> $log 2>&1
+    test -z "$tag"    || git checkout "$tag"    >> $log 2>&1
+    test -z "$commit" || git checkout "$commit" >> $log 2>&1
+    pip uninstall -y $mod                       >> $log 2>&1
+    pip install .                               >> $log 2>&1
     cd $cwd
 }
 
 
-if test -z "$stack"
+# ------------------------------------------------------------------------------
+#
+# create / activate ve
+#
+if ! test -d "$veloc"
 then
-    usage 'missing input stack'
+    printf "create virtualenv $veloc\n"
+    virtualenv    "$veloc" >> $log 2>&1
+else
+    printf "check  virtualenv $veloc\n"
+    test -d $veloc || echo "ve invalid!" || exit 1
 fi
 
-if test -z "$ve_target"
-then
-    usage 'missing input stack'
-fi
+printf "source virtualenv $veloc\n\n"
+. "$veloc/bin/activate"
 
-if ! test -d "$ve_target"
-then
-    echo "create   $ve_target"
-    virtualenv "$ve_target"
-fi
 
-echo "activate $ve_target"
-. "$ve_target/bin/activate"
+# output header
+printf "%-20s  %-55s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
 
-stack_info=`cat $stack`
-ru_info=$(echo "$stack_info" | grep -e '^radical.utils')
-rs_info=$(echo "$stack_info" | grep -e '^saga')
-rp_info=$(echo "$stack_info" | grep -e '^radical.pilot')
-ra_info=$(echo "$stack_info" | grep -e '^radical.analytics')
 
 # ------------------------------------------------------------------------------
 #
-if ! test -z "$ru_info"
-then
-    mod=radical.utils
-    repo=git@github.com:radical-cybertools/radical.utils.git
-
-    install "$mod" "$repo" "$ru_info"
-fi
-
-# ------------------------------------------------------------------------------
+# install from stack file
 #
-if ! test -z "$rs_info"
+if ! test -z "$stack"
 then
-    mod=saga
-    repo=git@github.com:radical-cybertools/saga-python.git
+    for mod in 'radical.utils' 'saga-python' 'radical.pilot' 'radical.analytics'
+    do
+        info=$(cat $stack | grep -e "^$mod" | tail -n 1)
+        if test -z "$info"
+        then
+            echo "skip $mod"
+        else
+            repo="https://github.com/radical-cybertools/$mod.git"
 
-    install "$mod" "$repo" "$rs_info"
-fi
+            spec=$(  echo "$info" | cut -f 2 -d ':' | xargs echo)
+            branch=$(echo "$spec" | cut -f 2 -d '@' | tr '-' '/')
+            commit=$(echo "$spec" | sed -e 's/.*-g\([a-zA-Z0-9]*\)@.*/\1/g')
+            tag=$(   echo "$spec" | cut -f 1 -d '-')
 
-# ------------------------------------------------------------------------------
-#
-if ! test -z "$rp_info"
-then
-    mod=radical.pilot
-    repo=git@github.com:radical-cybertools/radical.pilot.git
+            install "$mod" "$repo" "$branch" "$tag" "$commit"
+        fi
+    done
 
-    install "$mod" "$repo" "$rp_info"
-fi
+else
+    for mod in 'radical.utils' 'saga-python' 'radical.pilot' 'radical.analytics'
+    do
+        repo="https://github.com/radical-cybertools/$mod.git"
 
-# ------------------------------------------------------------------------------
-#
-if ! test -z "$ra_info"
-then
-    mod=radical.analytics
-    repo=git@github.com:radical-cybertools/radical.analytics.git
-
-    install "$mod" "$repo" "$ra_info"
+        install "$mod" "$repo" "$branch" "$tag" "$commit"
+        
+    done
 fi
 
 cd $cwd
 
 # verify
-echo '---------------'
-cat $stack
-echo '---------------'
-radical-stack
-echo '---------------'
+printf "\ninstalled:\n"
+$veloc/bin/python `which radical-stack`
+echo
+
+# ------------------------------------------------------------------------------
 
