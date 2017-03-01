@@ -6,6 +6,7 @@ __license__   = "MIT"
 
 import os
 import sys
+import time
 import signal
 import thread
 import threading
@@ -107,6 +108,10 @@ class RLock(object):
 # ------------------------------------------------------------------------------
 #
 class Thread(threading.Thread):
+    """
+    This `Thread` class is a thin wrapper around Python's native
+    `threading.Thread` class, which adds some convenience methods.  
+    """
 
     # --------------------------------------------------------------------------
     #
@@ -381,6 +386,153 @@ def get_signal_by_name(signame):
              }
     
     return table[signame.lower()]
+
+
+# ------------------------------------------------------------------------------
+#
+class ThreadExit(SystemExit):
+    pass
+
+class SignalRaised(SystemExit):
+
+    def __init__(self, msg, signum=None):
+        if signum:
+            msg = '%s [signal: %s]' % (msg, signum)
+        SystemExit.__init__(self, msg)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_thread_name():
+
+    return threading.current_thread().name
+
+
+# ------------------------------------------------------------------------------
+#
+def get_thread_id():
+
+    return threading.current_thread().ident
+
+
+# ------------------------------------------------------------------------------
+#
+def raise_in_thread(e=None, tname=None, tident=None):
+    """
+    This method uses an internal Python function to inject an exception 'e' 
+    into any given thread.  That thread can be specified by its name ('tname')
+    or thread id ('tid').  If not specified, the exception is sent to the
+    MainThread.
+
+    The target thread will receive the exception with some delay.  More
+    specifically, it needs to call up to 100 op codes before the exception 
+    is evaluated and raised.
+
+    The default exception raised is 'radical.utils.ThreadExit' which inherits
+    from 'SystemExit'.
+
+    NOTE: this is not reliable: the exception is not raised immediately, but is
+          *scheduled* for raising at some point, ie. in general after about 100
+          opcodes (`sys.getcheckinterval()`).  Depending on when exactly the 
+          exception is finally raised, the interpreter might silently swallow
+          it, if that happens in a generic try/except clause.  Those exist in
+          the Python core, even if discouraged by some PEP or the other.
+
+          See https://bugs.python.org/issue1779233
+
+
+    NOTE: we can only raise exception *types*, not exception *instances*
+
+          See https://bugs.python.org/issue1538556
+    """
+
+    if not tident:
+        if not tname:
+            tname = 'MainThread'
+
+        for th in threading.enumerate():
+            if tname  == th.name:
+                tident = th.ident
+                break
+
+    if not tident:
+        raise ValueError('no target thread given/found')
+
+    if not e:
+        e = ThreadExit
+
+    self_thread = threading.current_thread()
+    if self_thread.ident == tident:
+        # if we are in the target thread, we simply raise the exception.  
+        # This specifically also applies to the main thread.
+        # Alas, we don't have a decent message to use...
+        raise e('raise_in_thread')
+
+    else:
+        import ctypes
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tident),
+                                                   ctypes.py_object(e))
+
+
+# ------------------------------------------------------------------------------
+#
+def fs_event_create(fname, msg=None):
+    """
+    Atomically create a file at the given `fname` (relative to pwd),
+    with `msg` as content (or empty otherwise).
+
+    NOTE: this expects a POSIX compliant file system to be accessible by the two
+          entities which use this fs event mechanism.
+    NOTE: this also assumes `os.rename()` to be an atomic operation.
+    """
+
+    pid = os.getpid()
+
+    if not msg:
+        msg = ''
+
+    with open('%s.%d.in' % (fname, pid), 'w') as f:
+        f.write(msg)
+
+    os.rename('%s.%d.in' % (fname, pid), fname)
+
+
+# ------------------------------------------------------------------------------
+#
+def fs_event_wait(fname, timeout=None):
+    """
+    Wait for a file ate the given `fname` to appear.  Return `None` at timeout,
+    or the file content otherwise.
+    """
+
+    msg   = None
+    pid   = os.getpid()
+    start = time.time()
+
+    while True:
+
+        try:
+            with open(fname, 'r') as f:
+                msg = f.read()
+        except Exception as e:
+            print 'e: %s' % type(e)
+            print 'e: %s' % e
+            pass
+
+        if msg != None:
+            try:
+                os.rename(fname, '%s.%d.out' % (fname, pid))
+                os.unlink('%s.%d.out' % (fname, pid))
+            except Exception as e:
+                # there is not much we can do at this point...
+                print 'unlink: %s' % e
+                pass
+            return msg
+
+        if timeout and start + timeout <= time.time():
+            return None
+
+        time.sleep(0.1)
 
 
 # ------------------------------------------------------------------------------

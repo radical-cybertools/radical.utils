@@ -11,6 +11,7 @@ from .singleton      import Singleton
 from .threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
 from .threads        import is_main_thread, cancel_main_thread
 from .threads        import set_cancellation_handler, unset_cancellation_handler
+from .threads        import raise_in_thread, ThreadExit, SignalRaised
 from .url            import Url
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
@@ -33,6 +34,7 @@ from .debug          import *
 from .misc           import *
 from .get_version    import get_version
 from .algorithms     import *
+from .profile        import *
 
 # import decorators
 from .timing         import timed_method
