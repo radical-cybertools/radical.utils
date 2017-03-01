@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import glob
+import pkgutil
+
+print 'python            : %s' % sys.version.split()[0]
+print 'virtualenv        : %s' % os.environ.get('VIRTUAL_ENV')
+
+try:
+    import radical.utils as mod
+    print 'radical.utils     : %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import saga as mod
+    print 'saga-python       : %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import radical.saga as mod
+    print 'radical.saga      : %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import radical.pilot as mod
+    print 'radical.pilot     : %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import radical.entk as mod
+    print 'radical.entk      : %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import radical.ensembletk as mod
+    print 'radical.ensembletk: %s' % mod.version_detail
+except: 
+    pass
+
+try:
+    import radical.analytics as mod
+    print 'radical.analytics : %s' % mod.version_detail
+except: 
+    pass
+

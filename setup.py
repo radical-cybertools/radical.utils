@@ -11,12 +11,17 @@ __license__   = 'MIT'
 import re
 import os
 import sys
+import shutil
 import subprocess as sp
 
-from setuptools import setup, Command, find_packages
-
 name     = 'radical.utils'
-mod_root = 'src/radical/utils'
+mod_root = 'src/radical/utils/'
+
+try:
+    from setuptools import setup, Command, find_packages
+except ImportError as e:
+    print("%s needs setuptools to install" % name)
+    sys.exit(1)
 
 # ------------------------------------------------------------------------------
 #
@@ -66,7 +71,7 @@ def get_version (mod_root):
                         'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '\
                         'echo $tag@$branch'  % src_root,
                         stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-        version_detail = p.communicate()[0].strip()
+        version_detail = str(p.communicate()[0].strip())
         version_detail = version_detail.replace('detached from ', 'detached-')
 
         # remove all non-alphanumeric (and then some) chars
@@ -81,12 +86,12 @@ def get_version (mod_root):
             'fatal'          in version_detail :
             version_detail =  version
 
-        print 'version: %s (%s)' % (version, version_detail)
+        print('version: %s (%s)' % (version, version_detail))
 
 
         # make sure the version files exist for the runtime version inspection
         path = '%s/%s' % (src_root, mod_root)
-        print 'creating %s/VERSION' % path
+        print('creating %s/VERSION' % path)
         with open (path + "/VERSION", "w") as f : f.write (version_detail + "\n")
 
         sdist_name = "%s-%s.tar.gz" % (name, version_detail)
@@ -99,14 +104,14 @@ def get_version (mod_root):
            # NOTE: pip install will untar the sdist in a tmp tree.  In that tmp
            # tree, we won't be able to derive git version tags -- so we pack the
            # formerly derived version as ./VERSION
-            os.system ("mv VERSION VERSION.bak")        # backup version
-            os.system ("cp %s/VERSION VERSION" % path)  # use full version instead
-            os.system ("python setup.py sdist")         # build sdist
-            os.system ("cp 'dist/%s' '%s/%s'" % \
-                    (sdist_name, mod_root, sdist_name)) # copy into tree
-            os.system ("mv VERSION.bak VERSION")        # restore version
+            shutil.move ("VERSION", "VERSION.bak")           # backup version
+            shutil.copy ("%s/VERSION" % path, "VERSION")     # use full version instead
+            os.system   ("python setup.py sdist")            # build sdist
+            shutil.copy ('dist/%s' % sdist_name,
+                         '%s/%s'   % (mod_root, sdist_name)) # copy into tree
+            shutil.move ("VERSION.bak", "VERSION")           # restore version
 
-        print 'creating %s/SDIST' % path
+        print('creating %s/SDIST' % path)
         with open (path + "/SDIST", "w") as f : f.write (sdist_name + "\n")
 
         return version, version_detail, sdist_name
@@ -116,14 +121,14 @@ def get_version (mod_root):
 
 
 # ------------------------------------------------------------------------------
-# get version info -- this will create VERSION and srcroot/VERSION
-version, version_detail, sdist_name = get_version (mod_root)
+# check python version. we need >= 2.7, <3.x
+if  sys.hexversion < 0x02070000 or sys.hexversion >= 0x03000000:
+    raise RuntimeError("%s requires Python 2.x (2.7 or higher)" % name)
 
 
 # ------------------------------------------------------------------------------
-# check python version. we need > 2.6, <3.x
-if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError('%s requires Python 2.x (2.6 or higher)' % name)
+# get version info -- this will create VERSION and srcroot/VERSION
+version, version_detail, sdist_name = get_version (mod_root)
 
 
 # ------------------------------------------------------------------------------
@@ -148,6 +153,81 @@ def read(*rnames):
         return ''
 
 
+# ------------------------------------------------------------------------------
+#
+# borrowed from the MoinMoin-wiki installer
+#
+def makeDataFiles(prefix, dir):
+    """ Create distutils data_files structure from dir
+
+    distutil will copy all file rooted under dir into prefix, excluding
+    dir itself, just like 'ditto src dst' works, and unlike 'cp -r src
+    dst, which copy src into dst'.
+
+    Typical usage:
+        # install the contents of 'wiki' under sys.prefix+'share/moin'
+        data_files = makeDataFiles('share/moin', 'wiki')
+
+    For this directory structure:
+        root
+            file1
+            file2
+            dir
+                file
+                subdir
+                    file
+
+    makeDataFiles('prefix', 'root')  will create this distutil data_files structure:
+        [('prefix', ['file1', 'file2']),
+         ('prefix/dir', ['file']),
+         ('prefix/dir/subdir', ['file'])]
+
+    """
+    # Strip 'dir/' from of path before joining with prefix
+    dir = dir.rstrip('/')
+    strip = len(dir) + 1
+    found = []
+    os.path.walk(dir, visit, (prefix, strip, found))
+    return found
+
+def visit((prefix, strip, found), dirname, names):
+    """ Visit directory, create distutil tuple
+
+    Add distutil tuple for each directory using this format:
+        (destination, [dirname/file1, dirname/file2, ...])
+
+    distutil will copy later file1, file2, ... info destination.
+    """
+    files = []
+    # Iterate over a copy of names, modify names
+    for name in names[:]:
+        path = os.path.join(dirname, name)
+        # Ignore directories -  we will visit later
+        if os.path.isdir(path):
+            # Remove directories we don't want to visit later
+            if isbad(name):
+                names.remove(name)
+            continue
+        elif isgood(name):
+            files.append(path)
+    destination = os.path.join(prefix, dirname[strip:])
+    found.append((destination, files))
+
+def isbad(name):
+    """ Whether name should not be installed """
+    return (name.startswith('.') or
+            name.startswith('#') or
+            name.endswith('.pickle') or
+            name == 'CVS')
+
+def isgood(name):
+    """ Whether name should be installed """
+    if not isbad(name):
+        if name.endswith('.py') or name.endswith('.json'):
+            return True
+    return False
+
+
 # -------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
@@ -161,7 +241,7 @@ setup_args = {
     'maintainer_email'   : 'radical@rutgers.edu',
     'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
     'license'            : 'MIT',
-    'keywords'           : 'radical pilot job saga',
+    'keywords'           : 'radical utils',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -169,7 +249,6 @@ setup_args = {
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
@@ -184,11 +263,13 @@ setup_args = {
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-version',
-                            'bin/radical-utils-pylint.sh'],
-    'package_data'       : {'': ['*.sh', '*.json', 'VERSION', 'SDIST', sdist_name]},
+                            'bin/radical-utils-pylint.sh',
+                            'bin/radical-stack'
+                           ],
+    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {
         'test'           : our_test,
-    },
+                           },
     'install_requires'   : ['colorama', 
                             'netifaces==0.10.4'
                            ],
@@ -197,7 +278,7 @@ setup_args = {
         'nose'           : ['nose']
     },
     'tests_require'      : [],
-    'test_suite'         : 'radical.utils.tests',
+    'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
 #   'build_sphinx'       : {
 #       'source-dir'     : 'docs/',
@@ -206,12 +287,18 @@ setup_args = {
 #   },
 #   'upload_sphinx'      : {
 #       'upload-dir'     : 'docs/build/html',
-#   }
+#   },
+    # This copies the contents of the examples/ dir under
+    # sys.prefix/share/$name
+    # It needs the MANIFEST.in entries to work.
+    'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
 }
 
 # ------------------------------------------------------------------------------
 
 setup (**setup_args)
+
+os.system('rm -rf src/%s.egg-info' % name)
 
 # ------------------------------------------------------------------------------
 
