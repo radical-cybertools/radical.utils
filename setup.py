@@ -269,14 +269,9 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {
         'test'           : our_test,
-<<<<<<< HEAD
-    },
+                           },
     'install_requires'   : ['future', 
                             'colorama',
-=======
-                           },
-    'install_requires'   : ['colorama', 
->>>>>>> e7b4a648ea5b99e8ab8e557eac500219742ce3d5
                             'netifaces==0.10.4'
                            ],
     'extras_require'     : {
