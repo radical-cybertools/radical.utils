@@ -25,7 +25,7 @@ def test_process_basic():
     class P(ru.Process):
         def __init__(self):
             return ru.Process.__init__(self, 'ru.test')
-        def work(self):
+        def work_cb(self):
             time.sleep(0.2)
             return False
 
@@ -34,7 +34,7 @@ def test_process_basic():
     p.join()  ; t3 = time.time()
 
     assert(t2-t1 > 0.0), t2-t1
-    assert(t2-t1 < 0.1), t2-t1  # process startup should be quick
+    assert(t2-t1 < 0.2), t2-t1  # process startup should be quick
     assert(t3-t2 > 0.2), t3-t2  # expect exactly one work iteration
     assert(t3-t2 < 0.4), t3-t2
 
@@ -72,15 +72,15 @@ def test_process_autostart():
             assert(self._finalize_common), 'no finalize common'
             assert(self._finalize_parent), 'no finalize parent'
 
-        def initialize_common(self): self._initialize_common = True
-        def initialize_parent(self): self._initialize_parent = True
-        def initialize_child (self): self._initialize_child  = True
+        def ru_initialize_common(self): self._initialize_common = True
+        def ru_initialize_parent(self): self._initialize_parent = True
+        def ru_initialize_child (self): self._initialize_child  = True
  
-        def finalize_common(self)  : self._finalize_common   = True
-        def finalize_parent(self)  : self._finalize_parent   = True
-        def finalize_child (self)  : self._finalize_child    = True
+        def ru_finalize_common(self)  : self._finalize_common   = True
+        def ru_finalize_parent(self)  : self._finalize_parent   = True
+        def ru_finalize_child (self)  : self._finalize_child    = True
 
-        def work(self):
+        def work_cb(self):
             assert(self._initialize_common), 'no initialize common'
             assert(self._initialize_child),  'no initialize child'
             self._work_done = True
@@ -100,9 +100,9 @@ def test_process_init_fail():
     class P(ru.Process):
         def __init__(self):
             return ru.Process.__init__(self, 'ru.test')
-        def initialize_child(self):
+        def ru_initialize_child(self):
             raise RuntimeError('oops init')
-        def work(self):
+        def work_cb(self):
             time.sleep(0.1)
             return True
 
@@ -127,15 +127,15 @@ def test_process_final_fail():
     class P(ru.Process):
         def __init__(self):
             return ru.Process.__init__(self, 'ru.test')
-        def initialize_child(self):
+        def ru_initialize_child(self):
             self.i = 0
-        def work(self):
+        def work_cb(self):
             self.i += 1
             if self.i == 5:
                 time.sleep(0.1)
                 return False
             return True
-        def finalize_child(self):
+        def ru_finalize_child(self):
             raise RuntimeError('oops final')
 
     try:
@@ -164,15 +164,15 @@ def test_process_parent_fail():
             ru.Process.__init__(self, name='ru.test')
 
 
-        def initialize_child(self):
+        def ru_initialize_child(self):
             self._c = Child()
             self._c.start()
             assert(self._c.is_alive())
 
-        def work(self):
+        def work_cb(self):
             sys.exit()  # parent dies
 
-        def finalize_child(self):
+        def ru_finalize_child(self):
           # # below is what's needed for *clean* termination
           # self._c.stop()
             pass
@@ -185,7 +185,7 @@ def test_process_parent_fail():
                 f.write(str(os.getpid()))
             ru.Process.__init__(self, name='ru.test.child')
 
-        def work(self):
+        def work_cb(self):
             return True
 
     
@@ -212,10 +212,9 @@ def test_process_parent_fail():
 # run tests if called directly
 if __name__ == "__main__":
 
-    N = 10000
+    N = 1
 
     test_process_autostart()
-    sys.exit()
     for i in range(N):
         test_process_final_fail()
         print '.',

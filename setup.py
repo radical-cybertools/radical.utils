@@ -190,7 +190,8 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
     },
-    'install_requires'   : ['colorama', 
+    'install_requires'   : ['future', 
+                            'colorama',
                             'netifaces==0.10.4'
                            ],
     'extras_require'     : {
