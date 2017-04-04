@@ -420,7 +420,7 @@ class Process(mp.Process):
         # from now on we need to invoke `self.stop()` for clean termination.
         # Having said that: the daemonic watcher thread and the socket lifeline
         # to the child should ensure that both will terminate in all cases, but
-        # possibly somewhat delayed and apruptly.
+        # possibly somewhat delayed and abruptly.
         #
         # Either way: use a try/except to ensure `stop()` being called.
         try: 
@@ -513,14 +513,14 @@ class Process(mp.Process):
         self._ru_endpoint  = self._ru_sp[1]
         self._ru_sp[0].close()
 
-        # set child name based on name given in c'tor, and use as procitle
+        # set child name based on name given in c'tor, and use as proctitle
         self._ru_name = self._ru_name + '.child'
         spt.setproctitle(self._ru_name)
 
         try:
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
-            # to watch the parent's health (via the socket healt).
+            # to watch the parent's health (via the socket health).
             try:
                 self._ru_initialize()
 
@@ -542,11 +542,12 @@ class Process(mp.Process):
             # If `work_cb()` ever returns `False`, we break out of the loop to call the
             # finalizers and terminate.
             #
-            # In each iteration, we also check if the socket is gone -- if this is
-            # the case, we assume the parent to be dead and terminate (break the
-            # loop).
+            # In each iteration, we also check if the socket is still open -- if it
+            # is closed, we assume the parent to be dead and terminate (break the
+            # loop).  We consider the socket closed if `self._ru_term` was set
+            # by the watcher thread.
             while not self._ru_term.is_set() and \
-                      self._parent_is_alive()     :
+                      self._parent_is_alive()    :
             
                 # des Pudel's Kern
                 if not self.work_cb():
@@ -610,7 +611,7 @@ class Process(mp.Process):
     #
     def stop(self, timeout=None):
         '''
-        `stop()` is symetric to `start()`, in that it can only be called by the
+        `stop()` is symmetric to `start()`, in that it can only be called by the
         parent process.  It MUST be called from the main thread.  Both
         conditions are asserted.  If a subthread or the child needs to trigger
         the termination of the parent, it should simply terminate/exit its own
