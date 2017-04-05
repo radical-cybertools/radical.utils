@@ -295,7 +295,7 @@ class Process(mp.Process):
                 msg = self._ru_msg_recv(_BUFSIZE)
                 self._ru_log.info('message received: %s' % msg)
 
-        self._ru_log.debug('endpoint watch ok')
+      # self._ru_log.debug('endpoint watch ok')
 
 
     # --------------------------------------------------------------------------
@@ -648,8 +648,7 @@ class Process(mp.Process):
             timeout = _STOP_TIMEOUT
 
         if not is_main_thread():
-            print_stacktrace()
-            print 'redirect stop to main thread (%s)' % self._ru_name
+            self._ru_log.info('reroute stop to main thread (%s)' % self._ru_name)
             sys.exit()
 
         # make sure we don't recurse
@@ -731,7 +730,10 @@ class Process(mp.Process):
         if not timeout:
             timeout = _STOP_TIMEOUT
 
-        super(Process, self).join(timeout=timeout)
+        assert(self._ru_is_parent)
+
+        if self._ru_spawned:
+            super(Process, self).join(timeout=timeout)
 
 
     # --------------------------------------------------------------------------
@@ -761,7 +763,6 @@ class Process(mp.Process):
 
         except Exception as e:
             self._ru_log.exception('initialization error')
-            print_exception_trace()
             raise RuntimeError('initialize: %s' % repr(e))
 
 
@@ -1008,7 +1009,7 @@ class Process(mp.Process):
 
         else:
             # this is the parent, and it spawned: check for real
-            # NOTE: assert remove for performance
+            # NOTE: assert removed for performance
           # assert(self._ru_spawned)
           # assert(self._ru_is_parent)
             alive = super(Process, self).is_alive()
