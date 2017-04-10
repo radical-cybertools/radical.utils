@@ -437,7 +437,7 @@ class Thread(mt.Thread):
         if self._ru_local.is_child:
             self._ru_log.info('child calls stop()')
             self._ru_term.set()
-            cancel_main_thread()
+          # cancel_main_thread()
             return
 
         self._ru_log.info('parent stops child')
@@ -472,16 +472,24 @@ class Thread(mt.Thread):
             timeout = _STOP_TIMEOUT
 
         try:
-          # self._ru_log.debug('%s : %s', self._ru_name, self._ru_local)
-          # self._ru_log.debug('%s : %s', self._ru_name, type(self._ru_local))
+            self._ru_log.debug('check %s : %s', self._ru_name, self._ru_local)
+            self._ru_log.debug('check %s : %s', self._ru_name, type(self._ru_local))
+          # print self._ru_name
             if self._ru_local.is_parent:
-          #     self._ru_log.debug('%s : %s', self._ru_name, 'ok')
+                self._ru_log.debug('check %s : %s', self._ru_name, 'ok')
                 try:
                     super(Thread, self).join(timeout=timeout)
                 except Exception as e:
                     self._ru_log.error('ignoring %s' % e)
         except Exception as e:
-          # self._ru_log.warn('%s : %s', self._ru_name, 'not ok')
+          # print 'oops 1 %s' % self._ru_name
+            self._ru_log.warn('Check %s : %s', self._ru_name, 'not ok')
+            self._ru_log.warn(get_stacktrace())
+            raise
+        except AttributeError as e:
+          # print 'oops 2 %s' % self._ru_name
+            self._ru_log.error('Check %s : %s', self._ru_name, 'not ok')
+            self._ru_log.error(get_stacktrace())
             raise
 
 

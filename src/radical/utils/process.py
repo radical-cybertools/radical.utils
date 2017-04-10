@@ -663,7 +663,7 @@ class Process(mp.Process):
         # tear down watcher - we wait for it to shut down, to avoid races
         if self._ru_watcher:
             self._ru_term.set()
-            self._ru_watcher.join(timeout)
+            self._ru_watcher.stop(timeout)
 
         # stop all things we watch
         with self._ru_things_lock:
@@ -811,7 +811,8 @@ class Process(mp.Process):
         # FIXME: move to _ru_initialize_common
         #
         self._ru_watcher = ru_Thread(name='%s.watch' % self._ru_name, 
-                                     target=self._ru_watch)
+                                     target=self._ru_watch, 
+                                     log=self._ru_log)
         self._ru_watcher.start()
 
         self._ru_log.info('child is alive')
@@ -831,7 +832,8 @@ class Process(mp.Process):
         # start the watcher thread
         self._ru_term    = mt.Event()
         self._ru_watcher = ru_Thread(name='%s.watch' % self._ru_name, 
-                                     target=self._ru_watch)
+                                     target=self._ru_watch, 
+                                     log=self._ru_log)
         self._ru_watcher.start()
 
         self._ru_log.info('child (me) is alive')
