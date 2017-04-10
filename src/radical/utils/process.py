@@ -159,12 +159,8 @@ class Process(mp.Process):
         if len(msg) > _BUFSIZE:
             raise ValueError('message is larger than %s: %s' % (_BUFSIZE, msg))
 
-        try:
-            self._ru_log.info('send message: %s', msg)
-            self._ru_endpoint.send(msg)
-
-        except Exception as e:
-            self._ru_log.exception('failed to send message %s', msg)
+        self._ru_log.info('send message: %s', msg)
+        self._ru_endpoint.send(msg)
 
 
     # --------------------------------------------------------------------------
@@ -647,14 +643,14 @@ class Process(mp.Process):
         if not timeout:
             timeout = _STOP_TIMEOUT
 
-        if not is_main_thread():
-            self._ru_log.info('reroute stop to main thread (%s)' % self._ru_name)
-            sys.exit()
-
         # make sure we don't recurse
         if self._ru_terminating:
             return
         self._ru_terminating = True
+
+      # if not is_main_thread():
+      #     self._ru_log.info('reroute stop to main thread (%s)' % self._ru_name)
+      #     sys.exit()
 
         self._ru_log.info('parent stops child')
 
@@ -1038,7 +1034,7 @@ class Process(mp.Process):
         This method will always return True if `start()` was not called, yet.
         '''
 
-        if not self._ru_initialized:
+        if self._ru_terminating or not self._ru_initialized:
             return True
 
         alive = self.is_alive(strict=False)

@@ -15,7 +15,7 @@ import Queue     as queue
 import threading as mt
 
 from .logger  import get_logger
-from .debug   import print_stacktrace
+from .debug   import print_stacktrace, get_stacktrace
 
 
 # ------------------------------------------------------------------------------
@@ -86,23 +86,25 @@ class Thread(mt.Thread):
         # The queue endpoint is used to send messages back and forth.
         self._ru_term     = mt.Event()
         self._ru_endpoint = queue.Queue()
+        self._ru_local    = mt.local()   # keep some vars thread-local
 
         # note that some members are only really initialized when calling the
         # `start()`/`run()` methods, and the various initializers.
-        self._ru_name        = name           # use for setproctitle
-        self._ru_started     = False          # start() has been called
-        self._ru_spawned     = None           # set in start(), run()
-        self._ru_initialized = False          # set to signal bootstrap success
-        self._ru_terminating = False          # set to signal active termination
-        self._ru_is_parent   = None           # set in start()
-        self._ru_is_child    = None           # set in run()
+        self._ru_name              = name   # communicate name to thread
+        self._ru_local.name        = name   # use for logfiles etc
+        self._ru_local.started     = False  # start() has been called
+        self._ru_local.spawned     = None   # set in start(), run()
+        self._ru_local.initialized = False  # set to signal bootstrap success
+        self._ru_local.terminating = False  # set to signal active termination
+        self._ru_local.is_parent   = None   # set in start()
+        self._ru_local.is_child    = None   # set in run()
 
         # FIXME: assert that start() was called for some / most methods
 
         if not self._ru_log:
             # if no logger is passed down, log to null
-            self._ru_log = get_logger('radical.util.process', target='rut.log')
-            self._ru_log.debug('name: %s' % self._ru_name)
+            self._ru_log = get_logger('radical.util.threads')
+            self._ru_log.debug('name: %s' % self._ru_local.name)
 
         if target:
             # we don't support `arguments`, yet
@@ -113,18 +115,17 @@ class Thread(mt.Thread):
         self._ru_cprofile = False
         if self._ru_name in os.environ.get('RADICAL_CPROFILE', '').split(':'):
             try:
-                self._ru_log.error('enable cprofile for %s', self._ru_name)
+                self._ru_log.error('enable cprofile for %s', self._ru_local.name)
                 import cprofile
                 self._ru_cprofile = True
             except:
                 self._ru_log.error('cannot import cprofile - disable')
 
         # base class initialization
-        super(Thread, self).__init__(name=self._ru_name)
+        super(Thread, self).__init__(name=self._ru_local.name)
 
         # we don't want threads to linger around, waiting for children to
         # terminate, and thus create sub-threads as daemons.
-        #
         self.daemon = True
 
 
@@ -136,16 +137,12 @@ class Thread(mt.Thread):
         message is not larger than the _BUFSIZE define in the RU source code.
         '''
 
-        if not self._ru_spawned:
+        if not self._ru_local.spawned:
             # no child, no communication channel
             raise RuntimeError("can't communicate w/o child")
 
-        try:
-            self._ru_log.info('send message: %s', msg)
-            self._ru_endpoint.put('%s' % msg)
-
-        except Exception as e:
-            self._ru_log.exception('failed to send message %s', msg)
+        self._ru_log.info('send message: %s', msg)
+        self._ru_endpoint.put('%s' % msg)
 
 
     # --------------------------------------------------------------------------
@@ -158,7 +155,7 @@ class Thread(mt.Thread):
         string.
         '''
 
-        if not self._ru_spawned:
+        if not self._ru_local.spawned:
             # no child, no communication channel
             raise RuntimeError("can't communicate w/o child")
 
@@ -213,7 +210,7 @@ class Thread(mt.Thread):
         This method will always return True if `start()` was not called, yet.
         '''
 
-        if not self._ru_initialized:
+        if not self._ru_local.initialized:
             return True
 
         alive = self.is_alive(strict=False)
@@ -247,17 +244,16 @@ class Thread(mt.Thread):
             # start `self.run()` in the child process, and wait for it's
             # initalization to finish, which will send the 'alive' message.
             super(Thread, self).start()
-            self._ru_spawned = True
-
+            self._ru_local.spawned = True
 
         # this is the parent now - set role flags.
-        self._ru_is_parent = True
-        self._ru_is_child  = False
+        self._ru_local.is_parent = True
+        self._ru_local.is_child  = False
 
         # from now on we need to invoke `self.stop()` for clean termination.
         try: 
 
-            if self._ru_spawned:
+            if self._ru_local.spawned:
                 # we expect an alive message message from the child, within
                 # timeout
                 #
@@ -269,7 +265,7 @@ class Thread(mt.Thread):
 
                 if msg != _ALIVE_MSG:
                     raise RuntimeError('Unexpected child message from %s (%s)' \
-                                      % (self._ru_name, msg))
+                                      % (self._ru_local.name, msg))
 
 
             # When we got the alive messages, only then will we call the parent
@@ -278,12 +274,12 @@ class Thread(mt.Thread):
             self._ru_initialize()
 
         except Exception as e:
-            self._ru_log.exception('%s initialization failed', self._ru_name)
+            self._ru_log.exception('%s initialization failed', self._ru_local.name)
             self.stop()
             raise
 
         # if we got this far, then all is well, we are done.
-        self._ru_log.debug('child thread %s started', self._ru_name)
+        self._ru_log.debug('child thread %s started', self._ru_local.name)
 
         # child is alive and initialized, parent is initialized - Wohoo!
 
@@ -306,10 +302,32 @@ class Thread(mt.Thread):
         something.
 
         The child thread will automatically terminate (incl. finalizer calls)
-        when the parent thread dies. It is thus not possible to create daemon
-        or orphaned threads -- which is an explicit purpose of this
-        implementation.  
+        when the parent thread dies. It is thus not possible to create orphaned
+        threads -- which is an explicit purpose of this implementation.  
         '''
+
+        if not getattr(self._ru_local, 'name', None):
+
+            self._ru_log.debug('re-initialize')
+
+            # thread local storage seems not to survive a fork - so we re-initialize
+            # it here in casse it disappeared.
+            self._ru_local.name        = self._ru_name
+            self._ru_local.started     = False
+            self._ru_local.spawned     = None
+            self._ru_local.initialized = False
+            self._ru_local.terminating = False
+            self._ru_local.is_parent   = None
+            self._ru_local.is_child    = None
+
+
+        # this is the child now - set role flags
+        self._ru_local.is_parent = False
+        self._ru_local.is_child  = True
+        self._ru_local.spawned   = True
+
+        # set child name based on name given in c'tor, and use as procitle
+        self._ru_local.name = self._ru_name + '.thread'
 
         # if no profiling is wanted, we just run the workload and exit
         if not self._ru_cprofile:
@@ -320,7 +338,7 @@ class Thread(mt.Thread):
             import cprofile
             cprofiler = cProfile.Profile()
             cprofiler.runcall(self._run)
-            cprofiler.dump_stats('%s.cprof' % (self._ru_name))
+            cprofiler.dump_stats('%s.cprof' % (self._ru_local.name))
 
 
     # --------------------------------------------------------------------------
@@ -330,26 +348,18 @@ class Thread(mt.Thread):
         # FIXME: ensure that this is not overloaded
         # TODO:  how?
 
-        # this is the child now - set role flags
-        self._ru_is_parent = False
-        self._ru_is_child  = True
-        self._ru_spawned   = True
-
-        # set child name based on name given in c'tor, and use as procitle
-        self._ru_name = self._ru_name + '.thread'
-
         try:
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
             # to watch the parent's health (via the socket healt).
             try:
-
                 self._ru_initialize()
 
             except BaseException as e:
                 self._ru_log.exception('abort')
                 self._ru_msg_send(repr(e))
-                sys.stderr.write('initialization error in %s: %s\n' % (self._ru_name, repr(e)))
+                sys.stderr.write('initialization error in %s: %s\n'
+                        % (self._ru_local.name, repr(e)))
                 sys.stderr.flush()
                 self._ru_term.set()
 
@@ -424,26 +434,26 @@ class Thread(mt.Thread):
 
         # if stop() is called from the child, we just set term and leave all
         # other handling to the parent.
-        if self._ru_is_child:
+        if self._ru_local.is_child:
             self._ru_log.info('child calls stop()')
             self._ru_term.set()
+            cancel_main_thread()
             return
 
         self._ru_log.info('parent stops child')
 
         # make sure we don't recurse
-        if self._ru_terminating:
+        if self._ru_local.terminating:
             return
-        self._ru_terminating = True
+        self._ru_local.terminating = True
 
-
-        # call parent finalizers - this sets `self._ru_term`
+        # call finalizers - this sets `self._ru_term`
         self._ru_finalize()
 
         # After setting the termination event, the child should begin
         # termination immediately.  Well, whenever it realizes the event is set,
         # really.  We wait for that termination to complete.
-        super(Thread, self).join(timeout)
+        self.join()
 
 
     # --------------------------------------------------------------------------
@@ -461,7 +471,18 @@ class Thread(mt.Thread):
         if not timeout:
             timeout = _STOP_TIMEOUT
 
-        super(Thread, self).join(timeout=timeout)
+        try:
+          # self._ru_log.debug('%s : %s', self._ru_name, self._ru_local)
+          # self._ru_log.debug('%s : %s', self._ru_name, type(self._ru_local))
+            if self._ru_local.is_parent:
+          #     self._ru_log.debug('%s : %s', self._ru_name, 'ok')
+                try:
+                    super(Thread, self).join(timeout=timeout)
+                except Exception as e:
+                    self._ru_log.error('ignoring %s' % e)
+        except Exception as e:
+          # self._ru_log.warn('%s : %s', self._ru_name, 'not ok')
+            raise
 
 
     # --------------------------------------------------------------------------
@@ -473,21 +494,21 @@ class Thread(mt.Thread):
 
         try:
             # call parent and child initializers, respectively
-            if self._ru_is_parent:
+            if self._ru_local.is_parent:
                 self._ru_initialize_common()
                 self._ru_initialize_parent()
 
                 self.ru_initialize_common()
                 self.ru_initialize_parent()
 
-            elif self._ru_is_child:
+            elif self._ru_local.is_child:
                 self._ru_initialize_common()
                 self._ru_initialize_child()
 
                 self.ru_initialize_common()
                 self.ru_initialize_child()
 
-            self._ru_initialized = True
+            self._ru_local.initialized = True
 
         except Exception as e:
             self._ru_log.exception('initialization error')
@@ -570,14 +591,14 @@ class Thread(mt.Thread):
             self._ru_term.set()
 
             # call parent and child finalizers, respectively
-            if self._ru_is_parent:
+            if self._ru_local.is_parent:
                 self.ru_finalize_parent()
                 self.ru_finalize_common()
 
                 self._ru_finalize_parent()
                 self._ru_finalize_common()
 
-            elif self._ru_is_child:
+            elif self._ru_local.is_child:
                 self.ru_finalize_child()
                 self.ru_finalize_common()
 
@@ -838,7 +859,11 @@ def cancel_main_thread(signame=None, once=False):
             # this sends a SIGINT, resulting in a KeyboardInterrupt.
             # NOTE: see http://bugs.python.org/issue23395 for problems on using
             #       SIGINT in combination with signal handlers!
-            thread.interrupt_main()
+            try:
+                thread.interrupt_main()
+            except TypeError:
+                # this is known to be a side effect of `thread.interrup_main()`
+                pass
 
         # record the signal sending
         _signal_sent[signal] = True
