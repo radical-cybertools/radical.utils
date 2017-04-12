@@ -17,6 +17,7 @@ import threading as mt
 from .logger  import get_logger
 from .debug   import print_stacktrace, get_stacktrace
 
+_glob_local = mt.local()
 
 # ------------------------------------------------------------------------------
 #
@@ -73,6 +74,8 @@ class Thread(mt.Thread):
       - `False` is returned by `work_cb()` (causing the child to finish w/o error)
     '''
 
+    # FIXME: assert that start() was called for some / most methods
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, target=None, log=None):
@@ -86,7 +89,11 @@ class Thread(mt.Thread):
         # The queue endpoint is used to send messages back and forth.
         self._ru_term     = mt.Event()
         self._ru_endpoint = queue.Queue()
-        self._ru_local    = mt.local()   # keep some vars thread-local
+
+        # NOTE: threadlocal storage *must* be defined on module level, and
+        #       cannot be instance specific
+      # self._ru_local    = mt.local()   # keep some vars thread-local
+        self._ru_local    = _glob_local  # keep some vars thread-local
 
         # note that some members are only really initialized when calling the
         # `start()`/`run()` methods, and the various initializers.
@@ -99,7 +106,6 @@ class Thread(mt.Thread):
         self._ru_local.is_parent   = None   # set in start()
         self._ru_local.is_child    = None   # set in run()
 
-        # FIXME: assert that start() was called for some / most methods
 
         if not self._ru_log:
             # if no logger is passed down, log to null
@@ -306,28 +312,14 @@ class Thread(mt.Thread):
         threads -- which is an explicit purpose of this implementation.  
         '''
 
-        if not getattr(self._ru_local, 'name', None):
-
-            self._ru_log.debug('re-initialize')
-
-            # thread local storage seems not to survive a fork - so we re-initialize
-            # it here in casse it disappeared.
-            self._ru_local.name        = self._ru_name
-            self._ru_local.started     = False
-            self._ru_local.spawned     = None
-            self._ru_local.initialized = False
-            self._ru_local.terminating = False
-            self._ru_local.is_parent   = None
-            self._ru_local.is_child    = None
-
-
-        # this is the child now - set role flags
-        self._ru_local.is_parent = False
-        self._ru_local.is_child  = True
-        self._ru_local.spawned   = True
-
-        # set child name based on name given in c'tor, and use as procitle
+        # set local data
         self._ru_local.name = self._ru_name + '.thread'
+        self._ru_local.started     = True   # start() has been called
+        self._ru_local.spawned     = True   # set in start(), run()
+        self._ru_local.initialized = False  # set to signal bootstrap success
+        self._ru_local.terminating = False  # set to signal active termination
+        self._ru_local.is_parent   = False  # set in start()
+        self._ru_local.is_child    = True   # set in run()
 
         # if no profiling is wanted, we just run the workload and exit
         if not self._ru_cprofile:
@@ -471,26 +463,11 @@ class Thread(mt.Thread):
         if not timeout:
             timeout = _STOP_TIMEOUT
 
-        try:
-            self._ru_log.debug('check %s : %s', self._ru_name, self._ru_local)
-            self._ru_log.debug('check %s : %s', self._ru_name, type(self._ru_local))
-          # print self._ru_name
-            if self._ru_local.is_parent:
-                self._ru_log.debug('check %s : %s', self._ru_name, 'ok')
-                try:
-                    super(Thread, self).join(timeout=timeout)
-                except Exception as e:
-                    self._ru_log.error('ignoring %s' % e)
-        except Exception as e:
-          # print 'oops 1 %s' % self._ru_name
-            self._ru_log.warn('Check %s : %s', self._ru_name, 'not ok')
-            self._ru_log.warn(get_stacktrace())
-            raise
-        except AttributeError as e:
-          # print 'oops 2 %s' % self._ru_name
-            self._ru_log.error('Check %s : %s', self._ru_name, 'not ok')
-            self._ru_log.error(get_stacktrace())
-            raise
+        if self._ru_local.is_parent:
+            try:
+                super(Thread, self).join(timeout=timeout)
+            except Exception as e:
+                self._ru_log.error('ignoring %s' % e)
 
 
     # --------------------------------------------------------------------------

@@ -224,7 +224,7 @@ class Process(mp.Process):
                 # only do any watching if time is up
                 now = time.time()
                 if now - last < _WATCH_TIMEOUT:
-                    time.sleep(1.0)  # FIXME: configurable, load tradeoff
+                    time.sleep(0.1)  # FIXME: configurable, load tradeoff
                     continue
 
                 self._ru_watch_socket()
