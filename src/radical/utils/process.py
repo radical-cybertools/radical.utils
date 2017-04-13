@@ -521,7 +521,7 @@ class Process(mp.Process):
                 self._ru_initialize()
 
             except BaseException as e:
-                self._ru_log.exception('abort')
+                self._ru_log.exception('abort: %s', repr(e))
                 self._ru_msg_send('error: %s' % repr(e))
               # sys.stderr.write('initialization error in %s: %s\n' % (self._ru_name, repr(e)))
               # sys.stderr.flush()
@@ -555,7 +555,7 @@ class Process(mp.Process):
             # This is a very global except, also catches 
             # sys.exit(), keyboard interrupts, etc.  
             # Ignore pylint and PEP-8, we want it this way!
-            self._ru_log.exception('abort')
+            self._ru_log.exception('abort: %s', repr(e))
             self._ru_msg_send('abort: %s' % repr(e))
           # sys.stderr.write('work error in %s: %s\n' % (self._ru_name, repr(e)))
           # sys.stderr.flush()

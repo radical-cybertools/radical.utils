@@ -381,7 +381,7 @@ class Thread(mt.Thread):
             # This is a very global except, also catches 
             # sys.exit(), keyboard interrupts, etc.  
             # Ignore pylint and PEP-8, we want it this way!
-            self._ru_log.exception('abort')
+            self._ru_log.error('abort: %s', repr(e))
             self._ru_msg_send(repr(e))
 
         try:
