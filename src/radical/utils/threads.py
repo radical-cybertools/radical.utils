@@ -491,7 +491,7 @@ class Thread(mt.Thread):
             try:
                 super(Thread, self).join(timeout=timeout)
             except Exception as e:
-                self._ru_log.error('ignoring %s' % e)
+                self._ru_log.warn('ignoring %s' % e)
 
 
     # --------------------------------------------------------------------------

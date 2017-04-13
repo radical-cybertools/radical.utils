@@ -246,7 +246,7 @@ class Process(mp.Process):
 
         except Exception as e:
             # mayday... mayday...
-            self._ru_log.exception('watcher failed')
+            self._ru_log.warn('watcher failed')
 
         finally:
             # no matter why we fell out of the loop: let the other end of the
