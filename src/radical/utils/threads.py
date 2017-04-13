@@ -17,7 +17,6 @@ import threading as mt
 from .logger  import get_logger
 from .debug   import print_stacktrace, get_stacktrace
 
-_glob_local = mt.local()
 
 # ------------------------------------------------------------------------------
 #
@@ -83,6 +82,9 @@ class Thread(mt.Thread):
         # At this point, we only initialize members which we need before start
         self._ru_log = log  # ru.logger for debug output
 
+        if not name:
+            name = 'noname'
+
         # most importantly, we create an `mt.Event` and an `mt.Queue`.  Both
         # parent and child will watch the event, which thus acts as a lifeline
         # between the threads, to detect abnormal termination in threads.
@@ -92,8 +94,7 @@ class Thread(mt.Thread):
 
         # NOTE: threadlocal storage *must* be defined on module level, and
         #       cannot be instance specific
-      # self._ru_local    = mt.local()   # keep some vars thread-local
-        self._ru_local    = _glob_local  # keep some vars thread-local
+        self._ru_local    = mt.local()   # keep some vars thread-local
 
         # note that some members are only really initialized when calling the
         # `start()`/`run()` methods, and the various initializers.
@@ -105,7 +106,6 @@ class Thread(mt.Thread):
         self._ru_local.terminating = False  # set to signal active termination
         self._ru_local.is_parent   = None   # set in start()
         self._ru_local.is_child    = None   # set in run()
-
 
         if not self._ru_log:
             # if no logger is passed down, log to null
@@ -412,14 +412,24 @@ class Thread(mt.Thread):
               wanted.
         '''
 
-        # FIXME: we can't really use destructors to make sure stop() is called,
-        #        but we should consider using `__enter__`/`__leave__` scopes to
-        #        ensure clean termination.
-
         # FIXME: This method should reduce to 
         #           self.terminate(timeout)
         #           self.join(timeout)
         #        ie., we should move some parts to `terminate()`.
+
+        if not hasattr(self._ru_local, 'name'):
+
+            # This thread is now being stopped from *another* thread, ie.
+            # neither the parent nor the child thread, so we can't access either
+            # thread local storage.  we thus only set the termination signal
+            # (which is accessible), and leave all other handling to somebody
+            # else.
+            #
+            # Specifically, we will not be able to join this thread, and no
+            # timeout is enforced
+            self._ru_log.info('signal stop for %s - do not join', self._ru_name)
+            self._ru_term.set()
+            return
 
         if not timeout:
             timeout = _STOP_TIMEOUT
@@ -457,8 +467,22 @@ class Thread(mt.Thread):
       # we can't really raise the exception above, as that would break symmetry
       # with the Process class -- see documentation there.
       #
-      # FIXME: not that `join()` w/o `stop()` will not call the parent finalizers.  
-      #        We should call those in both cases, but only once.
+      # FIXME: not that `join()` w/o `stop()` will not call the parent 
+      #        finalizers.  We should call those in both cases, but only once.
+
+        if not hasattr(self._ru_local, 'name'):
+
+            # This thread is now being stopped from *another* thread, ie.
+            # neither the parent nor the child thread, so we can't access either
+            # thread local storage.  we thus only set the termination signal
+            # (which is accessible), and leave all other handling to somebody
+            # else.
+            #
+            # Specifically, we will not be able to join this thread, and no
+            # timeout is enforced
+            self._ru_log.info('signal stop for %s - do not join', self._ru_name)
+            self._ru_term.set()
+            return
 
         if not timeout:
             timeout = _STOP_TIMEOUT
