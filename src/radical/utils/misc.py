@@ -488,7 +488,8 @@ def name2env(name):
 def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV')}, 
+                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
            'radical' : dict()
           }
 
