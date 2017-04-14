@@ -48,4 +48,7 @@ weakref's within your callable.
 from .atfork       import monkeypatch_os_fork_functions, atfork
 from .stdlib_fixer import fix_logging_module
 
+fix_logging_module()
+monkeypatch_os_fork_functions()
+
 
