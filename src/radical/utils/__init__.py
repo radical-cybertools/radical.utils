@@ -3,20 +3,16 @@ __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
-# we want atfork imported first, specifically before os and logging
-from .atfork         import *
 
 # import utility classes
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
 from .singleton      import Singleton
-from .process        import Process
-from .threads        import Thread, RLock
-from .threads        import is_main_thread, is_this_thread, cancel_main_thread
-from .threads        import main_thread, this_thread
+from .threads        import Thread, RLock, NEW, RUNNING, DONE, FAILED
+from .threads        import is_main_thread, cancel_main_thread
 from .threads        import raise_in_thread, ThreadExit, SignalRaised
-from .futures        import Future
-from .futures        import NEW, RUNNING, DONE, FAILED, CANCELED
+from .threads        import fs_event_create, fs_event_wait
+from .futures        import *
 from .url            import Url
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
@@ -29,6 +25,7 @@ from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 
 # import utility methods
+from .atfork         import *
 from .logger         import *
 from .ids            import *
 from .read_json      import *
