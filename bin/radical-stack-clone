@@ -192,17 +192,13 @@ printf "%-20s  %-55s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
 #
 if ! test -z "$stack"
 then
-    for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
+    for mod in 'radical.utils' 'saga-python' 'radical.pilot' 'radical.analytics'
     do
         info=$(cat $stack | grep -e "^$mod" | tail -n 1)
         if test -z "$info"
         then
             echo "skip $mod"
         else
-            if test "$mod" = "saga"
-            then
-                mod='saga-python'
-            fi
             repo="https://github.com/radical-cybertools/$mod.git"
 
             spec=$(  echo "$info" | cut -f 2 -d ':' | xargs echo)
@@ -215,12 +211,8 @@ then
     done
 
 else
-    for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
+    for mod in 'radical.utils' 'saga-python' 'radical.pilot' 'radical.analytics'
     do
-        if test "$mod" = "saga"
-        then
-            mod='saga-python'
-        fi
         repo="https://github.com/radical-cybertools/$mod.git"
 
         install "$mod" "$repo" "$branch" "$tag" "$commit"
