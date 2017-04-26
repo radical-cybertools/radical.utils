@@ -126,6 +126,7 @@ import re
 
 from .dict_mixin import dict_merge, DictMixin
 from .read_json  import read_json
+from .debug      import print_stacktrace
 
 
 def get_config(name):
@@ -141,6 +142,7 @@ def get_config(name):
         raise ValueError('name must be of form "module.config"')
 
     print 'load config for %s' % name
+  # print_stacktrace()
 
     elems   = name.split('.')
     modname = '.'.join(elems[:-1])
@@ -161,10 +163,11 @@ class Config(object, DictMixin):
     #
     def __init__(self, module, path=None, name=None):
 
-        modpkg = pkgutil.get_loader(module)
-
-        if not modpkg:
-            raise ValueError("Cannot load config for module %s" % module)
+        try:
+            modpkg = pkgutil.get_loader(module)
+            assert(modpkg)
+        except OSError:
+            raise ValueError("Cannot load module %s" % module)
 
         home    = os.environ.get('HOME', '/tmp')
         home    = os.environ.get('RADICAL_UTILS_CONFIG_USR_DIR', home)
