@@ -11,6 +11,10 @@ import traceback
 
 from .misc import gettid
 
+_ps_cmd = 'ps -efw'
+if sys.platform != 'darwin':
+    _ps_cmd += ' --forest'
+
 # --------------------------------------------------------------------
 #
 def get_trace():
@@ -128,7 +132,7 @@ def print_stacktraces(signum=None, sigframe=None):
 
     out  = "===============================================================\n"
     out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
-    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    out += os.popen('%s | grep " %s " | grep -v grep' % (_ps_cmd, pid)).read()
     try:
         info = get_stacktraces()
     except Exception as e:
@@ -194,7 +198,7 @@ def print_stacktrace(msg=None):
     out  = "--------------\n"
     out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
     out += "%s\n" % msg
-    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    out += os.popen('%s | grep " %s " | grep -v grep' % (_ps_cmd, pid)).read()
     for line in get_stacktrace():
         out += line.strip()
         out += "\n"
@@ -214,7 +218,7 @@ def print_exception_trace(msg=None):
     out  = "--------------\n"
     out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
     out += "%s\n" % msg
-    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    out += os.popen('%s | grep " %s " | grep -v grep' % (_ps_cmd, pid)).read()
     for line in traceback.format_exc().split('\n'):
         out += line.strip()
         out += "\n"
