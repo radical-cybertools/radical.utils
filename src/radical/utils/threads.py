@@ -834,7 +834,7 @@ def cancel_main_thread(signame=None, once=False):
 
     When being called *from* the main thread, no interrupt will be generated,
     but sys.exit() will still be called.  This can be excepted in the code via 
-    `except SystemExit:`.
+    `except SystemExit`.
 
     Another way to avoid the SIGINT problem is to send a different signal to the
     main thread.  We do so if `signal` is specified.
@@ -880,6 +880,53 @@ def cancel_main_thread(signame=None, once=False):
     # the sub thread will at this point also exit.
     if not is_main_thread():
         sys.exit()
+
+
+# ------------------------------------------------------------------------------
+# this is the counterpart for the `cancel_main_thread` method above: any main
+# thread should call `set_cancellation_handler`, which will set a signal handler
+# for `SIGUSR2`, and upon catching it will raise a `KeyboardInterrupt`
+# exception, which can be caught by any interested library or application.
+#
+# RU claims ownership of `SIGUSR2` -- it will complain if any other signal
+# handler is installed for that signal.  
+#
+# This method can safely be called multiple times.  This method can be called
+# from threads, but it will have no effect then (Python allows signal handlers
+# to only be installed in the main thread)
+#
+# FIXME: `cancel_main_thread()` supports arbitrary signals --
+#        `set_cancellation_handler()` should, too.
+#
+def _sigusr2_handler(signum, frame):
+    print 'caught sigusr2 (%s)' % os.getpid()
+    # we only want to get this exception once, so we unset the signal handler
+    # before we raise it
+    signal.signal(signal.SIGUSR2, signal.SIG_IGN)
+    raise KeyboardInterrupt('sigusr2')
+
+def set_cancellation_handler():
+
+    # check if any handler exists
+    old_handler = signal.getsignal(signal.SIGUSR2)
+    if  old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
+        old_handler != _sigusr2_handler:
+        raise RuntimeError('handler for SIGUSR2 is already present')
+
+    try:
+        signal.signal(signal.SIGUSR2, _sigusr2_handler)
+    except ValueError:
+        # this fails in subthreads - ignore
+        pass
+
+
+def unset_cancellation_handler():
+
+    try:
+        signal.signal(signal.SIGUSR2, signal.SIG_IGN)
+    except ValueError:
+        # this fails in subthreads - ignore
+        pass
 
 
 # ------------------------------------------------------------------------------

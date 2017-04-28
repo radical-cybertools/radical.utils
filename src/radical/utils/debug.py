@@ -279,7 +279,7 @@ def get_caller_name(skip=2):
 #
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
-def raise_on(tag, log=None):
+def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
     testing purposes, for example when handling the n'th unit, getting the n'th
@@ -327,11 +327,13 @@ def raise_on(tag, log=None):
         limit = _raise_on_state[tag]['limit']
         rate  = _raise_on_state[tag]['rate']
 
-        if log: log.debug('raise_on checked   %s [%s / %s]' % (tag, count, limit))
-      # else:   print     'raise_on checked   %s [%s / %s]' % (tag, count, limit)
+        if msg: info = '%s [%s / %s] [%s]' % (tag, count, limit, msg)
+        else  : info = '%s [%s / %s]'      % (tag, count, limit     )
+
+        if log: log.debug('raise_on checked   %s' , info)
+        else:   print     'raise_on checked   %s' % info
 
         if limit and count == limit:
-
             if rate == 1:
                 val = limit
             else:

@@ -14,6 +14,7 @@ from .process        import Process
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread
+from .threads        import set_cancellation_handler, unset_cancellation_handler
 from .threads        import raise_in_thread, ThreadExit, SignalRaised
 from .futures        import Future
 from .futures        import NEW, RUNNING, DONE, FAILED, CANCELED
