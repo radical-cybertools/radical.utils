@@ -445,10 +445,12 @@ def get_hostip(req=None, logger=None):
         ip = info[AF_INET][0].get('addr')
         if logger:
             logger.debug('check iface %s: ip is %s', iface, ip)
-        break
 
-    _hostip = ip
-    return ip
+        if ip:
+           _hostip = ip
+           return ip
+
+    raise RuntimeError('could not determine ip on %s' % preflist)
 
 
 # ------------------------------------------------------------------------------
