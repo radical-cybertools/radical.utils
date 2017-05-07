@@ -556,9 +556,10 @@ class Process(mp.Process):
             # sys.exit(), keyboard interrupts, etc.  
             # Ignore pylint and PEP-8, we want it this way!
             self._ru_log.exception('abort: %s', repr(e))
-            self._ru_msg_send('abort: %s' % repr(e))
-          # sys.stderr.write('work error in %s: %s\n' % (self._ru_name, repr(e)))
-          # sys.stderr.flush()
+            try:
+                self._ru_msg_send('abort: %s' % repr(e))
+            except Exception as e:
+                self._ru_log.exception('abort info not sent: %s', repr(e))
 
         try:
             # note that we always try to call the finalizers, even if an
@@ -568,11 +569,15 @@ class Process(mp.Process):
 
         except BaseException as e:
             self._ru_log.exception('finalization error')
-            self._ru_msg_send('finalize(): %s' % repr(e))
-          # sys.stderr.write('finalize error in %s: %s\n' % (self._ru_name, repr(e)))
-          # sys.stderr.flush()
+            try:
+                self._ru_msg_send('finalize: %s' % repr(e))
+            except Exception as e:
+                self._ru_log.exception('finalize error not sent: %s', repr(e))
 
-        self._ru_msg_send('terminating')
+        try:
+            self._ru_msg_send('terminating')
+        except Exception as e:
+            self._ru_log.exception('term msg error not sent: %s', repr(e))
 
         # tear down child watcher
         if self._ru_watcher:
