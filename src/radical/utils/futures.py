@@ -40,7 +40,7 @@ FINAL    = [DONE, FAILED, CANCELED]
 class Future(mt.Thread):
     """
     This `Future` class is a thin wrapper around Python's native `mt.Thread`
-    class.  It is expeted to wrap a callable, and to watch its execution.
+    class.  It is expected to wrap a callable, and to watch its execution.
     """
 
     # FIXME: we may want to use a thread pool to limit the number of threads

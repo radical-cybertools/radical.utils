@@ -16,7 +16,6 @@ def test_singleton():
     """ Test if the logger behaves like a singleton
     """
     # make sure singleton works
-    assert ru.get_logger()                == ru.get_logger()
     assert ru.get_logger('radical.utils') == ru.get_logger('radical.utils')
 
 def test_logger():
