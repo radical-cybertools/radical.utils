@@ -56,6 +56,11 @@ def monkeypatch_os_fork_functions():
     Replace os.fork* with wrappers that use ForkSafeLock to acquire
     all locks before forking and release them afterwards.
     """
+
+    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
+    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+        return
+
     builtin_function = type(''.join)
     if hasattr(os, 'fork') and isinstance(os.fork, builtin_function):
         global _orig_os_fork
@@ -89,10 +94,17 @@ def atfork(prepare=None, parent=None, child=None):
     they will be printed to sys.stderr after the fork call once it is safe
     to do so.
     """
+
+    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
+    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+        return
+
     assert not prepare or callable(prepare)
     assert not parent or callable(parent)
     assert not child or callable(child)
+
     _fork_lock.acquire()
+
     try:
         if prepare:
             _prepare_call_list.append(prepare)
@@ -193,3 +205,6 @@ def os_forkpty_wrapper():
 
 
 # TODO: Also replace os.fork1() on Solaris.
+
+# ------------------------------------------------------------------------------
+

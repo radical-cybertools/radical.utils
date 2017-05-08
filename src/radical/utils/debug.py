@@ -108,8 +108,6 @@ class DebugHelper (object) :
 
         except Exception as e:
             # we don't care (much)...
-            print get_trace()
-            print e
             pass
 
 
