@@ -1,9 +1,11 @@
 import os
 import sys
 import time
+import glob
 import regex
 import signal
 import socket
+import importlib
 import netifaces
 import threading
 import url as ruu
@@ -445,10 +447,12 @@ def get_hostip(req=None, logger=None):
         ip = info[AF_INET][0].get('addr')
         if logger:
             logger.debug('check iface %s: ip is %s', iface, ip)
-        break
 
-    _hostip = ip
-    return ip
+        if ip:
+           _hostip = ip
+           return ip
+
+    raise RuntimeError('could not determine ip on %s' % preflist)
 
 
 # ------------------------------------------------------------------------------
@@ -480,6 +484,35 @@ def name2env(name):
     
     return name.replace('.', '_').upper()
 
+
+# ------------------------------------------------------------------------------
+#
+def stack():
+
+    ret = {'sys'     : {'python'     : sys.version.split()[0],
+                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
+           'radical' : dict()
+          }
+
+
+    modules = ['radical.utils', 
+               'radical.saga', 
+               'saga', 
+               'radical.pilot', 
+               'radical.entl',
+               'radical.ensembletk',
+               'radical.analytics']
+
+    for mod in modules:
+        try:
+            tmp = importlib.import_module(mod)
+            ret['radical'][mod] = tmp.version_detail
+        except:
+            pass
+
+    return ret
+    
 
 # ------------------------------------------------------------------------------
 
