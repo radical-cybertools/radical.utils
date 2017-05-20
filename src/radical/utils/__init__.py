@@ -28,6 +28,7 @@ from .reporter       import Reporter
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 
 # import utility methods
 from .logger         import *
