@@ -25,17 +25,18 @@ def test_process_basic():
     class P(ru.Process):
         def __init__(self):
             return ru.Process.__init__(self, 'ru.test')
+
         def work_cb(self):
             time.sleep(0.2)
             return False
 
-    p = P()   ; t1 = time.time()
-    p.start() ; t2 = time.time()
-    p.join()  ; t3 = time.time()
+    p = P()    ; t1 = time.time()
+    p.start()  ; t2 = time.time()
+    p.join(10) ; t3 = time.time()
 
     assert(t2-t1 > 0.0), t2-t1
     assert(t2-t1 < 0.2), t2-t1  # process startup should be quick
-    assert(t3-t2 > 0.2), t3-t2  # expect exactly one work iteration
+    assert(t3-t1 > 0.2), t3-t1  # expect exactly one work iteration
     assert(t3-t2 < 0.4), t3-t2
 
 

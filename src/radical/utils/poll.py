@@ -7,6 +7,7 @@ __license__   = "MIT"
 # default python deployment.  Since RU process management relies on socket
 # polling, we reimplement it here based on `select.select()`.
 
+import os
 import time
 import select
 import socket
@@ -15,135 +16,188 @@ import threading as mt
 from .logger  import get_logger
 from .debug   import print_exception_trace, print_stacktrace
 
-POLLIN	 = 0b0001
-POLLPRI	 = POLLIN
-POLLOUT	 = 0b0010
-POLLERR	 = 0b0100
-POLLHUP	 = POLLERR
-POLLNVAL = POLLERR
-POLLALL  = POLLIN | POLLOUT | POLLERR
-
-_POLLTYPES = [POLLIN, POLLOUT, POLLERR]
+_use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 
 # ------------------------------------------------------------------------------
-#
-class Poller(object):
-    '''
+if _use_pypoll:
 
-    This object will accept a set of things we can call `select.select()` on,
-    and will basically implement the same interface as `Poller` objects as
-    returned by `select.poll()`.  We don't attempt to cleanly distinguish
-    between `POLLHUP`, `POLLERR`, `POLLNVAL`, as those are platform specific.
-    We always use `POLLERR` to signal any of those conditions.  We will also not
-    separate `POLLIN` and `POLLPRI`, but fold both into `POLLIN`.
-    
-    '''
-   
-    # --------------------------------------------------------------------------
-    #
-    def __init__(self):
+    print "using Python's poll implementation"
+    import select
 
-        self._lock       = mt.RLock()
-        self._registered = {POLLIN  : list(),
-                            POLLOUT : list(),
-                            POLLERR : list()}
+    POLLIN   = select.POLLIN
+    POLLPRI  = select.POLLPRI
+    POLLOUT  = select.POLLOUT
+    POLLERR  = select.POLLERR
+    POLLHUP  = select.POLLHUP
+    POLLNVAL = select.POLLNVAL
 
+    POLLALL  = POLLIN | POLLOUT | POLLERR | POLLPRI | POLLHUP | POLLNVAL
 
     # --------------------------------------------------------------------------
     #
-    def register(self, fd, eventmask=None):
+    class Poller(object):
+        '''
+        This is a this wrapper around select.Poller to have it API compatible
+        with our own, select based implementation.
+        '''
 
-        if not eventmask:
-            eventmask = POLLIN | POLLOUT | POLLERR
+        def __init__(self):
+            self._poll = select.poll()
 
+        def register(self, fd, eventmask=None):
+            return self._poll.register(fd, eventmask)
 
-        with self._lock:
+        def modify(self, fd, eventmask=None):
+            return self._poll.modify(fd, eventmask)
 
-            self.unregister(fd, _assert_existence=False)
+        def unregister(self, fd):
+            return self._poll.unregister(fd)
 
-            for e in _POLLTYPES:
-                if eventmask & e:
-                    self._registered[e].append(fd)
-
-
-     
-    # --------------------------------------------------------------------------
-    #
-    def _exists(self, fd):
-
-        with self._lock:
-            for e in _POLLTYPES:
-                if fd in self._registered[e]:
-                    return True
-
-        return False
+        def poll(self, timeout=None):
+            return self._poll.poll(timeout)
 
 
-    # --------------------------------------------------------------------------
-    #
-    def modify(self, fd, eventmask=None):
+# ------------------------------------------------------------------------------
+else:
+    print 're-implementing poll over select'
 
-        if not eventmask:
-            eventmask = POLLIN | POLLOUT | POLLERR
+    POLLIN   = 0b0001
+    POLLPRI  = POLLIN
+    POLLOUT  = 0b0010
+    POLLERR  = 0b0100
+    POLLHUP  = 0b1000
+    POLLNVAL = POLLERR
+    POLLALL  = POLLIN | POLLOUT | POLLERR | POLLPRI | POLLHUP | POLLNVAL
 
-        with self._lock:
-            assert(self._exists(fd))
-            self._register(fd, eventmask)
-
+    _POLLTYPES = [POLLIN, POLLOUT, POLLERR, POLLHUP]
 
     # --------------------------------------------------------------------------
     #
-    def unregister(self, fd, _assert_existence=True):
+    class Poller(object):
+        '''
 
-        with self._lock:
+        This object will accept a set of things we can call `select.select()`
+        on, and will basically implement the same interface as `Poller` objects
+        as returned by `select.poll()`.  We will also not separate `POLLIN` and
+        `POLLPRI`, but fold both into `POLLIN`.  Similarly, we  fold `POLLNVAL`
+        and `POLLERR` into one.
+        '''
 
-            exists = self._exists(fd)
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self):
 
-            if _assert_existence:
-                assert(exists)
-            elif not exists:
-                return
-
-            for e in _POLLTYPES:
-                if fd in self._registered[e]:
-                    self._registered.remove[e](fd)
+            self._lock       = mt.RLock()
+            self._registered = {POLLIN  : list(),
+                                POLLOUT : list(),
+                                POLLERR : list(),
+                                POLLHUP : list()}
 
 
-    # --------------------------------------------------------------------------
-    #
-    def poll(self, timeout=None):
+        # ----------------------------------------------------------------------
+        #
+        def register(self, fd, eventmask=None):
 
-        ret = list()
+            if not eventmask:
+                eventmask = POLLIN | POLLOUT | POLLERR
 
-        with self._lock:
-             rlist = self._registered[POLLIN]
-             wlist = self._registered[POLLOUT]
-             xlist = self._registered[POLLERR]
 
-        if rlist + wlist + xlist:
+            with self._lock:
 
-            rret, wret, xret = select.select(rlist, wlist, xlist, timeout)
+                self.unregister(fd, _assert_existence=False)
 
-            for fd in rret: ret.append([fd, POLLIN ])
-            for fd in wret: ret.append([fd, POLLOUT])
-            for fd in xret: ret.append([fd, POLLERR])
+                for e in _POLLTYPES:
+                    if eventmask & e:
+                        self._registered[e].append(fd)
 
-            # a socket being readable may also mean the socket has been closed.
-            # We do a zero-length read to check
+
+
+        # ----------------------------------------------------------------------
+        #
+        def _exists(self, fd):
+
+            with self._lock:
+                for e in _POLLTYPES:
+                    if fd in self._registered[e]:
+                        return True
+
+            return False
+
+
+        # ----------------------------------------------------------------------
+        #
+        def modify(self, fd, eventmask=None):
+
+            if not eventmask:
+                eventmask = POLLIN | POLLOUT | POLLERR | POLLHUP
+
+            with self._lock:
+                assert(self._exists(fd))
+                self._register(fd, eventmask)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def unregister(self, fd, _assert_existence=True):
+
+            with self._lock:
+
+                exists = self._exists(fd)
+
+                if _assert_existence:
+                    assert(exists)
+                elif not exists:
+                    return
+
+                for e in _POLLTYPES:
+                    if fd in self._registered[e]:
+                        self._registered.remove[e](fd)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def poll(self, timeout=None):
+
+            ret = list()
+
+            with self._lock:
+                 rlist = self._registered[POLLIN]
+                 wlist = self._registered[POLLOUT]
+                 xlist = self._registered[POLLERR]
+                 hlist = self._registered[POLLHUP]
+
+            # only select if we have any FDs to watch
+            if not rlist + wlist + xlist + hlist:
+                return ([], [], [])
+
+            rret, wret, xret = select.select(rlist+hlist, wlist, xlist, timeout)
+
+            # do not return hlist-only FDs
+            ret += [[fd, POLLIN ] for fd in rret if fd in rlist]
+            ret += [[fd, POLLOUT] for fd in wret               ]
+            ret += [[fd, POLLERR] for fd in xret               ]
+
+            # A socket being readable may also mean the socket has been 
+            # closed.  We do a zero-length read to check for POLLHUP if
+            # needed.
             #
-            # NOTE: I am so happy we can do type inspection in Python, so that
-            #       we can have different checks for, say, files and sockets.
-            #       Only this shit doesn't work on sockets! Argh!
-            #       Oh well, we derive the type from `recv` and `read` methods
-            #       being available. 
-            #       Its a shame to do this on every `poll()` call, as this is
-            #       likely in a performance critical path...
+            # NOTE: I am so happy we can do type inspection in Python, so 
+            #
+            #       that we can have different checks for, say, files and
+            #       sockets.  Only this shit doesn't work on sockets! Argh!
+            #       Oh well, we derive the type from `recv` and `read`
+            #       methods being available.
+            #      Its a shame to do this on every `poll()` call, as this is
+            #      likely in a performance critical path...
             for fd in rlist:
+
+                if fd not in hlist:
+                    continue
 
                 # file object
                 if hasattr(fd, 'closed'):
                     if fd.closed:
-                        ret.append([fd, POLLERR])
+                        ret.append([fd, POLLHUP])
 
                 # anything with a `fileno()` and `read()`/`write()`
                 elif hasattr(fd, 'read'):
@@ -151,7 +205,7 @@ class Poller(object):
                         fd.read(0)
                         fd.write('')
                     except:
-                        ret.append([fd, POLLERR])
+                        ret.append([fd, POLLHUP])
 
                 # socket
                 elif hasattr(fd, 'recv'):
@@ -160,14 +214,11 @@ class Poller(object):
                         fd.send('')
                     except Exception as e:
                       # print 'check : error %s' % e
-                        ret.append([fd, POLLERR])
+                        ret.append([fd, POLLHUP])
 
                 # we can't handle errors on other types
                 else:
                     raise TypeError('cannot check %s [%s]' % (fd, type(fd)))
 
-        return ret
-
-
-# ------------------------------------------------------------------------------
+            return ret
 

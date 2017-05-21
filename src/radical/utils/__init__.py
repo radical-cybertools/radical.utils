@@ -29,6 +29,7 @@ from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
+from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
 # import utility methods
 from .logger         import *

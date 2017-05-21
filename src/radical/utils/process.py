@@ -576,7 +576,7 @@ class Process(mp.Process):
         try:
             self._ru_msg_send('terminating')
         except Exception as e:
-            self._ru_log.exception('term msg error not sent: %s', repr(e))
+            self._ru_log.warn('term msg error not sent: %s', repr(e))
 
         # tear down child watcher
         if self._ru_watcher:
@@ -726,7 +726,8 @@ class Process(mp.Process):
       #
       # FIXME: not that `join()` w/o `stop()` will not call the parent finalizers.  
       #        We should call those in both cases, but only once.
-      
+      # FIXME: `join()` should probably block by default
+
         if not timeout:
             timeout = _STOP_TIMEOUT
 
@@ -1015,6 +1016,10 @@ class Process(mp.Process):
           # assert(self._ru_spawned)
           # assert(self._ru_is_parent)
             alive = super(Process, self).is_alive()
+
+        if None == self._ru_term:
+            # child is not yet started
+            return False
 
         termed = self._ru_term.is_set()
 
