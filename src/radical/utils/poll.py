@@ -3,24 +3,37 @@ __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2016, RADICAL@Rutgers"
 __license__   = "MIT"
 
-# `select.poll()` is a nice thing - alas, it is not implemented in MacOS'
-# default python deployment.  Since RU process management relies on socket
-# polling, we reimplement it here based on `select.select()`.
-
 import os
+import sys
 import time
 import select
 import socket
 import threading as mt
 
-from .logger  import get_logger
-from .debug   import print_exception_trace, print_stacktrace
+
+# `select.poll()` is a nice thing - alas, it is not implemented in MacOS'
+# default python deployment.  Since RU process management relies on socket
+# polling, we reimplement it here based on `select.select()`.
+#
+# The following import directive should enable any select based code to run
+# unchanged on MacOS (for the parts we port, at least):
+#
+#     import radical.utils.poll as select
+#
+#     poller = select.poll()
+#     ...
+#
+# If `RU_USE_PYPOLL` is set (to an arbitrary, non-empty value) in the 
+# environment, we fall back to the native Python implementation.
+# 
+_use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 
 
+# ------------------------------------------------------------------------------
+# define the Poller factory.  No idea why the Poller object is not directly
+# exposed in the `select` module... :/
 def poll():
     return (Poller())
-
-_use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 
 
 # ------------------------------------------------------------------------------
@@ -61,14 +74,16 @@ if _use_pypoll:
         def poll(self, timeout=None):
             time.sleep(0.2)
             ret = self._poll.poll(timeout)
-          # _o.write('py %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
+          # sys.stderr.write('py %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
             return ret
 
 
 # ------------------------------------------------------------------------------
 else:
-  # print 're-implementing poll over select'
+  # print 're-implementing poll using `select.select()`'
 
+    # these defines are magically compatible with the ones in Python's `select`
+    # module...
     POLLIN   = 0b000001
     POLLPRI  = 0b000010
     POLLOUT  = 0b000100
@@ -76,20 +91,27 @@ else:
     POLLHUP  = 0b010000
     POLLNVAL = 0b100000
 
+    # POLLALL is not defined by `select`.
     POLLALL  = POLLIN | POLLOUT | POLLERR | POLLPRI | POLLHUP | POLLNVAL
 
+    # we only really support the following 4 types - all others are silently
+    # ignored, and will never be triggered.
     _POLLTYPES = [POLLIN, POLLOUT, POLLERR, POLLHUP]
+
 
     # --------------------------------------------------------------------------
     #
     class Poller(object):
         '''
         This object will accept a set of things we can call `select.select()`
-        on, and will basically implement the same interface as `Poller` objects
-        as returned by `select.poll()`.  
+        on, which is basically anything which has a file desciptor exposed via
+        a `fileno()` member method, or any integers which directly represent an
+        OS level file escriptor.  This class implements most of the interface
+        as defined by Python's `select.Poller` class, which is created by
+        calling `select.poll()`.  This implementation is thread-safe.
 
-        NOTE: `poll()` returns the original object handle instead of the polled
-              file descriptor.
+        NOTE: `Poller.poll()` returns the original object handle instead of the
+              polled file descriptor.
         NOTE: Support for `POLLPRI` and `POLLNVAL` selection is not implemented,
               and will never be returned on `poll()`.
         '''
@@ -112,7 +134,6 @@ else:
             if not eventmask:
                 eventmask = POLLIN | POLLOUT | POLLERR
 
-
             with self._lock:
 
                 self.unregister(fd, _assert_existence=False)
@@ -120,7 +141,6 @@ else:
                 for e in _POLLTYPES:
                     if eventmask & e:
                         self._registered[e].append(fd)
-
 
 
         # ----------------------------------------------------------------------
@@ -181,20 +201,20 @@ else:
             if not rlist + wlist + xlist + hlist:
                 return ([], [], [])
 
+            # Des Pudel's Kern!
             rret, wret, xret = select.select(rlist+hlist, wlist, xlist, timeout)
 
             # do not return hlist-only FDs
             ret += [[fd, POLLOUT] for fd in set(wret)]
             ret += [[fd, POLLERR] for fd in set(xret)]
 
-            # A socket being readable may also mean the socket has been 
-            # closed.  We do a zero-length read to check for POLLHUP if
-            # needed.
+            # A socket being readable may also mean the emdpoint has been 
+            # closed.  We do a zero-length read to check for POLLHUP.
             #
             # NOTE: I am so happy we can do type inspection in Python, so 
             #       that we can have different checks for, say, files and
             #       sockets.  Only this shit doesn't work on sockets! Argh!
-            #       Oh well, we derive the type from `recv` and `read`
+            #       Oh well, we now guess the type from `recv` and `read`
             #       methods being available.
             #       Its a shame to do this on every `poll()` call, as this is
             #       likely in a performance critical path...
@@ -228,20 +248,23 @@ else:
                 else:
                     raise TypeError('cannot check %s [%s]' % (fd, type(fd)))
 
+                # we always return the POLLIN event, too, as that is what Python
+                # natively does.  I don't think it makes sense, semantically,
+                # but whatever...
                 if hup: ret.append([fd, POLLIN | POLLHUP])
                 else  : ret.append([fd, POLLIN])
 
-          # _o.write('ru %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
+          # sys.stderr.write('ru %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
 
             return ret
 
 
 # ------------------------------------------------------------------------------
+# some debug methods...
 #
 # import pprint
 # from .threads import get_thread_name
 # 
-# _o = open('/tmp/o', 'a+')
 # _p = '%s -  %s ' % (os.getpid(), get_thread_name())
 # 
 # def _r(ret):
