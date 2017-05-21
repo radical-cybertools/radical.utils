@@ -16,7 +16,7 @@ from .logger  import get_logger
 from .debug   import print_exception_trace, print_stacktrace
 from .threads import is_main_thread
 from .threads import Thread as ru_Thread
-from .poll    import Poller, POLLIN, POLLALL
+from .        import poll   as select
 
 
 # ------------------------------------------------------------------------------
@@ -215,8 +215,8 @@ class Process(mp.Process):
         # thread sets `self._ru_term`.
         try:
 
-            self._ru_poller = Poller()
-            self._ru_poller.register(self._ru_endpoint, POLLALL)
+            self._ru_poller = select.poll()
+            self._ru_poller.register(self._ru_endpoint, select.POLLERR | select.POLLHUP | select.POLLIN)
 
             last = 0.0  # we never watched anything until now
             while not self._ru_term.is_set() :
@@ -263,7 +263,7 @@ class Process(mp.Process):
     def _ru_watch_socket(self):
 
         # check health of parent/child relationship
-        events = self._ru_poller.poll(0.0)   # don't block
+        events = self._ru_poller.poll(0.1)   # block just a little
         for _,event in events:
 
             # for alive checks, we poll socket state for
@@ -272,7 +272,8 @@ class Process(mp.Process):
             #   * hangup: child finished - terminate
 
             # check for error conditions
-            if  event & ru.POLLHUP:
+            if  event & select.POLLHUP or  \
+                event & select.POLLERR     :
 
                 # something happened on the other end, we are about to die
                 # out of solidarity (or panic?).  
@@ -280,7 +281,7 @@ class Process(mp.Process):
                 raise RuntimeError('endpoint disappeard')
             
             # check for messages
-            elif event & POLLIN:
+            elif event & select.POLLIN:
         
                 # we get a message!
                 #
@@ -429,6 +430,7 @@ class Process(mp.Process):
                 #       failed and/or hung, and will be terminated!  Timeout can
                 #       be set as parameter to the `start()` method.
                 msg = self._ru_msg_recv(size=len(_ALIVE_MSG), timeout=timeout)
+                self._ru_log.debug('--- msg %s == %s', msg, _ALIVE_MSG)
 
                 if msg != _ALIVE_MSG:
                     # attempt to read remainder of message and barf
@@ -443,7 +445,7 @@ class Process(mp.Process):
             self._ru_initialize()
 
         except Exception as e:
-            self._ru_log.exception('initialization failed')
+            self._ru_log.exception('initialization failed (%s)' % e)
             self.stop()
             raise
 

@@ -16,12 +16,17 @@ import threading as mt
 from .logger  import get_logger
 from .debug   import print_exception_trace, print_stacktrace
 
+
+def poll():
+    return (Poller())
+
 _use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
+
 
 # ------------------------------------------------------------------------------
 if _use_pypoll:
 
-    print "using Python's poll implementation"
+  # print "using Python's poll implementation"
     import select
 
     POLLIN   = select.POLLIN
@@ -54,19 +59,23 @@ if _use_pypoll:
             return self._poll.unregister(fd)
 
         def poll(self, timeout=None):
-            return self._poll.poll(timeout)
+            time.sleep(0.2)
+            ret = self._poll.poll(timeout)
+          # _o.write('py %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
+            return ret
 
 
 # ------------------------------------------------------------------------------
 else:
-    print 're-implementing poll over select'
+  # print 're-implementing poll over select'
 
-    POLLIN   = 0b0001
-    POLLPRI  = POLLIN
-    POLLOUT  = 0b0010
-    POLLERR  = 0b0100
-    POLLHUP  = 0b1000
-    POLLNVAL = POLLERR
+    POLLIN   = 0b000001
+    POLLPRI  = 0b000010
+    POLLOUT  = 0b000100
+    POLLERR  = 0b001000
+    POLLHUP  = 0b010000
+    POLLNVAL = 0b100000
+
     POLLALL  = POLLIN | POLLOUT | POLLERR | POLLPRI | POLLHUP | POLLNVAL
 
     _POLLTYPES = [POLLIN, POLLOUT, POLLERR, POLLHUP]
@@ -75,12 +84,14 @@ else:
     #
     class Poller(object):
         '''
-
         This object will accept a set of things we can call `select.select()`
         on, and will basically implement the same interface as `Poller` objects
-        as returned by `select.poll()`.  We will also not separate `POLLIN` and
-        `POLLPRI`, but fold both into `POLLIN`.  Similarly, we  fold `POLLNVAL`
-        and `POLLERR` into one.
+        as returned by `select.poll()`.  
+
+        NOTE: `poll()` returns the original object handle instead of the polled
+              file descriptor.
+        NOTE: Support for `POLLPRI` and `POLLNVAL` selection is not implemented,
+              and will never be returned on `poll()`.
         '''
 
         # ----------------------------------------------------------------------
@@ -173,31 +184,28 @@ else:
             rret, wret, xret = select.select(rlist+hlist, wlist, xlist, timeout)
 
             # do not return hlist-only FDs
-            ret += [[fd, POLLIN ] for fd in rret if fd in rlist]
-            ret += [[fd, POLLOUT] for fd in wret               ]
-            ret += [[fd, POLLERR] for fd in xret               ]
+            ret += [[fd, POLLOUT] for fd in set(wret)]
+            ret += [[fd, POLLERR] for fd in set(xret)]
 
             # A socket being readable may also mean the socket has been 
             # closed.  We do a zero-length read to check for POLLHUP if
             # needed.
             #
             # NOTE: I am so happy we can do type inspection in Python, so 
-            #
             #       that we can have different checks for, say, files and
             #       sockets.  Only this shit doesn't work on sockets! Argh!
             #       Oh well, we derive the type from `recv` and `read`
             #       methods being available.
-            #      Its a shame to do this on every `poll()` call, as this is
-            #      likely in a performance critical path...
-            for fd in rlist:
+            #       Its a shame to do this on every `poll()` call, as this is
+            #       likely in a performance critical path...
+            for fd in set(rret):
 
-                if fd not in hlist:
-                    continue
+                hup = False
 
                 # file object
                 if hasattr(fd, 'closed'):
                     if fd.closed:
-                        ret.append([fd, POLLHUP])
+                        hup = True
 
                 # anything with a `fileno()` and `read()`/`write()`
                 elif hasattr(fd, 'read'):
@@ -205,7 +213,7 @@ else:
                         fd.read(0)
                         fd.write('')
                     except:
-                        ret.append([fd, POLLHUP])
+                        hup = True
 
                 # socket
                 elif hasattr(fd, 'recv'):
@@ -214,11 +222,39 @@ else:
                         fd.send('')
                     except Exception as e:
                       # print 'check : error %s' % e
-                        ret.append([fd, POLLHUP])
+                        hup = True
 
                 # we can't handle errors on other types
                 else:
                     raise TypeError('cannot check %s [%s]' % (fd, type(fd)))
 
+                if hup: ret.append([fd, POLLIN | POLLHUP])
+                else  : ret.append([fd, POLLIN])
+
+          # _o.write('ru %-50s called %s\n%s\n' % (_p, timeout,  _r(ret)))
+
             return ret
+
+
+# ------------------------------------------------------------------------------
+#
+# import pprint
+# from .threads import get_thread_name
+# 
+# _o = open('/tmp/o', 'a+')
+# _p = '%s -  %s ' % (os.getpid(), get_thread_name())
+# 
+# def _r(ret):
+#     out = ''
+#     for fd, event in ret:
+#         vals = []
+#         if event & POLLIN   : vals.append('IN')
+#         if event & POLLPRI  : vals.append('PRI')
+#         if event & POLLOUT  : vals.append('OUT')
+#         if event & POLLERR  : vals.append('ERR')
+#         if event & POLLHUP  : vals.append('HUP')
+#         if event & POLLNVAL : vals.append('NVAL')
+#         out += '%s : %s\n' % (type(fd), str(vals))
+#     return out
+# ------------------------------------------------------------------------------
 
