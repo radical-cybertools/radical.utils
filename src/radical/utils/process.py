@@ -430,7 +430,6 @@ class Process(mp.Process):
                 #       failed and/or hung, and will be terminated!  Timeout can
                 #       be set as parameter to the `start()` method.
                 msg = self._ru_msg_recv(size=len(_ALIVE_MSG), timeout=timeout)
-                self._ru_log.debug('--- msg %s == %s', msg, _ALIVE_MSG)
 
                 if msg != _ALIVE_MSG:
                     # attempt to read remainder of message and barf
