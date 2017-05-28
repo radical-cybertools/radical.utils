@@ -84,7 +84,11 @@ class Process(mp.Process):
     def __init__(self, name, log=None):
 
         # At this point, we only initialize members which we need before start
-        self._ru_log = log  # ru.logger for debug output
+        self._ru_name      = name # use for setproctitle
+        self._ru_childname = self._ru_name + '.child'
+
+        # make sure we have a valid logger
+        self._ru_set_logger(log)
 
         # ... or are *shared* between parent and child process.
         self._ru_ppid = os.getpid()    # get parent process ID
@@ -97,7 +101,6 @@ class Process(mp.Process):
 
         # note that some members are only really initialized when calling the
         # `start()`/`run()` methods, and the various initializers.
-        self._ru_name        = name           # use for setproctitle
         self._ru_spawned     = None           # set in start(), run()
         self._ru_is_parent   = None           # set in start()
         self._ru_is_child    = None           # set in run()
@@ -111,11 +114,6 @@ class Process(mp.Process):
                                               # (parent or child) process
 
         # FIXME: assert that start() was called for some / most methods
-
-        if not self._ru_log:
-            # if no logger is passed down, log to null
-            self._ru_log = get_logger('radical.util.process', target='rp.log')
-            self._ru_log.debug('name: %s' % self._ru_name)
 
         # when cprofile is requested but not available, 
         # we complain, but continue unprofiled
@@ -141,6 +139,32 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
+    @property
+    def ru_name(self):
+        return self._ru_name
+
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def ru_childname(self):
+        return self._ru_childname
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _ru_set_logger(self, log=None):
+
+        self._ru_log = log
+
+        if not self._ru_log:
+            # if no logger is passed down, log to null (FIXME)
+            self._ru_log = get_logger('radical.util.process', target='2')
+            self._ru_log.debug('name: %s' % self._ru_name)
+
+
+    # --------------------------------------------------------------------------
+    #
     def _ru_msg_send(self, msg):
         '''
         send new message to self._ru_endpoint.  We make sure that the
@@ -159,7 +183,7 @@ class Process(mp.Process):
         if len(msg) > _BUFSIZE:
             raise ValueError('message is larger than %s: %s' % (_BUFSIZE, msg))
 
-        self._ru_log.info('send message: %s', msg)
+        self._ru_log.info('send message: [%s] %s', self._ru_name, msg)
         self._ru_endpoint.send(msg)
 
 
@@ -246,7 +270,7 @@ class Process(mp.Process):
 
         except Exception as e:
             # mayday... mayday...
-            self._ru_log.warn('watcher failed')
+            self._ru_log.exception('watcher failed')
 
         finally:
             # no matter why we fell out of the loop: let the other end of the
@@ -510,7 +534,7 @@ class Process(mp.Process):
         self._ru_sp[0].close()
 
         # set child name based on name given in c'tor, and use as proctitle
-        self._ru_name = self._ru_name + '.child'
+        self._ru_name = self._ru_childname
         spt.setproctitle(self._ru_name)
 
         try:
@@ -602,7 +626,7 @@ class Process(mp.Process):
                 try:
                     thing.join(timeout=_STOP_TIMEOUT)
                 except Exception as e:
-                    self._ru_log.exception('could not join %s [%s]', tname, e)
+                    self._ru_log.exception('3 could not join %s [%s]', tname, e)
 
         # all is done and said - begone!
         sys.exit(0)
@@ -706,6 +730,7 @@ class Process(mp.Process):
                 try:
                     thing.join(timeout=timeout)
                 except Exception as e:
+                    self._ru_log.exception('could not join %s [%s]', tname, e)
                     errors.append('could not join %s [%s]' % (tname, e))
 
         # don't exit - but signal if the child or any watchables survived
@@ -748,18 +773,18 @@ class Process(mp.Process):
         try:
             # call parent and child initializers, respectively
             if self._ru_is_parent:
-                self._ru_initialize_common()
-                self._ru_initialize_parent()
-
                 self.ru_initialize_common()
                 self.ru_initialize_parent()
 
-            elif self._ru_is_child:
                 self._ru_initialize_common()
-                self._ru_initialize_child()
+                self._ru_initialize_parent()
 
+            elif self._ru_is_child:
                 self.ru_initialize_common()
                 self.ru_initialize_child()
+
+                self._ru_initialize_common()
+                self._ru_initialize_child()
 
             self._ru_initialized = True
 
@@ -1017,12 +1042,16 @@ class Process(mp.Process):
           # assert(self._ru_spawned)
           # assert(self._ru_is_parent)
             alive = super(Process, self).is_alive()
+            if not alive:
+                self._ru_log.warn('super: alive check failed [%s]', alive)
 
         if None == self._ru_term:
             # child is not yet started
+            self._ru_log.warn('startup: alive check failed [%s]', alive)
             return False
 
         termed = self._ru_term.is_set()
+
 
         if strict:
             return alive
@@ -1047,12 +1076,13 @@ class Process(mp.Process):
         '''
 
         if self._ru_terminating or not self._ru_initialized:
+            self._ru_log.warn('alive check in term')
             return True
 
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warn('alive check failed - stop [%s - %s]', alive, term)
+            self._ru_log.warn('alive check: proc invalid - stop [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
