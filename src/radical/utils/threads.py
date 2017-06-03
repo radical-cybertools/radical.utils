@@ -1019,8 +1019,28 @@ def raise_in_thread(e=None, tname=None, tident=None):
 
 
     NOTE: we can only raise exception *types*, not exception *instances*
-
           See https://bugs.python.org/issue1538556
+
+    Example:
+
+        # ----------------------------------------------------------------------
+        def sub():
+            time.sleep(0.1)
+            ru.raise_in_thread()
+
+        try:
+            t = mt.Thread(target=sub)
+            t.start()
+
+            while True:
+                time.sleep(0.01)
+
+        except ru.ThreadExit:  print 'thread exit'
+        except Exception as e: print 'except: %s' % e
+        except SystemExit:     print 'exit'
+        else:                  print 'unexcepted'
+        finally:               t.join()
+        # ----------------------------------------------------------------------
     """
 
     if not tident:
