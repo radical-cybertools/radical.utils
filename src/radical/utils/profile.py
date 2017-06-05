@@ -151,8 +151,12 @@ class Profiler(object):
         if None == msg  : msg   = ''
         if None == state: state = ''
 
-        self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
-                % (timestamp, name, tid, uid, state, event, msg))
+        try:
+            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
+                    % (timestamp, name, tid, uid, state, event, msg))
+        except Exception as e:
+            if logger:
+                logger.warn('profile write error: %s', repr(e))
 
 
     # --------------------------------------------------------------------------
