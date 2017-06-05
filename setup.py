@@ -90,9 +90,7 @@ def get_version (mod_root):
 
         # make sure the version files exist for the runtime version inspection
         path = '%s/%s' % (src_root, mod_root)
-        print('creating %s/VERSION' % path)
         with open (path + "/VERSION", "w") as f:
-            print 'WRITING 1 %s' % version
             f.write (version + "\n")
 
         sdist_name = "%s-%s.tar.gz" % (name, version)
@@ -100,11 +98,6 @@ def get_version (mod_root):
         sdist_name = sdist_name.replace ('@', '-')
         sdist_name = sdist_name.replace ('#', '-')
         sdist_name = sdist_name.replace ('_', '-')
-
-        print('version: %s' % version)
-        print('base   : %s' % version_base)
-        print('detail : %s' % version_detail)
-        print('sdist  : %s' % sdist_name)
 
         if '--record'    in sys.argv or \
            'bdist_egg'   in sys.argv or \
@@ -121,14 +114,8 @@ def get_version (mod_root):
                          '%s/%s'   % (mod_root, sdist_name)) # copy into tree
             shutil.move ("VERSION.bak", "VERSION")           # restore version
 
-        print('creating %s/SDIST' % path)
         with open (path + "/SDIST", "w") as f: 
             f.write (sdist_name + "\n")
-
-        print('version: %s' % version)
-        print('base   : %s' % version_base)
-        print('detail : %s' % version_detail)
-        print('sdist  : %s' % sdist_name)
 
         return version_base, version_detail, sdist_name
 
