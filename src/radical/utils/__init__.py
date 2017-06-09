@@ -57,7 +57,9 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version, version_detail, version_branch, sdist_name, sdist_path = get_version()
+version_short, version_detail, version_base, \
+               version_branch, sdist_name, sdist_path = get_version()
+version = version_short
 
 # ------------------------------------------------------------------------------
 
