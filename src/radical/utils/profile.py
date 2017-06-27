@@ -284,10 +284,10 @@ def read_profiles(profiles, sid=None, efilter=None):
 
                 row[TIME] = float(row[TIME])
 
+                # define more event types
                 if row[EVENT] == 'advance':
                     row[TYPE] = 'state'
                 else:
-                    # FIXME: define more event types
                     row[TYPE] = 'event'
 
                 # we derive entity_type from the uid -- but funnel
@@ -435,92 +435,6 @@ def combine_profiles(profs):
   #     pass
 
     return [p_glob, accuracy]
-
-
-# ------------------------------------------------------------------------------
-# 
-def clean_profile(profile, sid, state_final, state_canceled):
-    """
-    This method will prepare a profile for consumption in radical.analytics.  It
-    performs the following actions:
-
-      - makes sure all events have a `ename` entry
-      - remove all state transitions to `CANCELLED` if a different final state 
-        is encountered for the same uid
-      - assignes the session uid to all events without uid
-      - makes sure that state transitions have an `ename` set to `state`
-    """
-
-    entities = dict()  # things which have a uid
-    ret      = list()
-
-    if not isinstance(state_final, list):
-        state_final = [state_final]
-
-    for event in profile:
-        uid   = event['uid'  ]
-        state = event['state']
-        time  = event['time' ]
-        name  = event['event']
-
-        if 'advance' in str(event):
-            print event
-
-        # we derive entity_type from the uid -- but funnel 
-        # some cases into the session
-        if uid:
-            event['entity_type'] = uid.split('.',1)[0]
-        else:
-            event['entity_type'] = 'session'
-            event['uid']         = sid
-            uid = sid
-
-        if uid not in entities:
-            entities[uid] = dict()
-            entities[uid]['states'] = dict()
-
-        if name == 'advance':
-
-            print '.',
-
-            # this is a state progression
-            assert(state)
-            assert(uid)
-
-            event['event_name'] = 'state'
-
-            if state in state_final and state != state_canceled:
-
-                # a final state other than CANCELED will cancel any previous 
-                # CANCELED state.  
-                if state_canceled in entities[uid]['states']:
-                   del(entities[uid]['states'][state_canceled])
-
-            if state in entities[uid]['states']:
-                # ignore duplicated recordings of state transitions
-                # FIXME: warning?
-                continue
-              # raise ValueError('double state (%s) for %s' % (state, uid))
-
-            entities[uid]['states'][state] = event
-
-        else:
-            # FIXME: define different event types (we have that somewhere)
-            event['event_name'] = 'event'
-
-        ret.append(event)
-
-
-  # # we have evaluated, cleaned and sorted all state events -- now we recreate
-  # # a clean profile out of them
-  # for uid,entity in entities.iteritems():
-  #     for state,event in entity['states'].iteritems():
-  #         ret.append(event)
-
-    # sort by time and return
-    ret = sorted(ret[:], key=lambda k: k['time']) 
-
-    return ret
 
 
 # ------------------------------------------------------------------------------
