@@ -516,27 +516,28 @@ def stack():
 
 # ------------------------------------------------------------------------------
 #
-def get_size(obj, seen=None):
+def get_size(obj, seen=None, strict=False):
 
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
+    size   = sys.getsizeof(obj)
     obj_id = id(obj)
-    if obj_id in seen:
-        return 0
 
-    # mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
+    if strict:
+        # perform recursion checks
+        if seen is None:
+            seen = set()
+        if obj_id in seen:
+            return 0
+        seen.add(obj_id)
+
     if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
+        size += sum([get_size(v, seen, strict) for v in obj.values()])
+        size += sum([get_size(k, seen, strict) for k in obj.keys()])
 
     elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
+        size += get_size(obj.__dict__, seen, strict)
 
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
+        size += sum([get_size(i, seen, strict) for i in obj])
 
     return size
 
