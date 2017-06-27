@@ -242,8 +242,8 @@ def read_profiles(profiles, sid=None, efilter=None):
     Filters apply on *substring* matches!
     """
 
-    import resource
-    print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
+  # import resource
+  # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
 
     if not efilter:
         efilter = dict()
@@ -304,9 +304,9 @@ def read_profiles(profiles, sid=None, efilter=None):
       # print 'prof          : %20d MB (%s)' % (ru_get_size(ret[prof])/(1024**2), prof)
 
   # print 'profs         : %20d MB' % (ru_get_size(ret)/(1024**2))
-    print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
-    print 'events : %8d' % len(ret)
-    print 'skipped: %8d' % skipped
+  # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
+  # print 'events : %8d' % len(ret)
+  # print 'skipped: %8d' % skipped
 
     return ret
 
