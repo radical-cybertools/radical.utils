@@ -110,6 +110,13 @@ class Profiler(object):
 
     # ------------------------------------------------------------------------------
     #
+    def __del__(self):
+        
+        self.close()
+
+
+    # ------------------------------------------------------------------------------
+    #
     @property
     def enabled(self):
 
@@ -125,6 +132,7 @@ class Profiler(object):
 
         if self._enabled:
             self.prof("END")
+            self.flush()
             self._handle.close()
 
 
@@ -260,46 +268,53 @@ def read_profiles(profiles, sid=None, efilter=None):
 
             for row in reader:
 
-                # skip header
-                if row[TIME].startswith('#'):
-                    skipped += 1
-                    continue
+                try:
 
-                # apply the filter
-                skip = False
-                for field, pats in efilter.iteritems():
-                    for pattern in pats:
-                        if pattern in row[field]:
-                            skip = True
-                            continue
-                    if skip:
+                    # skip header
+                    if row[TIME].startswith('#'):
+                        skipped += 1
                         continue
 
-                if skip:
-                    skipped += 1
-                    continue
+                    # apply the filter
+                    skip = False
+                    for field, pats in efilter.iteritems():
+                        for pattern in pats:
+                            if pattern in row[field]:
+                                skip = True
+                                continue
+                        if skip:
+                            continue
 
-                # make room in the row for entity type and event type entries
-                row.extend([''] * (9-len(row)))
+                    if skip:
+                        skipped += 1
+                        continue
 
-                row[TIME] = float(row[TIME])
+                    # make room in the row for entity type and event type entries
+                    row.extend([''] * (9-len(row)))
 
-                # define more event types
-                if row[EVENT] == 'advance':
-                    row[TYPE] = 'state'
-                else:
-                    row[TYPE] = 'event'
+                    row[TIME] = float(row[TIME])
 
-                # we derive entity_type from the uid -- but funnel
-                # some cases into 'session' as a catch-all type
-                uid = row[UID]
-                if uid:
-                    row[ENTITY] = uid.split('.',1)[0]
-                else:
-                    row[ENTITY] = 'session'
-                    row[UID]    = sid
+                    # define more event types
+                    if row[EVENT] == 'advance':
+                        row[TYPE] = 'state'
+                    else:
+                        row[TYPE] = 'event'
 
-                ret[prof].append(row)
+                    # we derive entity_type from the uid -- but funnel
+                    # some cases into 'session' as a catch-all type
+                    uid = row[UID]
+                    if uid:
+                        row[ENTITY] = uid.split('.',1)[0]
+                    else:
+                        row[ENTITY] = 'session'
+                        row[UID]    = sid
+
+                    ret[prof].append(row)
+
+                except Exception as e:
+                    print prof
+                    print row
+                    raise
 
       # print 'prof          : %20d MB (%s)' % (ru_get_size(ret[prof])/(1024**2), prof)
 
@@ -420,11 +435,11 @@ def combine_profiles(profs):
         p_glob += prof
 
 
-      # # Check for proper closure of profiling files
-      # if c_end == 0:
-      #     print 'WARNING: profile "%s" not correctly closed.' % prof
+        # Check for proper closure of profiling files
+        if c_end == 0:
+            print 'WARNING: profile "%s" not correctly closed.' % pname
       # elif c_end > 1:
-      #     print 'WARNING: profile "%s" closed %d times.' % (prof, c_end)
+      #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
     # sort by time and return
     p_glob = sorted(p_glob[:], key=lambda k: k[TIME]) 
