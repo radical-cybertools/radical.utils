@@ -102,7 +102,7 @@ class Profiler(object):
         # write header and time normalization info
         self._handle.write("#%s\n" % (','.join(Profiler.fields)))
         self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" % \
-                           (self.timestamp(), self._name, "", "", "", 'sync abs',
+                           (self.timestamp(), self._name, "", "", "", 'sync_abs',
                             "%s:%s:%s:%s:%s" % (
                                 ru_get_hostname(), ru_get_hostip(),
                                 self._ts_zero, self._ts_abs, self._ts_mode)))
@@ -333,10 +333,10 @@ def combine_profiles(profs):
     We merge all profiles and sort by time.
 
     This routine expects all profiles to have a synchronization time stamp.
-    Two kinds of sync timestamps are supported: absolute (`sync abs`) and 
-    relative (`sync rel`).
+    Two kinds of sync timestamps are supported: absolute (`sync_abs`) and 
+    relative (`sync_rel`).
 
-    Time syncing is done based on 'sync abs' timestamps.  We expect one such
+    Time syncing is done based on 'sync_abs' timestamps.  We expect one such
     absolute timestamp to be available per host (the first profile entry will
     contain host information).  All timestamps from the same host will be
     corrected by the respectively determined NTP offset.  We define an
