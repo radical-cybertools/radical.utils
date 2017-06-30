@@ -17,14 +17,14 @@ from   .read_json import read_json    as ru_read_json
 # We store profiles in CSV formatted files.  The CSV field names are defined
 # here:
 #
-TIME   = 0
-NAME   = 1
-UID    = 2
-STATE  = 3
-EVENT  = 4
-MSG    = 5
-TYPE   = 6
-ENTITY = 7
+TIME         = 0  # time of event (float, seconds since epoch)  mandatory
+EVENT        = 1  # event ID (string)                           mandatory
+COMP         = 2  # component which recorded the event          mandatory
+UID          = 3  # uid of entity involved                      optional
+STATE        = 4  # state of entity involved                    optional
+MSG          = 5  # message describing the event                optional
+ENTITY       = 6  # type of entity involved                     optional
+PROF_KEY_MAX = 7  # iteration helper: `for _ in range(PROF_KEY_MAX):`
 
 # ------------------------------------------------------------------------------
 #
@@ -45,7 +45,7 @@ class Profiler(object):
     created profiles.
     """
 
-    fields  = ['time', 'name', 'uid', 'state', 'event', 'msg']
+    fields  = ['time', 'comp', 'uid', 'state', 'event', 'msg']
 
     # --------------------------------------------------------------------------
     #
@@ -153,35 +153,29 @@ class Profiler(object):
     # ------------------------------------------------------------------------------
     #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             logger=None, name=None):
+             logger=None, comp=None):
 
-        if not self._enabled:
-            return
+        if not self._enabled: return 
 
-        if not timestamp:
-            timestamp = self.timestamp()
-
-        if not name:
-            name = self._name
+        if None == uid      : uid       = ''
+        if None == state    : state     = ''
+        if None == msg      : msg       = ''
+        if None == timestamp: timestamp = self.timestamp() 
+        if None == comp     : comp      = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
-                self.prof(event, _uid, state, msg, timestamp, logger)
+                self.prof(event=event, uid=_uid, state=state, msg=msg, 
+                          timestamp=timestamp, logger=logger, comp=comp)
             return
 
         if logger:
             logger("%s (%10s%s) : %s", event, uid, state, msg)
 
-        tid = threading.current_thread().name
-
-        if None == uid  : uid   = ''
-        if None == msg  : msg   = ''
-        if None == state: state = ''
-
         try:
-            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
-                    % (timestamp, name, tid, uid, state, event, msg))
+            self._handle.write("%.4f,%s,%s,%s,%s,%s\n" \
+                    % (timestamp, event, comp, uid, state, msg))
         except Exception as e:
             if logger:
                 logger.warn('profile write error: %s', repr(e))
@@ -242,8 +236,8 @@ def read_profiles(profiles, sid=None, efilter=None):
 
     The caller can provide a filter of the following structure
 
-        filter = {ru.MSG  : ['msg 1',  'msg 2',  ...],
-                  ru.TYPE : ['type 1', 'type 2', ...], 
+        filter = {ru.EVENT: ['event 1', 'event 2', ...], 
+                  ru.MSG  : ['msg 1',   'msg 2',   ...],
                   ...  
                  }
 
@@ -275,7 +269,22 @@ def read_profiles(profiles, sid=None, efilter=None):
                         skipped += 1
                         continue
 
-                    # apply the filter
+                    # make room in the row for entity type etc.
+                    row.extend([None] * (PROF_KEY_MAX-len(row)))
+
+                    row[TIME] = float(row[TIME])
+
+                    # we derive entity type from the uid -- but funnel
+                    # some cases into 'session' as a catch-all type
+                    uid = row[UID]
+                    if uid:
+                        row[ENTITY] = uid.split('.',1)[0]
+                    else:
+                        row[ENTITY] = 'session'
+                        row[UID]    = sid
+
+                    # apply the filter.  We do that after adding the entity
+                    # field above, as the filter might also apply to that.
                     skip = False
                     for field, pats in efilter.iteritems():
                         for pattern in pats:
@@ -285,31 +294,8 @@ def read_profiles(profiles, sid=None, efilter=None):
                         if skip:
                             continue
 
-                    if skip:
-                        skipped += 1
-                        continue
-
-                    # make room in the row for entity type and event type entries
-                    row.extend([''] * (9-len(row)))
-
-                    row[TIME] = float(row[TIME])
-
-                    # define more event types
-                    if row[EVENT] == 'advance':
-                        row[TYPE] = 'state'
-                    else:
-                        row[TYPE] = 'event'
-
-                    # we derive entity_type from the uid -- but funnel
-                    # some cases into 'session' as a catch-all type
-                    uid = row[UID]
-                    if uid:
-                        row[ENTITY] = uid.split('.',1)[0]
-                    else:
-                        row[ENTITY] = 'session'
-                        row[UID]    = sid
-
-                    ret[prof].append(row)
+                    if not skip:
+                        ret[prof].append(row)
 
                 except Exception as e:
                     print prof
