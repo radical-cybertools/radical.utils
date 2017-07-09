@@ -1052,10 +1052,8 @@ class Process(mp.Process):
         termed = self._ru_term.is_set()
 
 
-        if strict:
-            return alive
-        else:
-            return alive and not termed
+        if strict: return alive
+        else     : return alive and not termed
 
 
     # --------------------------------------------------------------------------
