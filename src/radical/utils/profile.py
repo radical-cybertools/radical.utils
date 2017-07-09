@@ -41,7 +41,7 @@ class Profiler(object):
     """
     This class is really just a persistent file handle with a convenience call
     (prof()) to write lines with timestamp and events.
-    Any profiling intelligence is applied when reading and evaluating the 
+    Any profiling intelligence is applied when reading and evaluating the
     created profiles.
     """
 
@@ -95,27 +95,27 @@ class Profiler(object):
         try:
             os.makedirs(self._path)
         except OSError:
-            pass # already exists
+            pass  # already exists
 
         self._handle = open("%s/%s.prof" % (self._path, self._name), 'a')
 
         # write header and time normalization info
         self._handle.write("#%s\n" % (','.join(Profiler.fields)))
-        self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" % \
+        self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" %
                            (self.timestamp(), self._name, "", "", "", 'sync_abs',
                             "%s:%s:%s:%s:%s" % (
                                 ru_get_hostname(), ru_get_hostip(),
                                 self._ts_zero, self._ts_abs, self._ts_mode)))
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def __del__(self):
-        
+
         self.close()
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     @property
     def enabled(self):
@@ -123,7 +123,7 @@ class Profiler(object):
         return self._enabled
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def close(self):
 
@@ -136,7 +136,7 @@ class Profiler(object):
             self._handle.close()
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def flush(self):
 
@@ -150,23 +150,23 @@ class Profiler(object):
             os.fsync(self._handle.fileno())
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
              logger=None, comp=None):
 
-        if not self._enabled: return 
+        if not self._enabled: return
 
-        if None == uid      : uid       = ''
-        if None == state    : state     = ''
-        if None == msg      : msg       = ''
-        if None == timestamp: timestamp = self.timestamp() 
-        if None == comp     : comp      = self._name
+        if uid       is None: uid       = ''
+        if state     is None: state     = ''
+        if msg       is None: msg       = ''
+        if timestamp is None: timestamp = self.timestamp()
+        if comp      is None: comp      = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
-                self.prof(event=event, uid=_uid, state=state, msg=msg, 
+                self.prof(event=event, uid=_uid, state=state, msg=msg,
                           timestamp=timestamp, logger=logger, comp=comp)
             return
 
@@ -174,7 +174,7 @@ class Profiler(object):
             logger("%s (%10s%s) : %s", event, uid, state, msg)
 
         try:
-            self._handle.write("%.4f,%s,%s,%s,%s,%s\n" \
+            self._handle.write("%.4f,%s,%s,%s,%s,%s\n"
                     % (timestamp, event, comp, uid, state, msg))
         except Exception as e:
             if logger:
@@ -236,9 +236,9 @@ def read_profiles(profiles, sid=None, efilter=None):
 
     The caller can provide a filter of the following structure
 
-        filter = {ru.EVENT: ['event 1', 'event 2', ...], 
+        filter = {ru.EVENT: ['event 1', 'event 2', ...],
                   ru.MSG  : ['msg 1',   'msg 2',   ...],
-                  ...  
+                  ...
                  }
 
     Filters apply on *substring* matches!
@@ -270,7 +270,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                         continue
 
                     # make room in the row for entity type etc.
-                    row.extend([None] * (PROF_KEY_MAX-len(row)))
+                    row.extend([None] * (PROF_KEY_MAX - len(row)))
 
                     row[TIME] = float(row[TIME])
 
@@ -319,7 +319,7 @@ def combine_profiles(profs):
     We merge all profiles and sort by time.
 
     This routine expects all profiles to have a synchronization time stamp.
-    Two kinds of sync timestamps are supported: absolute (`sync_abs`) and 
+    Two kinds of sync timestamps are supported: absolute (`sync_abs`) and
     relative (`sync_rel`).
 
     Time syncing is done based on 'sync_abs' timestamps.  We expect one such
@@ -332,12 +332,12 @@ def combine_profiles(profs):
     The method returnes the combined profile and accuracy, as tuple.
     """
 
-    pd_rel   = dict() # profiles which have relative time refs
-    t_host   = dict() # time offset per host
-    p_glob   = list() # global profile
-    t_min    = None   # absolute starting point of profiled session
-    c_end    = 0      # counter for profile closing tag
-    accuracy = 0      # max uncorrected clock deviation
+    pd_rel   = dict()  # profiles which have relative time refs
+    t_host   = dict()  # time offset per host
+    p_glob   = list()  # global profile
+    t_min    = None    # absolute starting point of profiled session
+    c_end    = 0       # counter for profile closing tag
+    accuracy = 0       # max uncorrected clock deviation
 
     # first get all absolute timestamp sync from the profiles, for all hosts
     for pname, prof in profs.iteritems():
@@ -347,7 +347,8 @@ def combine_profiles(profs):
             continue
 
         if not prof[0][MSG] or ':' not in prof[0][MSG]:
-            # FIXME: https://github.com/radical-cybertools/radical.analytics/issues/20 
+            # FIXME:
+            # https://github.com/radical-cybertools/radical.analytics/issues/20
           # print 'unsynced profile %s' % pname
             continue
 
@@ -370,14 +371,16 @@ def combine_profiles(profs):
 
         if  host_id in t_host and \
             t_host[host_id] != t_off:
-            
+
             diff = t_off - t_host[host_id]
             accuracy = max(accuracy, diff)
 
             # we allow for *some* amount of inconsistency before warning
             if diff > NTP_DIFF_WARN_LIMIT:
-                print 'conflicting time sync for %-45s (%15s): %10.2f - %10.2f = %5.2f' % \
-                        (pname.split('/')[-1], host_id, t_off, t_host[host_id], diff)
+                print 'conflicting time sync for %-45s (%15s): ' \
+                    + '%10.2f - %10.2f = %5.2f' % \
+                      (pname.split('/')[-1], host_id, t_off, 
+                       t_host[host_id], diff)
             continue
 
         t_host[host_id] = t_off
@@ -408,7 +411,7 @@ def combine_profiles(profs):
         # correct profile timestamps
         for row in prof:
 
-            t_orig = row[TIME] 
+            t_orig = row[TIME]
 
             row[TIME] -= t_min
             row[TIME] -= t_off
@@ -420,7 +423,6 @@ def combine_profiles(profs):
         # add profile to global one
         p_glob += prof
 
-
         # Check for proper closure of profiling files
         if c_end == 0:
             print 'WARNING: profile "%s" not correctly closed.' % pname
@@ -428,10 +430,9 @@ def combine_profiles(profs):
       #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
     # sort by time and return
-    p_glob = sorted(p_glob[:], key=lambda k: k[TIME]) 
+    p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
 
   # if unsynced:
-  #     # FIXME: https://github.com/radical-cybertools/radical.analytics/issues/20 
   #     # print 'unsynced hosts: %s' % list(unsynced)
   #     pass
 
