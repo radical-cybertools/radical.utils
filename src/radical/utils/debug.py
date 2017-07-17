@@ -9,7 +9,7 @@ import random
 import threading
 import traceback
 
-from .misc import gettid
+from .threads import gettid
 
 _ps_cmd = 'ps -efw'
 if sys.platform != 'darwin':
