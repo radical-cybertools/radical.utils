@@ -1,6 +1,7 @@
 
 import os
 import csv
+import sys
 import glob
 import time
 import threading
@@ -130,10 +131,11 @@ class Profiler(object):
         if not self._enabled:
             return
 
-        if self._enabled:
+        if self._enabled and self._handle:
             self.prof("END")
             self.flush()
             self._handle.close()
+            self._handle = None
 
 
     # --------------------------------------------------------------------------
