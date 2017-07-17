@@ -11,11 +11,11 @@ import signal
 import thread
 import traceback
 
-import Queue     as queue
-import threading as mt
+import Queue        as queue
+import threading    as mt
+import setproctitle as spt
 
 from .logger  import get_logger
-from .debug   import print_stacktrace
 
 
 # ------------------------------------------------------------------------------
