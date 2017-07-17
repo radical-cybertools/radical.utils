@@ -14,7 +14,7 @@ import setproctitle    as spt
 
 from .logger  import get_logger
 from .threads import Thread as ru_Thread
-from .        import poll   as select
+from .        import poll   as ru_poll
 
 
 # ------------------------------------------------------------------------------
@@ -182,7 +182,13 @@ class Process(mp.Process):
             raise ValueError('message is larger than %s: %s' % (_BUFSIZE, msg))
 
         self._ru_log.info('send message: [%s] %s', self._ru_name, msg)
-        self._ru_endpoint.send(msg)
+        try:
+            self._ru_endpoint.send(msg)
+        except Exception as e:
+            # this should only happen once the EP is done for - terminate
+            self._log.warn('send failed (%s) - terminate', e)
+            self._ru_term.set()
+
 
 
     # --------------------------------------------------------------------------
@@ -215,6 +221,10 @@ class Process(mp.Process):
         except socket.timeout:
             self._ru_log.warn('recv timed out')
             return ''
+        except Exception as e:
+            # this should only happen once the EP is done for - terminate
+            self._log.warn('recv failed (%s) - terminate', e)
+            self._ru_term.set()
 
 
     # --------------------------------------------------------------------------
@@ -237,9 +247,9 @@ class Process(mp.Process):
         # thread sets `self._ru_term`.
         try:
 
-            self._ru_poller = select.poll()
-            self._ru_poller.register(self._ru_endpoint,
-                    select.POLLERR | select.POLLHUP | select.POLLIN)
+            self._poller = ru_poll.poll()
+            self._poller.register(self._ru_endpoint,
+                    ru_poll.POLLERR | ru_poll.POLLHUP | ru_poll.POLLIN)
 
             last = 0.0  # we never watched anything until now
             while not self._ru_term.is_set() :
@@ -250,8 +260,9 @@ class Process(mp.Process):
                     time.sleep(0.1)  # FIXME: configurable, load tradeoff
                     continue
 
-                self._ru_watch_socket()
-                self._ru_watch_things()
+                if  not self._ru_watch_socket() or \
+                    not self._ru_watch_things()    :
+                    return
 
                 last = now
 
@@ -274,19 +285,22 @@ class Process(mp.Process):
         finally:
             # no matter why we fell out of the loop: let the other end of the
             # socket know by closing the socket endpoint.
+            self._ru_log.info('watcher closes')
             self._ru_endpoint.close()
+            self._poller.close()
 
             # `self.stop()` will be called from the main thread upon checking
             # `self._ru_term` via `self.is_alive()`.
             # FIXME: check
             self._ru_term.set()
 
+
     # --------------------------------------------------------------------------
     #
     def _ru_watch_socket(self):
 
         # check health of parent/child relationship
-        events = self._ru_poller.poll(0.1)   # block just a little
+        events = self._poller.poll(0.1)   # block just a little
         for _,event in events:
 
             # for alive checks, we poll socket state for
@@ -295,16 +309,16 @@ class Process(mp.Process):
             #   * hangup: child finished - terminate
 
             # check for error conditions
-            if  event & select.POLLHUP or  \
-                event & select.POLLERR     :
+            if  event & ru_poll.POLLHUP or  \
+                event & ru_poll.POLLERR     :
 
                 # something happened on the other end, we are about to die
                 # out of solidarity (or panic?).
                 self._ru_log.warn('endpoint disappeard')
-                raise RuntimeError('endpoint disappeard')
+                return False
 
             # check for messages
-            elif event & select.POLLIN:
+            elif event & ru_poll.POLLIN:
 
                 # we get a message!
                 #
@@ -315,6 +329,7 @@ class Process(mp.Process):
                 self._ru_log.info('message received: %s' % msg)
 
       # self._ru_log.debug('endpoint watch ok')
+        return True
 
 
     # --------------------------------------------------------------------------

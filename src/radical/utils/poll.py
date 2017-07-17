@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 import os
 import time
+import select
 import threading as mt
 
 
@@ -36,8 +37,6 @@ def poll():
 # ------------------------------------------------------------------------------
 if _use_pypoll:
 
-    import select
-
     POLLIN   = select.POLLIN
     POLLPRI  = select.POLLPRI
     POLLOUT  = select.POLLOUT
@@ -58,16 +57,23 @@ if _use_pypoll:
         def __init__(self):
             self._poll = select.poll()
 
+        def close(self):
+            self._poll = None
+
         def register(self, fd, eventmask=None):
+            assert(self._poll)
             return self._poll.register(fd, eventmask)
 
         def modify(self, fd, eventmask=None):
+            assert(self._poll)
             return self._poll.modify(fd, eventmask)
 
         def unregister(self, fd):
+            assert(self._poll)
             return self._poll.unregister(fd)
 
         def poll(self, timeout=None):
+            assert(self._poll)
             time.sleep(0.2)
             ret = self._poll.poll(timeout)
             return ret
@@ -135,6 +141,18 @@ else:
                 for e in _POLLTYPES:
                     if eventmask & e:
                         self._registered[e].append(fd)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def close(self):
+
+            with self._lock:
+
+                for e in _POLLTYPES:
+                    for fd in self._registered[e]:
+                        fd.close()
+                    self._registered[e] = list()
 
 
         # ----------------------------------------------------------------------

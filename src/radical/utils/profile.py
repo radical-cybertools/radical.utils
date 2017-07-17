@@ -155,7 +155,7 @@ class Profiler(object):
     # --------------------------------------------------------------------------
     #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             logger=None, comp=None):
+             comp=None):
 
         if not self._enabled: return
 
@@ -169,18 +169,15 @@ class Profiler(object):
         if isinstance(uid, list):
             for _uid in uid:
                 self.prof(event=event, uid=_uid, state=state, msg=msg,
-                          timestamp=timestamp, logger=logger, comp=comp)
+                          timestamp=timestamp, comp=comp)
             return
-
-        if logger:
-            logger("%s (%10s%s) : %s", event, uid, state, msg)
 
         try:
             self._handle.write("%.4f,%s,%s,%s,%s,%s\n"
                     % (timestamp, event, comp, uid, state, msg))
         except Exception as e:
-            if logger:
-                logger.warn('profile write error: %s', repr(e))
+            sys.stderr.write('profile write error: %s' % repr(e))
+            sys.stderr.flush()
 
 
     # --------------------------------------------------------------------------
