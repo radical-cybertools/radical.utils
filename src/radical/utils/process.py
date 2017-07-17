@@ -371,7 +371,10 @@ class Process(mp.Process):
         with self._ru_things_lock:
             for tname,thing in self._ru_things.iteritems():
                 if not thing.is_alive():
-                    raise RuntimeError('%s died' % tname)
+                    self._log.warn('%s died')
+                    return False
+
+        return True
 
 
     # --------------------------------------------------------------------------
@@ -455,11 +458,15 @@ class Process(mp.Process):
                 #       be set as parameter to the `start()` method.
                 msg = self._ru_msg_recv(size=len(_ALIVE_MSG), timeout=timeout)
 
-                if msg != _ALIVE_MSG:
+                if not msg:
+                    raise RuntimeError('child %s failed to come up [%ss]' %
+                                       (self._ru_childname, msg))
+
+                elif msg != _ALIVE_MSG:
                     # attempt to read remainder of message and barf
                     msg += self._ru_msg_recv()
-                    raise RuntimeError('unexpected child message (%s) [%s]' % (msg,
-                            timeout))
+                    raise RuntimeError('%s got unexpected message (%s) [%s]' % 
+                                       (self._ru_name, msg, timeout))
 
 
             # When we got the alive messages, only then will we call the parent
@@ -473,7 +480,10 @@ class Process(mp.Process):
             raise
 
         # if we got this far, then all is well, we are done.
-        self._ru_log.debug('child process started')
+        if self._ru_spawned:
+            self._ru_log.debug('process class started child')
+        else:
+            self._ru_log.debug('process class started (no child)')
 
         # child is alive and initialized, parent is initialized, watcher thread
         # is started - Wohoo!
@@ -790,7 +800,7 @@ class Process(mp.Process):
 
         except Exception as e:
             self._ru_log.exception('initialization error')
-            raise RuntimeError('initialize: %s' % repr(e))
+            raise
 
 
     # --------------------------------------------------------------------------
@@ -1076,7 +1086,7 @@ class Process(mp.Process):
         '''
 
         if self._ru_terminating or not self._ru_initialized:
-            self._ru_log.warn('alive check in term')
+            self._ru_log.debug('alive check in term')
             return True
 
         alive = self.is_alive(strict=False)
