@@ -1,11 +1,12 @@
 
+
 __copyright__ = "Copyright 2013-2014, http://radical.rutgers.edu"
 __license__   = "MIT"
+
 
 # ------------------------------------------------------------------------------
 #
 """
-
 Using the RU logging module can lead to deadlocks when used in multiprocess and
 multithreaded environments.  This is due to the native python logging library
 not being thread save.  See [1] for a Python bug report on the topic from 2009.
@@ -35,6 +36,7 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 import os
 import sys
 import time
+import types
 import threading
 
 from .atfork import *
@@ -61,6 +63,16 @@ class _LoggerRegistry(object):
                   # handler.reset()
                 logger = logger.parent
 
+    def close_all(self):
+        for logger in self._registry:
+            while logger:
+                for handler in logger.handlers:
+                    handler.close()
+                    logger.removeHandler(handler)
+                logger = logger.parent
+        self._registry = list()
+
+
 # ------------------------------------------------------------------------------
 #
 _logger_registry = _LoggerRegistry()
@@ -73,15 +85,18 @@ def _after_fork():
     _logger_registry.release_all()
     logging._lock = threading.RLock()
 
+
 # ------------------------------------------------------------------------------
 #
 def _atfork_prepare():
     pass
 
+
 # ------------------------------------------------------------------------------
 #
 def _atfork_parent():
     pass
+
 
 # ------------------------------------------------------------------------------
 #
@@ -121,6 +136,14 @@ OFF    = -1
 
 # ------------------------------------------------------------------------------
 #
+def log_shutdown():
+    print 'shut my baby down'
+    _logger_registry.close_all()
+    logging.shutdown()
+
+
+# ------------------------------------------------------------------------------
+#
 class ColorStreamHandler(logging.StreamHandler):
     """
     A colorized output SteamHandler
@@ -143,6 +166,7 @@ class ColorStreamHandler(logging.StreamHandler):
         self._tty  = self.stream.isatty()
         self._term = getattr(self, 'terminator', '\n')
 
+
     # --------------------------------------------------------------------------
     #
     def emit(self, record):
@@ -164,11 +188,10 @@ class ColorStreamHandler(logging.StreamHandler):
 class FSHandler(logging.FileHandler):
 
     def __init__(self, target):
-
         try:
             os.makedirs(os.path.abspath(os.path.dirname(target)))
         except:
-            pass # exists
+            pass  # exists
         logging.FileHandler.__init__(self, target)
 
 
@@ -195,11 +218,8 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     'header' print some version info on log open
     """
 
-    if not name:
-        name = 'radical'
-
-    if not path:
-        path = os.getcwd()
+    if not name: name = 'radical'
+    if not path: path = os.getcwd()
 
     if '/' in name:
         try:
@@ -210,7 +230,7 @@ def get_logger(name, target=None, level=None, path=None, header=True):
 
     logger = logging.getLogger(name)
     logger.propagate = False   # let messages not trickle upward
-    logger.name = name
+    logger.name      = name
 
     if logger.handlers:
         # we already conifgured that logger in the past -- just reuse it
@@ -244,7 +264,7 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     if not level:
         level = _DEFAULT_LEVEL
         for i in range(0,len(elems)):
-            env_test = '_'.join(elems[:i+1]) + '_VERBOSE'
+            env_test = '_'.join(elems[:i + 1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level)
 
     # backward compatible interpretation of SAGA_VERBOSE
@@ -265,8 +285,10 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     level = level.upper()
 
     level_warning = None
-    if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR', 'CRITICAL', 'REPORT']:
-        level_warning = "log level '%s' not supported -- reset to '%s'" % (level, _DEFAULT_LEVEL)
+    if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR',
+                     'CRITICAL', 'REPORT']:
+        level_warning = "log level '%s' not supported -- reset to '%s'"
+                      % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
 
     if level in ['REPORT']:
@@ -284,10 +306,8 @@ def get_logger(name, target=None, level=None, path=None, header=True):
             env_test = '_'.join(elems[:i+1]) + '_LOG_TGT'
             target   = os.environ.get(env_test, target)
 
-    if isinstance(target, list):
-        targets = target
-    else:
-        targets = target.split(',')
+    if isinstance(target, list): targets = target
+    else                       : targets = target.split(',')
 
     formatter = logging.Formatter('%(asctime)s: ' \
                                   '%(name)-20s: ' \
@@ -307,12 +327,17 @@ def get_logger(name, target=None, level=None, path=None, header=True):
             handle = ColorStreamHandler(sys.stderr)
         elif t in ['.']:
             handle = FSHandler("%s/%s.log" % (path, name))
+            t = ''  # dont add to name
         elif t.startswith('/'):
             handle = FSHandler(t)
+            t = os.path.basename(t)
         else:
             handle = FSHandler("%s/%s" % (path, t))
         handle.setFormatter(formatter)
-        handle.name = '%s.%s' % (logger.name, str(t))
+        if t:
+            handle.name = '%s.%s' % (logger.name, str(t))
+        else:
+            handle.name = logger.name
         logger.addHandler(handle)
 
     if level in [OFF, 'OFF']:
@@ -341,6 +366,19 @@ def get_logger(name, target=None, level=None, path=None, header=True):
         except:
             pass
 
+    # --------------------------------------------------------------------------
+    # add a close method to make sure we can close file handles etc.
+    def _close(this_logger):
+        while this_logger:
+            for handler in this_logger.handlers:
+                handler.close()
+                this_logger.removeHandler(handler)
+            this_logger = this_logger.parent
+    # --------------------------------------------------------------------------
+    logger.close = types.MethodType(_close,logger)
+
+
+    # --------------------------------------------------------------------------
     # we also equip our logger with reporting capabilities, so that we can
     # report, for example, demo output whereever we have a logger.
     class _LogReporter(object):
@@ -350,8 +388,8 @@ def get_logger(name, target=None, level=None, path=None, header=True):
             self._reporter = Reporter()
 
             # we always enable report if the log level is REPORT
-            # otherwise, we enable report if log level  < REPORT and targets does
-            # not contain stdout.
+            # otherwise, we enable report if log level  < REPORT and `targets`
+            # does not contain `stdout`.
             if logger.getEffectiveLevel() == REPORT:
                 self._enabled = True
             else:
@@ -425,7 +463,6 @@ class LogReporter(object):
     classes, which adds uniform output filtering for the reporter while
     preserving the Reporter's API.
     """
-
     # --------------------------------------------------------------------------
     #
     def __init__(self, title=None, targets=['stdout'], name='radical',
@@ -447,13 +484,11 @@ class LogReporter(object):
         self.set_style = self._logger.report.set_style
 
 
-
 # ------------------------------------------------------------------------------
-
+#
 if __name__ == "__main__":
 
     import radical.utils as ru
-
     r = ru.Reporter(title='test')
 
     r.header  ('header  \n')
@@ -482,7 +517,8 @@ if __name__ == "__main__":
         sys.stdout.write("\n")
         j = 0
 
-    r.exit    ('exit    \n', 2)
+    r.exit('exit\n', 2)
+
 
 # ------------------------------------------------------------------------------
 
