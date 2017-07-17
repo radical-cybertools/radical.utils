@@ -127,7 +127,7 @@ class Profiler(object):
     # ------------------------------------------------------------------------------
     #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             logger=None, name=None):
+             comp=None):
 
         if not self._enabled:
             return
@@ -141,11 +141,9 @@ class Profiler(object):
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
-                self.prof(event, _uid, state, msg, timestamp, logger)
+                self.prof(event=event, uid=_uid, state=state, msg=msg,
+                          timestamp=timestamp)
             return
-
-        if logger:
-            logger("%s (%10s%s) : %s", event, uid, state, msg)
 
         tid = threading.current_thread().name
 
@@ -157,8 +155,8 @@ class Profiler(object):
             self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
                     % (timestamp, name, tid, uid, state, event, msg))
         except Exception as e:
-            if logger:
-                logger.warn('profile write error: %s', repr(e))
+            sys.stderr.write('profile write error: %s' % repr(e))
+            sys.stderr.flush()
 
 
     # --------------------------------------------------------------------------
