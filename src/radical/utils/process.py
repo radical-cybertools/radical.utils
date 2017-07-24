@@ -289,7 +289,7 @@ class Process(mp.Process):
             # socket know by closing the socket endpoint.
             self._ru_log.info('watcher closes')
             self._ru_endpoint.close()
-            self._poller.close()
+            self._ru_poller.close()
 
             # `self.stop()` will be called from the main thread upon checking
             # `self._ru_term` via `self.is_alive()`.
@@ -302,7 +302,7 @@ class Process(mp.Process):
     def _ru_watch_socket(self):
 
         # check health of parent/child relationship
-        events = self._poller.poll(0.1)   # block just a little
+        events = self._ru_poller.poll(0.1)   # block just a little
         for _,event in events:
 
             # for alive checks, we poll socket state for

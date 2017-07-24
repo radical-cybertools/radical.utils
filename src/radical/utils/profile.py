@@ -22,7 +22,7 @@ class Profiler(object):
     """
     This class is really just a persistent file handle with a convenience call
     (prof()) to write lines with timestamp and events.
-    Any profiling intelligence is applied when reading and evaluating the 
+    Any profiling intelligence is applied when reading and evaluating the
     created profiles.
     """
 
@@ -135,8 +135,8 @@ class Profiler(object):
         if not timestamp:
             timestamp = self.timestamp()
 
-        if not name:
-            name = self._name
+        if not comp:
+            comp = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
@@ -147,13 +147,13 @@ class Profiler(object):
 
         tid = threading.current_thread().name
 
-        if None == uid  : uid   = ''
-        if None == msg  : msg   = ''
-        if None == state: state = ''
+        if uid   is None: uid   = ''
+        if msg   is None: msg   = ''
+        if state is None: state = ''
 
         try:
-            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" \
-                    % (timestamp, name, tid, uid, state, event, msg))
+            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n"
+                    % (timestamp, comp, tid, uid, state, event, msg))
         except Exception as e:
             sys.stderr.write('profile write error: %s' % repr(e))
             sys.stderr.flush()
@@ -225,7 +225,7 @@ def read_profiles(profiles):
 
                 row['time'] = float(row['time'])
                 rows.append(row)
-    
+
         ret[prof] = rows
 
     return ret
@@ -238,7 +238,7 @@ def combine_profiles(profs):
     We merge all profiles and sort by time.
 
     This routine expects all profiles to have a synchronization time stamp.
-    Two kinds of sync timestamps are supported: absolute (`sync abs`) and 
+    Two kinds of sync timestamps are supported: absolute (`sync abs`) and
     relative (`sync rel`).
 
     Time syncing is done based on 'sync abs' timestamps.  We expect one such
@@ -247,11 +247,11 @@ def combine_profiles(profs):
     corrected by the respectively determined NTP offset.
     """
 
-    pd_rel = dict() # profiles which have relative time refs
-    t_host = dict() # time offset per host
-    p_glob = list() # global profile
-    t_min  = None   # absolute starting point of profiled session
-    c_end  = 0      # counter for profile closing tag
+    pd_rel = dict()  # profiles which have relative time refs
+    t_host = dict()  # time offset per host
+    p_glob = list()  # global profile
+    t_min  = None    # absolute starting point of profiled session
+    c_end  = 0       # counter for profile closing tag
 
     # first get all absolute timestamp sync from the profiles, for all hosts
     for pname, prof in profs.iteritems():
@@ -311,7 +311,7 @@ def combine_profiles(profs):
         # correct profile timestamps
         for row in prof:
 
-            t_orig = row['time'] 
+            t_orig = row['time']
 
             row['time'] -= t_min
             row['time'] -= t_off
@@ -331,20 +331,20 @@ def combine_profiles(profs):
       #     print 'WARNING: profile "%s" closed %d times.' % (prof, c_end)
 
     # sort by time and return
-    p_glob = sorted(p_glob[:], key=lambda k: k['time']) 
+    p_glob = sorted(p_glob[:], key=lambda k: k['time'])
 
     return p_glob
 
 
 # ------------------------------------------------------------------------------
-# 
+#
 def clean_profile(profile, sid, state_final, state_canceled):
     """
     This method will prepare a profile for consumption in radical.analytics.  It
     performs the following actions:
 
       - makes sure all events have a `ename` entry
-      - remove all state transitions to `CANCELLED` if a different final state 
+      - remove all state transitions to `CANCELLED` if a different final state
         is encountered for the same uid
       - assignes the session uid to all events without uid
       - makes sure that state transitions have an `ename` set to `state`
@@ -361,7 +361,7 @@ def clean_profile(profile, sid, state_final, state_canceled):
         time  = event['time' ]
         name  = event['event']
 
-        # we derive entity_type from the uid -- but funnel 
+        # we derive entity_type from the uid -- but funnel
         # some cases into the session
         if uid:
             event['entity_type'] = uid.split('.',1)[0]
@@ -385,10 +385,10 @@ def clean_profile(profile, sid, state_final, state_canceled):
 
             if state in state_final and state != state_canceled:
 
-                # a final state other than CANCELED will cancel any previous 
-                # CANCELED state.  
+                # a final state other than CANCELED will cancel any previous
+                # CANCELED state.
                 if state_canceled in entities[uid]['states']:
-                   del(entities[uid]['states'][state_canceled])
+                    del(entities[uid]['states'][state_canceled])
 
             if state in entities[uid]['states']:
                 # ignore duplicated recordings of state transitions
@@ -415,7 +415,7 @@ def clean_profile(profile, sid, state_final, state_canceled):
             ret.append(event)
 
     # sort by time and return
-    ret = sorted(ret[:], key=lambda k: k['time']) 
+    ret = sorted(ret[:], key=lambda k: k['time'])
 
     return ret
 
