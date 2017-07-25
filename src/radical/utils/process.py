@@ -748,7 +748,7 @@ class Process(mp.Process):
                 # we threat join errors as non-fatal here - at this point, there
                 # is not much we can do other than calling `terminate()
                 # / join()` -- which is exactly what we just did.
-                self._ru_log.warn('could not join child prpocess %s', self.pid)
+                self._ru_log.warn('could not join child process %s', self.pid)
 
         # meanwhile, all watchables should have stopped, too.  For some of them,
         # `stop()` will have implied `join()` already - but an additional
