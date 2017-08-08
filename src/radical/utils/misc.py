@@ -499,7 +499,7 @@ def stack():
 #
 def dockerized():
 
-    if os.path.exists('/.dockerenv'):
+    if os.path.exists('/.dockerenv') or os.path.exists('/dockerenv'):
         return True
     return False
 
