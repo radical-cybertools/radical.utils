@@ -5,7 +5,7 @@ import os
 import sys
 import subprocess    as sp
 
-_pat = '^\s*(?P<detail>(?P<short>[^-]*)-(?P<base>[^-@]+?)(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+_pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
 
 # ------------------------------------------------------------------------------
 #
@@ -40,12 +40,14 @@ def get_version (paths=None):
     version_branch = None
     sdist_name     = None
     sdist_path     = None
+    err            = ''
+    
     
     
     # if in any of the paths a VERSION file exists, we use the detailed version
     # in there.
     for path in paths:
-    
+
         try:
             version_path = "%s/VERSION" % path
     
@@ -56,10 +58,10 @@ def get_version (paths=None):
                 match   = pattern.search (line)
     
                 if match:
-                    version_short  = match.group ('short')
-                    version_detail = match.group ('detail')
-                    version_base   = match.group ('base')
-                    version_branch = match.group ('branch')
+                    version_short  = match.group ('short').strip()
+                    version_detail = match.group ('detail').strip()
+                    version_base   = match.group ('base').strip()
+                    version_branch = match.group ('branch').strip()
                   # print 'reading        : %s' % version_path
                   # print '               : %s' % line
                   # print 'version_base   : %s' % version_base
@@ -69,7 +71,9 @@ def get_version (paths=None):
                     break
     
         except Exception as e:
-            # ignore missing VERSION file -- this is caught below
+            # ignore missing VERSION file -- this is caught below.  But ew keep
+            # the error message
+            err += '%s\n' % repr(e)
             pass
 
 
@@ -89,8 +93,9 @@ def get_version (paths=None):
         return (version_short, version_detail, version_base, \
                 version_branch, sdist_name, sdist_path)
     else:
-        raise RuntimeError ("Cannot determine version from %s" % paths)
-    
+        raise RuntimeError ("Cannot determine version from %s (%s)" % 
+                            (paths, err.strip()))
+
 
 # ------------------------------------------------------------------------------
 
