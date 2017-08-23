@@ -5,7 +5,7 @@ import os
 import sys
 import subprocess    as sp
 
-_pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+_pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
 
 # ------------------------------------------------------------------------------
 #
@@ -58,10 +58,10 @@ def get_version (paths=None):
                 match   = pattern.search (line)
     
                 if match:
-                    version_short  = match.group ('short')
-                    version_detail = match.group ('detail')
-                    version_base   = match.group ('base')
-                    version_branch = match.group ('branch')
+                    version_short  = match.group ('short').strip()
+                    version_detail = match.group ('detail').strip()
+                    version_base   = match.group ('base').strip()
+                    version_branch = match.group ('branch').strip()
                   # print 'reading        : %s' % version_path
                   # print '               : %s' % line
                   # print 'version_base   : %s' % version_base
