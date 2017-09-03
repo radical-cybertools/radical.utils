@@ -287,7 +287,7 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     level_warning = None
     if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR',
                      'CRITICAL', 'REPORT']:
-        level_warning = "log level '%s' not supported -- reset to '%s'"
+        level_warning = "log level '%s' not supported -- reset to '%s'" \
                       % (level, _DEFAULT_LEVEL)
         level = _DEFAULT_LEVEL
 

@@ -101,12 +101,15 @@ class Profiler(object):
         self._handle = open("%s/%s.prof" % (self._path, self._name), 'a')
 
         # write header and time normalization info
-        self._handle.write("#%s\n" % (','.join(Profiler.fields)))
-        self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" %
+        if self._handle:
+            self._handle.write("#%s\n" % (','.join(Profiler.fields)))
+            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" %
                            (self.timestamp(), self._name, "", "", "", 'sync_abs',
-                            "%s:%s:%s:%s:%s" % (
-                                ru_get_hostname(), ru_get_hostip(),
-                                self._ts_zero, self._ts_abs, self._ts_mode)))
+                            "%s:%s:%s:%s:%s" % (ru_get_hostname(), 
+                                                ru_get_hostip(),
+                                                self._ts_zero, 
+                                                self._ts_abs, 
+                                                self._ts_mode)))
 
 
     # --------------------------------------------------------------------------
@@ -173,8 +176,9 @@ class Profiler(object):
             return
 
         try:
-            self._handle.write("%.4f,%s,%s,%s,%s,%s\n"
-                    % (timestamp, event, comp, uid, state, msg))
+            if self._handle:
+                self._handle.write("%.4f,%s,%s,%s,%s,%s\n"
+                        % (timestamp, event, comp, uid, state, msg))
         except Exception as e:
             sys.stderr.write('profile write error: %s' % repr(e))
             sys.stderr.flush()
