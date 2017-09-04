@@ -103,7 +103,11 @@ def _atfork_parent():
 def _atfork_child():
     _after_fork()
 
+
+# ------------------------------------------------------------------------------
+#
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+
 
 #
 # ------------------------------------------------------------------------------
@@ -173,9 +177,9 @@ class ColorStreamHandler(logging.StreamHandler):
 
         # only write in color when using a tty
         if self._tty:
-            self.stream.write(self.colours[record.levelname] \
-                             + self.format(record)           \
-                             + colorama.Style.RESET_ALL      \
+            self.stream.write(self.colours[record.levelname]
+                             + self.format(record)
+                             + colorama.Style.RESET_ALL
                              + self._term)
         else:
             self.stream.write(self.format(record) + self._term)
@@ -301,19 +305,19 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     if not target:
         target = 'stderr'
         for i in range(0,len(elems)):
-            env_test = '_'.join(elems[:i+1]) + '_LOG_TARGET'
+            env_test = '_'.join(elems[:i + 1]) + '_LOG_TARGET'
             target   = os.environ.get(env_test, target)
-            env_test = '_'.join(elems[:i+1]) + '_LOG_TGT'
+            env_test = '_'.join(elems[:i + 1]) + '_LOG_TGT'
             target   = os.environ.get(env_test, target)
 
     if isinstance(target, list): targets = target
     else                       : targets = target.split(',')
 
-    formatter = logging.Formatter('%(asctime)s: ' \
-                                  '%(name)-20s: ' \
-                                  '%(processName)-32s: ' \
-                                  '%(threadName)-15s: ' \
-                                  '%(levelname)-8s: ' \
+    formatter = logging.Formatter('%(asctime)s: '
+                                  '%(name)-20s: '
+                                  '%(processName)-32s: '
+                                  '%(threadName)-15s: '
+                                  '%(levelname)-8s: '
                                   '%(message)s')
 
     # add a handler for each targets (using the same format)
@@ -507,11 +511,11 @@ if __name__ == "__main__":
     for cname,col in r.COLORS.items():
         if cname == 'reset':
             continue
-        i+=1
+        i += 1
         for mname,mod in r.COLOR_MODS.items():
             if mname == 'reset':
                 continue
-            j+=1
+            j += 1
             sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
             sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
         sys.stdout.write("\n")

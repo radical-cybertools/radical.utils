@@ -247,8 +247,8 @@ class Process(mp.Process):
         # thread sets `self._ru_term`.
         try:
 
-            self._poller = ru_poll.poll()
-            self._poller.register(self._ru_endpoint,
+            self._ru_poller = ru_poll.poll()
+            self._ru_poller.register(self._ru_endpoint,
                     ru_poll.POLLERR | ru_poll.POLLHUP | ru_poll.POLLIN)
 
             last = 0.0  # we never watched anything until now
@@ -287,7 +287,7 @@ class Process(mp.Process):
             # socket know by closing the socket endpoint.
             self._ru_log.info('watcher closes')
             self._ru_endpoint.close()
-            self._poller.close()
+            self._ru_poller.close()
 
             # `self.stop()` will be called from the main thread upon checking
             # `self._ru_term` via `self.is_alive()`.
@@ -743,7 +743,10 @@ class Process(mp.Process):
 
             # check again
             if super(Process, self).is_alive():
-                errors.append('could not join child process %s' % self.pid)
+                # we threat join errors as non-fatal here - at this point, there
+                # is not much we can do other than calling `terminate()
+                # / join()` -- which is exactly what we just did.
+                self._ru_log.warn('could not join child process %s', self.pid)
 
         # meanwhile, all watchables should have stopped, too.  For some of them,
         # `stop()` will have implied `join()` already - but an additional

@@ -522,5 +522,15 @@ def get_size(obj, seen=None, strict=False):
 
     return size
 
+
+# ------------------------------------------------------------------------------
+#
+def dockerized():
+
+    if os.path.exists('/.dockerenv'):
+        return True
+    return False
+
+
 # ------------------------------------------------------------------------------
 

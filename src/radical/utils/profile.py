@@ -175,10 +175,12 @@ class Profiler(object):
                           timestamp=timestamp, comp=comp)
             return
 
+        tid = threading.current_thread().name
+
         try:
             if self._handle:
-                self._handle.write("%.4f,%s,%s,%s,%s,%s\n"
-                        % (timestamp, event, comp, uid, state, msg))
+                self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n"
+                        % (timestamp, event, comp, tid, uid, state, msg))
         except Exception as e:
             sys.stderr.write('profile write error: %s' % repr(e))
             sys.stderr.flush()
@@ -305,16 +307,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                         ret[prof].append(row)
 
                 except Exception as e:
-                    print prof
-                    print row
                     raise
-
-      # print 'prof          : %20d MB (%s)' % (ru_get_size(ret[prof])/(1024**2), prof)
-
-  # print 'profs         : %20d MB' % (ru_get_size(ret)/(1024**2))
-  # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
-  # print 'events : %8d' % len(ret)
-  # print 'skipped: %8d' % skipped
 
     return ret
 
@@ -437,13 +430,95 @@ def combine_profiles(profs):
       #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
     # sort by time and return
-    p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
+    p_glob = sorted(p_glob[:], key=lambda k: k['time'])
+
+    return p_glob
+
+
+# ------------------------------------------------------------------------------
+#
+def clean_profile(profile, sid, state_final, state_canceled):
+    """
+    This method will prepare a profile for consumption in radical.analytics.  It
+    performs the following actions:
+
+      - makes sure all events have a `ename` entry
+      - remove all state transitions to `CANCELLED` if a different final state
+        is encountered for the same uid
+      - assignes the session uid to all events without uid
+      - makes sure that state transitions have an `ename` set to `state`
+    """
+
+    entities = dict()  # things which have a uid
+
+    if not isinstance(state_final, list):
+        state_final = [state_final]
+
+    for event in profile:
+        uid   = event['uid'  ]
+        state = event['state']
+        time  = event['time' ]
+        name  = event['event']
+
+        # we derive entity_type from the uid -- but funnel
+        # some cases into the session
+        if uid:
+            event['entity_type'] = uid.split('.',1)[0]
+        else:
+            event['entity_type'] = 'session'
+            event['uid']         = sid
+            uid = sid
+
+        if uid not in entities:
+            entities[uid] = dict()
+            entities[uid]['states'] = dict()
+            entities[uid]['events'] = list()
 
   # if unsynced:
   #     # print 'unsynced hosts: %s' % list(unsynced)
   #     pass
 
-    return [p_glob, accuracy]
+            # this is a state progression
+            assert(state)
+            assert(uid)
+
+            event['event_name'] = 'state'
+
+            if state in state_final and state != state_canceled:
+
+                # a final state other than CANCELED will cancel any previous
+                # CANCELED state.
+                if state_canceled in entities[uid]['states']:
+                    del(entities[uid]['states'][state_canceled])
+
+            if state in entities[uid]['states']:
+                # ignore duplicated recordings of state transitions
+                # FIXME: warning?
+                continue
+              # raise ValueError('double state (%s) for %s' % (state, uid))
+
+            entities[uid]['states'][state] = event
+
+        else:
+            # FIXME: define different event types (we have that somewhere)
+            event['event_name'] = 'event'
+
+        entities[uid]['events'].append(event)
+
+
+    # we have evaluated, cleaned and sorted all events -- now we recreate
+    # a clean profile out of them
+    ret = list()
+    for uid,entity in entities.iteritems():
+
+        ret += entity['events']
+        for state,event in entity['states'].iteritems():
+            ret.append(event)
+
+    # sort by time and return
+    ret = sorted(ret[:], key=lambda k: k['time'])
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
