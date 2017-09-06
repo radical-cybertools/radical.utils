@@ -136,21 +136,24 @@ class Profiler(object):
 
         if self._enabled and self._handle:
             self.prof("END")
-            self.flush()
+            self.flush(verbose=False)
             self._handle.close()
             self._handle = None
 
 
     # --------------------------------------------------------------------------
     #
-    def flush(self):
+    def flush(self, verbose=True):
 
         if not self._enabled:
             return
 
         if self._enabled:
+
+            if verbose:
+                self.prof("flush")
+
             # see https://docs.python.org/2/library/stdtypes.html#file.flush
-            self.prof("flush")
             self._handle.flush()
             os.fsync(self._handle.fileno())
 
@@ -265,7 +268,10 @@ def read_profiles(profiles, sid=None, efilter=None):
             ret[prof] = list()
             reader    = csv.reader(csvfile)
 
-            for row in reader:
+            for raw in reader:
+
+                # we keep the raw data around for error checks
+                row = list(raw)
 
                 try:
 
@@ -288,9 +294,10 @@ def read_profiles(profiles, sid=None, efilter=None):
                         row[ENTITY] = 'session'
                         row[UID]    = sid
 
-                    # we should have no unset (ie. None) fields left
-                    for x in row:
-                        assert(x is not None), row
+                    # we should have no unset (ie. None) fields left - otherwise
+                    # the profile was likely not correctly closed.
+                    if None in row:
+                        raise ValueError('row invalid [%s]: %s' % (prof, raw))
 
                     # apply the filter.  We do that after adding the entity
                     # field above, as the filter might also apply to that.
