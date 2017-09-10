@@ -327,7 +327,7 @@ class Process(mp.Process):
 
                 if msg.strip() == 'STOP':
                     self._ru_log.info('STOP received: %s' % msg)
-                    return FALSE
+                    return False
 
             # check for error conditions
             if  event & ru_poll.POLLHUP or  \
@@ -341,7 +341,7 @@ class Process(mp.Process):
           # if event & ru_poll.POLLPRI : self._ru_log.info(' === POLLPRI : %s', self._ru_endpoint.fileno())
           # if event & ru_poll.POLLNVAL: self._ru_log.info(' === POLLNVAL: %s', self._ru_endpoint.fileno())
 
-          time.sleep(0.1)
+        time.sleep(0.1)
 
       # self._ru_log.debug('endpoint watch ok')
         return True

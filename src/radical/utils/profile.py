@@ -6,11 +6,12 @@ import glob
 import time
 import threading
 
-from   .misc      import get_size     as ru_get_size
-from   .misc      import name2env     as ru_name2env
-from   .misc      import get_hostname as ru_get_hostname
-from   .misc      import get_hostip   as ru_get_hostip
-from   .read_json import read_json    as ru_read_json
+from   .misc      import get_size        as ru_get_size
+from   .misc      import name2env        as ru_name2env
+from   .misc      import get_hostname    as ru_get_hostname
+from   .misc      import get_hostip      as ru_get_hostip
+from   .threads   import get_thread_name as ru_get_thread_name
+from   .read_json import read_json       as ru_read_json
 
 
 # ------------------------------------------------------------------------------
@@ -21,11 +22,12 @@ from   .read_json import read_json    as ru_read_json
 TIME         = 0  # time of event (float, seconds since epoch)  mandatory
 EVENT        = 1  # event ID (string)                           mandatory
 COMP         = 2  # component which recorded the event          mandatory
-UID          = 3  # uid of entity involved                      optional
-STATE        = 4  # state of entity involved                    optional
-MSG          = 5  # message describing the event                optional
-ENTITY       = 6  # type of entity involved                     optional
-PROF_KEY_MAX = 7  # iteration helper: `for _ in range(PROF_KEY_MAX):`
+TID          = 3  # uid of thread involved                      optional
+UID          = 4  # uid of entity involved                      optional
+STATE        = 5  # state of entity involved                    optional
+MSG          = 6  # message describing the event                optional
+ENTITY       = 7  # type of entity involved                     optional
+PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
 
 # ------------------------------------------------------------------------------
 #
@@ -103,12 +105,13 @@ class Profiler(object):
         # write header and time normalization info
         if self._handle:
             self._handle.write("#%s\n" % (','.join(Profiler.fields)))
-            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n" %
-                           (self.timestamp(), self._name, "", "", "", 'sync_abs',
-                            "%s:%s:%s:%s:%s" % (ru_get_hostname(), 
+            self._handle.write("%.4f,%s,%s,%s,%s,%s,%s\n" %
+                           (self.timestamp(), 'sync_abs', self._name,
+                            ru_get_thread_name(), '', '',
+                            "%s:%s:%s:%s:%s" % (ru_get_hostname(),
                                                 ru_get_hostip(),
-                                                self._ts_zero, 
-                                                self._ts_abs, 
+                                                self._ts_zero,
+                                                self._ts_abs,
                                                 self._ts_mode)))
 
 
@@ -182,7 +185,16 @@ class Profiler(object):
 
         try:
             if self._handle:
-                self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n"
+            #   if event == 'sync_abs':
+            # TIME   = 0  # time of event (float, seconds since epoch)  mandatory
+            # EVENT  = 1  # event ID (string)                           mandatory
+            # COMP   = 2  # component which recorded the event          mandatory
+            # TID    = 3  # uid of thread involved                      optional
+            # UID    = 4  # uid of entity involved                      optional
+            # STATE  = 5  # state of entity involved                    optional
+            # MSG    = 6  # message describing the event                optional
+            # ENTITY = 7  # type of entity involved                     optional
+                self._handle.write("%.4f,%s,%s,%s,%s,%s,%s\n"
                         % (timestamp, event, comp, tid, uid, state, msg))
         except Exception as e:
             sys.stderr.write('profile write error: %s' % repr(e))
@@ -273,6 +285,19 @@ def read_profiles(profiles, sid=None, efilter=None):
                 # we keep the raw data around for error checks
                 row = list(raw)
 
+              # if 'sync_abs' in row:
+              #     print
+              #     print row
+              #     print
+              #     print 'TIME    : %s' % row[TIME ]
+              #     print 'EVENT   : %s' % row[EVENT]
+              #     print 'COMP    : %s' % row[COMP ]
+              #     print 'TID     : %s' % row[TID  ]
+              #     print 'UID     : %s' % row[UID  ]
+              #     print 'STATE   : %s' % row[STATE]
+              #     print 'MSG     : %s' % row[MSG  ]
+              #     raise 'oops'
+
                 try:
 
                     # skip header
@@ -313,6 +338,8 @@ def read_profiles(profiles, sid=None, efilter=None):
                     if not skip:
                         ret[prof].append(row)
 
+                  # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
+
                 except Exception as e:
                     raise
 
@@ -350,13 +377,13 @@ def combine_profiles(profs):
     for pname, prof in profs.iteritems():
 
         if not len(prof):
-          # print 'empty profile %s' % pname
+            print 'empty profile %s' % pname
             continue
 
         if not prof[0][MSG] or ':' not in prof[0][MSG]:
             # FIXME:
             # https://github.com/radical-cybertools/radical.analytics/issues/20
-          # print 'unsynced profile %s' % pname
+          # print 'unsynced profile %s [%s]' % (pname, prof[0])
             continue
 
         t_prof = prof[0][TIME]
@@ -388,22 +415,29 @@ def combine_profiles(profs):
                     + '%10.2f - %10.2f = %5.2f' % \
                       (pname.split('/')[-1], host_id, t_off, 
                        t_host[host_id], diff)
-            continue
+                continue
 
         t_host[host_id] = t_off
 
 
     unsynced = set()
+    last = None
     # now that we can align clocks for all hosts, apply that correction to all
     # profiles
     for pname, prof in profs.iteritems():
 
         if not len(prof):
+          # print 'empty prof: %s' % pname
             continue
 
         if not prof[0][MSG]:
+          # print 'no sync msg: %s' % prof[0]
             continue
 
+      # print MSG
+      # print prof[0]
+      # print prof[0][MSG]
+      # print prof[0][MSG].split(':')
         host, ip, _, _, _ = prof[0][MSG].split(':')
         host_id = '%s:%s' % (host, ip)
         if host_id in t_host:
@@ -423,9 +457,12 @@ def combine_profiles(profs):
             row[TIME] -= t_min
             row[TIME] -= t_off
 
+          # print row[EVENT],
             # count closing entries
             if row[EVENT] == 'END':
                 c_end += 1
+
+            last = row
 
         # add profile to global one
         p_glob += prof
@@ -436,10 +473,20 @@ def combine_profiles(profs):
       # elif c_end > 1:
       #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
-    # sort by time and return
-    p_glob = sorted(p_glob[:], key=lambda k: k['time'])
+  # if last:
+  #     print 'TIME   : %s' % last[TIME  ]
+  #     print 'EVENT  : %s' % last[EVENT ]   
+  #     print 'COMP   : %s' % last[COMP  ]
+  #     print 'UID    : %s' % last[UID   ]
+  #     print 'STATE  : %s' % last[STATE ]
+  #     print 'MSG    : %s' % last[MSG   ]
+  #     print 'ENTITY : %s' % last[ENTITY]
 
-    return p_glob
+
+    # sort by time and return
+    p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
+
+    return p_glob, accuracy
 
 
 # ------------------------------------------------------------------------------
@@ -462,18 +509,19 @@ def clean_profile(profile, sid, state_final, state_canceled):
         state_final = [state_final]
 
     for event in profile:
-        uid   = event['uid'  ]
-        state = event['state']
-        time  = event['time' ]
-        name  = event['event']
+
+        uid   = event[UID  ]
+        state = event[STATE]
+        time  = event[TIME ]
+        name  = event[EVENT]
 
         # we derive entity_type from the uid -- but funnel
         # some cases into the session
         if uid:
-            event['entity_type'] = uid.split('.',1)[0]
+            event[ENTITY] = uid.split('.',1)[0]
         else:
-            event['entity_type'] = 'session'
-            event['uid']         = sid
+            event[ENTITY] = 'session'
+            event[UID]    = sid
             uid = sid
 
         if uid not in entities:
@@ -481,16 +529,16 @@ def clean_profile(profile, sid, state_final, state_canceled):
             entities[uid]['states'] = dict()
             entities[uid]['events'] = list()
 
-  # if unsynced:
-  #     # print 'unsynced hosts: %s' % list(unsynced)
-  #     pass
+        if name == 'advance':
 
             # this is a state progression
-            assert(state)
-            assert(uid)
+            assert(state), 'cannot advance w/o state'
+            assert(uid),   'cannot advance w/o uid'
 
-            event['event_name'] = 'state'
+            # this is a state transition event
+            event[EVENT] = 'state'  
 
+            skip = False
             if state in state_final and state != state_canceled:
 
                 # a final state other than CANCELED will cancel any previous
@@ -498,17 +546,22 @@ def clean_profile(profile, sid, state_final, state_canceled):
                 if state_canceled in entities[uid]['states']:
                     del(entities[uid]['states'][state_canceled])
 
+                # vice-versa, we will not add CANCELED if a final
+                # state already exists:
+                if state == state_canceled:
+                    if any([s in entities[uid]['states']
+                              for s in state_final]):
+                        skip = True
+                        continue
+
             if state in entities[uid]['states']:
                 # ignore duplicated recordings of state transitions
-                # FIXME: warning?
+                skip = True
                 continue
               # raise ValueError('double state (%s) for %s' % (state, uid))
 
-            entities[uid]['states'][state] = event
-
-        else:
-            # FIXME: define different event types (we have that somewhere)
-            event['event_name'] = 'event'
+            if not skip:
+                entities[uid]['states'][state] = event
 
         entities[uid]['events'].append(event)
 
@@ -523,7 +576,7 @@ def clean_profile(profile, sid, state_final, state_canceled):
             ret.append(event)
 
     # sort by time and return
-    ret = sorted(ret[:], key=lambda k: k['time'])
+    ret = sorted(ret[:], key=lambda k: k[TIME])
 
     return ret
 
