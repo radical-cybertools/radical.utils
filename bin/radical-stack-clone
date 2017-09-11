@@ -97,7 +97,7 @@ mkdir -p "$tmp"
 log="$tmp/install.log"
 cp /dev/null $log  # empty log from previous run
 
-while getopts b:t:s:v: opt
+while getopts b:p:s:t:v: opt
 do
     case $opt in
     v)   veloc="$OPTARG";;
@@ -151,7 +151,7 @@ install() {
     tag="$4"
     commit="$5"
 
-    printf "%-20s  %-55s  %-30s %-30s %s\n" "$mod" "$repo" "$branch" "$commit" "$tag" \
+    printf "%-20s  %-60s  %-30s %-30s %s\n" "$mod" "$repo" "$branch" "$commit" "$tag" \
         | tee -a $log
 
     if ! test -d "$tmp/$repo"
@@ -178,8 +178,10 @@ if ! test -d "$veloc"
 then
     printf "create virtualenv $veloc\n"
     if test -z "$python" 
-    then virtualenv              "$veloc" >> $log 2>&1
-    else virtualenv -p "$python" "$veloc" >> $log 2>&1
+    then
+        virtualenv              "$veloc" >> $log 2>&1
+    else
+        virtualenv -p "$python" "$veloc" >> $log 2>&1
     fi
 else
     printf "check  virtualenv $veloc\n"
@@ -191,7 +193,7 @@ printf "source virtualenv $veloc\n\n"
 
 
 # output header
-printf "%-20s  %-55s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
+printf "%-20s  %-60s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
 
 
 # ------------------------------------------------------------------------------
@@ -248,6 +250,7 @@ then
 else
     printf "\ninstalled:\n"
     "$veloc/bin/python" "$veloc/bin/radical-stack"
+fi
 echo
 
 # ------------------------------------------------------------------------------
