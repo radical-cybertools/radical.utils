@@ -411,10 +411,9 @@ def combine_profiles(profs):
 
             # we allow for *some* amount of inconsistency before warning
             if diff > NTP_DIFF_WARN_LIMIT:
-                print 'conflicting time sync for %-45s (%15s): ' \
+                print 'conflicting time sync for %-45s (%15s): '%(pname.split('/')[-1], host_id) \
                     + '%10.2f - %10.2f = %5.2f' % \
-                      (pname.split('/')[-1], host_id, t_off, 
-                       t_host[host_id], diff)
+                      (t_off,t_host[host_id], diff)
                 continue
 
         t_host[host_id] = t_off

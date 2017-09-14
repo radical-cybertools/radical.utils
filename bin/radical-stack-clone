@@ -16,6 +16,7 @@ tag=
 stack=
 veloc=
 python=
+conda=
 
 
 # ------------------------------------------------------------------------------
@@ -36,6 +37,7 @@ usage() {
              [-b branch]
              [-t tag]
              [-p python]
+             [-c]
 
     This utility will create a new (or update an existing) Python virtualenv
     with a specific (set of) version(s) of the radical stack, including
@@ -50,11 +52,13 @@ usage() {
                     the branch should be exist for all layers -- otherwise
                     'devel' is being used.
 
-      -b tag      : tag to install
+      -t tag      : tag to install
                     the tag should be exist for all layers -- otherwise the
                     'devel' branch is being used.
 
       -p python   : use the specified python executable for VE creation
+
+      -c          : use conda based virtualenvs
 
     example:
 
@@ -97,7 +101,7 @@ mkdir -p "$tmp"
 log="$tmp/install.log"
 cp /dev/null $log  # empty log from previous run
 
-while getopts b:p:s:t:v: opt
+while getopts b:cp:s:t:v: opt
 do
     case $opt in
     v)   veloc="$OPTARG";;
@@ -105,6 +109,7 @@ do
     b)   branch="$OPTARG";;
     t)   tag="$OPTARG";;
     p)   python="$OPTARG";;
+    c)   conda="1";;
     ?)   usage "cannot handle argument $opt"
          exit 2;;
     esac
@@ -154,19 +159,33 @@ install() {
     printf "%-20s  %-60s  %-30s %-30s %s\n" "$mod" "$repo" "$branch" "$commit" "$tag" \
         | tee -a $log
 
-    if ! test -d "$tmp/$repo"
-    then
-        git clone "$repo" "$tmp/$repo"          >> $log 2>&1
+    sha1=''
+    test -z "$branch" || sha1="$branch"
+    test -z "$tag"    || sha1="$tag"
+    test -z "$commit" || sha1="$commit"
+
+    if ! test -z "$sha1"
+    then 
+        tgt="-b $sha1"
+    else 
+        tgt=""
     fi
 
-    cd $tmp/$repo
-    git pull --all                              >> $log 2>&1
-    test -z "$branch" || git checkout "$branch" >> $log 2>&1
-    test -z "$tag"    || git checkout "$tag"    >> $log 2>&1
-    test -z "$commit" || git checkout "$commit" >> $log 2>&1
+    if ! test -d "$tmp/repo_$mod"
+    then
+        git clone "$repo" $tgt "$tmp/repo_$mod" >> $log 2>&1
+    fi
+
+    cd $tmp/repo_$mod
+  # we don't need pull anymore, as we do a shallow clone on the specified sha1
+  # git pull --all                              >> $log 2>&1
+  # test -z "$branch" || git checkout "$branch" >> $log 2>&1
+  # test -z "$tag"    || git checkout "$tag"    >> $log 2>&1
+  # test -z "$commit" || git checkout "$commit" >> $log 2>&1
     pip uninstall -y $mod                       >> $log 2>&1
     pip install .                               >> $log 2>&1
     cd $cwd
+    rm -r $tmp/repo_$mod
 }
 
 
@@ -177,11 +196,21 @@ install() {
 if ! test -d "$veloc"
 then
     printf "create virtualenv $veloc\n"
-    if test -z "$python" 
+    if ! test -z "$conda"
     then
-        virtualenv              "$veloc" >> $log 2>&1
+        if test -z "$python" 
+        then
+            conda create -y -p "$veloc" python=2.7 >> $log 2>&1
+        else
+            conda create -y -p "$veloc" python="&python" >> $log 2>&1
+        fi
     else
-        virtualenv -p "$python" "$veloc" >> $log 2>&1
+        if test -z "$python" 
+        then
+            virtualenv              "$veloc" >> $log 2>&1
+        else
+            virtualenv -p "$python" "$veloc" >> $log 2>&1
+        fi
     fi
 else
     printf "check  virtualenv $veloc\n"
@@ -189,7 +218,12 @@ else
 fi
 
 printf "source virtualenv $veloc\n\n"
-. "$veloc/bin/activate"
+if ! test -z "$conda"
+then
+    source activate "$veloc/"
+else
+    . "$veloc/bin/activate"
+fi
 
 
 # output header
