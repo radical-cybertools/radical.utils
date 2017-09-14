@@ -21,7 +21,7 @@ def split_dburl(dburl, default_dburl=None):
 
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
-    
+
     url = ruu.Url(dburl)
 
     if not url.schema and not url.host:

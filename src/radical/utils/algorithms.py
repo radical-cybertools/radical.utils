@@ -7,7 +7,6 @@ import regex
 #
 def collapse_ranges (ranges):
     """
-
     Given be a set of ranges (as a set of pairs of floats [start, end] with
     'start <= end'.  This algorithm will then collapse that set into the
     smallest possible set of ranges which cover the same, but not more nor
@@ -39,7 +38,7 @@ def collapse_ranges (ranges):
 
     # return empty list if given an empty list
     if not ranges:
-        return final
+        return []
 
     START = 0
     END   = 1
