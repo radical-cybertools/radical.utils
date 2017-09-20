@@ -5,9 +5,11 @@ import time
 import pprint
 import signal
 import thread
+import random
 import threading
 import traceback
 
+from .misc import gettid
 
 # --------------------------------------------------------------------
 #
@@ -106,8 +108,6 @@ class DebugHelper (object) :
 
         except Exception as e:
             # we don't care (much)...
-            print get_trace()
-            print e
             pass
 
 
@@ -164,8 +164,6 @@ def print_stacktraces(signum=None, sigframe=None):
         with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
             f.write ("%s\n" % out)
 
-    return True
-
 
 # --------------------------------------------------------------------------
 #
@@ -203,6 +201,27 @@ def print_stacktrace(msg=None):
     out += "--------------\n"
 
     sys.stdout.write(out)
+
+
+# --------------------------------------------------------------------------
+#
+def print_exception_trace(msg=None):
+
+    if not msg:
+        msg = ''
+
+    pid  = int(os.getpid())
+    out  = "--------------\n"
+    out += "RADICAL Utils -- Stacktrace [%s] [%s]\n" % (pid, threading.currentThread().name)
+    out += "%s\n" % msg
+    out += os.popen('ps -efw --forest | grep " %s " | grep -v grep' % pid).read()
+    for line in traceback.format_exc().split('\n'):
+        out += line.strip()
+        out += "\n"
+    out += "--------------\n"
+
+    sys.stdout.write(out)
+
 
 # --------------------------------------------------------------------------
 #
@@ -258,17 +277,100 @@ def get_caller_name(skip=2):
 
 # ------------------------------------------------------------------------------
 #
-def is_main_thread():
-    return isinstance(threading.current_thread(), threading._MainThread)
+_raise_on_state = dict()
+_raise_on_lock  = threading.Lock()
+def raise_on(tag, log=None, msg=None):
+    """
+    The purpose of this method is to artificially trigger error conditions for
+    testing purposes, for example when handling the n'th unit, getting the n'th
+    heartbeat signal, etc.  
+
+    The tag parameter is interpreted as follows: on the `n`'th invocation of
+    this method with any given `tag`, an exception is raised, and the counter
+    for that tag is reset.
+    
+    The limit `n` is set via an environment variable `RU_RAISE_ON_<tag>`, with
+    `tag` in upper casing.  The environment will only be inspected during the
+    first invocation of the method with any given tag.  The tag counter is
+    process-local, but is shared amongst threads of that process.
+    """
+
+    global _raise_on_state
+    global _raise_on_lock
+
+    with _raise_on_lock:
+
+        if tag not in _raise_on_state:
+            env = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
+            if env and env.startswith('RANDOM_'):
+                # env is rnd spec
+                rate  = (float(env[7:]) / 100.0)
+                limit = 1
+            elif env:
+                # env is int
+                rate  = 1
+                limit = int(env)
+            else:
+                # no env set
+                rate  = 1
+                limit = 0
+
+            _raise_on_state[tag] = { 
+                    'count' : 0,
+                    'rate'  : rate,
+                    'limit' : limit
+                    }
+            
+        _raise_on_state[tag]['count'] += 1
+
+        count = _raise_on_state[tag]['count']
+        limit = _raise_on_state[tag]['limit']
+        rate  = _raise_on_state[tag]['rate']
+
+        if msg: info = '%s [%s / %s] [%s]' % (tag, count, limit, msg)
+        else  : info = '%s [%s / %s]'      % (tag, count, limit     )
+
+        if log: log.debug('raise_on checked   %s' , info)
+        else:   print     'raise_on checked   %s' % info
+
+        if limit and count == limit:
+            if rate == 1:
+                val = limit
+            else:
+                val = random.random()
+                if val > rate:
+                    if log: log.warn('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                  # else:   print   ('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                    return
+
+            if log: log.warn('raise_on triggered %s [%s]' % (tag, val))
+          # else:   print    'raise_on triggered %s [%s]' % (tag, val)
+
+            # reset counter and raise exception
+            _raise_on_state[tag]['count'] = 0
+            raise RuntimeError('raise_on for %s [%s]' % (tag, val))
 
 
 # ------------------------------------------------------------------------------
 #
-def cancel_main_thread():
-    if not is_main_thread():
-        import thread
-        thread.interrupt_main()
-        sys.exit()
+def attach_pudb(logger=None):
+
+    host = '127.0.0.1'
+  # host = gethostip()
+    tid  = gettid()
+    port = tid + 10000
+
+    if logger:
+        logger.info('debugger open: telnet %s %d', host, port)
+    else:
+        print 'debugger open: telnet %s %d' % (host, port)
+
+    import pudb
+    import signal
+    pudb.DEFAULT_SIGNAL = signal.SIGALRM
+
+    from pudb.remote import set_trace
+    set_trace(host=host, port=port, term_size=(200, 50))
 
 
 # ------------------------------------------------------------------------------

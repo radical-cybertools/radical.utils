@@ -1,8 +1,12 @@
 import os
 import sys
 import time
+import glob
 import regex
 import signal
+import socket
+import importlib
+import netifaces
 import threading
 import url as ruu
 
@@ -346,10 +350,169 @@ def gettid():
         import ctypes
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
-        return str(libc.syscall(SYS_gettid))
+        return int(libc.syscall(SYS_gettid))
     except:
         return None
 
+
+# ------------------------------------------------------------------------------
+#
+_hostname = None
+def get_hostname():
+    """
+    Look up the hostname
+    """
+
+    global _hostname
+    if not _hostname:
+
+        if socket.gethostname().find('.')>=0:
+            _hostname = socket.gethostname()
+
+        else:
+            _hostname = socket.gethostbyaddr(socket.gethostname())[0]
+
+    return _hostname
+    
+
+# ------------------------------------------------------------------------------
+#
+_hostip = None
+def get_hostip(req=None, logger=None):
+    """
+    Look up the ip number for a given requested interface name.
+    If interface is not given, do some magic.
+    """
+
+    AF_INET = netifaces.AF_INET
+
+    # We create a ordered preference list, consisting of:
+    #   - given arglist
+    #   - white list (hardcoded preferred interfaces)
+    #   - black_list (hardcoded unfavorable interfaces)
+    #   - all others (whatever is not in the above)
+    # Then this list is traversed, we check if the interface exists and has an
+    # IP address.  The first match is used.
+
+    if req: 
+        if not isinstance(req, list):
+            req = [req]
+    else:
+        req = []
+
+    white_list = [
+            'ipogif0', # Cray's
+            'br0',     # SuperMIC
+            'eth0',    # desktops etc.
+            'wlan0'    # laptops etc.
+            ]
+
+    black_list = [
+            'lo',      # takes the 'inter' out of the 'net'
+            'sit0'     # ?
+            ]
+
+    all  = netifaces.interfaces()
+    rest = [iface for iface in all \
+                   if iface not in req and \
+                      iface not in white_list and \
+                      iface not in black_list]
+
+    preflist = req + white_list + black_list + rest
+
+    for iface in preflist:
+
+        if iface not in all:
+            if logger:
+                logger.debug('check iface %s: does not exist', iface)
+            continue
+
+        info = netifaces.ifaddresses(iface)
+        if AF_INET not in info:
+            if logger:
+                logger.debug('check iface %s: no information', iface)
+            continue
+
+        if not len(info[AF_INET]):
+            if logger:
+                logger.debug('check iface %s: insufficient information', iface)
+            continue
+
+        if not info[AF_INET][0].get('addr'):
+            if logger:
+                logger.debug('check iface %s: disconnected', iface)
+            continue
+
+      
+        ip = info[AF_INET][0].get('addr')
+        if logger:
+            logger.debug('check iface %s: ip is %s', iface, ip)
+
+        if ip:
+           _hostip = ip
+           return ip
+
+    raise RuntimeError('could not determine ip on %s' % preflist)
+
+
+# ------------------------------------------------------------------------------
+#
+def watch_condition(cond, target=None, timeout=None, interval=0.1):
+    """
+    Watch a given condition (a callable) until it returns the target value, and
+    return that value.  Stop watching on timeout, in that case return None.  The
+    condition is tested approximately every 'interval' seconds.
+    """
+    
+    start = time.time()
+    while True:
+        ret = cond()
+        if ret == target:
+            return ret
+        if timeout and time.time() > start+timeout:
+            return None
+        time.sleep(interval)
+
+
+# ------------------------------------------------------------------------------
+#
+def name2env(name):
+    """
+    convert a name of the for 'radical.pilot' to an env vare base named
+    'RADICAL_PILOT'.
+    """
+    
+    return name.replace('.', '_').upper()
+
+
+# ------------------------------------------------------------------------------
+#
+def stack():
+
+    ret = {'sys'     : {'python'     : sys.version.split()[0],
+                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
+           'radical' : dict()
+          }
+
+
+    modules = ['radical.utils', 
+               'radical.saga', 
+               'saga', 
+               'radical.pilot', 
+               'radical.entl',
+               'radical.ensembletk',
+               'radical.analytics']
+
+    for mod in modules:
+        try:
+            tmp = importlib.import_module(mod)
+            ret['radical'][mod] = tmp.version_detail
+        except:
+            pass
+
+    return ret
+    
 
 # ------------------------------------------------------------------------------
 

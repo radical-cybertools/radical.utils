@@ -50,6 +50,11 @@ class Error(Exception):
 
 
 def fix_logging_module():
+
+    import os
+    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+        return
+
     logging = sys.modules.get('logging')
     # Prevent fixing multiple times as that would cause a deadlock.
     if logging and getattr(logging, 'fixed_for_atfork', None):
@@ -62,7 +67,8 @@ def fix_logging_module():
         # these exist, other loggers or not yet added handlers could as well.
         # Its safer to insist that this fix is applied before logging has been
         # configured.
-        raise Error('logging handlers already registered.')
+        warnings.warn('logging handlers already registered.')
+      # raise Error('logging handlers already registered.')
 
     logging._acquireLock()
     try:
@@ -82,3 +88,6 @@ def fix_logging_module():
         logging.fixed_for_atfork = True
     finally:
         logging._releaseLock()
+
+# ------------------------------------------------------------------------------
+

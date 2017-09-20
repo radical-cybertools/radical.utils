@@ -7,10 +7,11 @@ import regex
 #
 def collapse_ranges (ranges):
     """
-    given be a set of ranges (as a set of pairs of floats [start, end] with
+
+    Given be a set of ranges (as a set of pairs of floats [start, end] with
     'start <= end'.  This algorithm will then collapse that set into the
-    smallest possible set of ranges which cover the same, but not more nor less,
-    of the domain (floats).
+    smallest possible set of ranges which cover the same, but not more nor
+    less, of the domain (floats).
 
     We first sort the ranges by their starting point.  We then start with the
     range with the smallest starting point [start_1, end_1], and compare to
@@ -26,24 +27,34 @@ def collapse_ranges (ranges):
     the algorithm with range_2 being the smallest one.
 
     Termination condition is if only one range is left -- it is also moved to
-    the set of final ranges then, and that set is returned.
+    the list of final ranges then, and that list is returned.
     """
 
-    final = list()
+    # FIXME: does tuple and set conversion really add anything?
+
+    # Ranges must be unique: we do not count timings when they start and end at
+    # exactly the same time. By using a set, we do not repeat ranges.
+    # we convert to a list before return.
+    final = set()
 
     # return empty list if given an empty list
     if not ranges:
         return final
 
-    # sort ranges into a copy list
-    _ranges = sorted (ranges, key=lambda x: x[0])
-
     START = 0
     END   = 1
 
-    base = _ranges[0]  # smallest range
+    # sort ranges into a copy list, by their start time
+    _ranges = sorted(ranges, key=lambda x: x[START])
 
-    for _range in _ranges[1:] :
+    # sat 'base' to the earliest range (smallest starting point)
+    base = _ranges[0]
+
+    for _range in _ranges[1:]:
+
+        # if range is empty, skip it
+        if _range[START] == _range[END]:
+            continue
 
         if _range[START] <= base[END]:
             # ranges overlap -- extend the base
@@ -52,13 +63,14 @@ def collapse_ranges (ranges):
         else:
             # ranges don't overlap -- move base to final, and current _range
             # becomes the new base
-            final.append (base)
+            final.add(tuple(base))
             base = _range
 
     # termination: push last base to final
-    final.append (base)
+    final.add(tuple(base))
 
-    return final
+    # Return final as list of list in case a mutable type is needed.
+    return [list(b) for b in final]
 
 
 # ------------------------------------------------------------------------------
@@ -84,6 +96,30 @@ def partition(space, nparts):
         ret.append(space[a:b])
 
     return ret
+
+
+# ------------------------------------------------------------------------------
+#
+def in_range(value, ranges):
+    """
+    checks if a float value `value` is in any of the given `ranges`, which are
+    assumed to be a list of tuples (or a single tuple) of start end end points
+    (floats).
+    Returns `True` or `False`.
+    """
+
+    # is there anythin to check?
+    if not ranges or not len(ranges):
+        return False
+
+    if not isinstance(ranges[0], list):
+        ranges = [ranges]
+
+    for r in ranges:
+        if value >= r[0] and value <= r[1]:
+            return True
+
+    return False
 
 
 # ------------------------------------------------------------------------------

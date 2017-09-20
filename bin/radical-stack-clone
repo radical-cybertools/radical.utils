@@ -1,0 +1,239 @@
+#!/bin/sh
+
+# this script expects the output of `radical-stack` as input file (first
+# argument), and will then create a respective virtualenv in the given location
+# (second argtument)
+
+# ------------------------------------------------------------------------------
+#
+# default settings
+#
+cwd=`pwd`
+tmp="/tmp/radical-stack-tmp.$(id -u)"
+
+branch="devel"
+tag=
+stack=
+veloc=
+
+
+# ------------------------------------------------------------------------------
+#
+usage() {
+
+    msg=$1
+
+    if ! test -z "$msg"
+    then
+        printf "\n    error: $msg\n" 
+    fi
+
+    cat <<EOT
+    
+    usage: $0 -v ve_location 
+             [-s stackfile] 
+             [-b branch]
+             [-t tag]
+
+    This utility will create a new (or update an existing) Python virtualenv
+    with a specific (set of) version(s) of the radical stack, including
+    radical.{pilot,saga,utils,analytics}.  The version to be used can be
+    specified in two ways: as a stackfile or as command line parameters.
+
+      -s stackfile: stackfile to use
+                    The file must be formatted as is the output of the 
+                    'radical-stack' command.
+
+      -b branch   : branch to install
+                    the branch should be exist for all layers -- otherwise
+                    'devel' is being used.
+
+      -b tag      : tag to install
+                    the tag should be exist for all layers -- otherwise the
+                    'devel' branch is being used.
+
+    example:
+
+--------------------------------------------------------------------------------
+$ ./bin/radical-stack-clone -v ve_test -t titan
+
+tag @ branch requested: titan@devel
+ve location  requested: ve_test
+
+check  virtualenv ve_test
+source virtualenv ve_test
+
+mod               repo                                                    branch  commit tag
+radical.utils     https://github.com/radical-cybertools/radical.utils.git     devel          titan
+saga-python       https://github.com/radical-cybertools/saga-python.git       devel          titan
+radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     devel          titan
+radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
+
+installed:
+python            : 2.7.12+
+virtualenv        : /home/merzky/radical/radical.utils/ve_test
+radical.utils     : titan@HEAD-detached-at-titan
+saga-python       : titan@HEAD-detached-at-titan
+radical.pilot     : titan@HEAD-detached-at-titan
+radical.analytics : v0.1-113-gb032808@devel
+--------------------------------------------------------------------------------
+
+EOT
+
+    exit
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# command line args can overwrite defaults
+#
+
+mkdir -p "$tmp"
+log="$tmp/install.log"
+cp /dev/null $log  # empty log from previous run
+
+while getopts b:t:s:v: opt
+do
+    case $opt in
+    v)   veloc="$OPTARG";;
+    s)   stack="$OPTARG";;
+    b)   branch="$OPTARG";;
+    t)   tag="$OPTARG";;
+    ?)   usage "cannot handle argument $opt"
+         exit 2;;
+    esac
+done
+
+
+# ------------------------------------------------------------------------------
+#
+# some args are mandatory
+#
+if test -z "$veloc"
+then
+    usage "no virtualenv location specified"
+fi
+
+if test -z "$stack$branch$tag"
+then
+    usage 'missing stack file or branch'
+fi
+
+
+# ------------------------------------------------------------------------------
+#
+# report target stack
+#
+echo
+if ! test -z "$stack"
+then
+    printf "stack config requested: $stack\n$(echo $stack | grep ':')"
+else
+    printf "tag @ branch requested: $tag@$branch\n"
+fi
+
+printf "ve location  requested: $veloc\n\n"
+
+
+# ------------------------------------------------------------------------------
+#
+install() {
+
+    mod="$1"
+    repo="$2"
+    branch="$3"
+    tag="$4"
+    commit="$5"
+
+    printf "%-20s  %-55s  %-30s %-30s %s\n" "$mod" "$repo" "$branch" "$commit" "$tag" \
+        | tee -a $log
+
+    if ! test -d "$tmp/$repo"
+    then
+        git clone "$repo" "$tmp/$repo"          >> $log 2>&1
+    fi
+
+    cd $tmp/$repo
+    git pull --all                              >> $log 2>&1
+    test -z "$branch" || git checkout "$branch" >> $log 2>&1
+    test -z "$tag"    || git checkout "$tag"    >> $log 2>&1
+    test -z "$commit" || git checkout "$commit" >> $log 2>&1
+    pip uninstall -y $mod                       >> $log 2>&1
+    pip install .                               >> $log 2>&1
+    cd $cwd
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# create / activate ve
+#
+if ! test -d "$veloc"
+then
+    printf "create virtualenv $veloc\n"
+    virtualenv    "$veloc" >> $log 2>&1
+else
+    printf "check  virtualenv $veloc\n"
+    test -d $veloc || echo "ve invalid!" || exit 1
+fi
+
+printf "source virtualenv $veloc\n\n"
+. "$veloc/bin/activate"
+
+
+# output header
+printf "%-20s  %-55s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
+
+
+# ------------------------------------------------------------------------------
+#
+# install from stack file
+#
+if ! test -z "$stack"
+then
+    for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
+    do
+        info=$(cat $stack | grep -e "^$mod" | tail -n 1)
+        if test -z "$info"
+        then
+            echo "skip $mod"
+        else
+            if test "$mod" = "saga"
+            then
+                mod='saga-python'
+            fi
+            repo="https://github.com/radical-cybertools/$mod.git"
+
+            spec=$(  echo "$info" | cut -f 2 -d ':' | xargs echo)
+            branch=$(echo "$spec" | cut -f 2 -d '@' | tr '-' '/')
+            commit=$(echo "$spec" | sed -e 's/.*-g\([a-zA-Z0-9]*\)@.*/\1/g')
+            tag=$(   echo "$spec" | cut -f 1 -d '-')
+
+            install "$mod" "$repo" "$branch" "$tag" "$commit"
+        fi
+    done
+
+else
+    for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
+    do
+        if test "$mod" = "saga"
+        then
+            mod='saga-python'
+        fi
+        repo="https://github.com/radical-cybertools/$mod.git"
+
+        install "$mod" "$repo" "$branch" "$tag" "$commit"
+        
+    done
+fi
+
+cd $cwd
+
+# verify
+printf "\ninstalled:\n"
+$veloc/bin/python `which radical-stack`
+echo
+
+# ------------------------------------------------------------------------------
+

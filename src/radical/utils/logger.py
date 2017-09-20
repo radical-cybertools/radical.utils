@@ -39,8 +39,6 @@ import threading
 
 from .atfork import *
 
-stdlib_fixer.fix_logging_module()
-monkeypatch_os_fork_functions()
 
 # ------------------------------------------------------------------------------
 #
@@ -183,6 +181,8 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     'name'   is used to identify log entries on this handle.
     'target' is a comma separated list (or Python list) of specifiers, where
              specifiers are:
+             '0'      : /dev/null
+             'null'   : /dev/null
              '-'      : stdout
              '1'      : stdout
              'stdout' : stdout
@@ -299,9 +299,9 @@ def get_logger(name, target=None, level=None, path=None, header=True):
     # add a handler for each targets (using the same format)
     logger.targets = targets
     for t in logger.targets:
-        if t in ['null']:
-            continue
-        if t in ['-', '1', 'stdout']:
+        if t in ['0', 'null']:
+            handle = logging.NullHandler()
+        elif t in ['-', '1', 'stdout']:
             handle = ColorStreamHandler(sys.stdout)
         elif t in ['=', '2', 'stderr']:
             handle = ColorStreamHandler(sys.stderr)
