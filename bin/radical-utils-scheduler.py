@@ -9,8 +9,9 @@ import pprint
 import thread
 import threading as mt
 
-from   PyQt4 import QtCore
-from   PyQt4 import QtGui
+from   PyQt5 import QtWidgets
+from   PyQt5 import QtCore
+from   PyQt5 import QtGui
 
 import radical.utils as ru
 
@@ -18,15 +19,20 @@ dh = ru.DebugHelper()
 
 CORES     =  1024*1024   # number of cores to schedule over (sqrt must be int)
 PPN       =    32        # cores per node, used for alignment
+GPN       =     2        # GPUs per node, never aligned
           
-ALIGN     = False        # align small req onto single node
-SCATTER   = False        # allow scattered allocattions as fallback
+ALIGN     =  True        # align small req onto single node
+SCATTER   =  True        # allow scattered allocattions as fallback
 
-CYCLES    =    10        # number of cycles 
-REQ_MIN   =     1        # minimal number of cores requested
-REQ_MAX   =     1        # maximal number of cores requested
+CYCLES    = 10000        # number of cycles 
+CPU_MIN   =     0        # minimal number of cores requested
+CPU_MAX   =    16        # maximal number of cores requested
+GPU_MIN   =     0        # minimal number of GPUs  requested
+GPU_MAX   =     4        # maximal number of GPUs  requested
 REQ_BULK  =  1024        # number of requests to handle in bulk
-REL_PROB  =     0.001    # probablility of release per cycle
+REL_PROB  =     0.010    # probablility of release per cycle
+
+VIZ       = False        # show visualization
 
 # ------------------------------------------------------------------------------
 #
@@ -207,13 +213,13 @@ def drive_scheduler(scheduler, viz, term, lock,
 
 # ------------------------------------------------------------------------------
 #
-class MyViz(QtGui.QWidget):
+class MyViz(QtWidgets.QWidget):
 
     def __init__(self, scheduler, term, lock):
 
-        QtGui.QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
-        QtGui.QShortcut(QtGui.QKeySequence("Esc"), self, self.close)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Esc"), self, self.close)
 
         self._scheduler = scheduler
         self._term      = term
@@ -224,17 +230,17 @@ class MyViz(QtGui.QWidget):
         self._cols   = self._layout['cols']
         self._size   = self._layout['cores']
 
-        self.resize(self._rows+5, self._cols+5)
-        self.horizontalLayout = QtGui.QHBoxLayout(self)
+        self.resize(self._rows+20, self._cols+20)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self)
         self.horizontalLayout.setSpacing(0)
-        self.horizontalLayout.setMargin(0)
-        self.scrollArea = QtGui.QScrollArea(self)
+      # self.horizontalLayout.setMargin(0)
+        self.scrollArea = QtWidgets.QScrollArea(self)
         self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.scrollArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.scrollArea.setWidgetResizable(False)
-        self.scrollAreaWidgetContents = QtGui.QWidget()
+        self.scrollAreaWidgetContents = QtWidgets.QWidget()
         self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 416, 236))
-        self.label = QtGui.QLabel(self.scrollAreaWidgetContents)
+        self.label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
         self.label.setGeometry(QtCore.QRect(0, 0, 200, 100))
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.horizontalLayout.addWidget(self.scrollArea)
@@ -244,10 +250,10 @@ class MyViz(QtGui.QWidget):
         self.label.setGeometry(QtCore.QRect(0,0,self._cols,self._rows))
         self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0,0,self._cols,self._rows))
         
-        # SET UP RECURRING EVENTS
-        self.timer = QtCore.QTimer()
-        self.timer.start(0)
-        self.connect(self.timer, QtCore.SIGNAL('timeout()'), self.updateData) 
+      # # SET UP RECURRING EVENTS
+      # self.timer = QtCore.QTimer()
+      # self.timer.start(0)
+      # self.connect(self.timer, QtCore.SIGNAL('timeout()'), self.updateData) 
 
         self._pmap = numpy.ndarray([self._rows, self._cols])
         self._pmap = numpy.require(self._pmap, numpy.uint8, 'C')  # continuous memory layout 
@@ -267,7 +273,6 @@ class MyViz(QtGui.QWidget):
 
         self._term.set()
 
-    
 
     # --------------------------------------------------------------------------
     #
@@ -280,13 +285,18 @@ class MyViz(QtGui.QWidget):
     #
     def time_updates(self):
 
+        if not VIZ:
+            return
+
         while not self._term.is_set():
-          # time.sleep(0.01)
+
             with self._lock:
                 vals = scheduler.get_map().unpack()
 
             for i in range(len(vals)):
                 self._pmap.data[i] = vals[i] 
+
+            self.updateData()
 
 
     # --------------------------------------------------------------------------
@@ -356,7 +366,7 @@ if __name__ == "__main__":
                                                 'ppn'     : ppn, 
                                                 'align'   : align, 
                                                 'scatter' : scatter})
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     viz = MyViz(scheduler, term, lock)
     thr = mt.Thread(target=drive_scheduler, 
             args=[scheduler, viz, term, lock, 
