@@ -89,7 +89,12 @@ def range_concurrency(ranges):
 
     Returned is a sorted list of tuples where the first entry defines at what
     range value the concurrency changed, and the second value defines to what
-    the concurrency cound changed at that point.
+    the concurrency count changed at that point.
+
+    You could consider the ranges to be of type `[time_start, time_end]`, and
+    the return would be a list of `[timestamp, concurrency]`, if that helps --
+    but the algorithm does not make any assumption on the data type, really,
+    only that the values can be sorted.
     '''
 
     if not ranges:
