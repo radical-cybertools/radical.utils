@@ -22,7 +22,7 @@ from .logger  import get_logger
 #
 _ALIVE_MSG     = 'alive'  # message to use as alive signal
 _START_TIMEOUT = 5.0      # time to wait for thread's startup signal.
-                          # startup signal: 'alive' message on the socketpair;
+                          # startup signal: 'alive' message
                           # is sent in both directions to ensure correct setup
 _STOP_TIMEOUT  = 2.0      # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
