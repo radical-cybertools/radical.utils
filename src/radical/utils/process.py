@@ -20,14 +20,14 @@ from .        import poll   as ru_poll
 # ------------------------------------------------------------------------------
 #
 _ALIVE_MSG     = 'alive'  # message to use as alive signal
-_START_TIMEOUT = 5.0      # time to wait for process startup signal.
+_START_TIMEOUT = 20.0     # time to wait for process startup signal.
                           # startup signal: 'alive' message on the socketpair;
                           # is sent in both directions to ensure correct setup
-_WATCH_TIMEOUT = 0.5      # time between thread and process health polls.
+_WATCH_TIMEOUT = 5.0      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
 _STOP_TIMEOUT  = 3.0      # time between temination signal and killing child
-_BUFSIZE       = 1024     # default buffer size for socket recvs
+_BUFSIZE       = 1024*10  # default buffer size for socket recvs
 
 
 # ------------------------------------------------------------------------------
