@@ -267,10 +267,17 @@ def read_profiles(profiles, sid=None, efilter=None):
   # import resource
   # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
 
+    # FIXME: we correct one pesky profile entry, which is exactly 1.000 in an
+    #        otherwise ntp-aligned profile - see [1].  In this case we use the
+    #        previous timestamp (if available)
+    #
+    #    [1] https://github.com/radical-cybertools/radical.pilot/issues/1117
+
     if not efilter:
         efilter = dict()
 
     ret     = dict()
+    last    = None
     skipped = 0
 
     for prof in profiles:
@@ -322,7 +329,19 @@ def read_profiles(profiles, sid=None, efilter=None):
                     # we should have no unset (ie. None) fields left - otherwise
                     # the profile was likely not correctly closed.
                     if None in row:
-                        raise ValueError('row invalid [%s]: %s' % (prof, raw))
+                      # print '----------------'
+                      # print raw
+                      # print row
+                      # print 'TIME   : %s' % row[TIME]
+                      # print 'EVENT  : %s' % row[EVENT]
+                      # print 'COMP   : %s' % row[COMP]
+                      # print 'TID    : %s' % row[TID]
+                      # print 'UID    : %s' % row[UID]
+                      # print 'STATE  : %s' % row[STATE]
+                      # print 'MSG    : %s' % row[MSG]
+                      # print 'ENTITY : %s' % row[ENTITY]
+                      # print '----------------'
+                        raise ValueError('row invalid [%s]: %s' % (prof, row))
 
                     # apply the filter.  We do that after adding the entity
                     # field above, as the filter might also apply to that.
@@ -335,8 +354,14 @@ def read_profiles(profiles, sid=None, efilter=None):
                         if skip:
                             continue
 
+                    # fix rp issue 1117 (see FIXME above)
+                    if row[TIME] == 1.0 and last:
+                        row[TIME] = last[TIME]
+
                     if not skip:
                         ret[prof].append(row)
+
+                    last = row
 
                   # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
 
@@ -366,61 +391,123 @@ def combine_profiles(profs):
     The method returnes the combined profile and accuracy, as tuple.
     """
 
-    pd_rel   = dict()  # profiles which have relative time refs
+    syncs    = dict()  # profiles which have relative time refs
     t_host   = dict()  # time offset per host
     p_glob   = list()  # global profile
     t_min    = None    # absolute starting point of profiled session
     c_end    = 0       # counter for profile closing tag
     accuracy = 0       # max uncorrected clock deviation
 
-    # first get all absolute timestamp sync from the profiles, for all hosts
+    # first get all absolute and relative timestamp sync from the profiles,
+    # for all hosts
+    for pname, prof in profs.iteritems():
+
+        sync_abs = list()
+        sync_rel = list()
+
+        syncs[pname] = {'rel' : sync_rel,
+                        'abs' : sync_abs}
+
+        if not len(prof):
+            continue
+
+        for entry in prof:
+            if entry[EVENT] == 'sync_abs': sync_abs.append(entry)
+            if entry[EVENT] == 'sync_rel': sync_rel.append(entry)
+
+        # we can have any number of sync_rel's - but if we find none, we expect
+        # a sync_abs
+        if not sync_rel and not sync_abs:
+            print 'unsynced     %s' % pname
+
+        syncs[pname] = {'rel' : sync_rel,
+                        'abs' : sync_abs}
+
+  # for pname, prof in profs.iteritems():
+  #     if prof:
+  #         print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
+
     for pname, prof in profs.iteritems():
 
         if not len(prof):
-            print 'empty profile %s' % pname
+          # print 'empty        %s' % pname
             continue
 
-        if not prof[0][MSG] or ':' not in prof[0][MSG]:
-            # FIXME:
-            # https://github.com/radical-cybertools/radical.analytics/issues/20
-          # print 'unsynced profile %s [%s]' % (pname, prof[0])
+        # if we have only sync_rel(s), then find the offset by the corresponding
+        # sync_rel in the other profiles, and determine the offset to use.  Use
+        # the first sync_rel that results in an offset, and only complain if none
+        # is found.
+        offset = None
+        if syncs[pname]['abs']:
+            offset = 0.0
+
+        else:
+            for sync_rel in syncs[pname]['rel']:
+                for _pname in syncs:
+                    if _pname == pname:
+                        continue
+                    for _sync_rel in syncs[_pname]['rel']:
+                        if _sync_rel[MSG] == sync_rel[MSG]:
+                            offset = _sync_rel[TIME] - sync_rel[TIME]
+                    if offset:
+                        break
+                if offset:
+                    break
+
+        if offset is None:
+            print 'no rel sync  %s' % pname
             continue
 
-        t_prof = prof[0][TIME]
+      # print 'sync profile %-100s : %20.3fs' % (pname, offset)
+        for event in prof:
+            event[TIME] += offset
 
-        host, ip, t_sys, t_ntp, t_mode = prof[0][MSG].split(':')
-        host_id = '%s:%s' % (host, ip)
+    # all profiles are rel-synced here.  Now we look at sync_abs values to align
+    # across hosts and to determine accuracy.
+    for pname in syncs:
 
-        if t_min: t_min = min(t_min, t_prof)
-        else    : t_min = t_prof
+        for sync_abs in syncs[pname]['abs']:
 
-        if t_mode == 'sys':
-          # print 'sys synced profile (%s)' % t_mode
-            continue
-
-        # determine the correction for the given host
-        t_sys = float(t_sys)
-        t_ntp = float(t_ntp)
-        t_off = t_sys - t_ntp
-
-        if  host_id in t_host and \
-            t_host[host_id] != t_off:
-
-            diff = t_off - t_host[host_id]
-            accuracy = max(accuracy, diff)
-
-            # we allow for *some* amount of inconsistency before warning
-            if diff > NTP_DIFF_WARN_LIMIT:
-                print 'conflicting time sync for %-45s (%15s): '%(pname.split('/')[-1], host_id) \
-                    + '%10.2f - %10.2f = %5.2f' % \
-                      (t_off,t_host[host_id], diff)
+            if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
+                # https://github.com/radical-cybertools/radical.analytics/issues/20
+              # print 'unsynced profile %s [%s]' % (pname, sync_abs)
                 continue
 
-        t_host[host_id] = t_off
+            t_prof = sync_abs[TIME]
+
+            host, ip, t_sys, t_ntp, t_mode = sync_abs[MSG].split(':')
+            host_id = '%s:%s' % (host, ip)
+
+            if t_min: t_min = min(t_min, t_prof)
+            else    : t_min = t_prof
+
+            if t_mode == 'sys':
+              # print 'sys synced profile (%s)' % t_mode
+                continue
+
+            # determine the correction for the given host
+            t_sys = float(t_sys)
+            t_ntp = float(t_ntp)
+            t_off = t_sys - t_ntp
+
+            if  host_id in t_host and \
+                t_host[host_id] != t_off:
+
+                diff = t_off - t_host[host_id]
+                accuracy = max(accuracy, diff)
+
+                # we allow for *some* amount of inconsistency before warning
+                if diff > NTP_DIFF_WARN_LIMIT:
+                    print 'conflicting time sync for %-45s (%15s): '%(pname.split('/')[-1], host_id) \
+                        + '%10.2f - %10.2f = %5.2f' % \
+                          (t_off,t_host[host_id], diff)
+                    continue
+
+            t_host[host_id] = t_off
 
 
     unsynced = set()
-    last = None
+    last     = None
     # now that we can align clocks for all hosts, apply that correction to all
     # profiles
     for pname, prof in profs.iteritems():
@@ -429,15 +516,17 @@ def combine_profiles(profs):
           # print 'empty prof: %s' % pname
             continue
 
-        if not prof[0][MSG]:
-          # print 'no sync msg: %s' % prof[0]
+        if not syncs[pname]['abs']:
+          # print 'no sync_abs msg: %s' % prof[0]
             continue
 
+        sync_abs = syncs[pname]['abs'][0]
+
       # print MSG
-      # print prof[0]
-      # print prof[0][MSG]
-      # print prof[0][MSG].split(':')
-        host, ip, _, _, _ = prof[0][MSG].split(':')
+      # print sync_abs
+      # print sync_abs[MSG]
+      # print sync_abs[MSG].split(':')
+        host, ip, _, _, _ = sync_abs[MSG].split(':')
         host_id = '%s:%s' % (host, ip)
         if host_id in t_host:
             t_off = t_host[host_id]
@@ -445,7 +534,7 @@ def combine_profiles(profs):
             unsynced.add(host_id)
             t_off = 0.0
 
-        t_0 = prof[0][TIME]
+        t_0 = sync_abs[TIME]
         t_0 -= t_min
 
         # correct profile timestamps
@@ -466,25 +555,20 @@ def combine_profiles(profs):
         # add profile to global one
         p_glob += prof
 
+      # if prof:
+      #     print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
+
         # Check for proper closure of profiling files
         if c_end == 0:
             print 'WARNING: profile "%s" not correctly closed.' % pname
       # elif c_end > 1:
       #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
-  # if last:
-  #     print 'TIME   : %s' % last[TIME  ]
-  #     print 'EVENT  : %s' % last[EVENT ]   
-  #     print 'COMP   : %s' % last[COMP  ]
-  #     print 'UID    : %s' % last[UID   ]
-  #     print 'STATE  : %s' % last[STATE ]
-  #     print 'MSG    : %s' % last[MSG   ]
-  #     print 'ENTITY : %s' % last[ENTITY]
-
-
     # sort by time and return
     p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
 
+  # print 'check        %-100s: %s' % ('t_min', p_glob[0][TIME])
+  # print 'check        %-100s: %s' % ('t_max', p_glob[-1][TIME])
     return p_glob, accuracy
 
 
