@@ -322,7 +322,8 @@ def read_profiles(profiles, sid=None, efilter=None):
                     # we should have no unset (ie. None) fields left - otherwise
                     # the profile was likely not correctly closed.
                     if None in row:
-                        raise ValueError('row invalid [%s]: %s' % (prof, raw))
+                        print 'row invalid [%s]: %s' % (prof, raw)
+                      # raise ValueError('row invalid [%s]: %s' % (prof, raw))
 
                     # apply the filter.  We do that after adding the entity
                     # field above, as the filter might also apply to that.
