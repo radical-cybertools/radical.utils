@@ -330,6 +330,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                     # the profile was likely not correctly closed.
                     if None in row:
                         print 'row invalid [%s]: %s' % (prof, raw)
+                        continue
                       # raise ValueError('row invalid [%s]: %s' % (prof, row))
 
                     # apply the filter.  We do that after adding the entity
