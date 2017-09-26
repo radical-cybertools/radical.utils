@@ -16,7 +16,7 @@ from   .read_json import read_json       as ru_read_json
 
 # ------------------------------------------------------------------------------
 #
-# We store profiles in CSV formatted files ('C' as in 'Colon` ;).
+# We store profiles in CSV formatted files.
 # The CSV field names are defined here:
 #
 TIME         = 0  # time of event (float, seconds since epoch)  mandatory
