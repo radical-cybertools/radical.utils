@@ -16,8 +16,8 @@ from   .read_json import read_json       as ru_read_json
 
 # ------------------------------------------------------------------------------
 #
-# We store profiles in CSV formatted files.  The CSV field names are defined
-# here:
+# We store profiles in CSV formatted files ('C' as in 'Colon` ;).
+# The CSV field names are defined here:
 #
 TIME         = 0  # time of event (float, seconds since epoch)  mandatory
 EVENT        = 1  # event ID (string)                           mandatory
@@ -28,6 +28,19 @@ STATE        = 5  # state of entity involved                    optional
 MSG          = 6  # message describing the event                optional
 ENTITY       = 7  # type of entity involved                     optional
 PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
+
+# Note that `ENTITY` is not written to the profile, but rather derived from the
+# UID when reading the profiles.
+
+# A previous incarnation of this class stored CSVs with the following columns:
+#
+# TIME       = 0  # time of event (float, seconds since epoch)  mandatory
+# COMP       = 2  # component which recorded the event          mandatory
+# TID        = 3  # uid of thread involved                      optional
+# UID        = 4  # uid of entity involved                      optional
+# STATE      = 5  # state of entity involved                    optional
+# EVENT      = 1  # event ID (string)                           mandatory
+# MSG        = 6  # message describing the event                optional
 
 # ------------------------------------------------------------------------------
 #
