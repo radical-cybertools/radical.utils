@@ -23,7 +23,7 @@ _ALIVE_MSG     = 'alive'  # message to use as alive signal
 _START_TIMEOUT = 20.0     # time to wait for process startup signal.
                           # startup signal: 'alive' message on the socketpair;
                           # is sent in both directions to ensure correct setup
-_WATCH_TIMEOUT = 5.0      # time between thread and process health polls.
+_WATCH_TIMEOUT = 0.2      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
 _STOP_TIMEOUT  = 3.0      # time between temination signal and killing child
@@ -252,7 +252,7 @@ class Process(mp.Process):
         # thread sets `self._ru_term`.
         try:
 
-            self._ru_poller = ru_poll.poll()
+            self._ru_poller = ru_poll.poll(logger=self._log)
             self._ru_poller.register(self._ru_endpoint,
                     ru_poll.POLLIN  | ru_poll.POLLERR | ru_poll.POLLHUP)
                  #  ru_poll.POLLPRI | ru_poll.POLLNVAL)
@@ -338,8 +338,10 @@ class Process(mp.Process):
                 self._ru_log.warn('endpoint disappeard')
                 return False
 
-          # if event & ru_poll.POLLPRI : self._ru_log.info(' === POLLPRI : %s', self._ru_endpoint.fileno())
-          # if event & ru_poll.POLLNVAL: self._ru_log.info(' === POLLNVAL: %s', self._ru_endpoint.fileno())
+          # if event & ru_poll.POLLPRI:
+          #     self._ru_log.info('POLLPRI : %s', self._ru_endpoint.fileno())
+          # if event & ru_poll.POLLNVAL:
+          #     self._ru_log.info('POLLNVAL: %s', self._ru_endpoint.fileno())
 
         time.sleep(0.1)
 

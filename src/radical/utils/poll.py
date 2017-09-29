@@ -30,8 +30,8 @@ _use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 # ------------------------------------------------------------------------------
 # define the Poller factory.  No idea why the Poller object is not directly
 # exposed in the `select` module... :/
-def poll():
-    return (Poller())
+def poll(logger=None):
+    return (Poller(logger))
 
 
 # ------------------------------------------------------------------------------
@@ -54,8 +54,18 @@ if _use_pypoll:
         with our own, select based implementation.
         '''
 
-        def __init__(self):
+        def __init__(self, logger=None):
+
+          # self._log  = logger
             self._poll = select.poll()
+
+          # self._log.debug(' ==== POLLIN   : %s', POLLIN   )
+          # self._log.debug(' ==== POLLPRI  : %s', POLLPRI  )
+          # self._log.debug(' ==== POLLOUT  : %s', POLLOUT  )
+          # self._log.debug(' ==== POLLERR  : %s', POLLERR  )
+          # self._log.debug(' ==== POLLHUP  : %s', POLLHUP  )
+          # self._log.debug(' ==== POLLNVAL : %s', POLLNVAL )
+          # self._log.debug(' ==== POLLALL  : %s', POLLALL  )
 
         def close(self):
             self._poll = None
@@ -76,6 +86,8 @@ if _use_pypoll:
             assert(self._poll)
             time.sleep(0.2)
             ret = self._poll.poll(timeout)
+          # if self._log:
+          #     self._log.debug('pypoll: %s', ret)
             return ret
 
 
@@ -118,13 +130,22 @@ else:
 
         # ----------------------------------------------------------------------
         #
-        def __init__(self):
+        def __init__(self, logger=None):
 
+          # self._log        = logger
             self._lock       = mt.RLock()
             self._registered = {POLLIN  : list(),
                                 POLLOUT : list(),
                                 POLLERR : list(),
                                 POLLHUP : list()}
+
+          # self._log.debug(' ==== POLLIN   : %s', POLLIN   )
+          # self._log.debug(' ==== POLLPRI  : %s', POLLPRI  )
+          # self._log.debug(' ==== POLLOUT  : %s', POLLOUT  )
+          # self._log.debug(' ==== POLLERR  : %s', POLLERR  )
+          # self._log.debug(' ==== POLLHUP  : %s', POLLHUP  )
+          # self._log.debug(' ==== POLLNVAL : %s', POLLNVAL )
+          # self._log.debug(' ==== POLLALL  : %s', POLLALL  )
 
 
         # ----------------------------------------------------------------------
@@ -217,6 +238,9 @@ else:
                 rret, wret, xret = select.select(rlist + hlist, wlist,
                                                  xlist, timeout)
 
+              # if self._log:
+              #     self._log.debug('rppoll 0 : %s - %s - %s', rret, wret, xret)
+
                 # do not return hlist-only FDs
                 ret += [[fd, POLLOUT] for fd in set(wret)]
                 ret += [[fd, POLLERR] for fd in set(xret)]
@@ -266,6 +290,9 @@ else:
                     # semantically, but whatever...
                     if hup: ret.append([fd, POLLIN | POLLHUP])
                     else  : ret.append([fd, POLLIN])
+
+              # if self._log:
+              #     self._log.debug('rppoll 1 : %s (%s)', ret, rlist)
 
                 return ret
 
