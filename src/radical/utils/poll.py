@@ -24,7 +24,12 @@ import threading as mt
 # If `RU_USE_PYPOLL` is set (to an arbitrary, non-empty value) in the
 # environment, we fall back to the native Python implementation.
 #
-_use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
+_use_pypoll = os.environ.get('RU_USE_PYPOLL', True)
+if isinstance(_use_pypoll, basestring):
+    if _use_pypoll.lower() in ['false', '0']:
+        _use_pypoll = False
+    else:
+        _use_pypoll = True
 
 
 # ------------------------------------------------------------------------------
