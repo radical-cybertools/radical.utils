@@ -28,7 +28,7 @@ _START_TIMEOUT = 5.0      # time to wait for process startup signal.
 _WATCH_TIMEOUT = 0.5      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
-_STOP_TIMEOUT  = 10.0     # time between temination signal and killing child
+_STOP_TIMEOUT  = 2.0     # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 
