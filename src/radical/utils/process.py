@@ -28,7 +28,7 @@ _START_TIMEOUT = 5.0      # time to wait for process startup signal.
 _WATCH_TIMEOUT = 0.5      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
-_STOP_TIMEOUT  = 0.1      # time between temination signal and killing child
+_STOP_TIMEOUT  = 2.0     # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 
@@ -287,7 +287,12 @@ class Process(mp.Process):
         finally:
             # no matter why we fell out of the loop: let the other end of the
             # socket know by closing the socket endpoint.
+
+            # Fix radical-cybertools/radical.utils issue #120
+            # We need to call SHUTDOWN before we close the socket...
+            # From: https://docs.python.org/2/howto/sockets.html#disconnecting
             self._ru_log.info('watcher closes')
+            self._ru_endpoint.shutdown(socket.SHUT_RDWR)
             self._ru_endpoint.close()
             self._ru_poller.close()
 
@@ -327,8 +332,12 @@ class Process(mp.Process):
                 # FIXME: BUFSIZE should not be hardcoded
                 # FIXME: we do nothing with the message yet, should be
                 #        stored in a message queue.
+                
                 msg = self._ru_msg_recv(_BUFSIZE)
                 self._ru_log.info('message received: %s' % msg)
+                if msg == '':
+                    self._ru_log.warn('message received is an empty string, assuming parent closed endpoint')
+                    return False
 
       # self._ru_log.debug('endpoint watch ok')
         return True
