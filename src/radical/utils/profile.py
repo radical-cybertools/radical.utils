@@ -113,7 +113,12 @@ class Profiler(object):
         except OSError:
             pass  # already exists
 
-        self._handle = open("%s/%s.prof" % (self._path, self._name), 'a')
+        # we set `buffering` to `1` to force line buffering.  That is not idea
+        # performance wise - but will not do an `fsync()` after writes, so OS
+        # level buffering should still apply.  This is supposed to shield
+        # against incomplete profiles.
+        self._handle = open("%s/%s.prof" % (self._path, self._name), 'a',
+                            buffering=1)
 
         # write header and time normalization info
         if self._handle:
