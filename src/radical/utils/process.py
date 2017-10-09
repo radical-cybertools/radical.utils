@@ -1078,7 +1078,7 @@ class Process(mp.Process):
     #
     def is_alive(self, strict=True):
         '''
-        Check if the child process is still alive, and also assert that
+        Check if the child process is still alive, and also ensure that
         termination is not yet initiated.  If `strict` is set (default), then
         only the process state is checked.
         '''
@@ -1093,9 +1093,6 @@ class Process(mp.Process):
 
         else:
             # this is the parent, and it spawned: check for real
-            # NOTE: assert removed for performance
-          # assert(self._ru_spawned)
-          # assert(self._ru_is_parent)
             alive = super(Process, self).is_alive()
             if not alive:
                 self._ru_log.warn('super: alive check failed [%s]', alive)
