@@ -472,7 +472,7 @@ def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or os.environ.get('CONDA_DEFAULT_ENV','')}, 
            'radical' : dict()
           }
 
