@@ -132,6 +132,9 @@ class Profiler(object):
         if not self._enabled:
             return
 
+        if not self._handle:
+            return
+
         if not timestamp:
             timestamp = self.timestamp()
 
@@ -151,12 +154,9 @@ class Profiler(object):
         if msg   is None: msg   = ''
         if state is None: state = ''
 
-        try:
-            self._handle.write("%.4f,%s:%s,%s,%s,%s,%s\n"
-                    % (timestamp, comp, tid, uid, state, event, msg))
-        except Exception as e:
-            sys.stderr.write('profile write error: %s' % repr(e))
-            sys.stderr.flush()
+        data = "%.4f,%s:%s,%s,%s,%s,%s\n" \
+                % (timestamp, comp, tid, uid, state, event, msg)
+        self._handle.write(data)
 
 
     # --------------------------------------------------------------------------
