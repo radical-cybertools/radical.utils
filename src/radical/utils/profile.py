@@ -191,6 +191,7 @@ class Profiler(object):
              comp=None):
 
         if not self._enabled: return
+        if not self._handle : return
 
         if uid       is None: uid       = ''
         if state     is None: state     = ''
@@ -205,24 +206,10 @@ class Profiler(object):
                           timestamp=timestamp, comp=comp)
             return
 
-        tid = threading.current_thread().name
-
-        try:
-            if self._handle:
-            #   if event == 'sync_abs':
-            # TIME   = 0  # time of event (float, seconds since epoch)  mandatory
-            # EVENT  = 1  # event ID (string)                           mandatory
-            # COMP   = 2  # component which recorded the event          mandatory
-            # TID    = 3  # uid of thread involved                      optional
-            # UID    = 4  # uid of entity involved                      optional
-            # STATE  = 5  # state of entity involved                    optional
-            # MSG    = 6  # message describing the event                optional
-            # ENTITY = 7  # type of entity involved                     optional
-                self._handle.write("%.4f,%s,%s,%s,%s,%s,%s\n"
-                        % (timestamp, event, comp, tid, uid, state, msg))
-        except Exception as e:
-            sys.stderr.write('profile write error: %s' % repr(e))
-            sys.stderr.flush()
+        tid  = threading.current_thread().name
+        data = "%.4f,%s:%s,%s,%s,%s,%s\n" \
+                % (timestamp, comp, tid, uid, state, event, msg)
+        self._handle.write(data)
 
 
     # --------------------------------------------------------------------------
