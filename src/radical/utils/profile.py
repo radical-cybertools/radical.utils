@@ -172,8 +172,8 @@ class Profiler(object):
     #
     def flush(self, verbose=True):
 
-        if not self._enabled:
-            return
+        if not self._enabled: return
+        if not self._handle : return
 
         if self._enabled:
 
