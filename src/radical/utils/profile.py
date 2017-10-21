@@ -275,6 +275,14 @@ def read_profiles(profiles, sid=None, efilter=None):
     Filters apply on *substring* matches!
     """
 
+    legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
+
+    if legacy and legacy.lower() not in ['no', 'false']:
+        legacy = True
+    else:
+        legacy = False
+
+
   # import resource
   # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
 
@@ -339,6 +347,27 @@ def read_profiles(profiles, sid=None, efilter=None):
 
                     # we should have no unset (ie. None) fields left - otherwise
                     # the profile was likely not correctly closed.
+                    if None in row:
+                        if legacy:
+                            comp, tid = row[1].split(':', 1)
+                            new_row = [None] * PROF_KEY_MAX
+                            new_row[TIME        ] = row[0]
+                            new_row[EVENT       ] = row[4]
+                            new_row[COMP        ] = comp
+                            new_row[TID         ] = tid
+                            new_row[UID         ] = row[2]
+                            new_row[STATE       ] = row[3]
+                            new_row[MSG         ] = row[5]
+
+                            uid = new_row[UID]
+                            if uid:
+                                new_row[ENTITY] = uid.split('.',1)[0]
+                            else:
+                                new_row[ENTITY] = 'session'
+                                new_row[UID]    = sid
+
+                            row = new_row
+
                     if None in row:
                         print 'row invalid [%s]: %s' % (prof, raw)
                         continue
