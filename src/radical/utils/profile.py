@@ -187,26 +187,28 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
+    # FIXME: reorder args to reflect tupleorder (breaks API)
+    #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             comp=None):
+             comp=None, tid=None):
 
         if not self._enabled: return
         if not self._handle : return
 
+        if timestamp is None: timestamp = self.timestamp()
+        if comp      is None: comp      = self._name
+        if tid       is None: tid       = ru_get_thread_name()
         if uid       is None: uid       = ''
         if state     is None: state     = ''
         if msg       is None: msg       = ''
-        if timestamp is None: timestamp = self.timestamp()
-        if comp      is None: comp      = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
                 self.prof(event=event, uid=_uid, state=state, msg=msg,
-                          timestamp=timestamp, comp=comp)
+                          timestamp=timestamp, comp=comp, tid=tid)
             return
 
-        tid  = threading.current_thread().name
         data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
                 % (timestamp, event, comp, tid, uid, state, msg)
         self._handle.write(data)
