@@ -207,8 +207,8 @@ class Profiler(object):
             return
 
         tid  = threading.current_thread().name
-        data = "%.4f,%s:%s,%s,%s,%s,%s\n" \
-                % (timestamp, comp, tid, uid, state, event, msg)
+        data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
+                % (timestamp, event, comp, tid, uid, state, msg)
         self._handle.write(data)
 
 
