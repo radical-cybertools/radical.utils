@@ -187,28 +187,30 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
+    # FIXME: reorder args to reflect tupleorder (breaks API)
+    #
     def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             comp=None):
+             comp=None, tid=None):
 
         if not self._enabled: return
         if not self._handle : return
 
+        if timestamp is None: timestamp = self.timestamp()
+        if comp      is None: comp      = self._name
+        if tid       is None: tid       = ru_get_thread_name()
         if uid       is None: uid       = ''
         if state     is None: state     = ''
         if msg       is None: msg       = ''
-        if timestamp is None: timestamp = self.timestamp()
-        if comp      is None: comp      = self._name
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
                 self.prof(event=event, uid=_uid, state=state, msg=msg,
-                          timestamp=timestamp, comp=comp)
+                          timestamp=timestamp, comp=comp, tid=tid)
             return
 
-        tid  = threading.current_thread().name
-        data = "%.4f,%s:%s,%s,%s,%s,%s\n" \
-                % (timestamp, comp, tid, uid, state, event, msg)
+        data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
+                % (timestamp, event, comp, tid, uid, state, msg)
         self._handle.write(data)
 
 
@@ -275,6 +277,14 @@ def read_profiles(profiles, sid=None, efilter=None):
     Filters apply on *substring* matches!
     """
 
+    legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
+
+    if legacy and legacy.lower() not in ['no', 'false']:
+        legacy = True
+    else:
+        legacy = False
+
+
   # import resource
   # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
 
@@ -339,6 +349,27 @@ def read_profiles(profiles, sid=None, efilter=None):
 
                     # we should have no unset (ie. None) fields left - otherwise
                     # the profile was likely not correctly closed.
+                    if None in row:
+                        if legacy:
+                            comp, tid = row[1].split(':', 1)
+                            new_row = [None] * PROF_KEY_MAX
+                            new_row[TIME        ] = row[0]
+                            new_row[EVENT       ] = row[4]
+                            new_row[COMP        ] = comp
+                            new_row[TID         ] = tid
+                            new_row[UID         ] = row[2]
+                            new_row[STATE       ] = row[3]
+                            new_row[MSG         ] = row[5]
+
+                            uid = new_row[UID]
+                            if uid:
+                                new_row[ENTITY] = uid.split('.',1)[0]
+                            else:
+                                new_row[ENTITY] = 'session'
+                                new_row[UID]    = sid
+
+                            row = new_row
+
                     if None in row:
                         print 'row invalid [%s]: %s' % (prof, raw)
                         continue
