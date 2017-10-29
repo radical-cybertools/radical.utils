@@ -5,6 +5,53 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.46.2 Release                                                        2017-08-23
+--------------------------------------------------------------------------------
+
+  - hotfix for RP #1415
+
+
+0.46.1 Release                                                        2017-08-23
+--------------------------------------------------------------------------------
+
+  - hotfix for RP #1415
+
+
+Version 0.46 release                                                  2017-08-11
+--------------------------------------------------------------------------------
+
+  - Feature/managed process (#104) 
+  - Feature/poll (#106) 
+  - Fix/version strings (#107) 
+  - Revert "Feature/managed process" (#102) 
+  - add a managed process class 
+  - add close() method to logger 
+  - add some doc on raise_in_thread() 
+  - apply ru.Process syntax/semantics to ru.Thread 
+  - be friendly to MacOS 
+  - clean out and comment on utils thread wrapper 
+  - cleanup on ru Process class, tests 
+  - fix logging, leave parent termination alone 
+  - fix process termination test case 
+  - fix raise_on messaging and eval; work on cancellation (#101) 
+  - fix thread locality, logging 
+  - fuck python 
+  - get stack info and clone in sync 
+  - improve error reporting on child processes 
+  - iterate and complete documentation; 
+  - iteration on reliable process management 
+  - make a sanity check non-fatal 
+  - make sure that thread local data are accessible 
+  - move gettid to where it belongs 
+  - proper handling of null logger 
+  - remove potential filename collission in test suite 
+  - rename ru.Thread to ru.Future (#95) 
+  - remove some debug prints/logs, add assert 
+  - simplify radical-stack, make programmatic 
+  - support for cprofile in ru.Thread 
+  - rename ru.Thread to ru.Future
+
+
 Version 0.45 release                                                  2017-02-28
 --------------------------------------------------------------------------------
 
@@ -205,4 +252,5 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
+
 

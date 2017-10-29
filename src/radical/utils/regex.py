@@ -158,7 +158,7 @@ class ReSult (object) :
 
             for i, m in enumerate (self) :
                 if m != other[i] :
-                    print '%s != %s' % (m, other[i])
+                  # print '%s != %s' % (m, other[i])
                     return len(m) - len(other[i])
             return 0
 

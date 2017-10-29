@@ -41,7 +41,7 @@ class Benchmark (object) :
         elif isinstance (config, dict) :
             app_cfg = config
         else :
-            print 'warning: no valid benchmarl config (neither filename nor dict) -- ignore'
+            print 'warning: no valid benchmark config (neither filename nor dict) -- ignore'
             app_cfg = dict()
 
         if  'benchmarks' in app_cfg :
