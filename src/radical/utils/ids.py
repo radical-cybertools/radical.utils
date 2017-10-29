@@ -13,6 +13,8 @@ import datetime
 import threading
 import singleton
 
+from .misc import dockerized
+
 
 # ------------------------------------------------------------------------------
 #
@@ -131,6 +133,9 @@ def generate_id(prefix, mode=ID_SIMPLE):
     type and item type, and restarts for each session (application process).  In
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
     and can thus span multiple applications.
+
+    Note that for docker containers, we try to avoid hostname / username clashes
+    and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
 
     if not prefix or \
@@ -138,6 +143,9 @@ def generate_id(prefix, mode=ID_SIMPLE):
         raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""
+
+    if dockerized() and mode == ID_PRIVATE:
+         mode = ID_UUID
 
     if   mode == ID_SIMPLE : template = "%(prefix)s.%(counter)04d"
     elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
@@ -219,10 +227,10 @@ def _generate_id(template, prefix):
     ret = template % info
 
     if '%(' in ret:
-        import pprint
-        pprint.pprint(info)
-        print template
-        print ret
+      # import pprint
+      # pprint.pprint(info)
+      # print template
+      # print ret
         raise ValueError('unknown replacement pattern in template (%s)' % template)
 
     return ret
