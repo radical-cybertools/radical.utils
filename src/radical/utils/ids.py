@@ -224,10 +224,10 @@ def _generate_id(template, prefix):
     ret = template % info
 
     if '%(' in ret:
-        import pprint
-        pprint.pprint(info)
-        print template
-        print ret
+      # import pprint
+      # pprint.pprint(info)
+      # print template
+      # print ret
         raise ValueError('unknown replacement pattern in template (%s)' % template)
 
     return ret
