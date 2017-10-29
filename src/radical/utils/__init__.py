@@ -13,7 +13,7 @@ from .singleton      import Singleton
 from .process        import Process
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
-from .threads        import main_thread, this_thread
+from .threads        import main_thread, this_thread, get_thread_name, gettid
 from .threads        import set_cancellation_handler, unset_cancellation_handler
 from .threads        import raise_in_thread, ThreadExit, SignalRaised
 from .futures        import Future
@@ -28,6 +28,8 @@ from .reporter       import Reporter
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
+from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
 # import utility methods
 from .logger         import *
@@ -55,7 +57,10 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version, version_detail, version_branch, sdist_name, sdist_path = get_version()
+version_short, version_detail, version_base, \
+               version_branch, sdist_name,   \
+               sdist_path = get_version(_mod_root)
+version = version_short
 
 # ------------------------------------------------------------------------------
 

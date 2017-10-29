@@ -11,24 +11,21 @@ import signal
 import thread
 import traceback
 
-import Queue     as queue
-import threading as mt
+import Queue        as queue
+import threading    as mt
+import setproctitle as spt
 
 from .logger  import get_logger
-from .debug   import print_stacktrace, get_stacktrace
 
 
 # ------------------------------------------------------------------------------
 #
 _ALIVE_MSG     = 'alive'  # message to use as alive signal
-_START_TIMEOUT = 5.0      # time to wait for process startup signal.
-                          # startup signal: 'alive' message on the socketpair;
+_START_TIMEOUT = 20.0     # time to wait for thread's startup signal.
+                          # startup signal: 'alive' message
                           # is sent in both directions to ensure correct setup
-_WATCH_TIMEOUT = 0.5      # time between thread and process health polls.
-                          # health poll: check for recv, error and abort
-                          # on the socketpair; is done in a watcher thread.
-_STOP_TIMEOUT  = 2.0      # time between temination signal and killing child
-_BUFSIZE       = 1024     # default buffer size for socket recvs
+_STOP_TIMEOUT  = 3.0      # time between temination signal and killing child
+_BUFSIZE       = 1024*10  # default buffer size for socket recvs
 
 
 # ------------------------------------------------------------------------------
@@ -110,7 +107,8 @@ class Thread(mt.Thread):
         if not self._ru_log:
             # if no logger is passed down, log to null
             self._ru_log = get_logger('radical.util.threads')
-            self._ru_log.debug('name: %s' % self._ru_local.name)
+
+        self._ru_log.debug('parent name: %s' % self._ru_local.name)
 
         if target:
             # we don't support `arguments`, yet
@@ -147,7 +145,7 @@ class Thread(mt.Thread):
             # no child, no communication channel
             raise RuntimeError("can't communicate w/o child")
 
-        self._ru_log.info('send message: %s', msg)
+        self._ru_log.info('put message: [%s] %s', self._ru_local.name, msg)
         self._ru_endpoint.put('%s' % msg)
 
 
@@ -170,11 +168,11 @@ class Thread(mt.Thread):
                 msg = self._ru_endpoint.get(block=True, timeout=timeout)
             else:
                 msg = self._ru_endpoint.get(block=False)
-            self._ru_log.info('recv message: %s', msg)
+            self._ru_log.info('get msg: %s', msg)
             return msg
 
         except queue.Empty:
-            self._ru_log.warn('recv timed out')
+            self._ru_log.warn('get msg timed out')
             return ''
 
 
@@ -247,7 +245,7 @@ class Thread(mt.Thread):
             timeout = _START_TIMEOUT
 
         if spawn:
-            # start `self.run()` in the child process, and wait for it's
+            # start `self.run()` in the child thread, and wait for it's
             # initalization to finish, which will send the 'alive' message.
             super(Thread, self).start()
             self._ru_local.spawned = True
@@ -314,6 +312,8 @@ class Thread(mt.Thread):
 
         # set local data
         self._ru_local.name = self._ru_name + '.thread'
+        self._ru_log.debug('child name: %s' % self._ru_local.name)
+
         self._ru_local.started     = True   # start() has been called
         self._ru_local.spawned     = True   # set in start(), run()
         self._ru_local.initialized = False  # set to signal bootstrap success
@@ -427,7 +427,7 @@ class Thread(mt.Thread):
             #
             # Specifically, we will not be able to join this thread, and no
             # timeout is enforced
-            self._ru_log.info('signal stop for %s - do not join', self._ru_name)
+            self._ru_log.info('signal stop for %s - do not join', get_thread_name())
             self._ru_term.set()
             return
 
@@ -480,7 +480,7 @@ class Thread(mt.Thread):
             #
             # Specifically, we will not be able to join this thread, and no
             # timeout is enforced
-            self._ru_log.info('signal stop for %s - do not join', self._ru_name)
+            self._ru_log.info('signal stop for %s - do not join', get_thread_name())
             self._ru_term.set()
             return
 
@@ -555,8 +555,8 @@ class Thread(mt.Thread):
     def ru_initialize_common(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `start()`, for both the parent and the child process (individually).  If
-        this fails on either side, the process startup is considered failed.
+        `start()`, for both the parent and the child thread (individually).  If
+        this fails on either side, the thread startup is considered failed.
         '''
 
         self._ru_log.debug('ru_initialize_common (NOOP)')
@@ -567,7 +567,7 @@ class Thread(mt.Thread):
     def ru_initialize_parent(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `start()`, in the parent process.  If this fails, the process startup is
+        `start()`, in the parent thread.  If this fails, the thread startup is
         considered failed.
         '''
 
@@ -579,7 +579,7 @@ class Thread(mt.Thread):
     def ru_initialize_child(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `start()`, in the child process.  If this fails, the process startup is
+        `start()`, in the child thread.  If this fails, the thread startup is
         considered failed.
         '''
     
@@ -645,8 +645,8 @@ class Thread(mt.Thread):
     def ru_finalize_common(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `stop()` or process child termination, in the parent process, in both
-        the parent and the child process (individually).
+        `stop()` or thread child termination, in the parent thread, in both
+        the parent and the child thread (individually).
         '''
 
         self._ru_log.debug('ru_finalize_common (NOOP)')
@@ -657,7 +657,7 @@ class Thread(mt.Thread):
     def ru_finalize_parent(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `stop()` or process child termination, in the parent process.
+        `stop()` or thread child termination, in the parent thread.
         '''
 
         self._ru_log.debug('ru_finalize_parent (NOOP)')
@@ -668,7 +668,7 @@ class Thread(mt.Thread):
     def ru_finalize_child(self):
         '''
         This method can be overloaded, and will then be executed *once* during
-        `stop()` or process child termination, in the child process.
+        `stop()` or thread child termination, in the child thread.
         '''
 
         self._ru_log.debug('ru_finalize_child (NOOP)')
@@ -679,7 +679,7 @@ class Thread(mt.Thread):
     def work_cb(self):
         '''
         This method MUST be overloaded.  It represents the workload of the
-        process, and will be called over and over again.
+        thread, and will be called over and over again.
 
         This has several implications:
 
@@ -691,7 +691,7 @@ class Thread(mt.Thread):
         Before the first invocation, `self.ru_initialize_child()` will be called.
         After the last invocation, `self.ru_finalize_child()` will be called, if
         possible.  The latter will not always be possible if the child is
-        terminated by a signal, such as when the parent process calls
+        terminated by a signal, such as when the parent thread calls
         `child.terminate()` -- `child.stop()` should be used instead.
 
         The overloaded method MUST return `True` or `False` -- the child will
@@ -764,6 +764,24 @@ def get_thread_name():
 def get_thread_id():
 
     return mt.current_thread().ident
+
+
+# ------------------------------------------------------------------------------
+#
+def gettid():
+    """
+    Python is not able to give us the native thread ID.  We thus use a syscall
+    to do so.  Since this is not portable, we fall back to None in case of error
+    (Hi MacOS).
+    """
+    try:
+        import ctypes
+        SYS_gettid = 186
+        libc = ctypes.cdll.LoadLibrary('libc.so.6')
+        return int(libc.syscall(SYS_gettid))
+    except:
+        return None
+
 
 
 # ------------------------------------------------------------------------------
@@ -1019,8 +1037,28 @@ def raise_in_thread(e=None, tname=None, tident=None):
 
 
     NOTE: we can only raise exception *types*, not exception *instances*
-
           See https://bugs.python.org/issue1538556
+
+    Example:
+
+        # ----------------------------------------------------------------------
+        def sub():
+            time.sleep(0.1)
+            ru.raise_in_thread()
+
+        try:
+            t = mt.Thread(target=sub)
+            t.start()
+
+            while True:
+                time.sleep(0.01)
+
+        except ru.ThreadExit:  print 'thread exit'
+        except Exception as e: print 'except: %s' % e
+        except SystemExit:     print 'exit'
+        else:                  print 'unexcepted'
+        finally:               t.join()
+        # ----------------------------------------------------------------------
     """
 
     if not tident:

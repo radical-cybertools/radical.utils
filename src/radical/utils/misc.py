@@ -3,16 +3,19 @@ import sys
 import time
 import glob
 import regex
+import shlex
 import signal
 import socket
 import importlib
 import netifaces
 import threading
+
+import subprocess as sp
 import url as ruu
 
 # ------------------------------------------------------------------------------
 #
-def split_dburl(dburl, default_dburl=None) :
+def split_dburl(dburl, default_dburl=None):
     """
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
@@ -21,16 +24,16 @@ def split_dburl(dburl, default_dburl=None) :
 
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
-    
-    url = ruu.Url (dburl)
 
-    if not url.schema and not url.host :
-        url      = ruu.Url (default_dburl)
+    url = ruu.Url(dburl)
+
+    if not url.schema and not url.host:
+        url      = ruu.Url(default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...
     if 'mongodb' not in url.schema.split('+'):
-        raise ValueError ("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
+        raise ValueError("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
@@ -46,27 +49,27 @@ def split_dburl(dburl, default_dburl=None) :
     if not host:
         host = 'localhost'
 
-    if  path.startswith ('/') :
+    if  path.startswith('/'):
         path = path[1:]
-    path_elems = path.split ('/')
+    path_elems = path.split('/')
 
     dbname = None
     cname  = None
     pname  = None
 
-    if  len(path_elems)  >  0 :
+    if  len(path_elems)  >  0:
         dbname = path_elems[0]
 
-    if  len(path_elems)  >  1 :
-        dbname = path_elems[0]
-        cname  = path_elems[1]
-
-    if  len(path_elems)  >  2 :
+    if  len(path_elems)  >  1:
         dbname = path_elems[0]
         cname  = path_elems[1]
-        pname  = '.'.join (path_elems[2:])
 
-    if  dbname == '.' : 
+    if  len(path_elems)  >  2:
+        dbname = path_elems[0]
+        cname  = path_elems[1]
+        pname  = '.'.join(path_elems[2:])
+
+    if  dbname == '.':
         dbname = None
 
     return [host, port, dbname, cname, pname, user, pwd, ssl]
@@ -74,43 +77,42 @@ def split_dburl(dburl, default_dburl=None) :
 
 # ------------------------------------------------------------------------------
 #
-def mongodb_connect (dburl, default_dburl=None) :
+def mongodb_connect(dburl, default_dburl=None):
     """
     connect to the given mongodb, perform auth for the database (if a database
     was given).
     """
 
-    try :
+    try:
         import pymongo
-    except ImportError :
+    except ImportError:
         msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
         msg += "The first version will work for local installation, \n"
         msg += "the second one for installation from pypi.\n\n"
-        raise ImportError (msg)
+        raise ImportError(msg)
 
     [host, port, dbname, cname, pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
 
-    mongo = pymongo.MongoClient (host=host, port=port, ssl=ssl)
+    mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
     db    = None
 
-    if  dbname :
+    if  dbname:
         db = mongo[dbname]
 
-        if  user and pwd :
-            db.authenticate (user, pwd)
+        if  user and pwd:
+            db.authenticate(user, pwd)
 
-
-    else :
+    else:
 
         # if no DB is given, we try to auth against all databases.
-        for dbname in mongo.database_names () :
-            try :
-                mongo[dbname].authenticate (user, pwd)
-            except Exception as e :
-                pass 
+        for dbname in mongo.database_names():
+            try:
+                mongo[dbname].authenticate(user, pwd)
+            except Exception as e:
+                pass
 
 
     return mongo, db, dbname, cname, pname
@@ -118,16 +120,16 @@ def mongodb_connect (dburl, default_dburl=None) :
 
 # ------------------------------------------------------------------------------
 #
-def parse_file_staging_directives (directives) :
+def parse_file_staging_directives(directives):
     """
     staging directives
 
        [local_path] [operator] [remote_path]
 
-    local path: 
+    local path:
         * interpreted as relative to the application's working directory
         * must point to local storage (localhost)
-    
+
     remote path
         * interpreted as relative to the job's working directory
 
@@ -141,54 +143,53 @@ def parse_file_staging_directives (directives) :
     parsing is backward compatible with the simple staging directives used
     previously -- any strings which do not contain staging operators will be
     interpreted as simple paths (identical for src and tgt), operation is set to
-    '=', which must be interpreted in the caller context.  
+    '=', which must be interpreted in the caller context.
     """
 
     bulk = True
-    if  not isinstance (directives, list) :
+    if  not isinstance(directives, list):
         bulk       = False
         directives = [directives]
 
     ret = list()
 
-    for directive in directives :
+    for directive in directives:
 
-        if  not isinstance (directive, basestring) :
-            raise TypeError ("file staging directives muct by of type string, "
-                             "not %s" % type(directive))
+        if  not isinstance(directive, basestring):
+            raise TypeError("file staging directives muct by of type string, "
+                            "not %s" % type(directive))
 
-        rs = regex.ReString (directive)
+        rs = regex.ReString(directive)
 
-        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$' :
-            res = rs.get ()
-            ret.append ([res['one'], res['two'], res['op']])
+        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
+            res = rs.get()
+            ret.append([res['one'], res['two'], res['op']])
 
-        else :
-            ret.append ([directive, directive, '='])
+        else:
+            ret.append([directive, directive, '='])
 
-    if  bulk : return ret
-    else     : return ret[0]
+    if  bulk: return ret
+    else    : return ret[0]
 
 
 # ------------------------------------------------------------------------------
 #
-def time_stamp (spec) :
+def time_stamp(spec):
 
-    if  isinstance (spec, int)   or \
-        isinstance (spec, long)  or \
-        isinstance (spec, float) :
+    if  isinstance(spec, int)   or \
+        isinstance(spec, float)    :
 
         import datetime
-        return datetime.datetime.utcfromtimestamp (spec)
+        return datetime.datetime.utcfromtimestamp(spec)
 
     return spec
 
 
 # ------------------------------------------------------------------------------
 #
-def time_diff (dt_abs, dt_stamp) :
+def time_diff(dt_abs, dt_stamp):
     """
-    return the time difference bewteen  two datetime 
+    return the time difference bewteen  two datetime
     objects in seconds (incl. fractions).  Exceptions (like on improper data
     types) fall through.
     """
@@ -196,50 +197,49 @@ def time_diff (dt_abs, dt_stamp) :
     delta = dt_stamp - dt_abs
 
     # make it easy to use seconds since epoch instead of datetime objects
-    if  isinstance (delta, int)   or \
-        isinstance (delta, long)  or \
-        isinstance (delta, float) :
+    if  isinstance(delta, int)   or \
+        isinstance(delta, float)    :
         return delta
 
     import datetime
-    if  not isinstance  (delta, datetime.timedelta) :
-        raise TypeError ("difference between '%s' and '%s' is not a .timedelta" \
-                      % (type(dt_abs), type(dt_stamp)))
+    if  not isinstance(delta, datetime.timedelta):
+        raise TypeError("difference between '%s' and '%s' is not a .timedelta"
+                     % (type(dt_abs), type(dt_stamp)))
 
-    # get seconds as float 
-    seconds = delta.seconds + delta.microseconds/1E6
+    # get seconds as float
+    seconds = delta.seconds + delta.microseconds / 1E6
     return seconds
 
 
 # ------------------------------------------------------------------------------
 #
-def all_pairs (iterable, n) :
+def all_pairs(iterable, n):
     """
     [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
     """
 
-    import itertools 
-    return list(itertools.combinations (iterable, n))
+    import itertools
+    return list(itertools.combinations(iterable, n))
 
 
 # ------------------------------------------------------------------------------
 #
-def cluster_list (iterable, n) :
+def cluster_list(iterable, n):
     """
     s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
     """
 
     from itertools import izip
-    return izip(*[iter(iterable)]*n)
+    return izip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
 # From https://docs.python.org/release/2.3.5/lib/itertools-example.html
 #
-def window (seq, n=2) :
+def window(seq, n=2):
     """
     Returns a sliding window (of width n) over data from the iterable"
-    s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ... 
+    s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
     """
 
     from itertools import islice
@@ -247,16 +247,17 @@ def window (seq, n=2) :
     it = iter(seq)
     result = tuple(islice(it, n))
 
-    if len(result) == n :
+    if len(result) == n:
         yield result
 
-    for elem in it :
+    for elem in it:
         result = result[1:] + (elem,)
         yield result
 
+
 # ------------------------------------------------------------------------------
-# 
-def round_to_base (value, base=1):
+#
+def round_to_base(value, base=1):
     """
     This method expects an integer or float value, and will round it to any
     given integer base.  For example:
@@ -276,8 +277,8 @@ def round_to_base (value, base=1):
 
 
 # ------------------------------------------------------------------------------
-# 
-def round_upper_bound (value):
+#
+def round_upper_bound(value):
     """
     This method expects an integer or float value, and will return an integer upper
     bound suitable for example to define plot ranges.  The upper bound is the
@@ -291,11 +292,11 @@ def round_upper_bound (value):
 
     while True:
 
-        for c in check :
+        for c in check:
 
-            bound = c*(10**order)
+            bound = c * (10**order)
 
-            if value < bound: 
+            if value < bound:
                 return bound
 
         order += 1
@@ -340,23 +341,6 @@ def import_module(name):
 
 # ------------------------------------------------------------------------------
 #
-def gettid():
-    """
-    Python is not able to give us the native thread ID.  We thus use a syscall
-    to do so.  Since this is not portable, we fall back to None in case of error
-    (Hi MacOS).
-    """
-    try:
-        import ctypes
-        SYS_gettid = 186
-        libc = ctypes.cdll.LoadLibrary('libc.so.6')
-        return int(libc.syscall(SYS_gettid))
-    except:
-        return None
-
-
-# ------------------------------------------------------------------------------
-#
 _hostname = None
 def get_hostname():
     """
@@ -366,14 +350,14 @@ def get_hostname():
     global _hostname
     if not _hostname:
 
-        if socket.gethostname().find('.')>=0:
+        if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
 
         else:
             _hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
     return _hostname
-    
+
 
 # ------------------------------------------------------------------------------
 #
@@ -491,7 +475,7 @@ def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or os.environ.get('CONDA_DEFAULT_ENV','')}, 
            'radical' : dict()
           }
 
@@ -513,6 +497,59 @@ def stack():
 
     return ret
     
+
+# ------------------------------------------------------------------------------
+#
+def get_size(obj, seen=None, strict=False):
+
+    size   = sys.getsizeof(obj)
+    obj_id = id(obj)
+
+    if strict:
+        # perform recursion checks
+        if seen is None:
+            seen = set()
+        if obj_id in seen:
+            return 0
+        seen.add(obj_id)
+
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen, strict) for v in obj.values()])
+        size += sum([get_size(k, seen, strict) for k in obj.keys()])
+
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen, strict)
+
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen, strict) for i in obj])
+
+    return size
+
+
+# ------------------------------------------------------------------------------
+#
+def dockerized():
+
+    if os.path.exists('/.dockerenv'):
+        return True
+    return False
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout(cmd, shell=False):
+    '''
+    call a shell command, return `[stdout, stderr, retval]`.
+    '''
+
+    # convert string into arg list if needed
+    if not shell and isinstance(cmd, basestring):
+        cmd = shlex.split(cmd)
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
+    stdout, stderr = p.communicate()
+    return stdout, stderr, p.returncode
+
 
 # ------------------------------------------------------------------------------
 
