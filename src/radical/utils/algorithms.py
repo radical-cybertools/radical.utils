@@ -38,7 +38,7 @@ def collapse_ranges (ranges):
 
     # return empty list if given an empty list
     if not ranges:
-        return final
+        return []
 
     START = 0
     END   = 1

@@ -3,7 +3,6 @@
 import re
 import os
 import sys
-import subprocess    as sp
 
 _pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
 

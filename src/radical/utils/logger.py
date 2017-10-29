@@ -141,7 +141,7 @@ OFF    = -1
 # ------------------------------------------------------------------------------
 #
 def log_shutdown():
-    print 'shut my baby down'
+  # print 'shut my baby down'
     _logger_registry.close_all()
     logging.shutdown()
 
