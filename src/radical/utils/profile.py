@@ -54,21 +54,22 @@ NTP_DIFF_WARN_LIMIT = 1.0
 # ------------------------------------------------------------------------------
 #
 class Profiler(object):
-    """
+    '''
     This class is really just a persistent file handle with a convenience call
     (prof()) to write lines with timestamp and events.
     Any profiling intelligence is applied when reading and evaluating the
     created profiles.
-    """
+    '''
 
-    fields  = ['time', 'comp', 'uid', 'state', 'event', 'msg']
+    fields  = ['time', 'event', 'comp', 'tid', 'uid', 'state', 'msg']
+
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, env_name=None, path=None):
-        """
+        '''
         Open the file handle, sync the clock, and write timestam_zero
-        """
+        '''
 
         # use the profiler name as basis for the env check
         if not env_name:
@@ -117,20 +118,24 @@ class Profiler(object):
         # performance wise - but will not do an `fsync()` after writes, so OS
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
-        self._handle = open("%s/%s.prof" % (self._path, self._name), 'a',
+        self._handle = open('%s/%s.prof' % (self._path, self._name), 'a',
                             buffering=1)
 
         # write header and time normalization info
         if self._handle:
-            self._handle.write("#%s\n" % (','.join(Profiler.fields)))
-            self._handle.write("%.4f,%s,%s,%s,%s,%s,%s\n" %
-                           (self.timestamp(), 'sync_abs', self._name,
-                            ru_get_thread_name(), '', '',
-                            "%s:%s:%s:%s:%s" % (ru_get_hostname(),
-                                                ru_get_hostip(),
-                                                self._ts_zero,
-                                                self._ts_abs,
-                                                self._ts_mode)))
+            sync_info = '%s:%s:%s:%s:%s' % (ru_get_hostname(),
+                                            ru_get_hostip(),
+                                            self._ts_zero,
+                                            self._ts_abs,
+                                            self._ts_mode)
+            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
+            self._handle.write('%s\n'  % self.format(self.timestamp(),
+                                                     'sync_abs',
+                                                     self._name,
+                                                     ru_get_thread_name(),
+                                                     '',
+                                                     '',
+                                                     sync_info))
 
 
     # --------------------------------------------------------------------------
@@ -162,7 +167,7 @@ class Profiler(object):
             return
 
         if self._enabled and self._handle:
-            self.prof("END")
+            self.prof('END')
             self.flush(verbose=False)
             self._handle.close()
             self._handle = None
@@ -178,7 +183,7 @@ class Profiler(object):
         if self._enabled:
 
             if verbose:
-                self.prof("flush")
+                self.prof('flush')
 
             # see https://docs.python.org/2/library/stdtypes.html#file.flush
             self._handle.flush()
@@ -209,17 +214,25 @@ class Profiler(object):
                           timestamp=timestamp, comp=comp, tid=tid)
             return
 
-        data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
+        data = self.format(timestamp, event, comp, tid, uid, state, msg)
+        self._handle.write('%s\n' % data)
+
+
+    # --------------------------------------------------------------------------
+    #
+    @staticmethod
+    def format(timestamp, event, comp, tid, uid, state, msg):
+
+        return '%.4f,%s,%s,%s,%s,%s,%s' \
                 % (timestamp, event, comp, tid, uid, state, msg)
-        self._handle.write(data)
 
 
     # --------------------------------------------------------------------------
     #
     def _timestamp_init(self):
-        """
+        '''
         return a tuple of [system time, absolute time]
-        """
+        '''
 
         # retrieve absolute timestamp from an external source
         #
@@ -263,7 +276,7 @@ def timestamp():
 # ------------------------------------------------------------------------------
 #
 def read_profiles(profiles, sid=None, efilter=None):
-    """
+    '''
     We read all profiles as CSV files and parse them.  For each profile,
     we back-calculate global time (epoch) from the synch timestamps.
 
@@ -275,7 +288,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                  }
 
     Filters apply on *substring* matches!
-    """
+    '''
 
     legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
 
@@ -409,7 +422,7 @@ def read_profiles(profiles, sid=None, efilter=None):
 # ------------------------------------------------------------------------------
 #
 def combine_profiles(profs):
-    """
+    '''
     We merge all profiles and sort by time.
 
     This routine expects all profiles to have a synchronization time stamp.
@@ -430,7 +443,7 @@ def combine_profiles(profs):
     written at the exact same time).
 
     The method returnes the combined profile and accuracy, as tuple.
-    """
+    '''
 
     syncs    = dict()  # profiles which have relative time refs
     t_host   = dict()  # time offset per host
@@ -626,7 +639,7 @@ def combine_profiles(profs):
 # ------------------------------------------------------------------------------
 #
 def clean_profile(profile, sid, state_final, state_canceled):
-    """
+    '''
     This method will prepare a profile for consumption in radical.analytics.  It
     performs the following actions:
 
@@ -635,7 +648,7 @@ def clean_profile(profile, sid, state_final, state_canceled):
         is encountered for the same uid
       - assignes the session uid to all events without uid
       - makes sure that state transitions have an `ename` set to `state`
-    """
+    '''
 
     entities = dict()  # things which have a uid
 
