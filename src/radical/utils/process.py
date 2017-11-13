@@ -192,7 +192,8 @@ class Process(mp.Process):
         except Exception as e:
             # this should only happen once the EP is done for - terminate
             self._ru_log.warn('send failed (%s) - terminate', e)
-            self._ru_term.set()
+            if self._ru_term is not None:
+                self._ru_term.set()
 
 
 
@@ -252,7 +253,7 @@ class Process(mp.Process):
         # thread sets `self._ru_term`.
         try:
 
-            self._ru_poller = ru_poll.poll(logger=self._log)
+            self._ru_poller = ru_poll.poll(logger=self._ru_log)
             self._ru_poller.register(self._ru_endpoint,
                     ru_poll.POLLIN  | ru_poll.POLLERR | ru_poll.POLLHUP)
                  #  ru_poll.POLLPRI | ru_poll.POLLNVAL)
@@ -327,11 +328,11 @@ class Process(mp.Process):
                 # FIXME: BUFSIZE should not be hardcoded
                 # FIXME: we do nothing with the message yet, should be
                 #        stored in a message queue.
-                
+
                 msg = self._ru_msg_recv(_BUFSIZE)
                 self._ru_log.info('message received: %s' % msg)
                 if msg == '':
-                    self._ru_log.warn('message received is an empty string, assuming parent closed endpoint')
+                    self._ru_log.warn('received empty string, parent closed ep')
                     return False
 
                 if msg.strip() == 'STOP':
@@ -599,7 +600,8 @@ class Process(mp.Process):
                 self._ru_msg_send('error: %s' % repr(e))
               # sys.stderr.write('initialization error in %s: %s\n' % (self._ru_name, repr(e)))
               # sys.stderr.flush()
-                self._ru_term.set()
+                if self._ru_term is not None:
+                    self._ru_term.set()
 
             # initialization done - we only now send the alive signal, so the
             # parent can make some assumptions about the child's state
@@ -642,11 +644,11 @@ class Process(mp.Process):
             self._ru_finalize()
 
         except BaseException as e:
-            self._ru_log.exception('finalization error')
+            self._ru_log.error('finalization error: %s' % repr(e))
             try:
                 self._ru_msg_send('finalize: %s' % repr(e))
-            except Exception as e:
-                self._ru_log.exception('finalize error not sent: %s', repr(e))
+            except Exception as e2:
+                self._ru_log.exception('finalize error not sent: %s', repr(e2))
 
         try:
             self._ru_msg_send('terminating')
