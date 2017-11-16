@@ -19,7 +19,7 @@ import radical.utils as ru
 #
 def test_process_basic():
     '''
-    start a 'sleep 0.1', and expect this to finish within 0.x seconds
+    start a 'sleep 0.2', and expect this to finish within 0.x seconds
     '''
 
     class P(ru.Process):
@@ -37,7 +37,7 @@ def test_process_basic():
     assert(t2-t1 > 0.0), t2-t1
     assert(t2-t1 < 0.2), t2-t1  # process startup should be quick
     assert(t3-t1 > 0.2), t3-t1  # expect exactly one work iteration
-    assert(t3-t2 < 0.4), t3-t2
+    assert(t3-t2 < 0.5), t3-t2
 
 
 # ------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def test_process_autostart():
         def ru_initialize_common(self): self._initialize_common = True
         def ru_initialize_parent(self): self._initialize_parent = True
         def ru_initialize_child (self): self._initialize_child  = True
- 
+
         def ru_finalize_common(self)  : self._finalize_common   = True
         def ru_finalize_parent(self)  : self._finalize_parent   = True
         def ru_finalize_child (self)  : self._finalize_child    = True
@@ -85,8 +85,7 @@ def test_process_autostart():
             assert(self._initialize_common), 'no initialize common'
             assert(self._initialize_child),  'no initialize child'
             self._work_done = True
-            print 'work'
-            return False # only run once
+            return False  # only run once
 
     p = P()
 
@@ -144,10 +143,10 @@ def test_process_final_fail():
         p.start()
         p.stop()
     except Exception as e:
+        print 'excepted: %s' %e
         assert('oops final' in str(e)), str(e)
     else:
-        pass
-      # assert(False)
+        assert(False), 'missing exception'
 
     assert(not p.is_alive())
 
@@ -163,7 +162,6 @@ def test_process_parent_fail():
 
         def __init__(self):
             ru.Process.__init__(self, name='ru.test')
-
 
         def ru_initialize_child(self):
             self._c = Child()
@@ -189,22 +187,22 @@ def test_process_parent_fail():
         def work_cb(self):
             return True
 
-    
+
     p = Parent()
     p.start()
     with open('/tmp/c_pid.%d' % os.getuid(), 'r') as f:
         c_pid = int(f.read().strip())
     os.unlink('/tmp/c_pid.%d' % os.getuid())
-    os.kill(p.pid, 9)
+    os.kill(c_pid, 9)
 
     # leave some time for child to die
-    time.sleep(0.01)
+    time.sleep(1.01)
     try:
-        os.kill(c_pid, 0)
+        os.kill(p.pid, 0)
     except OSError as e:
-        pass # child is gone
-    except:
-        assert(False)
+        pass  # child is gone
+    else:
+        assert(False), 'child not gone'
 
     assert(not p.is_alive())
 
@@ -226,7 +224,7 @@ if __name__ == "__main__":
         test_process_basic()
         print '.',
         print i
-   
+
     sys.exit()
 
 

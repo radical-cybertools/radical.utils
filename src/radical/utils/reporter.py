@@ -4,10 +4,13 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import os
 import sys
 import string
 import singleton
+
 # import colorama as c
+
 
 # ------------------------------------------------------------------------------
 #
@@ -61,7 +64,7 @@ class Reporter(object):
                   ''             : ''}
 
 
-    # Define terminal colors for the reporter
+    # define terminal colors and other output options
     TITLE    = 'bold lightblue'
     HEADER   = 'bold lightyellow'
     INFO     = 'lightblue'
@@ -77,7 +80,16 @@ class Reporter(object):
     DOUBLE  = '='
     HASHED  = '#'
 
+    COLOR       = os.environ.get('RP_REPORT_COLOR', 'True')
+    ANIME       = os.environ.get('RP_REPORT_ANIME', 'True')
     LINE_LENGTH = 80
+
+    if COLOR.lower() in ['0', 'false', 'off']: COLOR = False
+    else                                     : COLOR = True
+
+    if ANIME.lower() in ['0', 'false', 'off']: ANIME = False
+    else                                     : ANIME = True
+
 
     # --------------------------------------------------------------------------
     #
@@ -94,53 +106,44 @@ class Reporter(object):
         self._title    = title
         self._pos      = 0
         self._targets  = targets
-        self._settings = {
-                'title' : {
-                    'color'   : self.TITLE,
-                    'style'   : 'ELMLE',
-                    'segment' : self.DOUBLE
-                    },
-                'header' : {
-                    'color'   : self.HEADER,
-                    'style'   : 'ELME',
-                    'segment' : self.SINGLE
-                    },
-                'info' : {
-                    'color'   : self.INFO,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'idle' : {
-                    'color'   : self.IDLE,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'progress' : {
-                    'color'   : self.PROGRESS,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'ok' : {
-                    'color'   : self.OK,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'warn' : {
-                    'color'   : self.WARN,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'error' : {
-                    'color'   : self.ERROR,
-                    'style'   : 'M',
-                    'segment' : self.EMPTY
-                    },
-                'plain' : {
-                    'color'   : '',
-                    'style'   : 'M',
-                    'segment' : self.EMPTY,
-                    }
-                }
+        self._settings = {'title'    : {'color'   : self.TITLE,
+                                        'style'   : 'ELMLE',
+                                        'segment' : self.DOUBLE
+                                       },
+                          'header'   : {'color'   : self.HEADER,
+                                        'style'   : 'ELME',
+                                        'segment' : self.SINGLE
+                                       },
+                          'info'     : {'color'   : self.INFO,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'idle'     : {'color'   : self.IDLE,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'progress' : {'color'   : self.PROGRESS,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'ok'       : {'color'   : self.OK,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'warn'     : {'color'   : self.WARN,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'error'    : {'color'   : self.ERROR,
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       },
+                          'plain'    : {'color'   : '',
+                                        'style'   : 'M',
+                                        'segment' : self.EMPTY
+                                       }
+                         }
+
         self._idle_sequence = '/-\\|'
         self._idle_pos      = dict()
 
@@ -177,14 +180,15 @@ class Reporter(object):
     #
     def _out(self, color, msg):
 
-        color_mod = ''
-        if  ' ' in color:
-            color_mod, color = color.split(' ', 2)
+        if self.COLOR:
+            color_mod = ''
+            if  ' ' in color:
+                color_mod, color = color.split(' ', 2)
 
-        color     = self.COLORS.get(color.lower(), '')
-        color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
+            color     = self.COLORS.get(color.lower(), '')
+            color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
 
-        color += color_mod
+            color += color_mod
 
 
         # make sure we count tab length on line start correctly
@@ -240,10 +244,12 @@ class Reporter(object):
 
 
         for stream in self._color_streams:
-            stream.write(color)
+            if self.COLOR:
+                stream.write(color)
             stream.write(msg)
-            stream.write(self.COLORS['reset'])
-            stream.write(self.COLOR_MODS['reset'])
+            if self.COLOR:
+                stream.write(self.COLORS['reset'])
+                stream.write(self.COLOR_MODS['reset'])
             try:
                 stream.flush()
             except Exception as e:
@@ -336,6 +342,9 @@ class Reporter(object):
     #
     def idle(self, c=None, mode=None, color=None, idle_id=None):
 
+        if not self.ANIME:
+            return
+
         if not idle_id:
             idle_id = 'default'
 
@@ -404,65 +413,4 @@ class Reporter(object):
 
 
 # ------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-
-    import radical.utils as ru
-
-    r = ru.Reporter(title='test')
-
-    r.header  ('header  \n')
-    r.info    ('info    \n')
-    r.progress('progress\n')
-    r.ok      ('ok      \n')
-    r.warn    ('warn    \n')
-    r.error   ('error   \n')
-    r.plain   ('plain   \n')
-
-    i = 0
-    j = 0
-    for cname,col in r.COLORS.items():
-        if cname == 'reset':
-            continue
-        i+=1
-        for mname,mod in r.COLOR_MODS.items():
-            if mname == 'reset':
-                continue
-            j+=1
-            sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
-            sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
-        sys.stdout.write("\n")
-        j = 0
-
-    import time
-  # r.info('test idler:')
-  # r.idle(mode='start')
-  # for i in range(3):
-  #     r.idle()
-  #     time.sleep(0.3)
-  # r.idle(color='ok', c='.')
-  # r.idle(color='error', c='.')
-  # for i in range(3):
-  #     r.idle()
-  #     time.sleep(0.1)
-  #
-  # r.idle(mode='stop')
-  # r.ok('>>done\n')
-
-    r.info('idle test\n')
-    r.info('1234567891         2         3         4         5         6         7         8\n\t')
-    r.info('.0.........0.........0.........0.........0.........0.........0.........0')
-    r.idle(mode='start')
-    for i in range(200):
-        r.idle(); time.sleep(0.01)
-        r.idle(); time.sleep(0.01)
-        r.idle(); time.sleep(0.01)
-        r.idle(); time.sleep(0.01)
-        r.idle(color='ok', c="+")
-    r.idle(mode='stop')
-
-    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
-    r.error('error ')
-
-    r.exit    ('exit    \n', 1)
 

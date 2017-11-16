@@ -39,6 +39,7 @@ In 2.4.5 the following additional stdlib modules use locks:
   _strptime
 """
 
+import os
 import sys
 import warnings
 
@@ -60,7 +61,8 @@ def fix_logging_module():
     if logging and getattr(logging, 'fixed_for_atfork', None):
         return
     if logging:
-        warnings.warn('logging module already imported before fixup.')
+        if os.environ.get('RADICAL_DEBUG'):
+            warnings.warn('logging module already imported before fixup.')
     import logging
     if logging.getLogger().handlers:
         # We could register each lock with atfork for these handlers but if

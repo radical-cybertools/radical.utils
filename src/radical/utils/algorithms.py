@@ -7,7 +7,6 @@ import regex
 #
 def collapse_ranges (ranges):
     """
-
     Given be a set of ranges (as a set of pairs of floats [start, end] with
     'start <= end'.  This algorithm will then collapse that set into the
     smallest possible set of ranges which cover the same, but not more nor
@@ -39,7 +38,7 @@ def collapse_ranges (ranges):
 
     # return empty list if given an empty list
     if not ranges:
-        return final
+        return []
 
     START = 0
     END   = 1
@@ -71,6 +70,67 @@ def collapse_ranges (ranges):
 
     # Return final as list of list in case a mutable type is needed.
     return [list(b) for b in final]
+
+
+# ------------------------------------------------------------------------------
+#
+def range_concurrency(ranges):
+    '''
+    given a set of *un*collapsed ranges, return a series which describes the
+    range-concurrency at any point.
+
+    Example:
+      Ranges: 
+        [----]  [---------]             [--------]
+          [--------]         [-]      [------------]      [--]
+
+      Concurrency:
+        1 2  1  2  1      0  1 0      1 2        1 0      1  0
+
+    Returned is a sorted list of tuples where the first entry defines at what
+    range value the concurrency changed, and the second value defines to what
+    the concurrency count changed at that point.
+
+    You could consider the ranges to be of type `[time_start, time_end]`, and
+    the return would be a list of `[timestamp, concurrency]`, if that helps --
+    but the algorithm does not make any assumption on the data type, really,
+    only that the values can be sorted.
+    '''
+
+    if not ranges:
+        return list()
+
+    # we want to sort all range boundaries by value, but also want to remember
+    # if they were start or end
+    START = 0
+    END   = 1
+    vals  = list()
+    for idx in range(len(ranges)):
+        r = ranges[idx]
+        vals.append([r[0], START])
+        vals.append([r[1], END  ])
+
+    # go through the sorted list of times, and increase concurrency on `START`,
+    # decrease it on `END`.  Make sure we add up all entries for the same value
+    # at once.
+
+    # first entry
+    assert(vals[0][1] == START), 'inconsistent ranges'
+    last_val    = vals[0][0]
+    ret         = list()
+    concurrency = 1
+    for val,kind in sorted(vals):
+        if val == last_val:
+            last_val = val
+            if kind == START: concurrency += 1
+            else            : concurrency -= 1
+        else:
+            ret.append([last_val, concurrency])
+
+    assert(concurrency == 0), 'inconsistent range structure?'
+    ret.append([last_val, concurrency])
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
