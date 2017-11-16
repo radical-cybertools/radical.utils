@@ -280,7 +280,8 @@ setup_args = {
     'install_requires'   : ['future', 
                             'colorama',
                             'netifaces==0.10.4',
-                            'setproctitle'
+                            'setproctitle',
+                            'psutil',
                            ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
