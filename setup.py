@@ -23,6 +23,7 @@ except ImportError as e:
     print("%s needs setuptools to install" % name)
     sys.exit(1)
 
+
 # ------------------------------------------------------------------------------
 #
 # versioning mechanism:
@@ -41,7 +42,7 @@ def get_version (mod_root):
     mod_root
         a VERSION file containes the version strings is created in mod_root,
         during installation.  That file is used at runtime to get the version
-        information.  
+        information.
         """
 
     try:
@@ -58,16 +59,16 @@ def get_version (mod_root):
             version_base = f.readline ().strip()
 
         # attempt to get version detail information from git
-        # We only do that though if we are in a repo root dir, 
+        # We only do that though if we are in a repo root dir,
         # ie. if 'git rev-parse --show-prefix' returns an empty string --
         # otherwise we get confused if the ve lives beneath another repository,
         # and the pip version used uses an install tmp dir in the ve space
-        # instead of /tmp (which seems to happen with some pip/setuptools 
+        # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        p = sp.Popen ('cd %s ; '\
-                      'test -z `git rev-parse --show-prefix` || exit -1; '\
-                      'tag=`git describe --tags --always` 2>/dev/null ; '\
-                      'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '\
+        p = sp.Popen ('cd %s ; '
+                      'test -z `git rev-parse --show-prefix` || exit -1; '
+                      'tag=`git describe --tags --always` 2>/dev/null ; '
+                      'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
                       'echo $tag@$branch'  % src_root,
                       stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         version_detail = str(p.communicate()[0].strip())
@@ -107,14 +108,14 @@ def get_version (mod_root):
            # pip install will untar the sdist in a tmp tree.  In that tmp
            # tree, we won't be able to derive git version tags -- so we pack the
            # formerly derived version as ./VERSION
-            shutil.move ("VERSION", "VERSION.bak")           # backup version
-            shutil.copy ("%s/VERSION" % path, "VERSION")     # use full version instead
-            os.system   ("python setup.py sdist")            # build sdist
+            shutil.move ("VERSION", "VERSION.bak")            # backup version
+            shutil.copy ("%s/VERSION" % path, "VERSION")      # use full version instead
+            os.system   ("python setup.py sdist")             # build sdist
             shutil.copy ('dist/%s' % sdist_name,
-                         '%s/%s'   % (mod_root, sdist_name)) # copy into tree
-            shutil.move ("VERSION.bak", "VERSION")           # restore version
+                         '%s/%s'   % (mod_root, sdist_name))  # copy into tree
+            shutil.move ("VERSION.bak", "VERSION")            # restore version
 
-        with open (path + "/SDIST", "w") as f: 
+        with open (path + "/SDIST", "w") as f:
             f.write (sdist_name + "\n")
 
         return version_base, version_detail, sdist_name
@@ -197,6 +198,7 @@ def makeDataFiles(prefix, dir):
     os.path.walk(dir, visit, (prefix, strip, found))
     return found
 
+
 def visit((prefix, strip, found), dirname, names):
     """ Visit directory, create distutil tuple
 
@@ -220,12 +222,14 @@ def visit((prefix, strip, found), dirname, names):
     destination = os.path.join(prefix, dirname[strip:])
     found.append((destination, files))
 
+
 def isbad(name):
     """ Whether name should not be installed """
     return (name.startswith('.') or
             name.startswith('#') or
             name.endswith('.pickle') or
             name == 'CVS')
+
 
 def isgood(name):
     """ Whether name should be installed """
@@ -277,7 +281,7 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
                            },
-    'install_requires'   : ['future', 
+    'install_requires'   : ['future',
                             'colorama',
                             'netifaces==0.10.4',
                             'setproctitle',
