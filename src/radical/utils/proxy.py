@@ -27,7 +27,7 @@ class Proxy(object):
     coordination of used port numbers, out-of-band communication of tunnel
     settings, etc.
 
-    This class eleviates that problem for te skope of the RADICAL stack.  It
+    This class eleviates that problem for the scope of the RADICAL stack.  It
     expects two user level settings:
 
         export RADICAL_PROXY_URL=ssh://host/
@@ -44,14 +44,14 @@ class Proxy(object):
     The existence of the SOCKS tunnel is recorded in the file
 
         `$HOME/.radical/utils/proxy.<host>[.<name>]`
-        
+
     which contains information about the used local port.  That file will
     disappear when the proxy disappears.  The `[.<name>]` part is used for
     direct application tunnels established over the original socks proxy tunnel.
     `name` is expected to be a unique identifyer.  The proxy is expected to live
     until is explicitly closed.
 
-    
+
     Requirements:
     -------------
 
@@ -92,17 +92,17 @@ class Proxy(object):
         mongo `radical-proxy --socks=False 'foobar.mlab.com:12017'`
     '''
 
-    
-        # nc -X 5 -x 127.0.0.1:10000 %h %p
-        # ncat --proxy-type socks5 --proxy 127.0.0.1:10000 %h %p
+        # nc     -X 5 -x 127.0.0.1:10000 %h %p
         # netcat -X 5 -x 127.0.0.1:10000 %h %p
+        # ncat   --proxy-type socks5 --proxy 127.0.0.1:10000 %h %p
         # socat - socks:127.0.0.1:%h:%p,socksport=10000
+
     _tunnel_proxies = {
-        'ncat'   : '%(tunnel_exe)s --proxy-type socks5 '\
+        'ncat'   : '%(tunnel_exe)s --proxy-type socks5 '
                                   '--proxy 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
         'nc'     : '%(tunnel_exe)s -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
         'netcat' : '%(tunnel_exe)s -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
-        'socat'  : '%(tunnel_exe)s - socks:127.0.0.1:%%%%h:%%%%p,'\
+        'socat'  : '%(tunnel_exe)s - socks:127.0.0.1:%%%%h:%%%%p,'
                                     'socksport=%(proxy_port)d'
         }
 
@@ -121,24 +121,22 @@ class Proxy(object):
         self._tunnel_command = None
 
         # TODO: perform some kind of time limited or activity dependent garbage
-        #       collection.  Posslubly use a lifetime parameter?
+        #       collection.  Possibly add a lifetime parameter?
 
-        if url:
-            proxy_url = Url(url)
-        else:
-            proxy_url = Url(os.environ.get('RADICAL_PROXY_URL'))
+        if url: proxy_url = Url(url)
+        else  : proxy_url = Url(os.environ.get('RADICAL_PROXY_URL'))
 
         if proxy_url:
-            url_host  = proxy_url.host
-            url_port  = proxy_url.port
+            url_host = proxy_url.host
+            url_port = proxy_url.port
             if not url_port:
                 try:
                     url_port = socket.getservbyname(proxy_url.schema)
                 except socket.error as e:
                     raise ValueError('cannot handle "%s" urls' % proxy_url.schema)
         else:
-            url_host  = None
-            url_port  = None
+            url_host = None
+            url_port = None
 
         self._proxy_host = None
         self._proxy_port = None
@@ -146,6 +144,7 @@ class Proxy(object):
 
         if not proxy_url:
             # we can't really create a proxy, so continue as is.
+            print 'missing proxy URL - continue w/o proxy'
             return
 
         proxy_path = '%s/.radical/utils' % os.environ['HOME']
@@ -178,16 +177,16 @@ class Proxy(object):
 
             try:
                 # assume proxy exists
-                data = os.read(fd, 512) # '%06d %06d\n'
-                str_1, int_1, int_2, = data.split()
-                self._proxy_host = str(str_1.strip())
-                self._proxy_port = int(int_1.strip())
-                self._proxy_pid  = int(int_2.strip())
+                data  = os.read(fd, 512)  # POSIX HOST_NAME_MAX: 256
+                elems = data.split()
+                self._proxy_host = str(elems[0].strip())
+                self._proxy_port = int(elems[1].strip())
+                self._proxy_pid  = int(elems[2].strip())
 
                 # make sure we see that pid alive
                 os.kill(self._proxy_pid, 0)
                 # pid can be signalled, so is assumed alive
-                
+
             except Exception as e:
                 # either data were not present or invalid, or pid cannot be
                 # signalled, either way, we can't use the proxy.
@@ -210,7 +209,7 @@ class Proxy(object):
 
                     if not self._proxy_port:
                         raise RuntimeError('Could not find a free port to use')
-                    
+
                     cmd = 'ssh -o ExitOnForwardFailure=yes ' \
                         +     '-o StrictHostKeyChecking=no ' \
                         +     '-fND %d -p %s %s' \
@@ -249,8 +248,9 @@ class Proxy(object):
                                              self._proxy_pid))
 
         finally:
+
+            # release the lock
             if fd:
-                # this releases the lock
                 os.close(fd)
 
 
@@ -260,6 +260,8 @@ class Proxy(object):
         # Check for the availablity of various utilities which help to tunnel ssh
         # over a SOCKS proxy.  See documentation and code comments in `self.url()`
         # for details.
+        #
+        # FIXME: parts of this should be done only once, on module load
         tunnel_proxy = None
         for name in self._tunnel_proxies:
             exe = which(name)
@@ -466,10 +468,10 @@ class Proxy(object):
         ret.port = port
 
         # remember that we own that tunnel
-        self._tunnels.append({ 'url' : url, 
-                               'ret' : ret, 
-                               'pid' : pid, 
-                               'port': port})
+        self._tunnels.append({'url' : url, 
+                              'ret' : ret, 
+                              'pid' : pid, 
+                              'port': port})
         return ret
 
 
