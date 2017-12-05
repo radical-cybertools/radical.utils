@@ -3,11 +3,14 @@ import sys
 import time
 import glob
 import regex
+import shlex
 import signal
 import socket
 import importlib
 import netifaces
 import threading
+
+import subprocess as sp
 import url as ruu
 
 # ------------------------------------------------------------------------------
@@ -21,7 +24,7 @@ def split_dburl(dburl, default_dburl=None):
 
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
-    
+
     url = ruu.Url(dburl)
 
     if not url.schema and not url.host:
@@ -472,7 +475,7 @@ def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '')}, 
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or os.environ.get('CONDA_DEFAULT_ENV','')}, 
            'radical' : dict()
           }
 
@@ -494,6 +497,59 @@ def stack():
 
     return ret
     
+
+# ------------------------------------------------------------------------------
+#
+def get_size(obj, seen=None, strict=False):
+
+    size   = sys.getsizeof(obj)
+    obj_id = id(obj)
+
+    if strict:
+        # perform recursion checks
+        if seen is None:
+            seen = set()
+        if obj_id in seen:
+            return 0
+        seen.add(obj_id)
+
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen, strict) for v in obj.values()])
+        size += sum([get_size(k, seen, strict) for k in obj.keys()])
+
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen, strict)
+
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen, strict) for i in obj])
+
+    return size
+
+
+# ------------------------------------------------------------------------------
+#
+def dockerized():
+
+    if os.path.exists('/.dockerenv'):
+        return True
+    return False
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout(cmd, shell=False):
+    '''
+    call a shell command, return `[stdout, stderr, retval]`.
+    '''
+
+    # convert string into arg list if needed
+    if not shell and isinstance(cmd, basestring):
+        cmd = shlex.split(cmd)
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
+    stdout, stderr = p.communicate()
+    return stdout, stderr, p.returncode
+
 
 # ------------------------------------------------------------------------------
 
