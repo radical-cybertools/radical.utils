@@ -275,7 +275,8 @@ setup_args = {
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-version',
                             'bin/radical-utils-pylint.sh',
-                            'bin/radical-stack'
+                            'bin/radical-stack',
+                            'bin/ru.sh.py',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION', 'SDIST', sdist_name]},
     'cmdclass'           : {

@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import re
 import os
 import time
 import uuid
@@ -11,9 +12,9 @@ import fcntl
 import socket
 import datetime
 import threading
-import singleton
 
-from .misc import dockerized
+from .misc      import dockerized
+from .singleton import Singleton
 
 
 # ------------------------------------------------------------------------------
@@ -26,7 +27,7 @@ class _IDRegistry(object):
     thread safe construction).
     """
 
-    __metaclass__ = singleton.Singleton
+    __metaclass__ = Singleton
 
 
     # --------------------------------------------------------------------------
@@ -92,7 +93,7 @@ ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE):
+def generate_id(prefix, mode=ID_SIMPLE, base=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -155,15 +156,22 @@ def generate_id(prefix, mode=ID_SIMPLE):
     else:
         raise ValueError("mode '%s' not supported for ID generation", mode)
 
-    return _generate_id(template, prefix)
+    return _generate_id(template, prefix, base)
 
 # ------------------------------------------------------------------------------
 #
-def _generate_id(template, prefix):
+def _generate_id(template, prefix, base=None):
+    '''
+    base: directory to store the counter state in
+          default: `$HOME/.radical/utils`
+    '''
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
+
+    if not base:
+        base = _BASE
 
     import getpass
 
@@ -199,7 +207,7 @@ def _generate_id(template, prefix):
     #        a `try/except/finally` clause
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
+        fd = os.open("%s/rp_%s_%s.cnt" % (base, user, days), os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
         data = os.read(fd, 256)
@@ -210,7 +218,9 @@ def _generate_id(template, prefix):
         os.close(fd)
 
     if '%(item_counter)' in template:
-        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, prefix), os.O_RDWR | os.O_CREAT)
+        tmp   = re.sub('\.?%\(.*?\).*?[sdf]', '', prefix)
+        fname = "%s/rp_%s_%s.cnt" % (base, user, tmp)
+        fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)

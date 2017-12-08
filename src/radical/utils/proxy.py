@@ -66,14 +66,14 @@ class Proxy(object):
     Usage:
     ------
 
-        # connect to `http://www.google.com/` (port 80) with SOCKS enabled client
+        # connect to `http://www.google.com/` (port 80), SOCKS enabled client
         proxy = ru.Proxy(timeout=300)
         client.connect(proxy.url(socks=True, 'http://www.google.com/'))
         print proxy.url(socks=True, 'http://www.google.com/')
           --> http://localhost:10000/
 
-        # connect to `mongodb://www.mlab.com:12017/rp` with client which is
-        # *not* able to use SOCKS
+        # connect to `mongodb://www.mlab.com:12017/rp`, client is *not* able to
+        # use SOCKS
         proxy = ru.Proxy()
         print proxy.url(socks=False, `mongodb://www.mlab.com:12017/rp`)
           --> mongodb://localhost:10001/rp
@@ -84,11 +84,11 @@ class Proxy(object):
     We  will also provide a command line tool which supports similar operations
     in the shell:
 
-        # connect to `http://www.google.com/` (port 80) with SOCKS enabled client
+        # connect to `http://www.google.com/` (port 80), SOCKS enabled client
         wget `radical-proxy --socks=True 'http://www.google.com/'`
 
-        # connect to `mongodb://foobar.mlab.com:12017/rp` with client which is
-        # *not* able to use SOCKS
+        # connect to `mongodb://foobar.mlab.com:12017/rp`. client is *not* able
+        # to use SOCKS
         mongo `radical-proxy --socks=False 'foobar.mlab.com:12017'`
     '''
 
@@ -98,12 +98,12 @@ class Proxy(object):
         # socat - socks:127.0.0.1:%h:%p,socksport=10000
 
     _tunnel_proxies = {
-        'ncat'   : '%(tunnel_exe)s --proxy-type socks5 '
-                                  '--proxy 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
-        'nc'     : '%(tunnel_exe)s -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
-        'netcat' : '%(tunnel_exe)s -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
-        'socat'  : '%(tunnel_exe)s - socks:127.0.0.1:%%%%h:%%%%p,'
-                                    'socksport=%(proxy_port)d'
+        'ncat'   : 'ncat    --proxy-type socks5 '
+                           '--proxy 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
+        'nc'     : 'nc      -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
+        'netcat' : 'netcat  -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
+        'socat'  : 'socat   - socks:127.0.0.1:%%%%h:%%%%p,'
+                             'socksport=%(proxy_port)d'
         }
 
     # --------------------------------------------------------------------------
@@ -133,7 +133,8 @@ class Proxy(object):
                 try:
                     url_port = socket.getservbyname(proxy_url.schema)
                 except socket.error as e:
-                    raise ValueError('cannot handle "%s" urls' % proxy_url.schema)
+                    raise ValueError('cannot handle "%s" urls' %
+                                      proxy_url.schema)
         else:
             url_host = None
             url_port = None
@@ -144,25 +145,25 @@ class Proxy(object):
 
         if not proxy_url:
             # we can't really create a proxy, so continue as is.
+            # FIXME: should we raise an error instead?
             print 'missing proxy URL - continue w/o proxy'
             return
 
         proxy_path = '%s/.radical/utils' % os.environ['HOME']
 
-        try:
+        if not os.path.isdir(proxy_path):
             os.makedirs(proxy_path)
-        except:
-            pass
 
         self._proxy_file = '%s/proxy_%s_%s' % (proxy_path, url_host, url_port)
 
         fd = None 
         try:
-            # open the file or create it, then lock it, then read from
-            # beginning.  We expect two integers, pid and port of an existing
-            # proxy.  If those are found, we close the file (which unlocks it).
-            # If they are not found, we create the proxy, write the information
-            # to the file, and close it (which also unlocks it).
+
+            # open the file or create it, then lock it, then read from begin of
+            # file.  We expect two integers, pid and port of an existing proxy.
+            # If those are found, we close the file (which unlocks it).  If they
+            # are not found, we create the proxy, write the information to the
+            # file, and close it (which also unlocks it).
             #
             # NOTE: that there is a race condition between checking for an
             #       existing proxy and using it: the proxy might disappear 
@@ -210,6 +211,8 @@ class Proxy(object):
                     if not self._proxy_port:
                         raise RuntimeError('Could not find a free port to use')
 
+                    # FIXME: support gsissh
+                    # FIXME: support interactive passwd / passkey
                     cmd = 'ssh -o ExitOnForwardFailure=yes ' \
                         +     '-o StrictHostKeyChecking=no ' \
                         +     '-fND %d -p %s %s' \
@@ -257,9 +260,9 @@ class Proxy(object):
         # Now that we have a proxy, we can configure the tunnel command for
         # later use on `url(socks=False)`
         #
-        # Check for the availablity of various utilities which help to tunnel ssh
-        # over a SOCKS proxy.  See documentation and code comments in `self.url()`
-        # for details.
+        # Check for the availablity of various utilities which help to tunnel
+        # ssh over a SOCKS proxy.  See documentation and code comments in
+        # `self.url()` for details.
         #
         # FIXME: parts of this should be done only once, on module load
         tunnel_proxy = None
@@ -267,17 +270,17 @@ class Proxy(object):
             exe = which(name)
             if exe:
                 tunnel_proxy = self._tunnel_proxies[name] \
-                             % {'tunnel_exe' : exe, 
-                                'proxy_port' : self._proxy_port}
+                             % {'proxy_port': self._proxy_port}
                 break
 
-        # NOTE: user/pass info are not supported for tunneled connections
-        self._tunnel_cmd = 'ssh -o ExitOnForwardFailure=yes ' \
-                         +    ' -o StrictHostKeyChecking=no ' \
-                         +    ' -fNL %(loc_port)d:%(url_host)s:%(url_port)d %(proxy_host)s'
+        # FIXME: support gsissh
+        # FIXME: support interactive passwd / passkey
+        self._tunnel_cmd = 'ssh -o ExitOnForwardFailure=yes' \
+                         +    ' -o StrictHostKeyChecking=no' \
+                         +    ' -fNL %(loc_port)d:%(url_host)s:%(url_port)d' \
+                         +    ' %(proxy_host)s'
 
-        # if we have tunnel proxy support, it becomes part of the tunnel proxy
-        # command
+        # if we have tunnel proxy support, it becomes part of the tunnel command
         if tunnel_proxy: 
             self._tunnel_cmd += " -o ProxyCommand='%s'" % tunnel_proxy
 
@@ -286,10 +289,10 @@ class Proxy(object):
     #
     def _find_port(self, interface=None, port_min=None, port_max=None):
         '''
-        Inspect the OS for about tcp connection usage, and pick a port in the
-        private, ephemeral port range between 49152 and 65535.
-        from those which are not used.  By default we check all interfaces, but
-        an interface can also be specified as optional argument, as IP number.
+        Inspect the OS for tcp connection usage, and pick anunused port in the
+        private, ephemeral port range between 49152 and 65535.  By default we
+        check all interfaces, but an interface can also be specified as optional
+        argument, identified by ots IP number.
 
         Note that this mechanism does not *reserve* a port, so there is a race
         between finding a free port and using it.
@@ -302,6 +305,7 @@ class Proxy(object):
 
         if not port_min: port_min = 49152
         if not port_max: port_max = 65535
+
         for port in range(port_min, port_max):
             if port not in used_ports:
                 return port
@@ -321,7 +325,7 @@ class Proxy(object):
         between finding a free port and using it.
 
         We don't bother catching any system errors: if we can't find a port this
-        way, its unlikely that it can be found any other way
+        way, its unlikely that it can be found any other way.
         '''
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -336,8 +340,9 @@ class Proxy(object):
     def url(self, url, socks=True):
         '''
         This method accepts an URL to which the callee wants to connect, using
-        the proxy we own (or at least interface to).  The call with translate
-        the given URL into a suitable URL which points to the proxy.
+        the proxy we own / interface to.  The call with translate the given URL
+        into a suitable URL which points to same endpoint over the proxy
+        connection.
 
         If the callee intents to use the URL with a SOCKS5 enables application,
         we only replace host and port to point to our socks proxy, and return
@@ -350,20 +355,22 @@ class Proxy(object):
         from the given URL (in case it is not explicitly specified in the URL).
         For that we perform a service port lookup via `socket.getservbyname()`.
 
-        Note that in the `socks=False` case, we create a new tunnel for each
-        request , even if a tunnel for the same target endpoint was already
-        created before, as we do not know if multiple applications are able to
-        share the same tunnel.  They usually are though, and future versions of
-        this method may add a `reuse` flag (defaulting to `True`).
-
         All tunnels will be closed on `proxy.close()`.
         '''
+
+        # FIXME: Note that in the `socks=False` case, we create a new tunnel for
+        #        each request, even if a tunnel for the same target endpoint was
+        #        already created before, as we do not know if multiple
+        #        applications are able to share the same tunnel.  They usually
+        #        are though, and future versions of this method may add
+        #        a `reuse` flag (defaulting to `True`).
+
 
         # Here are the different options to create an ssh tunnel over the socks
         # proxy.  Ironically, ssh can natively create, but not use a socks
         # proxy.  We thus need to specify an external proxy command.  We can
-        # currently handle: `nc`, `ncat`, `netcat`, `socat`, which are all
-        # different variations of the original BSD `netcat` I believe:
+        # currently handle: `nc`, `ncat`, `netcat` and `socat`, which are all
+        # different variations of the original BSD `netcat` (I believe):
         #
         #   ssh -vNL 10001:ds015720.mlab.com:15720 144.76.72.175 \
         #       -o ProxyCommand='nc -X 5 -x 127.0.0.1:10000 %h %p'
@@ -382,10 +389,10 @@ class Proxy(object):
         #
         # 'tsocks' would be another option, but it is less widely deployed, 
         # relies on `LD_PRLOAD`, which won't work on all our machines and is
-        # somewhat hacky (little more so than the others that is).
+        # somewhat hacky (even more so than the others).
         #
-        # The above examples assume self._proxy_port to be 10000, and 10001 to
-        # be the next open port found.
+        # The examples above assume `self._proxy_port` to be set to `10000`,
+        # and `10001` to be the next open port found.
 
         # make sure we have an URL
         url      = Url(url)
@@ -393,6 +400,7 @@ class Proxy(object):
         url_host = url.host
 
         # if we have no proxy, we return the url as-is
+        # FIXME: should we raise an error instead?
         if not self._proxy_pid or not self._proxy_port:
             # nothing to do
             return Url(url)

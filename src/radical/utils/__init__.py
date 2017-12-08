@@ -43,6 +43,7 @@ from .get_version    import get_version
 from .algorithms     import *
 from .profile        import *
 from .proxy          import *
+from .sh             import *
 
 # import decorators
 from .timing         import timed_method
