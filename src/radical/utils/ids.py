@@ -80,7 +80,11 @@ class _IDRegistry(object):
 # we create on private singleton instance for the ID registry.
 _id_registry = _IDRegistry()
 _BASE        = "%s/.radical/utils" % os.environ.get("HOME", "/tmp")
-os.system("mkdir -p %s" % _BASE)
+
+try:
+    os.makedirs(_BASE)
+except:
+    pass
 
 # ------------------------------------------------------------------------------
 #
@@ -92,7 +96,7 @@ ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE):
+def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -155,17 +159,24 @@ def generate_id(prefix, mode=ID_SIMPLE):
     else:
         raise ValueError("mode '%s' not supported for ID generation", mode)
 
-    return _generate_id(template, prefix)
+    return _generate_id(template, prefix, namespace)
 
 # ------------------------------------------------------------------------------
 #
-def _generate_id(template, prefix):
+def _generate_id(template, prefix, namespace=None):
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
 
     import getpass
+
+    state_dir = _BASE
+    if namespace:
+        state_dir += '/%s' % namespace
+
+    if not os.path.isdir(state_dir):
+        os.makedirs(state_dir)
 
     # seconds since epoch(float), and timestamp
     seconds = time.time()
@@ -196,7 +207,7 @@ def _generate_id(template, prefix):
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, days), os.O_RDWR | os.O_CREAT)
+        fd = os.open("%s/rp_%s_%s.cnt" % (state_dir, user, days), os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
         data = os.read(fd, 256)
@@ -207,7 +218,7 @@ def _generate_id(template, prefix):
         os.close(fd)
 
     if '%(item_counter)' in template:
-        fd = os.open("%s/rp_%s_%s.cnt" % (_BASE, user, prefix), os.O_RDWR | os.O_CREAT)
+        fd = os.open("%s/rp_%s_%s.cnt" % (state_dir, user, prefix), os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)
