@@ -379,7 +379,7 @@ def attach_pudb(logger=None):
 
 # ------------------------------------------------------------------------------
 #
-_SNIPPET_ROOTS = ['%s/.radical/snippets' % os.environ.get('HOME', '/tmp')]
+_SNIPPET_ROOTS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
 def add_snippet_path(path):
     '''
     add a path to the search path for dynamically loaded python snippets
@@ -415,17 +415,25 @@ def get_snippet(sid):
 
         ru.add_snippet_path(path)
 
-
     The `RADICAL_DEBUG` environment variable needs to be set for this method to
-    do anything.
+    do anything.  A snippet can use the following literal strinfgs which will be
+    replaced by their actual values:
+
+        '###SNIPPET_FILE###'  - filename from which snippet was loaded
+        '###SNIPPET_PATH###'  - path in which the snippet file is located
+        '###SNIPPET_ID###'    - the sid string used to identify the snippet
     '''
 
     if 'RADICAL_DEBUG' in os.environ:
         for path in _SNIPPET_ROOTS:
-            snippet = '%s/%s.py' % (path, sid)
+            fname = '%s/%s.py' % (path, sid)
             try:
-                with open(snippet, 'r') as fin:
-                    return fin.read()
+                with open(fname, 'r') as fin:
+                    snippet = fin.read()
+                    snippet.replace('###SNIPPET_FILE###', fname)
+                    snippet.replace('###SNIPPET_PATH###', path)
+                    snippet.replace('###SNIPPET_ID###',   sid)
+                    return snippet
             except:
                 pass
 
