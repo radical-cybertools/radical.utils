@@ -378,4 +378,58 @@ def attach_pudb(logger=None):
 
 
 # ------------------------------------------------------------------------------
+#
+_SNIPPET_ROOTS = ['%s/.radical/snippets' % os.environ.get('HOME', '/tmp')]
+def add_snippet_path(path):
+    '''
+    add a path to the search path for dynamically loaded python snippets
+    (see `ru.get_snippet()`).
+    '''
+
+    if 'RADICAL_DEBUG' in os.environ:
+        global _SNIPPET_ROOTS
+        _SNIPPET_ROOTS.append(path)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_snippet(sid):
+    '''
+    RU exposes small python snippets for runtime code insertion.  The usage is
+    intended as follows:
+
+      * a programmer implements a class
+      * for some experiment or test, that class's behavior must be controled at
+        runtime.
+      * in all places where such an adaptation is expected to take place, the
+        programmer inserts a hook like this:
+
+            exec(ru.get_snippet('my_class.init_hook'))
+
+      * this will trigger RU to search for python files of the name
+        `my_class.init_hook.py` in `$HOME/.radical/snippets/' (default), and
+        return their content for injection.
+
+    The snippet search path can be extended by calling.
+
+        ru.add_snippet_path(path)
+
+
+    The `RADICAL_DEBUG` environment variable needs to be set for this method to
+    do anything.
+    '''
+
+    if 'RADICAL_DEBUG' in os.environ:
+        for path in _SNIPPET_ROOTS:
+            snippet = '%s/%s.py' % (path, sid)
+            try:
+                with open(snippet, 'r') as fin:
+                    return fin.read()
+            except:
+                pass
+
+    return 'None'
+
+
+# ------------------------------------------------------------------------------
 
