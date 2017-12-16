@@ -379,7 +379,7 @@ def attach_pudb(logger=None):
 
 # ------------------------------------------------------------------------------
 #
-_SNIPPET_ROOTS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
+_SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
 def add_snippet_path(path):
     '''
     add a path to the search path for dynamically loaded python snippets
@@ -387,9 +387,9 @@ def add_snippet_path(path):
     '''
 
     if 'RADICAL_DEBUG' in os.environ:
-        global _SNIPPET_ROOTS
-        if path not in _SNIPPET_ROOT:
-            _SNIPPET_ROOTS.append(path)
+        global _SNIPPET_PATHS
+        if path not in _SNIPPET_PATHS:
+            _SNIPPET_PATHS.append(path)
 
 
 # ------------------------------------------------------------------------------
@@ -425,14 +425,14 @@ def get_snippet(sid):
     '''
 
     if 'RADICAL_DEBUG' in os.environ:
-        for path in _SNIPPET_ROOTS:
+        for path in _SNIPPET_PATHS:
             fname = '%s/%s.py' % (path, sid)
             try:
                 with open(fname, 'r') as fin:
                     snippet = fin.read()
-                    snippet.replace('###SNIPPET_FILE###', fname)
-                    snippet.replace('###SNIPPET_PATH###', path)
-                    snippet.replace('###SNIPPET_ID###',   sid)
+                    snippet = snippet.replace('###SNIPPET_FILE###', fname)
+                    snippet = snippet.replace('###SNIPPET_PATH###', path)
+                    snippet = snippet.replace('###SNIPPET_ID###',   sid)
                     return snippet
             except:
                 pass
