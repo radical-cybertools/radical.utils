@@ -388,7 +388,8 @@ def add_snippet_path(path):
 
     if 'RADICAL_DEBUG' in os.environ:
         global _SNIPPET_ROOTS
-        _SNIPPET_ROOTS.append(path)
+        is path not in _SNIPPET_ROOT:
+            _SNIPPET_ROOTS.append(path)
 
 
 # ------------------------------------------------------------------------------
