@@ -56,13 +56,27 @@ NTP_DIFF_WARN_LIMIT = 1.0
 class Profiler(object):
     '''
     This class is really just a persistent file handle with a convenience call
-    (prof()) to write lines with timestamp and events.
-    Any profiling intelligence is applied when reading and evaluating the
-    created profiles.
+    (prof()) to write lines timestamped events.  Any profiling intelligence must
+    be applied when reading and evaluating the created profiles.  the following
+    fields are defined for each event:
+
+        time : mandatory, float,  time in seconds since epoch
+        event: mandatory, string, short, unique name of event to be recorded
+        comp : optional,  string, name of component where the event originates
+        tid  : optional,  string, current thread id (name)
+        uid  : optional,  string, ID of entity involved (when available)
+        state: optional,  string, state of entity involved, if applicable
+        msg  : optional,  string, free for message describing the event
+
+    Strings MUST NOT contain commas.  Otherwise they are encouraged to be formed
+    as `[a-z][0-9a-z_.]*'. `msg` are free-form, but the inhibition of comma
+    holds.  We propose to limit the sum of strings to about 256 characters - 
+    this will guarantee atomic writes on most OS's, w/o additional locking
+    overheads.  Less than 100 charcters makes the profiles almost
+    human-readable.
     '''
 
-    fields  = ['time', 'event', 'comp', 'tid', 'uid', 'state', 'msg']
-
+    fields  = ['time', 'event', 'comp', 'thread', 'uid', 'state', 'msg']
 
     # --------------------------------------------------------------------------
     #
