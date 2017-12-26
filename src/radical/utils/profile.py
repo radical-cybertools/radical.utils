@@ -2,6 +2,7 @@
 import os
 import csv
 import sys
+import copy
 import glob
 import time
 import threading
@@ -50,6 +51,10 @@ PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
 #
 NTP_DIFF_WARN_LIMIT = 1.0
 
+
+# we only align timstamps larger than a certain value
+# (10 years should be enough for everybody).
+EPOCH_MIN_VAL = 315360000
 
 # ------------------------------------------------------------------------------
 #
@@ -340,9 +345,9 @@ def read_profiles(profiles, sid=None, efilter=None):
                 # we keep the raw data around for error checks
                 row = list(raw)
 
-              # if 'bootstrap_1' in row:
-              #     print
-              #     print row
+            #   if 'bootstrap_1' in row:
+            # #     print
+            #       print row
 
                 try:
 
@@ -524,6 +529,8 @@ def combine_profiles(profs):
                 if offset:
                     break
 
+      # print offset, pname
+
         if offset is None:
             print 'no rel sync  %s' % pname
             continue
@@ -537,7 +544,7 @@ def combine_profiles(profs):
         if offset_event:
           # print 'transplant sync_abs to %s: %s' % (pname, offset_event)
             prof.append(offset_event)
-            syncs[pname]['abs'].append(offset_event)
+            syncs[pname]['abs'].append(copy.deepcopy(offset_event))
 
     # all profiles are rel-synced here.  Now we look at sync_abs values to align
     # across hosts and to determine accuracy.
@@ -547,7 +554,7 @@ def combine_profiles(profs):
 
             if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
                 # https://github.com/radical-cybertools/radical.analytics/issues/20
-              # print 'unsynced profile %s [%s]' % (pname, sync_abs)
+                print 'unsynced profile %s [%s]' % (pname, sync_abs)
                 continue
 
             t_prof = sync_abs[TIME]
@@ -583,6 +590,7 @@ def combine_profiles(profs):
 
             t_host[host_id] = t_off
 
+            break  # only sync each profile once
 
     unsynced = set()
     last     = None
@@ -615,13 +623,28 @@ def combine_profiles(profs):
         t_0 = sync_abs[TIME]
         t_0 -= t_min
 
+      # print 'correct %-130s [%10.1f' % (pname, t_off)
+
         # correct profile timestamps
         for row in prof:
 
             t_orig = row[TIME]
+            t_new  = t_orig
 
-            row[TIME] -= t_min
-            row[TIME] -= t_off
+            # we only correct for EPOCH on uncorrected stamps
+            if t_new < EPOCH_MIN_VAL:
+                t_new -= t_min
+
+            # we always correct for NTP offsets
+            t_new -= t_off
+
+          # if t_new < 0:
+          #     print t_new, pname, row
+          #   # for _row in prof:
+          #   #     print _row
+          #     sys.exit()
+
+            row[TIME] = t_new
 
           # print row[EVENT],
             # count closing entries
@@ -644,6 +667,11 @@ def combine_profiles(profs):
 
     # sort by time and return
     p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
+
+  # print '------------------'
+  # print p_glob[0]
+  # print p_glob[-1]
+  # print '------------------'
 
   # print 'check        %-100s: %s' % ('t_min', p_glob[0][TIME])
   # print 'check        %-100s: %s' % ('t_max', p_glob[-1][TIME])
