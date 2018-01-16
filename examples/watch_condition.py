@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# ------------------------------------------------------------------------------
+#
+# watch a test for a specific condition to be met, and return the value of the
+# condition (or None on timeout).
+#
+# ------------------------------------------------------------------------------
+
 import radical.utils as ru
 import time
 
