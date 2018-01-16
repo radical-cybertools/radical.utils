@@ -49,10 +49,12 @@ def _tracer (frame, event, arg) :
 
         filename = frame.f_globals["__file__"]
         lineno   = frame.f_lineno
+
         
         if (filename.endswith (".pyc") or
             filename.endswith (".pyo") ) :
             filename = filename[:-1]
+
 
         line = linecache.getline (filename, lineno)
         idx  = string.find       (filename, _trace_namespace)
@@ -66,7 +68,7 @@ def _tracer (frame, event, arg) :
         else :
 
             if not _trace_external :
-                print "--> %-56s:%4s: %s" % (filename, lineno, line.rstrip ())
+                print "--> %-56s:%4d: %s" % (filename, lineno, line.rstrip ())
             _trace_external = True
 
 
