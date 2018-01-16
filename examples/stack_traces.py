@@ -42,17 +42,15 @@ def inner_5(arg_1, arg_2):
     os.environ['RU_RAISE_ON_TEST'] = '3'
 
     for i in range(10):
-        try:
-            ru.raise_on('test')
-        except Exception as e:
-            print 'raised on %d' % i
+        print i
+        ru.raise_on('test')
 
     print
 
     import os
-    os.environ['RU_RAISE_ON_RAND'] = 'RANDOM_50'
+    os.environ['RU_RAISE_ON_RAND'] = 'RANDOM_10'
 
-    for i in range(20):
+    for i in range(100):
         try:
             ru.raise_on('rand')
         except Exception as e:
