@@ -184,6 +184,37 @@ def in_range(value, ranges):
 
 # ------------------------------------------------------------------------------
 #
+def remove_common_prefix(data, extend=0):
+    '''
+    For the given list of strings, remove the part which appears to be a common
+    prefix to all of them.  If `extend` is given, the last `n` letters of the
+    prefix are preserved.
+
+    See also https://stackoverflow.com/questions/46128615/ .
+    '''
+
+    if not data:
+        return data
+
+    # sort the list, get prefix from comparing first and last element
+    s1 = min(data)
+    s2 = max(data)
+    prefix = s1
+
+    for i, c in enumerate(s1):
+        if c != s2[i]:
+            prefix = s1[:i]
+            break
+
+    if extend > 0 and len(prefix) < len(s1):
+        prefix = s1[:min(len(prefix)-extend, len(s1))]
+
+    # remove the found prefix from all elements
+    return [elem.split(prefix, 1)[-1] for elem in data]
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test = [ [ 0, 10],
