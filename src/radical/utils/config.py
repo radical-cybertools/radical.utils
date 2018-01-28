@@ -16,7 +16,7 @@ __license__   = "MIT"
 # Config Names and Locations
 # --------------------------
 #
-# We assume two basic locations for config files: on is installed within the
+# We assume two basic locations for config files: one is installed within the
 # scope of a Python module, the other one is under user control, and usually in
 # the users home directory.  The  config reader accepts the following parameters
 # to derive the exact locations:
@@ -165,7 +165,7 @@ class Config(object, DictMixin):
 
         try:
             modpkg = pkgutil.get_loader(module)
-            assert(modpkg)
+            assert(modpkg), 'missing module %s' % module
         except OSError:
             raise ValueError("Cannot load module %s" % module)
 

@@ -271,10 +271,6 @@ def get_logger(name, target=None, level=None, path=None, header=True):
             env_test = '_'.join(elems[:i + 1]) + '_VERBOSE'
             level    = os.environ.get(env_test, level)
 
-    # backward compatible interpretation of SAGA_VERBOSE
-    if env_name.startswith('RADICAL_SAGA'):
-        level = os.environ.get('SAGA_VERBOSE', level)
-
     # translate numeric levels into symbolic ones
     level = {50 : 'CRITICAL',
              40 : 'ERROR',
