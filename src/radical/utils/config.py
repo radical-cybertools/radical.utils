@@ -6,11 +6,12 @@ __license__   = "MIT"
 
 # ------------------------------------------------------------------------------
 #
-# We provide a json based config file parser with several custom extensions
+# We provide a json based config file parser with following properties
 #
 #   - system config files will be merged with user configs (if those exist)
 #   - python style comments are filtered out before parsing 
-#   - after parsing, values are set or expanded via `os.environ`
+#   - after parsing, `$env{ABC:default}`-style values are set or expanded via 
+#     `os.environ`
 #
 #
 # Config Names and Locations
@@ -35,7 +36,7 @@ __license__   = "MIT"
 # of the installed system config files, and the module name is used to derive
 # the location of the user provided config files.
 #
-# For example, the module `radical.pilot` will have the following config dirs:
+# For example, the module `radical.utils` will have the following config dirs:
 #
 #   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
 #   usr_config_dir = /home/merzky/.radical/utils/
@@ -71,10 +72,8 @@ __license__   = "MIT"
 #
 #   {
 #     'xsede' : { 'foo' : 'bar' },
-#     'ncsa'  : { 'foo' : 'baz' }
+#     'ncsa'  : { 'fiz' : 'baz' }
 #   }
-#
-# User configuration files are expected to match that structure.
 #
 #
 # Queries
@@ -86,7 +85,8 @@ __license__   = "MIT"
 #   - the `query(key)` method returns a single value, or 'None' if not found.
 #
 # In the latter `query()` case, the `key` can be specified as dot-separated
-# path, so that the following two snippets are equivalent:
+# path, so that the following two snippets are equivalent (assuming that a
+# `foo.bar` section exists):
 #
 #   val = cfg['foo']['bar'].get('baz')
 #   val = cfg.query('foo.bar.baz')
@@ -102,19 +102,20 @@ __license__   = "MIT"
 #
 # which will be replaced by 
 #
-#   `os.environ.get('RADICAL_UTILS_ENV', 'default_value)`
+#   `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
 #
-# The default value is optional.  Env evaluation is only performed at time of
-# parsing, not at time of query.
+# The default value is optional, an empty string is used if no default value is
+# given.  Env evaluation is only performed at time of parsing, not at time of
+# query.
 #
 #
 # Validation
 # ----------
 #
 # It probably makes sense to switch to a json schema validator at some point,
-# see for example https://pypi.python.org/pypi/json-schema-validator. For we
-# remain schema-less, and will thus, in a very pythonesque way, only fail once
-# values are queried or used.
+# see for example https://pypi.python.org/pypi/json-schema-validator. For now
+# this implementation remains schema-less, and will thus, in a very pythonesque
+# way, only fail once values are queried or used.
 #
 # ------------------------------------------------------------------------------
 
@@ -124,31 +125,9 @@ import glob
 import os
 import re
 
-from .dict_mixin import dict_merge, DictMixin
+from .misc       import find_module
 from .read_json  import read_json
-from .debug      import print_stacktrace
-
-
-def get_config(name):
-    """
-    This is a convenience method which for any given name 'a.b.c' will create
-    a Config like:
-
-      return Config(module='a.b', name='c')
-
-    where 'name' will never contain a '.'.
-    """
-    if not '.' in name:
-        raise ValueError('name must be of form "module.config"')
-
-    print 'load config for %s' % name
-  # print_stacktrace()
-
-    elems   = name.split('.')
-    modname = '.'.join(elems[:-1])
-    cfgname = elems[-1]
-
-    return Config(module=modname, name=cfgname)
+from .dict_mixin import dict_merge, DictMixin
 
 
 # ------------------------------------------------------------------------------
@@ -158,27 +137,29 @@ class Config(object, DictMixin):
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
     #        repsonsibility of the consumer.
+    # FIXME: we should cache config files after reading, so that repeated
+    #        instance creations do not trigger a new (identical) round of
+    #        parsing.
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, module, path=None, name=None):
 
-        try:
-            modpkg = pkgutil.get_loader(module)
-            assert(modpkg), 'missing module %s' % module
-        except OSError:
-            raise ValueError("Cannot load module %s" % module)
+        modpath = find_module(module)
+        if not modpath:
+            raise ValueError("Cannot find module %s" % module)
 
         home    = os.environ.get('HOME', '/tmp')
-        home    = os.environ.get('RADICAL_UTILS_CONFIG_USR_DIR', home)
-        sys_dir = "%s/configs" % (modpkg.filename)
+        home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
+        sys_dir = "%s/configs" % (modpath)
         usr_dir = "%s/.%s"     % (home, module.replace('.', '/'))
 
         if path and name:
             raise ValueError("'path' and 'name' parameters are exclusive")
 
         if not path and not name:
-            raise ValueError("'path' or 'name' parameter missing")
+            # Default to `name='*'`.
+            name = '*'
 
         if path: path = path
         else   : path = name.replace('.', '/')
@@ -186,8 +167,8 @@ class Config(object, DictMixin):
         if '*' in path: starred = True
         else          : starred = False
 
-        if path.count('*') > 1:
-            raise ValueError('single wildcard allowed')
+        if starred and path.count('*') > 1:
+            raise ValueError('only one wildcard allowed in config path')
 
         sys_fspec = '%s/%s' % (sys_dir, path)
         usr_fspec = '%s/%s' % (usr_dir, path)
@@ -195,25 +176,8 @@ class Config(object, DictMixin):
         sys_cfg = dict()
         usr_cfg = dict()
 
-        if starred:
-
-            star_idx    = path.find('*')
-            prefix_len  = star_idx
-            postfix_len = len(path) - star_idx - 1
-
-            for sys_fname in glob.glob(sys_fspec):
-                if sys_fname.endswith('.json'): post = postfix_len + 5
-                else                          : post = postfix_len
-                base = os.path.basename(sys_fname)[prefix_len:-post]
-                sys_cfg[base] = read_json(sys_fname)
-
-            for usr_fname in glob.glob(usr_fspec):
-                if usr_fname.endswith('.json'): post = postfix_len + 5
-                else                          : post = postfix_len
-                base = os.path.basename(usr_fname)[prefix_len:-post]
-                usr_cfg[base] = read_json(usr_fname)
-
-        else: # not starred
+        if not starred:
+            # no wildcard - just use the config as they exist
 
             sys_fname = sys_fspec
             usr_fname = usr_fspec
@@ -224,11 +188,34 @@ class Config(object, DictMixin):
             if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
             if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
+        else: 
+
+            # wildcard mode: whatever the '*' expands into is used as root dict
+            # entry, and the respective content of the config file is stored
+            # underneath it.
+            star_idx    = path.find('*')
+            prefix_len  = star_idx
+            postfix_len = len(path) - star_idx - 1
+
+            for sys_fname in glob.glob(sys_fspec):
+                if sys_fname.endswith('.json'): post = postfix_len + 5
+                else                          : post = postfix_len
+                base = os.path.basename(sys_fname)[prefix_len:-post]
+                if base:
+                    sys_cfg[base] = read_json(sys_fname)
+
+            for usr_fname in glob.glob(usr_fspec):
+                if usr_fname.endswith('.json'): post = postfix_len + 5
+                else                          : post = postfix_len
+                base = os.path.basename(usr_fname)[prefix_len:-post]
+                if base:
+                    usr_cfg[base] = read_json(usr_fname)
+
 
         # we have the usr and sys config - merge them before env expansion
         self._cfg = dict_merge(sys_cfg, usr_cfg, policy='overwrite')
 
-        # env expand
+        # expand environmenet
         def _env_mixin(d):
             if isinstance(d, dict):
                 for k,v in d.iteritems():
@@ -251,6 +238,21 @@ class Config(object, DictMixin):
         _env_mixin(self._cfg)
 
 
+    # --------------------------------------------------------------------------
+    #
+    def __repr__(self):
+
+        import pprint
+        return pprint.pformat(self._cfg)
+
+    
+    # --------------------------------------------------------------------------
+    #
+    def as_dict(self):
+
+        return self._cfg
+
+    
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented for the dict mixin
