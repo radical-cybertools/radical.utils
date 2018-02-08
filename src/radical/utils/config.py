@@ -157,9 +157,18 @@ class Config(object, DictMixin):
         if path and name:
             raise ValueError("'path' and 'name' parameters are exclusive")
 
+        # if a name starts with a module prefix, strip that prefix
+        if name and name.startswith('%s.' % module):
+            name = name[len(module)+1:]
+
+        # if a path starts with a module prefix, strip that prefix
+        if path and path.startswith('%s/' % module.replace('.', '/')):
+            path = path[len(module)+1:]
+
         if not path and not name:
             # Default to `name='*'`.
             name = '*'
+
 
         if path: path = path
         else   : path = name.replace('.', '/')

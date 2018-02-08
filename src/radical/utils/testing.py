@@ -44,6 +44,9 @@ class TestConfig (dict) :
         self.changed_values = {}
         self.__initialized  = True
 
+    def as_dict(self):
+        return  self._cfg
+
     def __setitem__(self, key, value):
         self.changed_values[key] = value
         super(TestConfig, self).__setitem__(key, value)
@@ -61,10 +64,14 @@ class TestConfig (dict) :
         """Maps attributes to values.
         Only if we are initialised
         """
-        if not self.__dict__.has_key('_D__initialized'):  # this test allows attributes to be set in the __init__ method
+        if not self.__dict__.has_key('_D__initialized'):
+            # this test allows attributes to be set in the __init__ method
             return dict.__setattr__(self, item, value)
-        elif self.__dict__.has_key(item):       # any normal attributes are handled normally
+
+        elif self.__dict__.has_key(item):
+            # any normal attributes are handled normally
             dict.__setattr__(self, item, value)
+
         else:
             self.__setitem__(item, value)
 
