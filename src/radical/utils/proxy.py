@@ -16,6 +16,71 @@ import subprocess as sp
 from .url   import Url
 from .which import which
 
+# ------------------------------------------------------------------------------
+#
+# Usage example:
+#
+#   * setup:
+#     - client : laptop
+#     - proxy 1: two.radical-cynertools.org (ssh, public key)
+#     - proxy 2: one.radical-cynertools.org (ssh, user/pass)
+#     - tunnel : titan-ext1.ccs.ornl.gov    (ssh, keyfob)
+#     - rush   : job submission (qsub)
+#
+#   * sequence
+#     - create above chain (with user/pass and keyfib prompts)
+#     - submit a job (async)
+#     - kill delete proxy_2 connection out-of-band
+#     - kill client
+#     - start new client instance
+#     - reconnect chain (with user/pass prompt for proxy_2 hop)
+#     - reconnect rush
+#     - check state of submission (reconnect to async)
+#
+# ------------------------------------------------------------------------------
+#
+# Not covered:
+#
+#   - any protocol tunneled must itself be reconnectable - no provision is made
+#     to support that
+#   - no credentials are kept for reconnect
+#
+# ------------------------------------------------------------------------------
+#
+# API 'spec'
+#
+#     * create a tunnel w/o proxy
+#       t2 = ru.Tunnel(service_url)
+#       t2.is_alive()
+#       t2.kill()
+#       t2.restart()
+#       t2.url
+#
+#     * create a proxy
+#       p1 = ru.Proxy(proxy_url=None)
+#       p1.is_alive()
+#       p1.kill()
+#       p1.restart()
+#       p1.url
+#
+#     * chain proxies
+#       p2 = p1.chain(proxy_url)
+#       p1 = p2.proxy
+#
+#     * create a tunnel over a (direct or chained) proxy
+#       t1 = p2.tunnel(service_url, socks5=False)
+#       t1.is_alive()
+#       t1.kill()
+#       t1.restart()
+#       t1.url
+#       p2 = t1.proxy
+#
+#     * create a command endpoint (zmq, persistent, async)
+#       rush = ru.SH(p.tunnel('rush://targethost'))
+#       print rush.ps()
+#
+# ------------------------------------------------------------------------------
+
 
 # ------------------------------------------------------------------------------
 #
@@ -23,7 +88,7 @@ class Proxy(object):
     '''
     We frequently face the problem that a network connection cannot be directly
     established due to firewall policies.  At the same time, establishing ssh
-    tunnels can be cumbersome, as they need activity by every user, need
+    tunnels manually can be cumbersome, as that needs activity by every user,
     coordination of used port numbers, out-of-band communication of tunnel
     settings, etc.
 
@@ -35,11 +100,11 @@ class Proxy(object):
     to specify a suitable tunnel host.  When being used by some layer in the
     radical stack, this class will:
 
-        - search a free local port
+        - search a free local port;
         - establish a SOCKS5 tunnel to the given host, binding it to the given
-          port
-        - additionally establish any required (non-SOCKS) application tunnel
-          over the SOCKS tunnel
+          port;
+        - additionally establish, on demand, required (non-SOCKS) application
+          tunnels over that SOCKS tunnel.
 
     The existence of the SOCKS tunnel is recorded in the file
 
@@ -49,7 +114,10 @@ class Proxy(object):
     disappear when the proxy disappears.  The `[.<name>]` part is used for
     direct application tunnels established over the original socks proxy tunnel.
     `name` is expected to be a unique identifyer.  The proxy is expected to live
-    until is explicitly closed.
+    until it is explicitly closed.
+
+    If not proxy is given, the methods in this class are NOOPs - it can thus
+    transparently be used for proxied and direct connections.
 
 
     Requirements:
@@ -61,6 +129,13 @@ class Proxy(object):
 
             GatewayPorts       yes
             AllowTcpForwarding yes
+
+    TODO:
+    -----
+
+      * gsissh support
+      * support different auth mechanisms (user/key, public key, encrypted key,
+        ssh agent, myproxy, etc - see SAGA security contexts)
 
 
     Usage:
@@ -95,7 +170,7 @@ class Proxy(object):
         # nc     -X 5 -x 127.0.0.1:10000 %h %p
         # netcat -X 5 -x 127.0.0.1:10000 %h %p
         # ncat   --proxy-type socks5 --proxy 127.0.0.1:10000 %h %p
-        # socat - socks:127.0.0.1:%h:%p,socksport=10000
+        # socat  - socks:127.0.0.1:%h:%p,socksport=10000
 
     _tunnel_proxies = {
         'ncat'   : 'ncat    --proxy-type socks5 '
@@ -104,7 +179,18 @@ class Proxy(object):
         'netcat' : 'netcat  -X 5 -x 127.0.0.1:%(proxy_port)d %%%%h %%%%p',
         'socat'  : 'socat   - socks:127.0.0.1:%%%%h:%%%%p,'
                              'socksport=%(proxy_port)d'
-        }
+    }
+
+    _proxy_base = '%s/.radical/utils/proxies/' % os.environ['HOME']
+    if not os.path.isdir(_proxy_base):
+        os.makedirs(_proxy_base)
+
+  # _ptty_cmd = '''
+  # echo 1
+  # echo 2
+  # '''
+
+    _ptty_cmd = ''
 
     # --------------------------------------------------------------------------
     #
@@ -126,35 +212,32 @@ class Proxy(object):
         if url: proxy_url = Url(url)
         else  : proxy_url = Url(os.environ.get('RADICAL_PROXY_URL'))
 
-        if proxy_url:
-            url_host = proxy_url.host
-            url_port = proxy_url.port
-            if not url_port:
-                try:
-                    url_port = socket.getservbyname(proxy_url.schema)
-                except socket.error as e:
-                    raise ValueError('cannot handle "%s" urls' %
-                                      proxy_url.schema)
-        else:
-            url_host = None
-            url_port = None
-
-        self._proxy_host = None
-        self._proxy_port = None
-        self._proxy_pid  = None
-
         if not proxy_url:
             # we can't really create a proxy, so continue as is.
             # FIXME: should we raise an error instead?
             print 'missing proxy URL - continue w/o proxy'
             return
 
-        proxy_path = '%s/.radical/utils' % os.environ['HOME']
+        url_host = proxy_url.host
+        url_port = proxy_url.port
+        if not url_port:
+            try:
+                url_port = socket.getservbyname(proxy_url.schema)
+            except socket.error as e:
+                raise ValueError('cannot handle "%s" urls' %
+                                  proxy_url.schema)
 
-        if not os.path.isdir(proxy_path):
-            os.makedirs(proxy_path)
+        self._proxy_host = None
+        self._proxy_port = None
+        self._proxy_pid  = None
 
-        self._proxy_file = '%s/proxy_%s_%s' % (proxy_path, url_host, url_port)
+        self._proxy_id   = 'proxy.%s.%s' % (url_host, url_port)
+
+        proxy_in         = '%s/%s.in'  % (self._proxy_base, self._proxy_id)
+        proxy_out        = '%s/%s.out' % (self._proxy_base, self._proxy_id)
+        proxy_err        = '%s/%s.err' % (self._proxy_base, self._proxy_id)
+
+        self._proxy_stat = '%s/%s.stat' % (self._proxy_base, self._proxy_id)
 
         fd = None 
         try:
@@ -172,9 +255,9 @@ class Proxy(object):
             #       aplication's responsibility to rensure sufficient proxy
             #       lifetime.
             #
-            fd = os.open(self._proxy_file, os.O_RDWR | os.O_CREAT)
+            fd = os.open(self._proxy_stat, os.O_RDWR | os.O_CREAT)
             fcntl.flock(fd, fcntl.LOCK_EX)
-            os.lseek(fd, 0, os.SEEK_SET )
+            os.lseek(fd, 0, os.SEEK_SET)
 
             try:
                 # assume proxy exists
@@ -277,22 +360,26 @@ class Proxy(object):
         # FIXME: support interactive passwd / passkey
         self._tunnel_cmd = 'ssh -o ExitOnForwardFailure=yes' \
                          +    ' -o StrictHostKeyChecking=no' \
-                         +    ' -fNL %(loc_port)d:%(url_host)s:%(url_port)d' \
+                         +    ' -NfL %(loc_port)d:%(url_host)s:%(url_port)d' \
                          +    ' %(proxy_host)s'
 
         # if we have tunnel proxy support, it becomes part of the tunnel command
         if tunnel_proxy: 
             self._tunnel_cmd += " -o ProxyCommand='%s'" % tunnel_proxy
 
+        # finally, we add the command for the ptty shell at the other tunnel end
+        # FIXME: remove '-f' from tunnel_cmd for this to make any sense
+      # self._tunnel_cmd += ' %(ptty_cmd)s'
+
 
     # --------------------------------------------------------------------------
     #
     def _find_port(self, interface=None, port_min=None, port_max=None):
         '''
-        Inspect the OS for tcp connection usage, and pick anunused port in the
+        Inspect the OS for tcp connection usage, and pick an unused port in the
         private, ephemeral port range between 49152 and 65535.  By default we
         check all interfaces, but an interface can also be specified as optional
-        argument, identified by ots IP number.
+        argument, identified by its IP number.
 
         Note that this mechanism does not *reserve* a port, so there is a race
         between finding a free port and using it.
@@ -315,7 +402,7 @@ class Proxy(object):
 
     # --------------------------------------------------------------------------
     #
-    def _find_port_alt(self, interface=None):
+    def _find_port_alt(self, interface=''):
         '''
         Let the OS choose an open port for us and return it.  By default, we
         listen on all interfaces, but an interface can also be specified as
@@ -329,7 +416,8 @@ class Proxy(object):
         '''
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("",0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((interface, 0))
         port = sock.getsockname()[1]
         sock.close()
         return port
@@ -440,8 +528,40 @@ class Proxy(object):
                                       'url_host'   : url_host, 
                                       'url_port'   : url_port,
                                       'proxy_host' : self._proxy_host,
-                                      'proxy_port' : self._proxy_port}
-            try: 
+                                      'proxy_port' : self._proxy_port,
+                                      'ptty_cmd'   : self._ptty_cmd
+                                      }
+            try:
+
+              # # set up stdin, stdout, stderr named pipes (FIFOs), and create
+              # # a lock. 
+              # #
+              # # We need to put the FIFOs in asyn I/O mode, as otherwise we may
+              # # hang on a dead tunnel.
+              # # 
+              # # We need the lock as only one thing can talk to that process at
+              # # any point in time, and right now this is us.  
+              # # 
+              # # Why do we use named pipes in the first place?  So that the
+              # # tunnel survives this process.  But since there is
+              # # a back-and-forth on the fifos, it might well happen that the
+              # # this process dies and leaves the protocol (if one can call
+              # # that) in an unclean state.  Any reconnecting process is well
+              # # advised to rest the channel content to a well known state.
+              # os.mkfifo (self._proxy_in)
+              # os.mkfifo (self._proxy_out)
+              # os.mkfifo (self._proxy_err)
+              #
+              # except OSError, e:
+              #     print "Failed to create FIFO: %s" % e
+              # else:
+              #     fifo = open(filename, 'w')
+              #     # write stuff to fifo
+              #     print >> fifo, "hello"
+              #     fifo.close()
+              #     os.remove(filename)
+              #     os.rmdir(tmpdir)
+
                 sp.check_call(cmd, shell=True)
 
                 # find the pid
@@ -504,7 +624,7 @@ class Proxy(object):
                 # proxy might be gone already
                 pass
 
-        os.unlink(self._proxy_file)
+        os.unlink(self._proxy_stat)
 
 
 # ------------------------------------------------------------------------------
