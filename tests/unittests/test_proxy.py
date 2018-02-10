@@ -53,6 +53,21 @@ def test_tunnel():
 
 # ------------------------------------------------------------------------------
 #
+def test_command_channel():
+
+    proxy_url = 'ssh://two.radical-project.org/'
+    proxy     = ru.Proxy(url=proxy_url, cmd='date >> /tmp/t')
+    test_url  = 'ssh://two.radical-project.org/'
+    ret_url   = proxy.url(test_url, socks=False)
+
+    assert(ret_url.host == '127.0.0.1')
+    assert(len(cols))
+
+    proxy.close()
+
+
+# ------------------------------------------------------------------------------
+#
 def test_integration():
 
     p1_url   =  'ssh://two.radical-project.org/'
