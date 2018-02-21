@@ -484,8 +484,7 @@ def stack():
                'radical.saga', 
                'saga', 
                'radical.pilot', 
-               'radical.entl',
-               'radical.ensembletk',
+               'radical.entk',
                'radical.analytics']
 
     for mod in modules:
