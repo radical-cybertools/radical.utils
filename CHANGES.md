@@ -5,6 +5,13 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.46.3 Release                                                        2018-02-21
+--------------------------------------------------------------------------------
+
+  - introduce name spaces for the ID generator
+  - iterate on some of the debug methods
+
+
 0.46.2 Release                                                        2017-11-19
 --------------------------------------------------------------------------------
 
