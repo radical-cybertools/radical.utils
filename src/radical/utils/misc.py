@@ -551,4 +551,38 @@ def sh_callout(cmd, shell=False):
 
 
 # ------------------------------------------------------------------------------
+#
+def get_radical_base(module=None):
+    '''
+    Several parts of the RCT stack store state on the file system.  This should
+    usually be under `$HOME/.radical` - but that location is not always
+    available or desireable.  We interpret the env variable `RADICAL_BASE_DIR`,
+    and fall back to `pwd` if neither that nor `$HOME` exists.
 
+    The optional `module` parameter will result in the respective subdir name to
+    be appended.  The resulting dir is created (if it does not exist), and the
+    name is returned.
+    '''
+
+
+    base = os.environ.get("RADICAL_BASE_DIR")
+
+    if not base or not os.path.isdir(base):
+        base  = os.environ.get("HOME")
+
+    if not base or not os.path.isdir(base):
+        base  = os.environ.get("PWD")
+
+    if not base or not os.path.isdir(base):
+        base  = os.getcwd()
+
+    if module: base += '/.radical/%s/' % module
+    else     : base += '/.radical/'
+
+    if not os.path.isdir(base):
+        os.makedirs(base)
+
+    return base
+
+
+# ------------------------------------------------------------------------------
