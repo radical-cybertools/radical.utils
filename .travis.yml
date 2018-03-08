@@ -8,24 +8,22 @@ python:
   - "2.7"
 
 before_install:
+  - pwd
+  - ls -a
   - uname -a
   - free -m
   - df -h
   - ulimit -a
   - python -V
-#  - pip install --upgrade pip setuptools
-#  - pip install pytest pytest-cov
-#  - pip install numpy
+  - pip install --upgrade pip setuptools
   - pip install codecov
-#  - pip install -e .
+  - pip install nose coverage
+
 
 install:
   - pip install .
 
 script:
-  - pwd
-  - ls -a
-  - pip install nose coverage
   - python setup.py test
 
 notifications:
@@ -37,4 +35,3 @@ notifications:
 
 after_success:
   - codecov
-
