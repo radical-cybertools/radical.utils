@@ -1,4 +1,5 @@
-
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
 language: python
 
 services:
@@ -6,10 +7,24 @@ services:
 python:
   - "2.7"
 
+before_install:
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+  - python -V
+#  - pip install --upgrade pip setuptools
+#  - pip install pytest pytest-cov
+#  - pip install numpy
+  - pip install codecov
+#  - pip install -e .
+
 install:
   - pip install .
 
 script:
+  - pwd
+  - ls -a
   - pip install nose coverage
   - python setup.py test
 
