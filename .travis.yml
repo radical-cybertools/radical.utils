@@ -15,10 +15,7 @@ before_install:
   - df -h
   - ulimit -a
   - python -V
-  - pip install --upgrade pip setuptools
-  - pip install codecov
-  - pip install nose coverage
-
+  - pip install nose coverage codecov
 
 install:
   - pip install .
@@ -35,3 +32,4 @@ notifications:
 
 after_success:
   - codecov
+
