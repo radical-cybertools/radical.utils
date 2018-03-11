@@ -28,7 +28,7 @@ from .which import which
 #     - rush   : job submission (qsub)
 #
 #   * sequence
-#     - create above chain (with user/pass and keyfib prompts)
+#     - create above chain (with user/pass and keyfob prompts)
 #     - start a process (async, I/O redirection to buffered pipe)
 #     - kill delete proxy_2 connection out-of-band
 #     - kill client
@@ -67,19 +67,13 @@ from .which import which
 #       t1.kill()
 #       t1.restart()
 #       t1.is_alive()
+#       t1.socks5
 #       t1.url
 #       p2 = t1.proxy
 #
-#     * create a tunnel w/o proxy
-#       t2 = ru.Tunnel(service_url)
-#       t2.is_alive()
-#       t2.kill()
-#       t2.restart()
-#       t2.url
-#
 #     * create a command endpoint over a tunnel creates thus
 #       (zmq protocol, persistent service EP, async)
-#       rush = ru.SH(p.tunnel('rush://targethost/'))
+#       rush = ru.Sh(p.tunnel('rush://targethost/'))
 #       print rush.ps()
 #
 # ------------------------------------------------------------------------------
@@ -88,7 +82,7 @@ from .which import which
 #
 # - Proxy:  a authenticated and authorized tcp connection to a remote host
 #           (proxy host).  That connection can be used to tunnel one or more
-#           protocols channels.
+#           protocol channels.
 #           Proxies can be chained, in that connections to some remote hosts
 #           may consist of multiple hops over intermediary hosts.  A chained
 #           proxy transparently acts as a connection to the last target host,
@@ -99,9 +93,13 @@ from .which import which
 #           connection.  Establishing a tunnel will open an ephermeal port on
 #           the *local* machine which is transparently forwarded over a proxy
 #           or proxy chain to a specified port on the target host.
+#           A Tunnel instance can only be created from a Proxy, buy calling
+#           Proxy.tunnel().  Multiple tunnels can be created over the same
+#           proxy connection.
 #
 # ------------------------------------------------------------------------------
-#
+
+
 class Proxy(object):
     '''
     We frequently face the problem that a network connection cannot be directly
@@ -369,7 +367,6 @@ class Proxy(object):
             if fd:
                 os.close(fd)
 
-# ==============================================================================
 
         # Now that we have a proxy, we can configure the tunnel command for
         # later use on `url(socks=False)`
@@ -400,6 +397,7 @@ class Proxy(object):
 
         # finally, we add the command for the ptty shell at the other tunnel end
         # FIXME: remove '-f' from tunnel_cmd for this to make any sense
+        # FIXME: not every tunnel should be a RUSH tunnel
       # self._tunnel_cmd += ' %(_ptty_cmd)s'
 
 
@@ -416,13 +414,13 @@ class Proxy(object):
         between finding a free port and using it.
         '''
 
+        if not port_min: port_min = 49152
+        if not port_max: port_max = 65535
+
         used_adr     = [c.laddr for c in psutil.net_connections(kind='tcp')]
         if interface:
             used_adr = [x       for x in used_adr if x[0] == interface]
         used_ports   = [x[1]    for x in used_adr]
-
-        if not port_min: port_min = 49152
-        if not port_max: port_max = 65535
 
         for port in range(port_min, port_max):
             if port not in used_ports:
@@ -532,7 +530,8 @@ class Proxy(object):
             return url
 
         # in all other cases we need to be more clever, and create a dedicated
-        # ssh tunnel for the callee
+        # ssh tunnel for the callee.  First though we make sure we have a usable
+        # port number
         if not url_port:
             try:
                 url_port = socket.getservbyname(url.schema)
