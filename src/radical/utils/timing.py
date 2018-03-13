@@ -5,22 +5,35 @@ __license__   = "MIT"
 
 
 import time
-import inspect
-import functools
-
-
-""" 
-Provides class decorators to time all public class methods 
-
-The class decorator is provided as decorator method `@timed_class`, and as
-decorator class `@TimedClass`.  It thus also serves as documentation on the
-different ways to implement class decorators.  
-"""
+from   datetime import datetime
 
 
 # ------------------------------------------------------------------------------
 #
-# called on *decorator class* instantiation
+# static datetime instance used for the `epoch` helper method
+_epoch = datetime(1970,1,1)
+
+
+# ------------------------------------------------------------------------------
+#
+def epoch(data, pattern):
+    '''
+    convert a given datetimme string into seconds since EPOCH.  
+    The string is parsed as defined by POSIX's `strptime()`.
+    '''
+
+    return (datetime.strptime(data, pattern) - _epoch).total_seconds()
+
+
+# ------------------------------------------------------------------------------
+#
+# Provides class decorators to time all public class methods 
+# 
+# The class decorator is provided as decorator method `@timed_class`, and as
+# decorator class `@TimedClass`.  It thus also serves as documentation on the
+# different ways to implement class decorators.  
+# 
+# This is called on *decorator class* instantiation
 def timed_method (func) :
     """ 
     This class decorator will decorate all public class methods with a timing
@@ -32,9 +45,10 @@ def timed_method (func) :
 
     # apply timing decorator to all public methods
     def func_timer(obj, *args, **kwargs):
-        
+
         try  :
             _ = obj.__timing
+            assert(_)
 
         except Exception :
 
@@ -59,10 +73,11 @@ def timed_method (func) :
                     tnum  = len(tlist)
                     tmean = sum(tlist) / tnum
                     tdev  = [x - tmean for x in tlist]
-                    tdev2 = [x*x for x in tdev]
+                    tdev2 = [x * x for x in tdev]
                     tstd  = math.sqrt (sum(tdev2) / tnum)
 
-                    ret  += "%-20s : %10.3fs (+/- %5.3fs) [n=%5d]\n" % (key, tmean, tstd, tnum)
+                    ret  += "%-20s : %10.3fs (+/- %5.3fs) [n=%5d]\n" \
+                          % (key, tmean, tstd, tnum)
 
                 return ret
 
@@ -78,19 +93,21 @@ def timed_method (func) :
         # object is set up -- time the call and record timings
         fname = func.__name__
         tdict = obj.__timing
-        
+
         start = time.time()
         ret   = func (obj, *args, **kwargs)
         stop  = time.time()
-        timed = stop-start
-        
-        if not fname in tdict :
+        timed = stop - start
+
+        if fname not in tdict :
             tdict[fname] = list()
         tdict[fname].append (timed)
         tdict['__last_call'] = fname
-        
+
         return ret
-        
+
     return func_timer
 
+
+# ------------------------------------------------------------------------------
 
