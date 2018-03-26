@@ -5,6 +5,19 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.47.3 Release                                                        2018-03-20
+--------------------------------------------------------------------------------
+
+  - more thorough approach to relocate ID state storage (#131) 
+  - travis badge 
+
+
+0.47.2 Release                                                        2018-02-28
+--------------------------------------------------------------------------------
+
+  - relocate ID state storage (#131) 
+
+
 0.47.1 Release                                                        2018-02-21
 --------------------------------------------------------------------------------
 

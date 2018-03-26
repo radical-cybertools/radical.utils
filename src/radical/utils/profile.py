@@ -114,7 +114,7 @@ class Profiler(object):
                 break
 
         # FIXME
-        if 'RADICAL_PILOT_PROFILE' in os.environ:
+        if 'RADICAL_PROFILE' in os.environ:
             self._enabled = True
 
         if not self._enabled:
