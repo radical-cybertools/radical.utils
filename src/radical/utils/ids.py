@@ -13,7 +13,7 @@ import datetime
 import threading
 import singleton
 
-from .misc import dockerized
+from .misc import dockerized, get_radical_base
 
 
 # ------------------------------------------------------------------------------
@@ -78,13 +78,10 @@ class _IDRegistry(object):
 # ------------------------------------------------------------------------------
 #
 # we create on private singleton instance for the ID registry.
+#
 _id_registry = _IDRegistry()
-_BASE        = "%s/.radical/utils" % os.environ.get("HOME", "/tmp")
+_BASE        = get_radical_base('utils')
 
-try:
-    os.makedirs(_BASE)
-except:
-    pass
 
 # ------------------------------------------------------------------------------
 #
@@ -155,7 +152,8 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
         re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0000
         re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0001
 
-    The namespaces are stored under ```$HOME/.radical/utils/```
+    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.  If
+    `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
