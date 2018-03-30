@@ -328,18 +328,9 @@ def read_profiles(profiles, sid=None, efilter=None):
                 # we keep the raw data around for error checks
                 row = list(raw)
 
-              # if 'sync_abs' in row:
+              # if 'bootstrap_1' in row:
               #     print
               #     print row
-              #     print
-              #     print 'TIME    : %s' % row[TIME ]
-              #     print 'EVENT   : %s' % row[EVENT]
-              #     print 'COMP    : %s' % row[COMP ]
-              #     print 'TID     : %s' % row[TID  ]
-              #     print 'UID     : %s' % row[UID  ]
-              #     print 'STATE   : %s' % row[STATE]
-              #     print 'MSG     : %s' % row[MSG  ]
-              #     raise 'oops'
 
                 try:
 
@@ -411,6 +402,18 @@ def read_profiles(profiles, sid=None, efilter=None):
                     last = row
 
                   # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
+                  # if 'bootstrap_1' in row:
+                  #     print row
+                  #     print
+                  #     print 'TIME    : %s' % row[TIME  ]
+                  #     print 'EVENT   : %s' % row[EVENT ]
+                  #     print 'COMP    : %s' % row[COMP  ]
+                  #     print 'TID     : %s' % row[TID   ]
+                  #     print 'UID     : %s' % row[UID   ]
+                  #     print 'STATE   : %s' % row[STATE ]
+                  #     print 'ENTITY  : %s' % row[ENTITY]
+                  #     print 'MSG     : %s' % row[MSG   ]
+
 
                 except Exception as e:
                     raise
@@ -434,6 +437,12 @@ def combine_profiles(profs):
     corrected by the respectively determined NTP offset.  We define an
     'accuracy' measure which is the maximum difference of clock correction
     offsets across all hosts.
+
+    The `sync_rel` timestamps are expected to occur in pairs, one for a profile
+    with no other sync timestamp, and one profile which has
+    a `sync_abs`timestamp.  In that case, the time correction from the latter is
+    transfered to the former (the two time stamps are considered to have been
+    written at the exact same time).
 
     The method returnes the combined profile and accuracy, as tuple.
     """
@@ -484,7 +493,8 @@ def combine_profiles(profs):
         # sync_rel in the other profiles, and determine the offset to use.  Use
         # the first sync_rel that results in an offset, and only complain if none
         # is found.
-        offset = None
+        offset       = None
+        offset_event = None
         if syncs[pname]['abs']:
             offset = 0.0
 
@@ -495,7 +505,8 @@ def combine_profiles(profs):
                         continue
                     for _sync_rel in syncs[_pname]['rel']:
                         if _sync_rel[MSG] == sync_rel[MSG]:
-                            offset = _sync_rel[TIME] - sync_rel[TIME]
+                            offset       = _sync_rel[TIME] - sync_rel[TIME]
+                            offset_event = syncs[_pname]['abs'][0]
                     if offset:
                         break
                 if offset:
@@ -508,6 +519,13 @@ def combine_profiles(profs):
       # print 'sync profile %-100s : %20.3fs' % (pname, offset)
         for event in prof:
             event[TIME] += offset
+
+        # if we have an offset event, we append it to the profile.  This
+        # basically transplants an sync_abs event into a sync_rel profile
+        if offset_event:
+          # print 'transplant sync_abs to %s: %s' % (pname, offset_event)
+            prof.append(offset_event)
+            syncs[pname]['abs'].append(offset_event)
 
     # all profiles are rel-synced here.  Now we look at sync_abs values to align
     # across hosts and to determine accuracy.
@@ -545,9 +563,10 @@ def combine_profiles(profs):
 
                 # we allow for *some* amount of inconsistency before warning
                 if diff > NTP_DIFF_WARN_LIMIT:
-                    print 'conflicting time sync for %-45s (%15s): '%(pname.split('/')[-1], host_id) \
-                        + '%10.2f - %10.2f = %5.2f' % \
-                          (t_off,t_host[host_id], diff)
+                    print 'conflicting time sync for %-45s (%15s): ' \
+                        % (pname.split('/')[-1], host_id) \
+                        + '%10.2f - %10.2f = %5.2f' \
+                        % (t_off,t_host[host_id], diff)
                     continue
 
             t_host[host_id] = t_off
@@ -564,7 +583,7 @@ def combine_profiles(profs):
             continue
 
         if not syncs[pname]['abs']:
-          # print 'no sync_abs msg: %s' % prof[0]
+            print 'no sync_abs event: %s' % prof[0]
             continue
 
         sync_abs = syncs[pname]['abs'][0]
