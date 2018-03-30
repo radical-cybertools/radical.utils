@@ -145,7 +145,7 @@ class our_test(Command):
     def finalize_options   (self) : pass
     def run (self) :
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
-        sys.exit (sp.call (['py.test', testdir]))
+        sys.exit (sp.call (('coverage run py.test %s' % testdir).split()))
 
 
 # ------------------------------------------------------------------------------
@@ -280,9 +280,10 @@ setup_args = {
                             'setproctitle'
                            ],
     'extras_require'     : {
-        'pymongo'        : ['pymongo']
+        'pymongo'        : ['pymongo'],
+        'pytest'         : ['pytest', 'coverage']
     },
-    'tests_require'      : ['pytest'],
+    'tests_require'      : ['pytest', 'coverage'],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
 #   'build_sphinx'       : {

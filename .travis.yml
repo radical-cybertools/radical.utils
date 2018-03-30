@@ -1,19 +1,40 @@
-language: 
-  - python
+
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
+language: python
+
+services:
 
 python:
-  - "2.5"
-  - "2.6"
   - "2.7"
-  - "pypy"
+
+before_install:
+  - pwd
+  - ls -a
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+  - python -V
+  - pip install nose coverage codecov
 
 install:
   - pip install .
   - pip install pytest
   - pip install pylint
 
-script: 
+script:
   - py.test tests/
   - find radical -name \*.py | xargs -n 1 pylint | grep -e '^E'
+
+notifications:
+  email:
+    recipients:
+      - andre@merzky.net
+    on_success: change
+    on_failure: always
+
+after_success:
+  - codecov
 
 
