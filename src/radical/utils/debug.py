@@ -281,8 +281,13 @@ def get_caller_name(skip=2):
 
 # ------------------------------------------------------------------------------
 #
+_verb  = False
+if 'RADICAL_DEBUG' in os.environ :
+    _verb = True
+
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
+
 def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
@@ -308,7 +313,7 @@ def raise_on(tag, log=None, msg=None):
             env = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
             if env and env.startswith('RANDOM_'):
                 # env is rnd spec
-                rate  = (float(env[7:]) / 100.0)
+                rate  = int(env[7:])
                 limit = 1
             elif env:
                 # env is int
@@ -331,27 +336,27 @@ def raise_on(tag, log=None, msg=None):
         limit = _raise_on_state[tag]['limit']
         rate  = _raise_on_state[tag]['rate']
 
-        if msg: info = '%s [%s / %s] [%s]' % (tag, count, limit, msg)
-        else  : info = '%s [%s / %s]'      % (tag, count, limit     )
+        if msg    : info = '%s [%2d / %2d] [%s]' % (tag, count, limit, msg)
+        elif _verb: info = '%s [%2d / %2d]'      % (tag, count, limit     )
 
-        if log: log.debug('raise_on checked   %s' , info)
-        else:   print     'raise_on checked   %s' % info
+        if log    : log.debug('raise_on checked   %s' , info)
+        elif _verb: print     'raise_on checked   %s' % info
 
         if limit and count == limit:
+            _raise_on_state[tag]['count'] = 0
             if rate == 1:
                 val = limit
             else:
-                val = random.random()
+                val = random.randint(0, 100)
                 if val > rate:
-                    if log: log.warn('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
-                  # else:   print   ('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                    if log:     log.warn('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
+                    elif _verb: print   ('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
                     return
 
-            if log: log.warn('raise_on triggered %s [%s]' % (tag, val))
-          # else:   print    'raise_on triggered %s [%s]' % (tag, val)
+            if log:     log.warn('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
+            elif _verb: print    'raise_on triggered %s [%2d / %2d]' % (tag, val, rate)
 
             # reset counter and raise exception
-            _raise_on_state[tag]['count'] = 0
             raise RuntimeError('raise_on for %s [%s]' % (tag, val))
 
 
