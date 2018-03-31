@@ -18,11 +18,21 @@ _epoch = datetime(1970,1,1)
 #
 def epoch(data, pattern):
     '''
-    convert a given datetimme string into seconds since EPOCH.  
+    convert a given datetime string into seconds since EPOCH.
     The string is parsed as defined by POSIX's `strptime()`.
     '''
 
-    return (datetime.strptime(data, pattern) - _epoch).total_seconds()
+    return dt_epoch(datetime.strptime(data, pattern))
+
+
+# ------------------------------------------------------------------------------
+#
+def dt_epoch(dt):
+    '''
+    convert a given datetime instance into seconds since EPOCH.
+    '''
+
+    return (dt - _epoch).total_seconds()
 
 
 # ------------------------------------------------------------------------------
@@ -31,7 +41,7 @@ def epoch(data, pattern):
 # 
 # The class decorator is provided as decorator method `@timed_class`, and as
 # decorator class `@TimedClass`.  It thus also serves as documentation on the
-# different ways to implement class decorators.  
+# different ways to implement class decorators.
 # 
 # This is called on *decorator class* instantiation
 def timed_method (func) :
