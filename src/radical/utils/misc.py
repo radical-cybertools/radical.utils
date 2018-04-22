@@ -1,17 +1,16 @@
+
 import os
 import sys
 import time
-import glob
 import regex
 import shlex
-import signal
 import socket
 import importlib
 import netifaces
-import threading
 
 import subprocess as sp
 import url as ruu
+
 
 # ------------------------------------------------------------------------------
 #
@@ -33,7 +32,7 @@ def split_dburl(dburl, default_dburl=None):
 
     # NOTE: add other data base schemes here...
     if 'mongodb' not in url.schema.split('+'):
-        raise ValueError("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
+        raise ValueError("expected 'mongodb[+ssl]://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
@@ -385,21 +384,21 @@ def get_hostip(req=None, logger=None):
         req = []
 
     white_list = [
-            'ipogif0', # Cray's
-            'br0',     # SuperMIC
-            'eth0',    # desktops etc.
-            'wlan0'    # laptops etc.
-            ]
+                  'ipogif0',  # Cray's
+                  'br0',      # SuperMIC
+                  'eth0',     # desktops etc.
+                  'wlan0'     # laptops etc.
+                 ]
 
     black_list = [
-            'lo',      # takes the 'inter' out of the 'net'
-            'sit0'     # ?
-            ]
+                  'lo',      # takes the 'inter' out of the 'net'
+                  'sit0'     # ?
+                 ]
 
     all  = netifaces.interfaces()
-    rest = [iface for iface in all \
-                   if iface not in req and \
-                      iface not in white_list and \
+    rest = [iface for iface in all
+                   if iface not in req and
+                      iface not in white_list and
                       iface not in black_list]
 
     preflist = req + white_list + black_list + rest
@@ -447,13 +446,13 @@ def watch_condition(cond, target=None, timeout=None, interval=0.1):
     return that value.  Stop watching on timeout, in that case return None.  The
     condition is tested approximately every 'interval' seconds.
     """
-    
+
     start = time.time()
     while True:
         ret = cond()
         if ret == target:
             return ret
-        if timeout and time.time() > start+timeout:
+        if timeout and time.time() > start + timeout:
             return None
         time.sleep(interval)
 
@@ -465,8 +464,49 @@ def name2env(name):
     convert a name of the for 'radical.pilot' to an env vare base named
     'RADICAL_PILOT'.
     """
-    
+
     return name.replace('.', '_').upper()
+
+
+# ------------------------------------------------------------------------------
+#
+def get_env_ns(ns, key):
+    """
+    get an environment setting within a namespace.  For example. 
+
+        get_env_ns('radical.pilot.umgr', 'verbose'), 
+
+    will return the value of the first found env variable from the following
+    sequence:
+
+        RADICAL_PILOT_UMGR_VERBOSE
+        RADICAL_PILOT_VERBOSE
+        RADICAL_VERBOSE
+
+    or 'None' if none of the above is set.  The given `name` and `key` are
+    converted to upper case, dots are replaced by underscores.
+
+    Note that an environment variable set with
+
+        export RADICAL_VERBOSE=
+
+    (ie. without an explicit, non-empty value) will be returned as an empty
+    string.
+    """
+
+    ns  = ns .upper().replace('.', '_')
+    key = key.upper().replace('.', '_')
+
+    elems = ns.split('_')
+    base  = ''
+
+    for elem in elems:
+        base += elem + '_'
+        check = base + key
+        if check in os.environ:
+            return os.environ[check]
+
+    return None
 
 
 # ------------------------------------------------------------------------------
@@ -475,7 +515,8 @@ def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or os.environ.get('CONDA_DEFAULT_ENV','')}, 
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
+                                       os.environ.get('CONDA_DEFAULT_ENV','')}, 
            'radical' : dict()
           }
 
@@ -495,7 +536,7 @@ def stack():
             pass
 
     return ret
-    
+
 
 # ------------------------------------------------------------------------------
 #
