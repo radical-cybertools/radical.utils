@@ -23,7 +23,7 @@ can unlock the lock, thus badaboom.
 Since after the fork we *know* the logging locks should be unset (after all, we
 are not in a logging call right now, are we?), we pre-emtively unlock them here.
 But, to do so we need to know what locks exist in the first place.  For that
-purpose, we create a process-singletone of all the loggers we hand out via
+purpose, we create a process-singleton of all the loggers we hand out via
 'get_logger()'.
 
 Logging locks are 'threading.RLock' instances.  As such they can be locked
