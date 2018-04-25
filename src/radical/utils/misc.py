@@ -470,11 +470,11 @@ def name2env(name):
 
 # ------------------------------------------------------------------------------
 #
-def get_env_ns(ns, key):
+def get_env_ns(key, ns, default=None):
     """
     get an environment setting within a namespace.  For example. 
 
-        get_env_ns('radical.pilot.umgr', 'verbose'), 
+        get_env_ns('verbose', 'radical.pilot.umgr'), 
 
     will return the value of the first found env variable from the following
     sequence:
@@ -494,19 +494,16 @@ def get_env_ns(ns, key):
     string.
     """
 
-    ns  = ns .upper().replace('.', '_')
-    key = key.upper().replace('.', '_')
-
-    elems = ns.split('_')
-    base  = ''
-
-    for elem in elems:
+    ns   = name2env(ns)
+    key  = name2env(key)
+    base = ''
+    for elem in ns.split('_'):
         base += elem + '_'
         check = base + key
         if check in os.environ:
             return os.environ[check]
 
-    return None
+    return default
 
 
 # ------------------------------------------------------------------------------

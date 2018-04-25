@@ -32,7 +32,8 @@ from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
 # import utility methods
-from .logger         import *
+from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
+from .logger         import get_logger, Logger
 from .ids            import *
 from .read_json      import *
 from .tracer         import trace, untrace
