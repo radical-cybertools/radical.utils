@@ -140,8 +140,6 @@ class Reporter(object):
                 # dir exists
                 pass
 
-
-        self._title    = name
         self._pos      = 0
         self._settings = {'title'    : {'color'   : self.TITLE,
                                         'style'   : 'ELMLE',
@@ -199,11 +197,6 @@ class Reporter(object):
             else                          : h = open("%s/%s"     % (path, t),    'w')
 
             self._streams.append(h)
-
-
-        # and send the title to all streams
-        if self._title:
-            self.title(self._title)
 
 
     # --------------------------------------------------------------------------
