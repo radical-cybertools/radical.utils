@@ -37,13 +37,14 @@ import os
 import sys
 import types
 import threading
-import logging
 import colorama
+import logging
+from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
+
 
 from   .atfork  import *
-from   .misc    import get_env_ns    as ru_get_env_ns
-from   .misc    import import_module as ru_import_module
-from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
+from   .misc    import get_env_ns       as ru_get_env_ns
+from   .misc    import import_module    as ru_import_module
 
 
 DEFAULT_LEVEL   =  'ERROR'
@@ -247,7 +248,6 @@ class Logger(object):
         if not isinstance(targets, list):
             targets = [targets]
 
-
         if not level:
             level = ru_get_env_ns('verbose', ns)
             if not level:
@@ -256,14 +256,12 @@ class Logger(object):
         if level in [OFF, 'OFF']:
             targets = ['null']
 
-
         # backward compatible interpretation of SAGA_VERBOSE
         if name.lower().startswith('RADICAL_SAGA') or \
              ns.lower().startswith('RADICAL_SAGA') or \
            name.lower().startswith('radical.saga') or \
              ns.lower().startswith('radical.saga')    :
             level = os.environ.get('SAGA_VERBOSE', level)
-
 
         # translate numeric levels into upper case symbolic ones
         levels  = {'50' : 'CRITICAL',

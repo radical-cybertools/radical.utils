@@ -17,6 +17,18 @@ DEFAULT_TARGETS = ['stdout']
 
 # ------------------------------------------------------------------------------
 #
+def _open(target):
+
+    try:
+        os.makedirs(os.path.abspath(os.path.dirname(target)))
+    except:
+        pass  # exists
+
+    return open(target, 'w')
+
+
+# ------------------------------------------------------------------------------
+#
 class Reporter(object):
 
     # COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
@@ -192,9 +204,9 @@ class Reporter(object):
             if   t in ['0', 'null']       : continue
             elif t in ['-', '1', 'stdout']: h = sys.stdout
             elif t in ['=', '2', 'stderr']: h = sys.stderr
-            elif t in ['.']               : h = open("%s/%s.rep" % (path, name), 'w')
-            elif t.startswith('/')        : h = open(t,                          'w')
-            else                          : h = open("%s/%s"     % (path, t),    'w')
+            elif t in ['.']               : h = _open("%s/%s.rep" % (path, name))
+            elif t.startswith('/')        : h = _open(t)
+            else                          : h = _open("%s/%s"     % (path, t))
 
             self._streams.append(h)
 
@@ -238,9 +250,9 @@ class Reporter(object):
       # print "[%s:%s]" % (self.__hash__(), self._pos),
         slash_f  = msg.find('>>')
         if slash_f >= 0:
-            copy   = msg[slash_f+1:].strip()
-            spaces = self._line_len - self._pos - len(copy) + 1 # '>>'
-            if spaces < 0:
+            copy   = msg[slash_f + 1:].strip()
+            spaces = self._line_len - self._pos - len(copy) + 1  # '>>'
+            if  spaces < 0:
                 spaces = 0
             msg = msg.replace('>>', spaces * ' ')
 
@@ -278,7 +290,7 @@ class Reporter(object):
                 stream.write(self.MODS['reset'])
             try:
                 stream.flush()
-            except Exception as e:
+            except:
                 pass
 
 
@@ -343,7 +355,7 @@ class Reporter(object):
             title = self._title
 
         if title:
-            fmt   = " %%-%ds\n" % (self._line_len-1)
+            fmt   = " %%-%ds\n" % (self._line_len - 1)
             title = fmt % title
 
         self._format(title, self._settings['title'])

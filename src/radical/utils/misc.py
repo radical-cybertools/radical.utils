@@ -110,7 +110,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception as e:
+            except Exception:
                 pass
 
 
@@ -346,12 +346,11 @@ def get_hostname():
     Look up the hostname
     """
 
-    global _hostname
     if not _hostname:
 
+        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
-
         else:
             _hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
@@ -367,6 +366,10 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     """
 
+    if _hostip:
+        return _hostip
+
+    global _hostip
     AF_INET = netifaces.AF_INET
 
     # We create a ordered preference list, consisting of:
@@ -426,14 +429,13 @@ def get_hostip(req=None, logger=None):
                 logger.debug('check iface %s: disconnected', iface)
             continue
 
-      
         ip = info[AF_INET][0].get('addr')
         if logger:
             logger.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
-           _hostip = ip
-           return ip
+            _hostip = ip
+            return ip
 
     raise RuntimeError('could not determine ip on %s' % preflist)
 
@@ -494,12 +496,16 @@ def get_env_ns(key, ns, default=None):
     string.
     """
 
-    ns   = name2env(ns)
-    key  = name2env(key)
-    base = ''
+    ns     = name2env(ns)
+    key    = name2env(key)
+    base   = ''
+    checks = list()
     for elem in ns.split('_'):
         base += elem + '_'
         check = base + key
+        checks.append(check)
+
+    for check in reversed(checks):
         if check in os.environ:
             return os.environ[check]
 
