@@ -45,7 +45,7 @@ from .algorithms     import *
 from .profile        import *
 
 # import decorators
-from .timing         import timed_method
+from .timing         import timed_method, epoch, dt_epoch
 
 # imprt submodules
 
