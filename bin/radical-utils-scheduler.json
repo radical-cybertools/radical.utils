@@ -1,0 +1,61 @@
+
+{
+    "cluster" : {
+        "1m-16-0-0"    : {
+            "cores"    : 1048576,
+            "ppn"      :      32,
+            "align"    :       0,
+            "scatter"  :       0
+        },
+        "1m-16-0-1"    : {
+            "cores"    : 1048576,
+            "ppn"      :      16,
+            "align"    :       0,
+            "scatter"  :       1
+        },
+        "1m-16-1-0"    : {
+            "cores"    : 1048576,
+            "ppn"      :      16,
+            "align"    :       1,
+            "scatter"  :       0
+        },
+        "1m-16-1-1"    : {
+            "cores"    : 1048576,
+            "ppn"      :      16,
+            "align"    :       1,
+            "scatter"  :       1
+        }
+    },
+
+    "workload" : {
+        "ubot-8-1024-1024" : {
+            "cycles"   : 1024,
+            "req_min"  :    8,
+            "req_max"  :    8,
+            "req_bulk" : 1024,
+            "rel_prob" : 0.005
+        },
+        "ubot-64-1024-64" : {
+            "cycles"   : 1024,
+            "req_min"  :   64,
+            "req_max"  :   64,
+            "req_bulk" :   64,
+            "rel_prob" : 0.005
+        },
+        "nubot-8-1024-1024" : {
+            "cycles"   : 1024,
+            "req_min"  :    1,
+            "req_max"  :    8,
+            "req_bulk" : 1024,
+            "rel_prob" : 0.001
+        },
+        "nubot-64-1024-64" : {
+            "cycles"   : 1024,
+            "req_min"  :    1,
+            "req_max"  :   64,
+            "req_bulk" :   64,
+            "rel_prob" : 0.001
+        }
+    }
+}
+
