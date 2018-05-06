@@ -1,3 +1,6 @@
+
+[![Build Status](https://travis-ci.org/radical-cybertools/radical.utils.svg?branch=devel)](https://travis-ci.org/radical-cybertools/radical.utils)
+
 Package radical.utils
 =====================
 
