@@ -4,13 +4,6 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import sys
-import time
-import pprint
-import random
-
-from bitarray        import bitarray as ba
-
 from .scheduler_base import SchedulerBase
 
 
@@ -18,21 +11,23 @@ from .scheduler_base import SchedulerBase
 #
 class BitarrayScheduler(SchedulerBase):
 
-    _one = ba(1)
+    from bitarray import bitarray as _ba
+
+    _one = _ba(1)
     _one.setall(True)
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, resources=0):
 
-        if not 'cores' in resources:
+        if 'cores' not in resources:
             raise ValueError('no cores to schedule over')
 
         self._pos  = 0
         self._size = resources.get('cores')
         self._ppn  = resources.get('ppn', self._size)
 
-        self._cores = ba(self._size)
+        self._cores = self._ba(self._size)
         self._cores.setall(True)   # True: free
 
         self._flag_align   = resources.get('align',   True)
@@ -91,14 +86,14 @@ class BitarrayScheduler(SchedulerBase):
         rewound = False
         while (pos <= self._size and not rewound) or \
               (pos <  orig_pos   and     rewound)    :
-        
+
             if pos > self._size:
                 pos     = 0
                 rewound = True
 
             # we need to renew the allocation -- we search further from pos
             # until we find something
-            loc = self._cores.search(pat, 1, pos+1)
+            loc = self._cores.search(pat, 1, pos + 1)
 
             if not loc:
                 pos     =  0
@@ -127,7 +122,7 @@ class BitarrayScheduler(SchedulerBase):
         aligned   = False
         orig_pos  = self._pos
         loc       = list()
-        pat       = ba(req)   # keep dict of patterns?
+        pat       = self._ba(req)   # keep dict of patterns?
         pat.setall(True)
 
         # simple search
@@ -137,7 +132,7 @@ class BitarrayScheduler(SchedulerBase):
         if not loc:
             # FIXME: assume we first search from pos 100 to 1000, then rewind, 
             #        then search from 0 to 1000, 900 cores being searched twice.
-            #        We should add an 'end_pos' parameter to ba.search.
+            #        We should add an 'end_pos' parameter to bitarray.search.
             #        But then again, rewind should be rare if cores are on
             #        average much larger than requests -- and if that is not the
             #        case, we won't be able to allocate many requests anyway...
@@ -186,7 +181,7 @@ class BitarrayScheduler(SchedulerBase):
                 loc, aligned = self._align(pat, req, loc)
 
             self._pos = loc + req
-            self._cores.setrange(loc, self._pos-1, False)
+            self._cores.setrange(loc, self._pos - 1, False)
 
 
         return [req, loc, scattered, aligned]
@@ -206,7 +201,7 @@ class BitarrayScheduler(SchedulerBase):
           #     self._cores[i] = True
         else:
             # we got a continuous block
-            self._cores.setrange(loc, loc+req-1, True)
+            self._cores.setrange(loc, loc + req - 1, True)
 
 
     # --------------------------------------------------------------------------
@@ -237,12 +232,12 @@ class BitarrayScheduler(SchedulerBase):
         # determine frequency of free core counts per node
         node = 0
         node_free = dict()
-        for i in range(self._ppn+1):
+        for i in range(self._ppn + 1):
             node_free[i] = 0
-        while node * (self._ppn+1) < self._size:
+        while node * (self._ppn + 1) < self._size:
             free_count = 0
             for i in range(self._ppn):
-                if self._cores[node*self._ppn+i]:
+                if self._cores[node * self._ppn + i]:
                     free_count += 1
             node_free[free_count] += 1
             node += 1
