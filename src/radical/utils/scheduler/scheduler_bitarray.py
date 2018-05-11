@@ -11,7 +11,14 @@ from .scheduler_base import SchedulerBase
 #
 class BitarrayScheduler(SchedulerBase):
 
-    from bitarray import bitarray as _ba
+    try:
+        from bitarray import bitarray as _ba
+    except:
+        class _ba(object):
+            def __init__(self, i):
+                pass
+            def setall(self, x):
+                pass
 
     _one = _ba(1)
     _one.setall(True)
