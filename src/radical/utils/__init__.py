@@ -1,5 +1,5 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
@@ -31,6 +31,7 @@ from .daemonize      import Daemon
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
+
 # import utility methods
 from .logger         import *
 from .ids            import *
@@ -46,8 +47,11 @@ from .profile        import *
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch
 
+# imprt submodules
+
 # import sub-modules
-# from config         import Configuration, Configurable, ConfigOption, getConfig
+from .               import scheduler
+# from .               import config
 
 
 # ------------------------------------------------------------------------------
