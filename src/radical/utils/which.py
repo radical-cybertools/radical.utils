@@ -20,7 +20,7 @@ def which(names):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
     if not isinstance(names, list):
-        names = names
+        names = [names]
 
     for name in names:
 
