@@ -192,8 +192,10 @@ def _generate_id(template, prefix, namespace=None):
     if namespace:
         state_dir += '/%s' % namespace
 
-    if not os.path.isdir(state_dir):
+    try:
         os.makedirs(state_dir)
+    except:
+        pass
 
     # seconds since epoch(float), and timestamp
     seconds = time.time()

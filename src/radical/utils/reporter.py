@@ -7,17 +7,29 @@ __license__   = "MIT"
 import os
 import sys
 import string
-import singleton
 
 # import colorama as c
+
+from .misc import get_env_ns as ru_get_env_ns
+
+DEFAULT_TARGETS = ['stdout']
+
+
+# ------------------------------------------------------------------------------
+#
+def _open(target):
+
+    try:
+        os.makedirs(os.path.abspath(os.path.dirname(target)))
+    except:
+        pass  # exists
+
+    return open(target, 'w')
 
 
 # ------------------------------------------------------------------------------
 #
 class Reporter(object):
-
-    # we want reporter style to be consistent in the scope of an application
-    __metaclass__ = singleton.Singleton
 
     # COLORS = {'white'       : c.Style.BRIGHT    + c.Fore.WHITE   ,
     #           'yellow'      : c.Style.BRIGHT    + c.Fore.YELLOW  ,
@@ -38,30 +50,30 @@ class Reporter(object):
     #           'reset'       : c.Style.RESET_ALL + c.Fore.RESET
     #       }
 
-    COLORS     = {'reset'        : '\033[39m',
-                  'black'        : '\033[30m',
-                  'red'          : '\033[31m',
-                  'green'        : '\033[32m',
-                  'yellow'       : '\033[33m',
-                  'blue'         : '\033[34m',
-                  'magenta'      : '\033[35m',
-                  'cyan'         : '\033[36m',
-                  'lightgray'    : '\033[37m',
-                  'darkgray'     : '\033[90m',
-                  'lightred'     : '\033[91m',
-                  'lightgreen'   : '\033[92m',
-                  'lightyellow'  : '\033[93m',
-                  'lightblue'    : '\033[94m',
-                  'lightmagenta' : '\033[95m',
-                  'lightcyan'    : '\033[96m',
-                  'white'        : '\033[97m'}
+    COLORS = {'reset'        : '\033[39m',
+              'black'        : '\033[30m',
+              'red'          : '\033[31m',
+              'green'        : '\033[32m',
+              'yellow'       : '\033[33m',
+              'blue'         : '\033[34m',
+              'magenta'      : '\033[35m',
+              'cyan'         : '\033[36m',
+              'lightgray'    : '\033[37m',
+              'darkgray'     : '\033[90m',
+              'lightred'     : '\033[91m',
+              'lightgreen'   : '\033[92m',
+              'lightyellow'  : '\033[93m',
+              'lightblue'    : '\033[94m',
+              'lightmagenta' : '\033[95m',
+              'lightcyan'    : '\033[96m',
+              'white'        : '\033[97m'}
 
-    COLOR_MODS = {'reset'        : '\033[0m',
-                  'bold'         : '\033[1m',
-                  'underline'    : '\033[4m',
-                  'blink'        : '\033[5m',
-                  'inverse'      : '\033[7m',
-                  ''             : ''}
+    MODS   = {'reset'        : '\033[0m',
+              'bold'         : '\033[1m',
+              'underline'    : '\033[4m',
+              'blink'        : '\033[5m',
+              'inverse'      : '\033[7m',
+              ''             : ''}
 
 
     # define terminal colors and other output options
@@ -74,27 +86,16 @@ class Reporter(object):
     WARN     = 'lightyellow'
     ERROR    = 'lightred'
 
-    EMPTY   = ''
-    DOTTED  = '.'
-    SINGLE  = '-'
-    DOUBLE  = '='
-    HASHED  = '#'
-
-    COLOR       = os.environ.get('RP_REPORT_COLOR', 'True')
-    ANIME       = os.environ.get('RP_REPORT_ANIME', 'True')
-    LINE_LENGTH = 80
-
-    if COLOR.lower() in ['0', 'false', 'off']: COLOR = False
-    else                                     : COLOR = True
-
-    if ANIME.lower() in ['0', 'false', 'off']: ANIME = False
-    else                                     : ANIME = True
+    EMPTY    = ''
+    DOTTED   = '.'
+    SINGLE   = '-'
+    DOUBLE   = '='
+    HASHED   = '#'
 
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, title=None, targets=['stdout']):
-
+    def __init__(self, name, ns=None, path=None, targets=None):
         '''
         settings.style:
           E : empty line
@@ -103,9 +104,55 @@ class Reporter(object):
           M : text to report
         '''
 
-        self._title    = title
+        if not ns:
+            ns = name
+
+        # check if this profile is enabled via an env variable
+        self._enabled = True
+        if ru_get_env_ns('report', ns) is None:
+            self._enabled = False
+            return
+
+
+        self._use_color = ru_get_env_ns('report_color', ns, default='True')
+        if self._use_color.lower() in ['0', 'false', 'off']:
+            self._use_color = False
+        else:
+            self._use_color = True
+
+
+        self._use_anime = ru_get_env_ns('report_anime', ns, default='True')
+        if self._use_anime.lower() in ['0', 'false', 'off']:
+            self._use_anime = False
+        else:
+            self._use_anime = True
+
+
+        self._line_len = int(ru_get_env_ns('report_llen', ns, default=80))
+
+
+        if not path: 
+            path = os.getcwd()
+
+        if not targets:
+            targets = ru_get_env_ns('report_tgt', ns)
+            if not targets:
+                targets = DEFAULT_TARGETS
+
+        if isinstance(targets, basestring):
+            targets = targets.split(',')
+
+        if not isinstance(targets, list):
+            targets = [targets]
+
+        if '/' in name:
+            try:
+                os.makedirs(os.path.normpath(os.path.dirname(name)))
+            except:
+                # dir exists
+                pass
+
         self._pos      = 0
-        self._targets  = targets
         self._settings = {'title'    : {'color'   : self.TITLE,
                                         'style'   : 'ELMLE',
                                         'segment' : self.DOUBLE
@@ -144,49 +191,40 @@ class Reporter(object):
                                        }
                          }
 
+        if not self._use_color:
+            for k in self._settings:
+                self._settings[k]['color'] = ''
+
+
         self._idle_sequence = '/-\\|'
         self._idle_pos      = dict()
-
-        # set up the output target streams
-        self._color_streams = list()
         self._streams       = list()
 
-        for tgt in self._targets:
+        for t in targets:
+            if   t in ['0', 'null']       : continue
+            elif t in ['-', '1', 'stdout']: h = sys.stdout
+            elif t in ['=', '2', 'stderr']: h = sys.stderr
+            elif t in ['.']               : h = _open("%s/%s.rep" % (path, name))
+            elif t.startswith('/')        : h = _open(t)
+            else                          : h = _open("%s/%s"     % (path, t))
 
-            if  tgt.lower() == 'stdout':
-                self._color_streams.append(sys.stdout)
-
-            elif tgt.lower() == 'stderr':
-                self._color_streams.append(sys.stderr)
-
-            else:
-                # >>&     color stream in append    mode
-                # >&      color stream in overwrite mode (default)
-                # >>  non-color stream in append    mode
-                # >   non-color stream in overwrite mode
-
-                if   tgt.startswith('>>&'): self._color_streams.append(open(tgt[3:], 'a'))
-                elif tgt.startswith('>&') : self._color_streams.append(open(tgt[2:], 'w'))
-                elif tgt.startswith('>>') : self._streams.append      (open(tgt[2:], 'a'))
-                elif tgt.startswith('>')  : self._streams.append      (open(tgt[1:], 'w'))
-                else                      : self._color_streams.append(open(tgt,     'w'))
-
-        # and send the title to all streams
-        if self._title:
-            self.title(self._title)
+            self._streams.append(h)
 
 
     # --------------------------------------------------------------------------
     #
     def _out(self, color, msg):
 
-        if self.COLOR:
+        if not self._enabled:
+            return
+
+        if self._use_color:
             color_mod = ''
             if  ' ' in color:
                 color_mod, color = color.split(' ', 2)
 
             color     = self.COLORS.get(color.lower(), '')
-            color_mod = self.COLOR_MODS.get(color_mod.lower(), '')
+            color_mod = self.MODS.get(color_mod.lower(), '')
 
             color += color_mod
 
@@ -195,7 +233,7 @@ class Reporter(object):
         msg = msg.replace('\n\t', '\n        ')
 
         # make sure we don't extent a long line further
-        if self._pos >= (self.LINE_LENGTH) and msg and msg[0] != '\n':
+        if self._pos >= (self._line_len) and msg and msg[0] != '\n':
             while msg[0] == '\b':
                 msg = msg[1:]
             msg = '\n        %s' % msg
@@ -212,9 +250,9 @@ class Reporter(object):
       # print "[%s:%s]" % (self.__hash__(), self._pos),
         slash_f  = msg.find('>>')
         if slash_f >= 0:
-            copy   = msg[slash_f+1:].strip()
-            spaces = self.LINE_LENGTH - self._pos - len(copy) + 1 # '>>'
-            if spaces < 0:
+            copy   = msg[slash_f + 1:].strip()
+            spaces = self._line_len - self._pos - len(copy) + 1  # '>>'
+            if  spaces < 0:
                 spaces = 0
             msg = msg.replace('>>', spaces * ' ')
 
@@ -222,7 +260,7 @@ class Reporter(object):
         if slash_cr >= 0:
           # print "{%s:%s}" % (self.__hash__(), self._pos),
             if self._pos + slash_cr > 0:
-                spaces = self.LINE_LENGTH - self._pos - 1
+                spaces = self._line_len - self._pos - 1
                 msg = msg.replace('<<', '%s\\\n' % (spaces * ' '))
             else:
                 msg = msg.replace('<<', '')
@@ -243,28 +281,25 @@ class Reporter(object):
           # print ": %s]" % (self._pos),
 
 
-        for stream in self._color_streams:
-            if self.COLOR:
+        for stream in self._streams:
+            if self._use_color:
                 stream.write(color)
             stream.write(msg)
-            if self.COLOR:
+            if self._use_color:
                 stream.write(self.COLORS['reset'])
-                stream.write(self.COLOR_MODS['reset'])
+                stream.write(self.MODS['reset'])
             try:
                 stream.flush()
-            except Exception as e:
+            except:
                 pass
 
-        for stream in self._streams:
-            stream.write(msg)
-            try:
-                stream.flush()
-            except Exception as e:
-                pass
 
     # --------------------------------------------------------------------------
     #
     def _format(self, msg, settings=None):
+
+        if not self._enabled:
+            return
 
         if not msg:
             msg = ''
@@ -289,12 +324,15 @@ class Reporter(object):
 
             elif c == 'L':
                 if segment:
-                    self._out(color, "%s\n" % (self.LINE_LENGTH * segment))
+                    self._out(color, "%s\n" % (self._line_len * segment))
 
 
     # --------------------------------------------------------------------------
     #
     def set_style(self, which, color=None, style=None, segment=None):
+
+        if not self._enabled:
+            return
 
         if which not in self._settings:
             raise LookupError('reporter does not support style "%s"' % which)
@@ -310,11 +348,14 @@ class Reporter(object):
     #
     def title(self, title=''):
 
+        if not self._enabled:
+            return
+
         if not title:
             title = self._title
 
         if title:
-            fmt   = " %%-%ds\n" % (self.LINE_LENGTH-1)
+            fmt   = " %%-%ds\n" % (self._line_len - 1)
             title = fmt % title
 
         self._format(title, self._settings['title'])
@@ -324,8 +365,11 @@ class Reporter(object):
     #
     def header(self, msg=''):
 
+        if not self._enabled:
+            return
+
         if msg:
-            fmt = "%%-%ds\n" % self.LINE_LENGTH
+            fmt = "%%-%ds\n" % self._line_len
             msg = fmt % msg
 
         self._format(msg, self._settings['header'])
@@ -335,6 +379,9 @@ class Reporter(object):
     #
     def info(self, msg=''):
 
+        if not self._enabled:
+            return
+
         self._format(msg, self._settings['info'])
 
 
@@ -342,7 +389,10 @@ class Reporter(object):
     #
     def idle(self, c=None, mode=None, color=None, idle_id=None):
 
-        if not self.ANIME:
+        if not self._enabled:
+            return
+
+        if not self._use_anime:
             return
 
         if not idle_id:
@@ -371,6 +421,9 @@ class Reporter(object):
     #
     def progress(self, msg=''):
 
+        if not self._enabled:
+            return
+
         if not msg:
             msg = '.'
         self._format(msg, self._settings['progress'])
@@ -380,12 +433,18 @@ class Reporter(object):
     #
     def ok(self, msg=''):
 
+        if not self._enabled:
+            return
+
         self._format(msg, self._settings['ok'])
 
 
     # --------------------------------------------------------------------------
     #
     def warn(self, msg=''):
+
+        if not self._enabled:
+            return
 
         self._format(msg, self._settings['warn'])
 
@@ -394,12 +453,18 @@ class Reporter(object):
     #
     def error(self, msg=''):
 
+        if not self._enabled:
+            return
+
         self._format(msg, self._settings['error'])
 
 
     # --------------------------------------------------------------------------
     #
     def exit(self, msg='', exit_code=0):
+
+        if not self._enabled:
+            return
 
         self.error(msg)
         sys.exit(exit_code)
@@ -408,6 +473,9 @@ class Reporter(object):
     # --------------------------------------------------------------------------
     #
     def plain(self, msg=''):
+
+        if not self._enabled:
+            return
 
         self._format(msg)
 

@@ -12,7 +12,7 @@ import threading       as mt
 import multiprocessing as mp
 import setproctitle    as spt
 
-from .logger  import get_logger
+from .logger  import Logger
 from .threads import Thread as ru_Thread
 from .        import poll   as ru_poll
 
@@ -157,7 +157,7 @@ class Process(mp.Process):
 
         if not self._ru_log:
             # if no logger is passed down, log to null (FIXME)
-            self._ru_log = get_logger('radical.util.process', target='2')
+            self._ru_log = Logger('radical.util.process')
             self._ru_log.debug('name: %s' % self._ru_name)
 
 
