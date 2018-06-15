@@ -110,11 +110,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-<<<<<<< HEAD
-            except:
-=======
             except Exception:
->>>>>>> master
                 pass
 
 
@@ -370,17 +366,10 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     """
 
-<<<<<<< HEAD
     global _hostip
     if _hostip:
         return _hostip
 
-=======
-    if _hostip:
-        return _hostip
-
-    global _hostip
->>>>>>> master
     AF_INET = netifaces.AF_INET
 
     # We create a ordered preference list, consisting of:
@@ -483,19 +472,11 @@ def name2env(name):
 
 # ------------------------------------------------------------------------------
 #
-<<<<<<< HEAD
-def get_env_ns(ns, key):
-    """
-    get an environment setting within a namespace.  For example. 
-
-        get_env_ns('radical.pilot.umgr', 'verbose'), 
-=======
 def get_env_ns(key, ns, default=None):
     """
     get an environment setting within a namespace.  For example. 
 
         get_env_ns('verbose', 'radical.pilot.umgr'), 
->>>>>>> master
 
     will return the value of the first found env variable from the following
     sequence:
@@ -515,21 +496,6 @@ def get_env_ns(key, ns, default=None):
     string.
     """
 
-<<<<<<< HEAD
-    ns  = ns .upper().replace('.', '_')
-    key = key.upper().replace('.', '_')
-
-    elems = ns.split('_')
-    base  = ''
-
-    for elem in elems:
-        base += elem + '_'
-        check = base + key
-        if check in os.environ:
-            return os.environ[check]
-
-    return None
-=======
     ns     = name2env(ns)
     key    = name2env(key)
     base   = ''
@@ -544,7 +510,6 @@ def get_env_ns(key, ns, default=None):
             return os.environ[check]
 
     return default
->>>>>>> master
 
 
 # ------------------------------------------------------------------------------

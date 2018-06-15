@@ -30,8 +30,6 @@ from .daemonize      import Daemon
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
-<<<<<<< HEAD
-=======
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger,   get_logger
 from .reporter       import Reporter
@@ -39,7 +37,6 @@ from .profile        import Profiler, timestamp
 from .profile        import read_profiles, combine_profiles, clean_profile
 from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
 from .profile        import PROF_KEY_MAX
->>>>>>> master
 
 # import utility methods
 from .ids            import *
@@ -53,11 +50,7 @@ from .get_version    import get_version
 
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch
-<<<<<<< HEAD
 
-# imprt submodules
-=======
->>>>>>> master
 
 # import sub-modules
 from .               import scheduler
