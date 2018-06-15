@@ -110,7 +110,11 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
+<<<<<<< HEAD
             except:
+=======
+            except Exception:
+>>>>>>> master
                 pass
 
 
@@ -346,12 +350,11 @@ def get_hostname():
     Look up the hostname
     """
 
-    global _hostname
     if not _hostname:
 
+        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
-
         else:
             _hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
@@ -367,10 +370,17 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     """
 
+<<<<<<< HEAD
     global _hostip
     if _hostip:
         return _hostip
 
+=======
+    if _hostip:
+        return _hostip
+
+    global _hostip
+>>>>>>> master
     AF_INET = netifaces.AF_INET
 
     # We create a ordered preference list, consisting of:
@@ -430,7 +440,6 @@ def get_hostip(req=None, logger=None):
                 logger.debug('check iface %s: disconnected', iface)
             continue
 
-      
         ip = info[AF_INET][0].get('addr')
         if logger:
             logger.debug('check iface %s: ip is %s', iface, ip)
@@ -474,11 +483,19 @@ def name2env(name):
 
 # ------------------------------------------------------------------------------
 #
+<<<<<<< HEAD
 def get_env_ns(ns, key):
     """
     get an environment setting within a namespace.  For example. 
 
         get_env_ns('radical.pilot.umgr', 'verbose'), 
+=======
+def get_env_ns(key, ns, default=None):
+    """
+    get an environment setting within a namespace.  For example. 
+
+        get_env_ns('verbose', 'radical.pilot.umgr'), 
+>>>>>>> master
 
     will return the value of the first found env variable from the following
     sequence:
@@ -498,6 +515,7 @@ def get_env_ns(ns, key):
     string.
     """
 
+<<<<<<< HEAD
     ns  = ns .upper().replace('.', '_')
     key = key.upper().replace('.', '_')
 
@@ -511,6 +529,22 @@ def get_env_ns(ns, key):
             return os.environ[check]
 
     return None
+=======
+    ns     = name2env(ns)
+    key    = name2env(key)
+    base   = ''
+    checks = list()
+    for elem in ns.split('_'):
+        base += elem + '_'
+        check = base + key
+        checks.append(check)
+
+    for check in reversed(checks):
+        if check in os.environ:
+            return os.environ[check]
+
+    return default
+>>>>>>> master
 
 
 # ------------------------------------------------------------------------------
