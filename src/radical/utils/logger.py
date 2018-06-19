@@ -23,7 +23,7 @@ can unlock the lock, thus badaboom.
 Since after the fork we *know* the logging locks should be unset (after all, we
 are not in a logging call right now, are we?), we pre-emtively unlock them here.
 But, to do so we need to know what locks exist in the first place.  For that
-purpose, we create a process-singletone of all the loggers we hand out via
+purpose, we create a process-singleton of all the loggers we hand out via
 'get_logger()'.
 
 Logging locks are 'threading.RLock' instances.  As such they can be locked
@@ -35,11 +35,23 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 #
 import os
 import sys
-import time
 import types
 import threading
+import colorama
+import logging
+from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
 
-from .atfork import *
+
+from   .atfork  import *
+from   .misc    import get_env_ns       as ru_get_env_ns
+from   .misc    import import_module    as ru_import_module
+
+
+DEFAULT_LEVEL   =  'ERROR'
+DEFAULT_TARGETS = ['stderr']
+
+OFF = -1
+
 
 
 # ------------------------------------------------------------------------------
@@ -109,42 +121,6 @@ def _atfork_child():
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 
-#
-# ------------------------------------------------------------------------------
-
-
-from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL
-import logging
-import colorama
-
-from .misc      import import_module
-from .reporter  import Reporter
-
-
-# The 'REPORT' level is used for demo output and the like.
-# log.report.info(msg) style messages always go to stdout, and are enabled if:
-#   - log level is set exactly to 'REPORT' (35)
-#   - log level is < than 'REPORT' (ie. DEBUG, INFO, REPORT), AND 'stdout' is
-#     not in the log target list
-#
-# To redirect debug logging to some file and have the reporter enabled, use:
-#   - export RADICAL_PILOT_VERBOSE=DEBUG
-#   - export RADICAL_PILOT_LOG_TGT=rp.log
-#
-# To interleave both log and reporter on screen, set the log target to 'stderr'.
-
-_DEFAULT_LEVEL = 'ERROR'
-REPORT = 35
-OFF    = -1
-
-
-# ------------------------------------------------------------------------------
-#
-def log_shutdown():
-  # print 'shut my baby down'
-    _logger_registry.close_all()
-    logging.shutdown()
-
 
 # ------------------------------------------------------------------------------
 #
@@ -153,22 +129,21 @@ class ColorStreamHandler(logging.StreamHandler):
     A colorized output SteamHandler
     """
 
-    colours = {'DEBUG'    : colorama.Fore.CYAN,
-               'INFO'     : colorama.Fore.GREEN,
-               'WARN'     : colorama.Fore.YELLOW,
-               'WARNING'  : colorama.Fore.YELLOW,
-               'ERROR'    : colorama.Fore.RED,
-               'CRITICAL' : colorama.Back.RED + colorama.Fore.WHITE
-    }
-
-
     # --------------------------------------------------------------------------
     #
     def __init__(self, target):
 
         logging.StreamHandler.__init__(self, target)
-        self._tty  = self.stream.isatty()
-        self._term = getattr(self, 'terminator', '\n')
+        self._tty    = self.stream.isatty()
+        self._term   = getattr(self, 'terminator', '\n')
+        self.colours = {'DEBUG'    : colorama.Fore.CYAN,
+                        'INFO'     : colorama.Fore.GREEN,
+                        'WARN'     : colorama.Fore.YELLOW,
+                        'WARNING'  : colorama.Fore.YELLOW,
+                        'ERROR'    : colorama.Fore.RED,
+                        'CRITICAL' : colorama.Back.RED + colorama.Fore.WHITE,
+                        'RESET'    : colorama.Style.RESET_ALL + self._term
+                       }
 
 
     # --------------------------------------------------------------------------
@@ -177,14 +152,11 @@ class ColorStreamHandler(logging.StreamHandler):
 
         # only write in color when using a tty
         if self._tty:
-            self.stream.write(self.colours[record.levelname]
-                             + self.format(record)
-                             + colorama.Style.RESET_ALL
-                             + self._term)
+            self.stream.write('%s%s%s' % (self.colours[record.levelname],
+                                          self.format(record),
+                                          self.colours['RESET']))
         else:
             self.stream.write(self.format(record) + self._term)
-
-      # self.flush()
 
 
 # ------------------------------------------------------------------------------
@@ -192,336 +164,192 @@ class ColorStreamHandler(logging.StreamHandler):
 class FSHandler(logging.FileHandler):
 
     def __init__(self, target):
+
         try:
             os.makedirs(os.path.abspath(os.path.dirname(target)))
         except:
             pass  # exists
+
         logging.FileHandler.__init__(self, target)
 
 
 # ------------------------------------------------------------------------------
-#
+# backward compatibility (`header` is discarded)
 def get_logger(name, target=None, level=None, path=None, header=True):
-    """
-    Get a logging handle.
 
-    'name'   is used to identify log entries on this handle.
-    'target' is a comma separated list (or Python list) of specifiers, where
-             specifiers are:
-             '0'      : /dev/null
-             'null'   : /dev/null
-             '-'      : stdout
-             '1'      : stdout
-             'stdout' : stdout
-             '='      : stderr
-             '2'      : stderr
-             'stderr' : stderr
-             '.'      : logfile named ./<name>.log
-             <string> : logfile named <string>
-    'level'  log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    'header' print some version info on log open
-    """
-
-    if not name: name = 'radical'
-    if not path: path = os.getcwd()
-
-    if '/' in name:
-        try:
-            os.makedirs(os.path.normpath(os.path.dirname(name)))
-        except:
-            # dir exists
-            pass
-
-    logger = logging.getLogger(name)
-    logger.propagate = False   # let messages not trickle upward
-    logger.name      = name
-
-    if logger.handlers:
-        # we already conifgured that logger in the past -- just reuse it
-        return logger
-
-    # --------------------------------------------------------------------------
-    # unconfigured loggers get configured.  We try to get the log level and
-    # target from the environment.  We try env vars like this:
-    #
-    #     name  : radical.saga.pty
-    #
-    #     level : RADICAL_SAGA_PTY_VERBOSE
-    #             RADICAL_SAGA_VERBOSE
-    #             RADICAL_VERBOSE
-    #
-    #     target: RADICAL_SAGA_PTY_LOG_TARGET
-    #             RADICAL_SAGA_LOG_TARGET
-    #             RADICAL_LOG_TARGET
-    # whatever is found first is applied.  Well, we actually try the way around
-    # and then apply the last one -- but whatever ;)
-    # Default level  is 'CRITICAL',
-    # default target is '-' (stdout).
-
-
-    env_name = name.upper().replace('.', '_')
-    if '_' in env_name:
-        elems = env_name.split('_')
-    else:
-        elems = [env_name]
-
-    if not level:
-        level = _DEFAULT_LEVEL
-        for i in range(0,len(elems)):
-            env_test = '_'.join(elems[:i + 1]) + '_VERBOSE'
-            level    = os.environ.get(env_test, level)
-
-    # backward compatible interpretation of SAGA_VERBOSE
-    if env_name.startswith('RADICAL_SAGA'):
-        level = os.environ.get('SAGA_VERBOSE', level)
-
-    # translate numeric levels into symbolic ones
-    level = {50 : 'CRITICAL',
-             40 : 'ERROR',
-             30 : 'WARNING',
-             35 : 'REPORT',
-             20 : 'INFO',
-             10 : 'DEBUG',
-              0 : _DEFAULT_LEVEL,
-             -1 : 'OFF'}.get(level, str(level))
-
-    # we want levels to be uppercase
-    level = level.upper()
-
-    level_warning = None
-    if level not in ['OFF', 'DEBUG', 'INFO', 'WARN', 'WARNING', 'ERROR',
-                     'CRITICAL', 'REPORT']:
-        level_warning = "log level '%s' not supported -- reset to '%s'" \
-                      % (level, _DEFAULT_LEVEL)
-        level = _DEFAULT_LEVEL
-
-    if level in ['REPORT']:
-        level = REPORT
-
-    if level in [OFF, 'OFF']:
-        # we don't want logging actually
-        target = 'null'
-
-    if not target:
-        target = 'stderr'
-        for i in range(0,len(elems)):
-            env_test = '_'.join(elems[:i + 1]) + '_LOG_TARGET'
-            target   = os.environ.get(env_test, target)
-            env_test = '_'.join(elems[:i + 1]) + '_LOG_TGT'
-            target   = os.environ.get(env_test, target)
-
-    if isinstance(target, list): targets = target
-    else                       : targets = target.split(',')
-
-    formatter = logging.Formatter('%(asctime)s: '
-                                  '%(name)-20s: '
-                                  '%(processName)-32s: '
-                                  '%(threadName)-15s: '
-                                  '%(levelname)-8s: '
-                                  '%(message)s')
-
-    # add a handler for each targets (using the same format)
-    logger.targets = targets
-    for t in logger.targets:
-        if t in ['0', 'null']:
-            handle = logging.NullHandler()
-        elif t in ['-', '1', 'stdout']:
-            handle = ColorStreamHandler(sys.stdout)
-        elif t in ['=', '2', 'stderr']:
-            handle = ColorStreamHandler(sys.stderr)
-        elif t in ['.']:
-            handle = FSHandler("%s/%s.log" % (path, name))
-            t = ''  # dont add to name
-        elif t.startswith('/'):
-            handle = FSHandler(t)
-            t = os.path.basename(t)
-        else:
-            handle = FSHandler("%s/%s" % (path, t))
-        handle.setFormatter(formatter)
-        if t:
-            handle.name = '%s.%s' % (logger.name, str(t))
-        else:
-            handle.name = logger.name
-        logger.addHandler(handle)
-
-    if level in [OFF, 'OFF']:
-        logger.setLevel('CRITICAL')
-    else:
-        logger.setLevel(level)
-
-    if level_warning:
-        logger.warn(level_warning)
-
-    # if the given name points to a version or version_detail, log those
-    if header:
-        try:
-            logger.info("%-20s version: %s", 'python.interpreter', ' '.join(sys.version.split()))
-            tmp = import_module(name)
-            if hasattr(tmp, 'version_detail'):
-                logger.info("%-20s version: %s", name, getattr(tmp, 'version_detail'))
-            elif hasattr(tmp, 'version'):
-                logger.info("%-20s version: %s", name, getattr(tmp, 'version'))
-        except:
-            pass
-
-        try:
-            logger.info("%-20s pid: %s", '', os.getpid())
-            logger.info("%-20s tid: %s", '', threading.current_thread().name)
-        except:
-            pass
-
-    # --------------------------------------------------------------------------
-    # add a close method to make sure we can close file handles etc.
-    def _close(this_logger):
-        while this_logger:
-            for handler in this_logger.handlers:
-                handler.close()
-                this_logger.removeHandler(handler)
-            this_logger = this_logger.parent
-    # --------------------------------------------------------------------------
-    logger.close = types.MethodType(_close,logger)
-
-
-    # --------------------------------------------------------------------------
-    # we also equip our logger with reporting capabilities, so that we can
-    # report, for example, demo output whereever we have a logger.
-    class _LogReporter(object):
-
-        def __init__(self, logger):
-            self._logger   = logger
-            self._reporter = Reporter()
-
-            # we always enable report if the log level is REPORT
-            # otherwise, we enable report if log level  < REPORT and `targets`
-            # does not contain `stdout`.
-            if logger.getEffectiveLevel() == REPORT:
-                self._enabled = True
-            else:
-                if  logger.getEffectiveLevel() < REPORT and \
-                    '-'      not in logger.targets      and \
-                    '1'      not in logger.targets      and \
-                    'stdout' not in logger.targets      :
-                    self._enabled = True
-                else:
-                    self._enabled = False
-
-        def title(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.title(*args, **kwargs)
-
-        def header(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.header(*args, **kwargs)
-
-        def info(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.info(*args, **kwargs)
-
-        def idle(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.idle(*args, **kwargs)
-
-        def progress(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.progress(*args, **kwargs)
-
-        def ok(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.ok(*args, **kwargs)
-
-        def warn(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.warn(*args, **kwargs)
-
-        def error(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.error(*args, **kwargs)
-
-        def exit(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.exit(*args, **kwargs)
-
-        def plain(self, *args, **kwargs):
-            if self._enabled:
-                self._reporter.plain(*args, **kwargs)
-
-        def set_style(self, *args, **kwargs):
-            self._reporter.set_style(args, kwargs)
-
-
-    # we also equip our logger with reporting capabilities, so that we can
-    # report, for example, demo output whereever we have a logger.
-    logger.report = _LogReporter(logger)
-
-    # keep the handle a round, for cleaning up on fork
-    _logger_registry.add(logger)
+    logger = Logger(name=name, targets=target, path=path, level=level)
+    logger.warn('ru.get_logger() is deprecated, use ru.Logger()')
 
     return logger
 
 
-# -----------------------------------------------------------------------------
-#
-class LogReporter(object):
-    """
-    This class provides a wrapper around the Logger and (indirectly) Reporter
-    classes, which adds uniform output filtering for the reporter while
-    preserving the Reporter's API.
-    """
-    # --------------------------------------------------------------------------
-    #
-    def __init__(self, title=None, targets=['stdout'], name='radical',
-                 level='REPORT'):
-
-        self._logger = get_logger(name=name, target=targets, level=level)
-        if title:
-            self._logger.report.title(title)
-
-        self.title     = self._logger.report.title
-        self.header    = self._logger.report.header
-        self.info      = self._logger.report.info
-        self.progress  = self._logger.report.progress
-        self.ok        = self._logger.report.ok
-        self.warn      = self._logger.report.warn
-        self.error     = self._logger.report.error
-        self.exit      = self._logger.report.exit
-        self.plain     = self._logger.report.plain
-        self.set_style = self._logger.report.set_style
-
-
 # ------------------------------------------------------------------------------
 #
-if __name__ == "__main__":
+class Logger(object):
 
-    import radical.utils as ru
-    r = ru.Reporter(title='test')
+    def __init__(self, name, ns=None, path=None, targets=None, level=None):
+        """
+        Get a logging handle.
 
-    r.header  ('header  \n')
-    r.info    ('info    \n')
-    r.progress('progress\n')
-    r.ok      ('ok      \n')
-    r.warn    ('warn    \n')
-    r.error   ('error   \n')
-    r.plain   ('plain   \n')
+        `name`    is used to identify log entries on this handle.
+        `ns`      is used as environment name space to check for the log level
+        `targets` is a comma separated list (or Python list) of specifiers,
+                  where specifiers are:
 
-    r.set_style('error', color='yellow', style='ELTTMLE', segment='X')
-    r.error('error ')
+                    `0`      : /dev/null
+                    `null`   : /dev/null
+                    `-`      : stdout
+                    `1`      : stdout
+                    `stdout` : stdout
+                    `=`      : stderr
+                    `2`      : stderr
+                    `stderr` : stderr
+                    `.`      : logfile named ./<name>.log
+                    <string> : logfile named <string>
 
-    i = 0
-    j = 0
-    for cname,col in r.COLORS.items():
-        if cname == 'reset':
-            continue
-        i += 1
-        for mname,mod in r.COLOR_MODS.items():
-            if mname == 'reset':
-                continue
-            j += 1
-            sys.stdout.write("%s%s[%12s-%12s] " % (col, mod, cname, mname))
-            sys.stdout.write("%s%s" % (r.COLORS['reset'], r.COLOR_MODS['reset']))
-        sys.stdout.write("\n")
-        j = 0
+        `path`    file system location to write logfiles to (created as needed)
+        `level`   log level (DEBUG, INFO, WARNING, ERROR, CRITICAL, OFF)
 
-    r.exit('exit\n', 2)
+        If `ns` is, for example, set to `radical.utils`, then the following
+        environment variables are evaluated:
+
+            RADICAL_UTILS_VERBOSE
+            RADICAL_VERBOSE
+
+            RADICAL_UTILS_LOG_TGT
+            RADICAL_LOG_TGT
+
+        The first found variable of each pair is then used for the respective
+        settings.
+        """
+
+        self._logger = logging.getLogger(name)
+        self._logger.propagate = False   # let messages not trickle upward
+        self._logger.name      = name
+
+        if self._logger.handlers:
+            return
+
+        # otherwise configure this logger
+        if not path:
+            path = os.getcwd()
+
+        if not ns:
+            ns = name
+
+        if not targets:
+            targets = ru_get_env_ns('log_tgt', ns)
+            if not targets:
+                targets = DEFAULT_TARGETS
+
+        if isinstance(targets, basestring):
+            targets = targets.split(',')
+
+        if not isinstance(targets, list):
+            targets = [targets]
+
+        if not level:
+            level = ru_get_env_ns('verbose', ns)
+            if not level:
+                level = DEFAULT_LEVEL
+
+        if level in [OFF, 'OFF']:
+            targets = ['null']
+
+        # backward compatible interpretation of SAGA_VERBOSE
+        if name.lower().startswith('RADICAL_SAGA') or \
+             ns.lower().startswith('RADICAL_SAGA') or \
+           name.lower().startswith('radical.saga') or \
+             ns.lower().startswith('radical.saga')    :
+            level = os.environ.get('SAGA_VERBOSE', level)
+
+        # translate numeric levels into upper case symbolic ones
+        levels  = {'50' : 'CRITICAL',
+                   '40' : 'ERROR',
+                   '30' : 'WARNING',
+                   '20' : 'INFO',
+                   '10' : 'DEBUG',
+                    '0' :  DEFAULT_LEVEL,
+                   '-1' : 'OFF'}
+        level   = levels.get(str(level), str(level)).upper()
+        warning = None
+        if level not in levels.values():
+            warning = "invalid loglevel '%s', use '%s'" % (level, DEFAULT_LEVEL)
+            level   = DEFAULT_LEVEL
+
+        formatter = logging.Formatter('%(asctime)s: '
+                                      '%(name)-20s: '
+                                      '%(processName)-32s: '
+                                      '%(threadName)-15s: '
+                                      '%(levelname)-8s: '
+                                      '%(message)s')
+
+        # add a handler for each targets (using the same format)
+        for t in targets:
+            if   t in ['0', 'null']       : h = logging.NullHandler()
+            elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
+            elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
+            elif t in ['.']               : h = FSHandler("%s/%s.log" % (path, name))
+            elif t.startswith('/')        : h = FSHandler(t)
+            else                          : h = FSHandler("%s/%s"     % (path, t))
+
+            h.setFormatter(formatter)
+            h.name = self._logger.name
+            self._logger.addHandler(h)
+
+        if level != 'OFF':
+            self._logger.setLevel(level)
+
+        if warning:
+            self._logger.warn(warning)
+
+        # if `name` points to module, try to log its version info
+        try:
+            self._logger.info("%-20s version: %s", 'python.interpreter',
+                              ' '.join(sys.version.split()))
+
+            mod = ru_import_module(name)
+            if hasattr(mod, 'version_detail'):
+                self._logger.info("%-20s version: %s", 
+                                  name, getattr(mod, 'version_detail'))
+
+            elif hasattr(mod, 'version'):
+                self._logger.info("%-20s version: %s", 
+                                  name, getattr(mod, 'version'))
+        except:
+            pass
+
+        # also log pid and tid
+        try:
+            self._logger.info("%-20s pid/tid: %s/%s", '', os.getpid(), 
+                        threading.current_thread().name)
+        except:
+            pass
+
+        # keep the handle a round, for cleaning up on fork
+        _logger_registry.add(self._logger)
+
+
+    # --------------------------------------------------------------------------
+    # Add a close method to make sure we can close file handles etc.  This also
+    # closes handles on all parent loggers (if those exist).
+    def close(self):
+
+        logger = self._logger
+        while logger:
+            for handler in logger.handlers:
+                handler.close()
+                logger.removeHandler(handler)
+            logger = logger.parent
+
+
+    # --------------------------------------------------------------------------
+    # all othe method calls are forwarded to the nativ logger instance.  This is
+    # basically inheritance, but since the logger class has no c onstructor, we
+    # do it this way.
+    def __getattr__(self, attr):
+
+        return getattr(self._logger, attr)
 
 
 # ------------------------------------------------------------------------------

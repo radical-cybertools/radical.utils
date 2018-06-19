@@ -1,17 +1,13 @@
 
 import os
 import csv
-import sys
-import glob
 import time
-import threading
 
-from   .misc      import get_size        as ru_get_size
 from   .misc      import name2env        as ru_name2env
+from   .misc      import get_env_ns      as ru_get_env_ns
 from   .misc      import get_hostname    as ru_get_hostname
 from   .misc      import get_hostip      as ru_get_hostip
 from   .threads   import get_thread_name as ru_get_thread_name
-from   .read_json import read_json       as ru_read_json
 
 
 # ------------------------------------------------------------------------------
@@ -74,53 +70,42 @@ class Profiler(object):
     this will guarantee atomic writes on most OS's, w/o additional locking
     overheads.  Less than 100 charcters makes the profiles almost
     human-readable.
+
+    The profile is enabled by setting environment variables.  For a profiler
+    named `radical.utils`, the following env variables will be evaluated:
+
+        RADICAL_UTILS_PROFILE
+        RADICAL_PROFILE
+
+    If either is present in the environemnt, the profile is enabled (the value
+    of the setting is ignored).
     """
 
     fields  = ['time', 'event', 'comp', 'thread', 'uid', 'state', 'msg']
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, env_name=None, path=None):
+    def __init__(self, name, ns=None, path=None):
         """
         Open the file handle, sync the clock, and write timestam_zero
         """
 
-        # use the profiler name as basis for the env check
-        if not env_name:
-            env_name = '%s' % ru_name2env(name)
+        if not ns:
+            ns = name
 
-        if not path:
-            path = os.getcwd()
-
-        self._path    = path
-        self._name    = name
-        self._enabled = False
-
-
-        # example: for RADICAL_PILOT_COMPONENT, we check
-        # RADICAL_PILOT_COMPONENT_PROFILE
-        # RADICAL_PILOT_PROFILE
-        # RADICAL_PROFILE
-        # if any of those is set in env, the profiler is enabled
-        env_elems = env_name.split('_')
-        if env_elems[-1] == 'PROFILE':
-            env_elems = env_elems[:-1]
-
-        env_check = ''
-        for elem in env_elems:
-            env_check += '%s_' % elem
-            if '%sPROFILE' % env_check in os.environ:
-                self._enabled = True
-                break
-
-        # FIXME
-        if 'RADICAL_PROFILE' in os.environ:
-            self._enabled = True
-
-        if not self._enabled:
+        # check if this profile is enabled via an env variable
+        if ru_get_env_ns('profile', ns) is None:
+            self._enabled = False
             return
 
-        # profiler is enabled - sync time and open handle
+        # profiler is enabled - set properties, sync time, open handle
+        self._enabled = True
+        self._path    = path
+        self._name    = name
+
+        if not self._path:
+            self._path = os.getcwd()
+
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
         try:
