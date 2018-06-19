@@ -472,7 +472,6 @@ def name2env(name):
 
 # ------------------------------------------------------------------------------
 #
-<<<<<<< HEAD
 def get_env_ns(key, ns, default=None):
     """
     get an environment setting within a namespace.  For example. 
@@ -631,3 +630,4 @@ def get_radical_base(module=None):
 
 
 # ------------------------------------------------------------------------------
+
