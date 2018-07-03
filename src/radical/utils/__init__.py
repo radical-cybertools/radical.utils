@@ -1,5 +1,5 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
@@ -51,8 +51,10 @@ from .get_version    import get_version
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch
 
+
 # import sub-modules
-# from config         import Configuration, Configurable, ConfigOption, getConfig
+from .               import scheduler
+# from .               import config
 
 
 # ------------------------------------------------------------------------------

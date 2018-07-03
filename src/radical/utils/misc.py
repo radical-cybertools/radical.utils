@@ -366,10 +366,10 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     """
 
+    global _hostip
     if _hostip:
         return _hostip
 
-    global _hostip
     AF_INET = netifaces.AF_INET
 
     # We create a ordered preference list, consisting of:
@@ -630,3 +630,4 @@ def get_radical_base(module=None):
 
 
 # ------------------------------------------------------------------------------
+
