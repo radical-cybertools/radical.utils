@@ -5,7 +5,7 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
-0.50   Release                                                        2018-07-03
+0.50.1 Release                                                        2018-07-03
 --------------------------------------------------------------------------------
 
   - fix relocation ID state storage 
