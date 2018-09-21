@@ -332,12 +332,8 @@ class Process(mp.Process):
                 msg = self._ru_msg_recv(_BUFSIZE)
                 self._ru_log.info('message received: %s' % msg)
 
-                if msg is None:
-                    self._ru_log.warn('received no message, parent closed ep?')
-                    return False
-
-                if msg == '':
-                    self._ru_log.warn('received empty string, parent closed ep!')
+                if msg in [None, '']:
+                    self._ru_log.warn('no message, parent closed ep!')
                     return False
 
                 if msg.strip() == 'STOP':
