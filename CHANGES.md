@@ -5,6 +5,12 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.50.2 Release                                                        2018-08-20
+--------------------------------------------------------------------------------
+
+  - fix profile cleanup to work w/o state models
+
+
 0.50.1 Release                                                        2018-07-03
 --------------------------------------------------------------------------------
 
