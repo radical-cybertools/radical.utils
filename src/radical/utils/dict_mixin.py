@@ -39,13 +39,13 @@ class DictMixin :
     def keys(self):
         raise NotImplementedError
 
-    
+
     # --------------------------------------------------------------------------
     #
     # second level definitions which assume only getitem and keys
     #
     def has_key(self, key):
-         return key in self.keys()
+        return key in self.keys()
 
     def __iter__(self):
         for k in self.keys():
@@ -57,7 +57,7 @@ class DictMixin :
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return self.has_key(key)            
+        return bool(key in self)
 
     def iteritems(self):
         for k in self:
@@ -127,8 +127,8 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
 
     """
 
-    if  a == None : return
-    if  b == None : return
+    if  a is None : return
+    if  b is None : return
 
     if  not isinstance (a, dict) :
         raise TypeError ("*dict*_merge expects dicts, not '%s'" % type(a))
@@ -136,8 +136,8 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
     if  not isinstance (b, dict) :
         raise TypeError ("*dict*_merge expects dicts, not '%s'" % type(b))
 
-            
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+
     def merge_key (a, key_a, b, key_b) :
 
         # need to resolve conflict
@@ -147,43 +147,43 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
                         wildcards = wildcards, 
                         logger    = logger, 
                         _path     = _path + [str(key)])
-        
+
         elif (key_a not in a) and (key_b in b):
-            a[key_a] = b[key_b] # use b value
+            a[key_a] = b[key_b]  # use b value
 
         elif (key_a in a) and (key_b not in b):
-            pass # keep a value
+            pass  # keep a value
 
         elif a[key_a] == b[key_b]:
-            pass # same leaf value
+            pass  # same leaf value
 
         elif (key_a not in a) and (key_b not in b):
-            pass # keep no a value
+            pass  # keep no a value
 
         else:
             if  policy == PRESERVE:
                 if  logger :
                     logger.debug ("preserving key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
-                pass # keep original value
+                pass  # keep original value
 
             elif policy == OVERWRITE:
                 if  logger :
                     logger.debug ("overwriting key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
-                a[key] = b[key] # use new value
+                a[key] = b[key]  # use new value
 
             else :
-                raise ValueError ('Conflict at %s (%s : %s)' \
+                raise ValueError ('Conflict at %s (%s : %s)'
                                % ('.'.join(_path + [str(key)]), a[key_a], b[key_b]))
     # --------------------------------------------------------------------------
 
     # first a clean merge, i.e. no interpretation of wildcards
     for key in b:
-        
+
         if  key in a:
 
-        # need to resolve conflict
+            # need to resolve conflict
             merge_key (a, key, b, key)
-        
+
         else:
             # no conflict - simply add.  Not that this is a potential shallow
             # copy if b[key] is a complex type.
@@ -200,6 +200,7 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
                         merge_key (a, key_a, b, key_b)
 
     return a
+
 
 # ------------------------------------------------------------------------------
 #
@@ -260,7 +261,7 @@ def dict_stringexpand (target, sources=None) :
     again = True
     while again :
         target, again = _generic_stringexpand (target, repl_source)
-        
+
       # print 'target x'
       # pprint.pprint (target)
       # print '---------'
@@ -290,9 +291,7 @@ def _generic_stringexpand (target, source) :
         return target, False
 
 
-
 # ------------------------------------------------------------------------------
-#
 def _list_stringexpand (target, source) :
 
     assert (isinstance(target, list))
@@ -340,12 +339,12 @@ def _string_stringexpand (target, source) :
     try :
         expanded = target % source
 
-    except KeyError as e:
+    except KeyError:
         # we ignore incomplete expands
       # print e
         return orig, False
 
-    except ValueError as e:
+    except ValueError:
         # we ignore incomplete expands
       # print e
         return orig, False

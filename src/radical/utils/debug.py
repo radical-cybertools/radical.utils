@@ -4,7 +4,6 @@ import sys
 import time
 import pprint
 import signal
-import thread
 import random
 import threading
 import traceback
@@ -17,6 +16,8 @@ if sys.platform != 'darwin':
 
 # --------------------------------------------------------------------
 #
+
+
 def get_trace():
 
     trace = sys.exc_info ()[2]
@@ -67,13 +68,13 @@ class DebugHelper (object) :
             return
 
         if 'RADICAL_DEBUG' in os.environ :
-            signal.signal(signal.SIGUSR1, print_stacktraces) # signum 30
-            signal.signal(signal.SIGQUIT, print_stacktraces) # signum  3
+            signal.signal(signal.SIGUSR1, print_stacktraces)  # signum 30
+            signal.signal(signal.SIGQUIT, print_stacktraces)  # signum  3
 
             try:
                 assert signal.SIGINFO
-                signal.signal(signal.SIGINFO, print_stacktraces) # signum 29
-            except AttributeError as e:
+                signal.signal(signal.SIGINFO, print_stacktraces)  # signum 29
+            except AttributeError:
                 pass
 
 
@@ -85,7 +86,7 @@ class DebugHelper (object) :
         read or removed, then continue.  Leave no trace.
         """
 
-        if not 'RADICAL_DEBUG' in os.environ:
+        if 'RADICAL_DEBUG' not in os.environ:
             return
 
         try:
@@ -110,7 +111,7 @@ class DebugHelper (object) :
             fs_handle.close()
             os.unlink(fs_barrier)
 
-        except Exception as e:
+        except Exception:
             # we don't care (much)...
             pass
 
@@ -128,7 +129,7 @@ def print_stacktraces(signum=None, sigframe=None):
     # traces are mixed together.  Thus we waid 'pid%100' milliseconds, in
     # the hope that this will stagger the prints.
     pid = int(os.getpid())
-    time.sleep((pid%100)/1000)
+    time.sleep((pid % 100) / 1000)
 
     out  = "===============================================================\n"
     out += "RADICAL Utils -- Debug Helper -- Stacktraces\n"
@@ -288,6 +289,7 @@ if 'RADICAL_DEBUG' in os.environ :
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
 
+
 def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
@@ -297,7 +299,7 @@ def raise_on(tag, log=None, msg=None):
     The tag parameter is interpreted as follows: on the `n`'th invocation of
     this method with any given `tag`, an exception is raised, and the counter
     for that tag is reset.
-    
+
     The limit `n` is set via an environment variable `RU_RAISE_ON_<tag>`, with
     `tag` in upper casing.  The environment will only be inspected during the
     first invocation of the method with any given tag.  The tag counter is
@@ -324,12 +326,11 @@ def raise_on(tag, log=None, msg=None):
                 rate  = 1
                 limit = 0
 
-            _raise_on_state[tag] = { 
-                    'count' : 0,
-                    'rate'  : rate,
-                    'limit' : limit
-                    }
-            
+            _raise_on_state[tag] = {'count' : 0,
+                                    'rate'  : rate,
+                                    'limit' : limit
+                                   }
+
         _raise_on_state[tag]['count'] += 1
 
         count = _raise_on_state[tag]['count']
@@ -375,7 +376,7 @@ def attach_pudb(logger=None):
         print 'debugger open: telnet %s %d' % (host, port)
 
     import pudb
-    import signal
+    
     pudb.DEFAULT_SIGNAL = signal.SIGALRM
 
     from pudb.remote import set_trace
@@ -385,6 +386,8 @@ def attach_pudb(logger=None):
 # ------------------------------------------------------------------------------
 #
 _SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
+
+
 def add_snippet_path(path):
     '''
     add a path to the search path for dynamically loaded python snippets

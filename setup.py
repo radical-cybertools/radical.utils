@@ -284,7 +284,7 @@ setup_args = {
         'pymongo'        : ['pymongo'],
         'nose'           : ['pytest', 'coverage']
     },
-    'tests_require'      : ['pytest', 'coverage'],
+    'tests_require'      : ['pytest', 'coverage', 'flake8', 'pudb', 'pylint'],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
 #   'build_sphinx'       : {
