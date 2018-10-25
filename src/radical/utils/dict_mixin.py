@@ -164,7 +164,6 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
             if  policy == PRESERVE:
                 if  logger :
                     logger.debug ("preserving key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
-                pass  # keep original value
 
             elif policy == OVERWRITE:
                 if  logger :

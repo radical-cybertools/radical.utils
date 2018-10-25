@@ -118,6 +118,7 @@ class DebugHelper (object) :
 
 # ------------------------------------------------------------------------------
 #
+#pylint: disable=unused-argument
 def print_stacktraces(signum=None, sigframe=None):
     """
     signum, sigframe exist to satisfy signal handler signature requirements
@@ -169,7 +170,7 @@ def print_stacktraces(signum=None, sigframe=None):
         with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
             f.write ("%s\n" % out)
 
-
+#pylint: enable=unused-argument
 # --------------------------------------------------------------------------
 #
 def get_stacktraces():
@@ -179,12 +180,13 @@ def get_stacktraces():
         id2name[th.ident] = th.name
 
     ret = dict()
+    #pylint: disable=protected-access
     for tid, stack in sys._current_frames().items():
         if tid in id2name:
             ret[tid,id2name[tid]] = traceback.extract_stack(stack)
         else:
             ret[tid,'noname'] = traceback.extract_stack(stack)
-
+    #pylint: enable=protected-access
     return ret
 
 
@@ -289,7 +291,7 @@ if 'RADICAL_DEBUG' in os.environ :
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
 
-
+#pylint: disable=global-statement
 def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
@@ -360,7 +362,7 @@ def raise_on(tag, log=None, msg=None):
             # reset counter and raise exception
             raise RuntimeError('raise_on for %s [%s]' % (tag, val))
 
-
+#pylint: enable=global-statement
 # ------------------------------------------------------------------------------
 #
 def attach_pudb(logger=None):
@@ -387,7 +389,7 @@ def attach_pudb(logger=None):
 #
 _SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
 
-
+#pylint: disable=global-statement
 def add_snippet_path(path):
     '''
     add a path to the search path for dynamically loaded python snippets
@@ -398,7 +400,7 @@ def add_snippet_path(path):
         global _SNIPPET_PATHS
         if path not in _SNIPPET_PATHS:
             _SNIPPET_PATHS.append(path)
-
+#pylint: enable=global-statement
 
 # ------------------------------------------------------------------------------
 #
