@@ -4,18 +4,16 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import os
 import time
 import lockable
-import singleton
 import threading
 
 from .logger import Logger
 
 # default settings for lease manager
-MAX_POOL_SIZE = 15     # unlimited
-MAX_POOL_WAIT = 60     # seconds
-MAX_OBJ_AGE   = 60*10  # 10 minutes
+MAX_POOL_SIZE = 15       # unlimited
+MAX_POOL_WAIT = 60       # seconds
+MAX_OBJ_AGE   = 60 * 10  # 10 minutes
 
 
 # ------------------------------------------------------------------------------
@@ -34,7 +32,7 @@ class _LeaseObject (object) :
         self.uid        = 'lo.%04d' % _LeaseObject._uid
         self.t_created  = time.time()
         self.t_leased   = None
-        self.t_released = time.time() # we take control *now*
+        self.t_released = time.time()  # we take control *now*
 
         _LeaseObject._uid += 1
 
@@ -79,7 +77,8 @@ class _LeaseObject (object) :
     def is_leased (self, *args) :
 
         return self.used
-        
+
+
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
@@ -95,7 +94,6 @@ class LeaseManager (object) :
     If that limit is reached, no objects are returned, and instead the lease
     call blocks until one of the existing objects gets released.
     """
-    
 
     # --------------------------------------------------------------------------
     #
@@ -103,8 +101,6 @@ class LeaseManager (object) :
         """
         Make sure the object dict is initialized, exactly once.
         """
-
-        import radical.utils.logger as rul
 
         self._log = Logger('radical.utils')
       # self._log.setLevel ('DEBUG')
@@ -127,9 +123,9 @@ class LeaseManager (object) :
 
           # self._log.debug ('lm check   pool (%s)' % self._pools.keys())
 
-            if  not pool_id in self._pools :
+            if pool_id not in self._pools :
 
-                self._log.debug ('lm create  pool   for %s (%s) (%s)' \
+                self._log.debug ('lm create  pool   for %s (%s) (%s)'
                         % (pool_id, type(pool_id), self))
 
                 self._pools[pool_id] = dict()
@@ -179,7 +175,7 @@ class LeaseManager (object) :
             except Exception as e :
                 # this exception needs to fall through -- we can't wait
                 # for object creation problems to fix themself over time...
-                self._log.exception ("Could not create lease object")
+                self._log.exception ("Could not create lease object: %s", e)
                 raise
 
             return obj
@@ -211,7 +207,7 @@ class LeaseManager (object) :
                 pool['objects'].remove (obj)
 
             except Exception as e :
-                self._log.exception ("Could not remove lease object")
+                self._log.exception ("Could not remove lease object: %s", e)
 
             return obj
 

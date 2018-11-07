@@ -1,10 +1,8 @@
-
-
 import re
 import os
-import sys
 
-_pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+_pat = r'^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -29,10 +27,10 @@ def get_version (paths=None):
         pwd   = os.path.dirname (__file__)
         root  = "%s/.." % pwd
         paths = [root, pwd]
-    
+
     if not isinstance (paths, list):
         paths = [paths]
-    
+
     version_short  = None
     version_detail = None
     version_base   = None
@@ -40,22 +38,20 @@ def get_version (paths=None):
     sdist_name     = None
     sdist_path     = None
     err            = ''
-    
-    
-    
+
     # if in any of the paths a VERSION file exists, we use the detailed version
     # in there.
     for path in paths:
 
         try:
             version_path = "%s/VERSION" % path
-    
+
             with open (version_path) as f:
                 line = f.readline()
                 line.strip()
                 pattern = re.compile (_pat)
                 match   = pattern.search (line)
-    
+
                 if match:
                     version_short  = match.group ('short').strip()
                     version_detail = match.group ('detail').strip()
@@ -68,13 +64,11 @@ def get_version (paths=None):
                   # print 'version_short  : %s' % version_short
                   # print 'version_branch : %s' % version_branch
                     break
-    
+
         except Exception as e:
             # ignore missing VERSION file -- this is caught below.  But ew keep
             # the error message
             err += '%s\n' % repr(e)
-            pass
-
 
     if version_detail:
         # check if there is also an SDIST near the version_path
@@ -84,13 +78,13 @@ def get_version (paths=None):
         except Exception as e:
             # ignore missing SDIST file
             pass
-        
+
         sdist_path = version_path.replace ('/VERSION', '/%s' % sdist_name)
 
     # check if any one worked ok
     if version_detail:
-        return (version_short, version_detail, version_base, \
-                version_branch, sdist_name, sdist_path)
+        return (version_short, version_detail, version_base, version_branch,
+                sdist_name, sdist_path)
     else:
         raise RuntimeError ("Cannot determine version from %s (%s)" % 
                             (paths, err.strip()))

@@ -23,6 +23,8 @@ class DictMixin :
     dictionary.
     '''
 
+    def __init__(self):
+        pass
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented by the sub-class
@@ -112,7 +114,7 @@ class DictMixin :
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
+def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=None):
     # thanks to 
     # http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
     """
@@ -146,7 +148,7 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
                         policy    = policy, 
                         wildcards = wildcards, 
                         logger    = logger, 
-                        _path     = _path + [str(key)])
+                        _path     = _path + [str(key_a)])
 
         elif (key_a not in a) and (key_b in b):
             a[key_a] = b[key_b]  # use b value
@@ -168,11 +170,10 @@ def dict_merge (a, b, policy=None, wildcards=False, logger=None, _path=[]):
             elif policy == OVERWRITE:
                 if  logger :
                     logger.debug ("overwriting key %s:%s \t(%s)" % (":".join(_path), key_b, b[key_b]))
-                a[key] = b[key]  # use new value
-
+                a[key_a] = b[key_b]  # use new value
             else :
                 raise ValueError ('Conflict at %s (%s : %s)'
-                               % ('.'.join(_path + [str(key)]), a[key_a], b[key_b]))
+                               % ('.'.join(_path + [str(key_a)]), a[key_a], b[key_b]))
     # --------------------------------------------------------------------------
 
     # first a clean merge, i.e. no interpretation of wildcards
