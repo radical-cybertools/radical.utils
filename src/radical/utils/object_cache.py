@@ -26,7 +26,7 @@ class ObjectCache (object) :
     This is a singleton object caching class -- it maintains a reference
     counted registry of existing objects.
     """
-    
+
     # TODO: we should introduce namespaces -- this is a singleton, but we may want
     # to use it in several places, thus need to make sure to not use colliding
     # names...
@@ -57,7 +57,7 @@ class ObjectCache (object) :
         For a given object id, attempt to retrieve an existing object.  If that
         object exists, increase the reference counter, as there is now one more
         user for that object.  
-        
+
         If that object does not exist, call the given creator, then register and
         return the object thusly created.
 
@@ -73,14 +73,14 @@ class ObjectCache (object) :
 
         with self :
 
-            if  not ns in self._cache :
+            if  ns not in self._cache :
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
 
             oid = str(oid)
 
-            if  not oid in ns_cache :
+            if  oid not in ns_cache :
 
                 obj = creator ()
 
@@ -110,7 +110,7 @@ class ObjectCache (object) :
 
         with self :
 
-            if  not ns in self._cache :
+            if  ns not in self._cache :
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
@@ -126,7 +126,7 @@ class ObjectCache (object) :
                     else :
                         # immediate removeal 
                         self._rem_obj (oid)
-                        
+
                     return True
 
             return False  # obj not found
@@ -142,7 +142,7 @@ class ObjectCache (object) :
 
         with self :
 
-            if  not ns in self._cache :
+            if  ns not in self._cache :
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
