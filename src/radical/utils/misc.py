@@ -341,6 +341,8 @@ def import_module(name):
 # ------------------------------------------------------------------------------
 #
 _hostname = None
+
+
 def get_hostname():
     """
     Look up the hostname
@@ -360,6 +362,8 @@ def get_hostname():
 # ------------------------------------------------------------------------------
 #
 _hostip = None
+
+
 def get_hostip(req=None, logger=None):
     """
     Look up the ip number for a given requested interface name.

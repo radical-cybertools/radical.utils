@@ -7,6 +7,7 @@ __license__   = "MIT"
 import threading 
 
 
+# pylint: disable=protected-access
 def Lockable (cls) :
     """ 
     This class decorator will add lock/unlock methods to the thusly decorated
@@ -15,10 +16,10 @@ def Lockable (cls) :
 
         @Lockable
         class A (object) :
-        
+
             def call (self) :
                 print 'locked: %s' % self._locked
-        
+
     The class instance can then be used like this::
 
         a = A    ()
@@ -34,7 +35,7 @@ def Lockable (cls) :
         a.call   ()
         a.unlock ()
         a.call   ()
-    
+
     which will result in::
 
         locked: 0
@@ -78,9 +79,16 @@ def Lockable (cls) :
         raise RuntimeError ("Cannot make '%s' lockable -- has unlock()" % cls)
 
 
-    def locked      (self)        : return self._locked
-    def locker      (self)        : self._rlock.acquire (); self._locked += 1
-    def unlocker    (self, *args) : self._rlock.release (); self._locked -= 1
+    def locked(self): 
+        return self._locked
+
+    def locker(self):
+        self._rlock.acquire()
+        self._locked += 1
+
+    def unlocker(self, *args): 
+        self._rlock.release()
+        self._locked -= 1
 
     cls._rlock    = threading.RLock ()
     cls._locked   = 0

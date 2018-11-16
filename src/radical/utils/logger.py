@@ -35,11 +35,9 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 #
 import os
 import sys
-import types
 import threading
 import colorama
 import logging
-from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
 
 
 from   .atfork  import *
@@ -51,7 +49,6 @@ DEFAULT_LEVEL   =  'ERROR'
 DEFAULT_TARGETS = ['stderr']
 
 OFF = -1
-
 
 
 # ------------------------------------------------------------------------------
@@ -91,11 +88,12 @@ _logger_registry = _LoggerRegistry()
 
 
 # ------------------------------------------------------------------------------
-#
+# pylint: disable=protected-access
 def _after_fork():
 
     _logger_registry.release_all()
     logging._lock = threading.RLock()
+# pylint: enable=protected-access
 
 
 # ------------------------------------------------------------------------------
@@ -119,7 +117,6 @@ def _atfork_child():
 # ------------------------------------------------------------------------------
 #
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
-
 
 
 # ------------------------------------------------------------------------------
@@ -175,12 +172,14 @@ class FSHandler(logging.FileHandler):
 
 # ------------------------------------------------------------------------------
 # backward compatibility (`header` is discarded)
+# pylint: disable=unused-argument
 def get_logger(name, target=None, level=None, path=None, header=True):
 
     logger = Logger(name=name, targets=target, path=path, level=level)
     logger.warn('ru.get_logger() is deprecated, use ru.Logger()')
 
     return logger
+# pylint: enable=unused-argument
 
 
 # ------------------------------------------------------------------------------
