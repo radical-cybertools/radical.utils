@@ -226,7 +226,7 @@ class Process(mp.Process):
 
         except socket.timeout:
             self._ru_log.warn('recv timed out')
-            return ''
+
         except Exception as e:
             # this should only happen once the EP is done for - terminate
             self._ru_log.warn('recv failed (%s) - terminate', e)
@@ -336,7 +336,7 @@ class Process(mp.Process):
                     self._ru_log.warn('no message, parent closed ep!')
                     return False
 
-                if msg.strip() == 'STOP':
+                elif msg.strip() == 'STOP':
                     self._ru_log.info('STOP received: %s' % msg)
                     return False
 

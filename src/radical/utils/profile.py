@@ -625,7 +625,7 @@ def combine_profiles(profs):
 
 # ------------------------------------------------------------------------------
 #
-def clean_profile(profile, sid, state_final, state_canceled):
+def clean_profile(profile, sid, state_final=None, state_canceled=None):
     """
     This method will prepare a profile for consumption in radical.analytics.  It
     performs the following actions:
@@ -639,7 +639,9 @@ def clean_profile(profile, sid, state_final, state_canceled):
 
     entities = dict()  # things which have a uid
 
-    if not isinstance(state_final, list):
+    if not state_final:
+        state_final = []
+    elif not isinstance(state_final, list):
         state_final = [state_final]
 
     for event in profile:
@@ -677,12 +679,14 @@ def clean_profile(profile, sid, state_final, state_canceled):
 
                 # a final state other than CANCELED will cancel any previous
                 # CANCELED state.
-                if state_canceled in entities[uid]['states']:
+                if  state_canceled and \
+                    state_canceled in entities[uid]['states']:
                     del(entities[uid]['states'][state_canceled])
 
                 # vice-versa, we will not add CANCELED if a final
                 # state already exists:
-                if state == state_canceled:
+                if  state_canceled and \
+                    state_canceled == state:
                     if any([s in entities[uid]['states']
                               for s in state_final]):
                         skip = True
