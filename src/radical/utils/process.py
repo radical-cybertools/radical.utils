@@ -12,7 +12,7 @@ import threading       as mt
 import multiprocessing as mp
 import setproctitle    as spt
 
-from .logger  import get_logger
+from .logger  import Logger
 from .threads import Thread as ru_Thread
 from .        import poll   as ru_poll
 
@@ -26,7 +26,7 @@ _START_TIMEOUT = 20.0     # time to wait for process startup signal.
 _WATCH_TIMEOUT = 0.2      # time between thread and process health polls.
                           # health poll: check for recv, error and abort
                           # on the socketpair; is done in a watcher thread.
-_STOP_TIMEOUT  = 2.0     # time between temination signal and killing child
+_STOP_TIMEOUT  = 2.0      # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 
@@ -157,7 +157,7 @@ class Process(mp.Process):
 
         if not self._ru_log:
             # if no logger is passed down, log to null (FIXME)
-            self._ru_log = get_logger('radical.util.process', target='2')
+            self._ru_log = Logger('radical.util.process')
             self._ru_log.debug('name: %s' % self._ru_name)
 
 
@@ -226,7 +226,7 @@ class Process(mp.Process):
 
         except socket.timeout:
             self._ru_log.warn('recv timed out')
-            return ''
+
         except Exception as e:
             # this should only happen once the EP is done for - terminate
             self._ru_log.warn('recv failed (%s) - terminate', e)
@@ -331,11 +331,12 @@ class Process(mp.Process):
 
                 msg = self._ru_msg_recv(_BUFSIZE)
                 self._ru_log.info('message received: %s' % msg)
-                if msg == '':
-                    self._ru_log.warn('received empty string, parent closed ep')
+
+                if msg in [None, '']:
+                    self._ru_log.warn('no message, parent closed ep!')
                     return False
 
-                if msg.strip() == 'STOP':
+                elif msg.strip() == 'STOP':
                     self._ru_log.info('STOP received: %s' % msg)
                     return False
 

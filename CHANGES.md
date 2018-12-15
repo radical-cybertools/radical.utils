@@ -5,6 +5,30 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.50.2 Release                                                        2018-08-20
+--------------------------------------------------------------------------------
+
+  - fix profile cleanup to work w/o state models
+
+
+0.50.1 Release                                                        2018-07-03
+--------------------------------------------------------------------------------
+
+  - fix relocation ID state storage 
+  - fix issue RS-661
+  - support dynamic code snippet injection 
+  - avoid mkdir race 
+  - expand exe excution logic from RP 
+  - fix array test 
+  - uniform env getter for radical namespace
+
+
+0.47.5 Release                                                        2018-06-02
+--------------------------------------------------------------------------------
+
+  - fix and cleanup log, prof and rep settings
+
+
 0.47.4 Release                                                        2018-03-27
 --------------------------------------------------------------------------------
 

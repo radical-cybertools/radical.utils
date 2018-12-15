@@ -11,7 +11,7 @@ import glob
 
 import singleton
 
-from .logger import get_logger
+from .logger import Logger
 
 
 # ------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ class PluginManager (object) :
         import radical.utils.logger as logger
 
         self._namespace = namespace
-        self._logger    = get_logger('radical.utils')
+        self._logger    = Logger('radical.utils')
         self._registry  = _PluginRegistry ()  # singleton
         self._plugins   = self._registry.retrieve (self._namespace)
 
