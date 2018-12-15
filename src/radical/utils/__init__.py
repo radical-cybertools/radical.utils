@@ -24,28 +24,33 @@ from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
 from .registry       import Registry, READONLY, READWRITE
 from .regex          import ReString, ReSult
-from .reporter       import Reporter
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
+from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
+from .logger         import Logger,   get_logger
+from .reporter       import Reporter
+from .profile        import Profiler, timestamp
+from .profile        import read_profiles, combine_profiles, clean_profile
+from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
+from .profile        import PROF_KEY_MAX
 
 # import utility methods
-from .logger         import *
 from .ids            import *
 from .read_json      import *
-from .tracer         import trace, untrace
-from .which          import which
 from .debug          import *
 from .misc           import *
-from .get_version    import get_version
 from .algorithms     import *
-from .profile        import *
+from .which          import which
+from .tracer         import trace, untrace
+from .get_version    import get_version
 
 # import decorators
-from .timing         import timed_method
+from .timing         import timed_method, epoch, dt_epoch
+
 
 # imprt submodules
 

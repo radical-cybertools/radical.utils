@@ -15,7 +15,7 @@ import Queue        as queue
 import threading    as mt
 import setproctitle as spt
 
-from .logger  import get_logger
+from .logger  import Logger
 
 
 # ------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class Thread(mt.Thread):
 
         if not self._ru_log:
             # if no logger is passed down, log to null
-            self._ru_log = get_logger('radical.util.threads')
+            self._ru_log = Logger('radical.util.threads')
 
         self._ru_log.debug('parent name: %s' % self._ru_local.name)
 
