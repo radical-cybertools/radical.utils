@@ -1,12 +1,16 @@
+
 import os
 import sys
 import time
 import regex
+import shlex
 import socket
 import importlib
 import netifaces
 
-import url as ruu
+import subprocess as sp
+import url        as ruu
+
 
 # ------------------------------------------------------------------------------
 #
@@ -28,7 +32,7 @@ def split_dburl(dburl, default_dburl=None):
 
     # NOTE: add other data base schemes here...
     if 'mongodb' not in url.schema.split('+'):
-        raise ValueError("url must be a 'mongodb://' or 'mongodb+ssl://' url, not '%s'" % dburl)
+        raise ValueError("expected 'mongodb[+ssl]://' url, not '%s'" % dburl)
 
     host = url.host
     port = url.port
@@ -106,7 +110,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception as e:
+            except Exception:
                 pass
 
 
@@ -342,12 +346,11 @@ def get_hostname():
     Look up the hostname
     """
 
-    global _hostname
     if not _hostname:
 
+        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
-
         else:
             _hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
@@ -362,6 +365,10 @@ def get_hostip(req=None, logger=None):
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
     """
+
+    global _hostip
+    if _hostip:
+        return _hostip
 
     AF_INET = netifaces.AF_INET
 
@@ -380,21 +387,21 @@ def get_hostip(req=None, logger=None):
         req = []
 
     white_list = [
-            'ipogif0', # Cray's
-            'br0',     # SuperMIC
-            'eth0',    # desktops etc.
-            'wlan0'    # laptops etc.
-            ]
+                  'ipogif0',  # Cray's
+                  'br0',      # SuperMIC
+                  'eth0',     # desktops etc.
+                  'wlan0'     # laptops etc.
+                 ]
 
     black_list = [
-            'lo',      # takes the 'inter' out of the 'net'
-            'sit0'     # ?
-            ]
+                  'lo',      # takes the 'inter' out of the 'net'
+                  'sit0'     # ?
+                 ]
 
     all  = netifaces.interfaces()
-    rest = [iface for iface in all \
-                   if iface not in req and \
-                      iface not in white_list and \
+    rest = [iface for iface in all
+                   if iface not in req and
+                      iface not in white_list and
                       iface not in black_list]
 
     preflist = req + white_list + black_list + rest
@@ -422,14 +429,13 @@ def get_hostip(req=None, logger=None):
                 logger.debug('check iface %s: disconnected', iface)
             continue
 
-      
         ip = info[AF_INET][0].get('addr')
         if logger:
             logger.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
-           _hostip = ip
-           return ip
+            _hostip = ip
+            return ip
 
     raise RuntimeError('could not determine ip on %s' % preflist)
 
@@ -442,13 +448,13 @@ def watch_condition(cond, target=None, timeout=None, interval=0.1):
     return that value.  Stop watching on timeout, in that case return None.  The
     condition is tested approximately every 'interval' seconds.
     """
-    
+
     start = time.time()
     while True:
         ret = cond()
         if ret == target:
             return ret
-        if timeout and time.time() > start+timeout:
+        if timeout and time.time() > start + timeout:
             return None
         time.sleep(interval)
 
@@ -460,8 +466,50 @@ def name2env(name):
     convert a name of the for 'radical.pilot' to an env vare base named
     'RADICAL_PILOT'.
     """
-    
+
     return name.replace('.', '_').upper()
+
+
+# ------------------------------------------------------------------------------
+#
+def get_env_ns(key, ns, default=None):
+    """
+    get an environment setting within a namespace.  For example. 
+
+        get_env_ns('verbose', 'radical.pilot.umgr'), 
+
+    will return the value of the first found env variable from the following
+    sequence:
+
+        RADICAL_PILOT_UMGR_VERBOSE
+        RADICAL_PILOT_VERBOSE
+        RADICAL_VERBOSE
+
+    or 'None' if none of the above is set.  The given `name` and `key` are
+    converted to upper case, dots are replaced by underscores.
+
+    Note that an environment variable set with
+
+        export RADICAL_VERBOSE=
+
+    (ie. without an explicit, non-empty value) will be returned as an empty
+    string.
+    """
+
+    ns     = name2env(ns)
+    key    = name2env(key)
+    base   = ''
+    checks = list()
+    for elem in ns.split('_'):
+        base += elem + '_'
+        check = base + key
+        checks.append(check)
+
+    for check in reversed(checks):
+        if check in os.environ:
+            return os.environ[check]
+
+    return default
 
 
 # ------------------------------------------------------------------------------
@@ -470,7 +518,8 @@ def stack():
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or os.environ.get('CONDA_DEFAULT_ENV','')}, 
+                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
+                                       os.environ.get('CONDA_DEFAULT_ENV','')}, 
            'radical' : dict()
           }
 
@@ -479,8 +528,7 @@ def stack():
                'radical.saga', 
                'saga', 
                'radical.pilot', 
-               'radical.entl',
-               'radical.ensembletk',
+               'radical.entk',
                'radical.analytics']
 
     for mod in modules:
@@ -491,7 +539,7 @@ def stack():
             pass
 
     return ret
-    
+
 
 # ------------------------------------------------------------------------------
 #
@@ -528,6 +576,57 @@ def dockerized():
     if os.path.exists('/.dockerenv'):
         return True
     return False
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout(cmd, shell=False):
+    '''
+    call a shell command, return `[stdout, stderr, retval]`.
+    '''
+
+    # convert string into arg list if needed
+    if not shell and isinstance(cmd, basestring):
+        cmd = shlex.split(cmd)
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
+    stdout, stderr = p.communicate()
+    return stdout, stderr, p.returncode
+
+
+# ------------------------------------------------------------------------------
+#
+def get_radical_base(module=None):
+    '''
+    Several parts of the RCT stack store state on the file system.  This should
+    usually be under `$HOME/.radical` - but that location is not always
+    available or desireable.  We interpret the env variable `RADICAL_BASE_DIR`,
+    and fall back to `pwd` if neither that nor `$HOME` exists.
+
+    The optional `module` parameter will result in the respective subdir name to
+    be appended.  The resulting dir is created (if it does not exist), and the
+    name is returned.
+    '''
+
+
+    base = os.environ.get("RADICAL_BASE_DIR")
+
+    if not base or not os.path.isdir(base):
+        base  = os.environ.get("HOME")
+
+    if not base or not os.path.isdir(base):
+        base  = os.environ.get("PWD")
+
+    if not base or not os.path.isdir(base):
+        base  = os.getcwd()
+
+    if module: base += '/.radical/%s/' % module
+    else     : base += '/.radical/'
+
+    if not os.path.isdir(base):
+        os.makedirs(base)
+
+    return base
 
 
 # ------------------------------------------------------------------------------

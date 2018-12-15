@@ -281,8 +281,13 @@ def get_caller_name(skip=2):
 
 # ------------------------------------------------------------------------------
 #
+_verb  = False
+if 'RADICAL_DEBUG' in os.environ :
+    _verb = True
+
 _raise_on_state = dict()
 _raise_on_lock  = threading.Lock()
+
 def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
@@ -308,7 +313,7 @@ def raise_on(tag, log=None, msg=None):
             env = os.environ.get('RU_RAISE_ON_%s' % tag.upper())
             if env and env.startswith('RANDOM_'):
                 # env is rnd spec
-                rate  = (float(env[7:]) / 100.0)
+                rate  = int(env[7:])
                 limit = 1
             elif env:
                 # env is int
@@ -331,27 +336,27 @@ def raise_on(tag, log=None, msg=None):
         limit = _raise_on_state[tag]['limit']
         rate  = _raise_on_state[tag]['rate']
 
-        if msg: info = '%s [%s / %s] [%s]' % (tag, count, limit, msg)
-        else  : info = '%s [%s / %s]'      % (tag, count, limit     )
+        if msg    : info = '%s [%2d / %2d] [%s]' % (tag, count, limit, msg)
+        elif _verb: info = '%s [%2d / %2d]'      % (tag, count, limit     )
 
-        if log: log.debug('raise_on checked   %s' , info)
-        else:   print     'raise_on checked   %s' % info
+        if log    : log.debug('raise_on checked   %s' , info)
+        elif _verb: print     'raise_on checked   %s' % info
 
         if limit and count == limit:
+            _raise_on_state[tag]['count'] = 0
             if rate == 1:
                 val = limit
             else:
-                val = random.random()
+                val = random.randint(0, 100)
                 if val > rate:
-                    if log: log.warn('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
-                  # else:   print   ('raise_on untriggered %s [%s / %s]' % (tag, val, rate))
+                    if log:     log.warn('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
+                    elif _verb: print   ('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
                     return
 
-            if log: log.warn('raise_on triggered %s [%s]' % (tag, val))
-          # else:   print    'raise_on triggered %s [%s]' % (tag, val)
+            if log:     log.warn('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
+            elif _verb: print    'raise_on triggered %s [%2d / %2d]' % (tag, val, rate)
 
             # reset counter and raise exception
-            _raise_on_state[tag]['count'] = 0
             raise RuntimeError('raise_on for %s [%s]' % (tag, val))
 
 
@@ -375,6 +380,69 @@ def attach_pudb(logger=None):
 
     from pudb.remote import set_trace
     set_trace(host=host, port=port, term_size=(200, 50))
+
+
+# ------------------------------------------------------------------------------
+#
+_SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
+def add_snippet_path(path):
+    '''
+    add a path to the search path for dynamically loaded python snippets
+    (see `ru.get_snippet()`).
+    '''
+
+    if 'RADICAL_DEBUG' in os.environ:
+        global _SNIPPET_PATHS
+        if path not in _SNIPPET_PATHS:
+            _SNIPPET_PATHS.append(path)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_snippet(sid):
+    '''
+    RU exposes small python snippets for runtime code insertion.  The usage is
+    intended as follows:
+
+      * a programmer implements a class
+      * for some experiment or test, that class's behavior must be controled at
+        runtime.
+      * in all places where such an adaptation is expected to take place, the
+        programmer inserts a hook like this:
+
+            exec(ru.get_snippet('my_class.init_hook'))
+
+      * this will trigger RU to search for python files of the name
+        `my_class.init_hook.py` in `$HOME/.radical/snippets/' (default), and
+        return their content for injection.
+
+    The snippet search path can be extended by calling.
+
+        ru.add_snippet_path(path)
+
+    The `RADICAL_DEBUG` environment variable needs to be set for this method to
+    do anything.  A snippet can use the following literal strinfgs which will be
+    replaced by their actual values:
+
+        '###SNIPPET_FILE###'  - filename from which snippet was loaded
+        '###SNIPPET_PATH###'  - path in which the snippet file is located
+        '###SNIPPET_ID###'    - the sid string used to identify the snippet
+    '''
+
+    if 'RADICAL_DEBUG' in os.environ:
+        for path in _SNIPPET_PATHS:
+            fname = '%s/%s.py' % (path, sid)
+            try:
+                with open(fname, 'r') as fin:
+                    snippet = fin.read()
+                    snippet = snippet.replace('###SNIPPET_FILE###', fname)
+                    snippet = snippet.replace('###SNIPPET_PATH###', path)
+                    snippet = snippet.replace('###SNIPPET_ID###',   sid)
+                    return snippet
+            except:
+                pass
+
+    return 'None'
 
 
 # ------------------------------------------------------------------------------

@@ -80,6 +80,7 @@ def get_version (mod_root):
 
         if  p.returncode   !=  0  or \
             version_detail == '@' or \
+            'git-error'      in version_detail or \
             'not-a-git-repo' in version_detail or \
             'not-found'      in version_detail or \
             'fatal'          in version_detail :
@@ -146,9 +147,10 @@ class our_test(Command):
     def finalize_options   (self) : pass
     def run (self) :
         testdir = "%s/tests/" % os.path.dirname(os.path.realpath(__file__))
-        retval  = sp.call([sys.executable,
-                          '%s/run_tests.py'               % testdir,
-                          '%s/configs/default.cfg'        % testdir])
+        retval  = sp.call(['coverage',
+                           'run',
+                           '%s/run_tests.py'               % testdir,
+                           '%s/configs/default.cfg'        % testdir])
         raise SystemExit(retval)
 
 
@@ -284,15 +286,15 @@ setup_args = {
                            },
     'install_requires'   : ['future',
                             'colorama',
-                            'netifaces==0.10.4',
-                            'setproctitle',
                             'psutil',
+                            'netifaces',
+                            'setproctitle'
                            ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
-        'nose'           : ['nose']
+        'nose'           : ['nose', 'coverage']
     },
-    'tests_require'      : [],
+    'tests_require'      : ['nose', 'coverage'],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
 #   'build_sphinx'       : {
