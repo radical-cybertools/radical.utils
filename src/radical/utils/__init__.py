@@ -52,8 +52,6 @@ from .get_version    import get_version
 from .timing         import timed_method, epoch, dt_epoch
 
 
-# imprt submodules
-
 # import sub-modules
 from .               import scheduler
 # from .               import config
