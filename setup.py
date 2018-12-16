@@ -279,7 +279,8 @@ setup_args = {
     'install_requires'   : ['future', 
                             'colorama',
                             'netifaces',
-                            'setproctitle'
+                            'setproctitle',
+                            'pyzmq'
                            ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],
