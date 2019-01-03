@@ -8,12 +8,15 @@ import sys
 import string
 import linecache
 
+
 _trace_external  = False
 _trace_namespace = 'radical'
 
+
 """
 
-  idea from http://www.dalkescientific.com/writings/diary/archive/2005/04/20/tracing_python_code.html
+  idea from 
+  http://www.dalkescientific.com/writings/diary/archive/2005/04/20/tracing_python_code.html
 
 
   This module will trace all python function calls, printing each line as it is
@@ -66,21 +69,22 @@ def _tracer (frame, event, arg) :
         else :
 
             if not _trace_external :
-                print "--> %-56s:%4s: %s" % (filename, lineno, line.rstrip ())
+                print "--> %-56s:%4d: %s" % (filename, lineno, line.rstrip ())
             _trace_external = True
-
 
     return _tracer
 
 
 # ------------------------------------------------------------------------------
 def trace (namespace='radical') :
+
     _trace_namespace = namespace
     sys.settrace (_tracer)
 
 
 # ------------------------------------------------------------------------------
 def untrace () :
+
     sys.settrace (None)
 
 
