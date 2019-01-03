@@ -13,7 +13,7 @@ import socket
 import datetime
 import threading
 
-from .misc      import dockerized
+from .misc      import dockerized, get_radical_base
 from .singleton import Singleton
 
 
@@ -49,7 +49,7 @@ class _IDRegistry(object):
 
         with self._rlock:
 
-            if not prefix in self._registry:
+            if prefix not in self._registry:
                 self._registry[prefix] = 0
 
             ret = self._registry[prefix]
@@ -66,7 +66,7 @@ class _IDRegistry(object):
         """
 
         with self._rlock:
-            
+
             if reset_all_others:
                 # reset all counters *but* the one given
                 for p in self._registry:
@@ -79,9 +79,10 @@ class _IDRegistry(object):
 # ------------------------------------------------------------------------------
 #
 # we create on private singleton instance for the ID registry.
+#
 _id_registry = _IDRegistry()
-_BASE        = "%s/.radical/utils" % os.environ.get("HOME", "/tmp")
-os.system("mkdir -p %s" % _BASE)
+_BASE        = get_radical_base('utils')
+
 
 # ------------------------------------------------------------------------------
 #
@@ -91,9 +92,10 @@ ID_PRIVATE = 'private'
 ID_CUSTOM  = 'custom'
 ID_UUID    = 'uiud'
 
+
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE, base=None):
+def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -135,6 +137,27 @@ def generate_id(prefix, mode=ID_SIMPLE, base=None):
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
     and can thus span multiple applications.
 
+    'namespace' argument can be specified to a value such that unique IDs are 
+    created local to that namespace, . For example, you can create a session
+    and use the session ID as a namespace for all the IDs of the objects of that
+    execution. 
+
+    Example:: 
+
+        sid   = ru.generate_id('re.session', ru.ID_PRIVATE)
+        print ru.generate_id('item.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
+        print ru.generate_id('item.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
+
+
+    This will generate the following output::
+
+        re.session.ruvendell.vivek.017548.0001 pipeline.0000
+        re.session.ruvendell.vivek.017548.0001 pipeline.0001
+
+    'base' is the directory used to store persistent information which survive
+    application runs.  This defaults to `$RADICAL_BASE_DIR/.radical/utils/`.
+    If `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
+
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
@@ -146,7 +169,7 @@ def generate_id(prefix, mode=ID_SIMPLE, base=None):
     template = ""
 
     if dockerized() and mode == ID_PRIVATE:
-         mode = ID_UUID
+        mode = ID_UUID
 
     if   mode == ID_SIMPLE : template = "%(prefix)s.%(counter)04d"
     elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
@@ -156,16 +179,6 @@ def generate_id(prefix, mode=ID_SIMPLE, base=None):
     else:
         raise ValueError("mode '%s' not supported for ID generation", mode)
 
-    return _generate_id(template, prefix, base)
-
-# ------------------------------------------------------------------------------
-#
-def _generate_id(template, prefix, base=None):
-    '''
-    base: directory to store the counter state in
-          default: `$HOME/.radical/utils`
-    '''
-
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
@@ -173,66 +186,70 @@ def _generate_id(template, prefix, base=None):
     if not base:
         base = _BASE
 
-    import getpass
+    state_dir = _BASE
+    if namespace:
+        state_dir += '/%s' % namespace
+
+    try:
+        os.makedirs(state_dir)
+    except:
+        pass
 
     # seconds since epoch(float), and timestamp
     seconds = time.time()
     now     = datetime.datetime.fromtimestamp(seconds)
-    days    = int(seconds / (60*60*24))
+    days    = int(seconds / (60 * 60 * 24))
 
     try:
+        import getpass
         user = getpass.getuser()
     except Exception:
         user = 'nobody'
 
     info = dict()
 
-    info['day_counter' ]  = 0
-    info['item_counter']  = 0
-    info['counter'     ]  = 0
-    info['prefix'      ]  = prefix
-    info['now'         ]  = now
-    info['seconds'     ]  = int(seconds)              # full seconds since epoch
-    info['days'        ]  = days                      # full days since epoch
-    info['user'        ]  = user                      # local username
-    info['date'        ]  = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
-    info['time'        ]  = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-    info['pid'         ]  = os.getpid()
+    info['day_counter' ] = 0
+    info['item_counter'] = 0
+    info['counter'     ] = 0
+    info['prefix'      ] = prefix
+    info['now'         ] = now
+    info['seconds'     ] = int(seconds)              # full seconds since epoch
+    info['days'        ] = days                      # full days since epoch
+    info['user'        ] = user                      # local username
+    info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
+    info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
+    info['pid'         ] = os.getpid()
 
-    # the following ones are time consuming, and only done when needed
-    if '%(host)' in template: info['host'] = socket.gethostname() # local hostname
-    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
+    # hostname query and proper uuid are time consuming, only done when needed
+    if '%(host)' in template: info['host'] = socket.gethostname()
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()
 
     # FIXME: os.open should be scoped in a `with` clause, or in
     #        a `try/except/finally` clause
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/rp_%s_%s.cnt" % (base, user, days), os.O_RDWR | os.O_CREAT)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, days)
+        fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
-        data = os.read(fd, 256)
-        if not data: data = 0
-        info['day_counter'] = int(data)
+        info['day_counter'] = int(os.read(fd, 256) or 0)
         os.lseek(fd, 0, os.SEEK_SET )
-        os.write(fd, "%d\n" % (info['day_counter']+1))
+        os.write(fd, "%d\n" % (info['day_counter'] + 1))
         os.close(fd)
 
     if '%(item_counter)' in template:
         tmp   = re.sub('\.?%\(.*?\).*?[sdf]', '', prefix)
-        fname = "%s/rp_%s_%s.cnt" % (base, user, tmp)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, tmp)
         fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
-        data = os.read(fd, 256)
-        if not data: data = 0
-        info['item_counter'] = int(data)
+        info['item_counter'] = int(os.read(fd, 256) or 0)
         os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, "%d\n" % (info['item_counter']+1))
+        os.write(fd, "%d\n" % (info['item_counter'] + 1))
         os.close(fd)
 
     if '%(counter)' in template:
         info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
-
 
     ret = template % info
 
@@ -241,7 +258,7 @@ def _generate_id(template, prefix, base=None):
       # pprint.pprint(info)
       # print template
       # print ret
-        raise ValueError('unknown replacement pattern in template (%s)' % template)
+        raise ValueError('unknown template pattern (%s)' % template)
 
     return ret
 

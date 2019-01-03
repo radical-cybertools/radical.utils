@@ -5,6 +5,83 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.50.2 Release                                                        2018-08-20
+--------------------------------------------------------------------------------
+
+  - fix profile cleanup to work w/o state models
+
+
+0.50.1 Release                                                        2018-07-03
+--------------------------------------------------------------------------------
+
+  - fix relocation ID state storage 
+  - fix issue RS-661
+  - support dynamic code snippet injection 
+  - avoid mkdir race 
+  - expand exe excution logic from RP 
+  - fix array test 
+  - uniform env getter for radical namespace
+
+
+0.47.5 Release                                                        2018-06-02
+--------------------------------------------------------------------------------
+
+  - fix and cleanup log, prof and rep settings
+
+
+0.47.4 Release                                                        2018-03-27
+--------------------------------------------------------------------------------
+
+  - fix RA issue #65
+
+
+0.47.3 Release                                                        2018-03-20
+--------------------------------------------------------------------------------
+
+  - more thorough approach to relocate ID state storage (#131) 
+  - travis badge 
+
+
+0.47.2 Release                                                        2018-02-28
+--------------------------------------------------------------------------------
+
+  - relocate ID state storage (#131) 
+
+
+0.47.1 Release                                                        2018-02-21
+--------------------------------------------------------------------------------
+
+  - introduce name spaces for the ID generator
+  - iterate on some of the debug methods
+
+
+0.46.2 Release                                                        2017-11-19
+--------------------------------------------------------------------------------
+
+  - backport of profile handle checks
+  - add tid arg to prof
+  - add support for legacy profiles
+  - clean profile handle check
+  - add shell callout helper
+  - function stack recognizes anaconda virtual envs
+  - reduce profile buffering
+  - fixes issue #120
+  - add comments on profil format
+  - fix #RA-52
+  - relax time limits on process / thread creation
+  - radical-stack-clone supports Conda Envs Now!! :)
+  - add -p to specify python executable to stack-clone
+  - add a `get_size()` debug method
+  - cooperative process termination
+  - make ID generator behave under docker
+  - move gettid to where it belongs
+  - add close() method to logger
+  - expand poller lock scope
+  - remove some debug prints
+  - support changes in RA
+  - improve runtime behavior of concurrency calculation
+
+
 0.46.2 Release                                                        2017-08-23
 --------------------------------------------------------------------------------
 
@@ -252,5 +329,4 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
-
 
