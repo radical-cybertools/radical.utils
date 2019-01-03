@@ -7,6 +7,7 @@ import shlex
 import socket
 import pkgutil
 import netifaces
+import queue
 
 import subprocess as sp
 import url as ruu
@@ -610,6 +611,34 @@ def sh_callout(cmd, shell=False):
     p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
     stdout, stderr = p.communicate()
     return stdout, stderr, p.returncode
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout_async(cmd, shell=False, stdout=False, stderr=False):
+    '''
+    start a shell command, and capture stdout/stderr if so flagged.  The call
+    will return a `queue.Queue` instance on which the captured output can be
+    retrieved line by line (I/O is line buffered).
+    '''
+
+    ret = queue.Queue()
+
+    # convert string into arg list if needed
+    if not shell and isinstance(cmd, basestring):
+        cmd = shlex.split(cmd)
+
+    if stderr: cap_stdout = sp.PIPE
+    else     : cap_stdout = None
+
+    if stderr: cap_stderr = sp.PIPE
+    else     : cap_stderr = None
+
+    p = sp.Popen(cmd, stdout=cap_stdout, stderr=cap_stderr, shell=shell)
+    p.start()
+    stdout, stderr = p.communicate()
+
+    return ret
 
 
 # ------------------------------------------------------------------------------

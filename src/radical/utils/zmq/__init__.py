@@ -4,8 +4,10 @@ __copyright__ = "Copyright 2018"
 __license__   = "GPL"
 
 
-from .queue  import *
-from .pubsub import *
+from .bridge import Bridge
+from .queue  import Queue,  Putter,    Getter
+from .pubsub import PubSub, Publisher, Subscriber
 
 
+# ------------------------------------------------------------------------------
 
