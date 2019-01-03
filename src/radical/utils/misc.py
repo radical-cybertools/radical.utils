@@ -10,6 +10,9 @@ import netifaces
 import queue
 
 import subprocess as sp
+import threading  as mt
+
+
 import url as ruu
 
 
@@ -615,30 +618,75 @@ def sh_callout(cmd, shell=False):
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_async(cmd, shell=False, stdout=False, stderr=False):
+def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
     '''
     start a shell command, and capture stdout/stderr if so flagged.  The call
     will return a `queue.Queue` instance on which the captured output can be
-    retrieved line by line (I/O is line buffered).
+    retrieved line by line (I/O is line buffered).  When the process is done,
+    the a `None` will pushed onto the queue, followed by a single and last
+    string formatted as `'RETVAL %d' % returncode`.  Lines are not stripped
+    before return.
     '''
 
-    ret = queue.Queue()
+    # --------------------------------------------------------------------------
+    #
+    class _PROC(object):
+
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self, proc):
+
+            self.stdin   = queue.Queue()
+            self.stdout  = queue.Queue()
+            self.stderr  = queue.Queue()
+
+            self.state   = 'RUNNING'
+            self._proc   = proc
+
+            self._thread = mt.Thread(target=self._stdio) 
+            self._thread.daemon = True               
+            self._thread.start()                     
+
+
+        # ----------------------------------------------------------------------
+        #
+        def _stdio(self):
+
+            while True:
+
+                # TODO: implement stderr capture
+                line = self._proc.stdout.readline()
+
+                if line:
+                    self.stdout.put(line)
+
+                else:
+                    ret = self._proc.wait()
+
+                    if ret == 0: self.state = 'DONE'
+                    else       : self.state = 'FAILED'
+
+                    self.stdout.put(None)  # signal EOF
+                    self.stdout.join()
+
+                    return
+
+    # --------------------------------------------------------------------------
 
     # convert string into arg list if needed
     if not shell and isinstance(cmd, basestring):
         cmd = shlex.split(cmd)
 
-    if stderr: cap_stdout = sp.PIPE
+    if stdout: cap_stdout = sp.PIPE
     else     : cap_stdout = None
 
     if stderr: cap_stderr = sp.PIPE
     else     : cap_stderr = None
 
-    p = sp.Popen(cmd, stdout=cap_stdout, stderr=cap_stderr, shell=shell)
-    p.start()
-    stdout, stderr = p.communicate()
+    p = sp.Popen(cmd, stdout=cap_stdout, stderr=cap_stderr, shell=shell,
+                 bufsize=1, universal_newlines=True)
 
-    return ret
+    return _PROC(proc=p)
 
 
 # ------------------------------------------------------------------------------
