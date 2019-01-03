@@ -29,6 +29,9 @@ def log_bulk(log, bulk, token):
     if not bulk:
         return
 
+    if not bulk[0]:
+        return
+
     if 'arg' in bulk[0]:
         bulk = [e['arg'] for e in bulk]
 
@@ -156,6 +159,22 @@ class Queue(Bridge):
     def channel(self):
         return self._channel
 
+    @property
+    def addr_in(self):
+        return self._addr_in
+
+    @property
+    def addr_out(self):
+        return self._addr_out
+
+    @property
+    def type_in(self):
+        return 'PUT'
+
+    @property
+    def type_out(self):
+        return 'GET'
+
 
     # --------------------------------------------------------------------------
     # 
@@ -163,18 +182,18 @@ class Queue(Bridge):
 
         self._log.info('start bridge %s', self._uid)
 
-        self._addr       = 'tcp://*:*'
+        self._url        = 'tcp://*:*'
 
         self._ctx        = zmq.Context()  # rely on the GC destroy the context
         self._in         = self._ctx.socket(zmq.PULL)
         self._in.linger  = _LINGER_TIMEOUT
         self._in.hwm     = _HIGH_WATER_MARK
-        self._in.bind(self._addr)
+        self._in.bind(self._url)
 
         self._out        = self._ctx.socket(zmq.REP)
         self._out.linger = _LINGER_TIMEOUT
         self._out.hwm    = _HIGH_WATER_MARK
-        self._out.bind(self._addr)
+        self._out.bind(self._url)
 
         # communicate the bridge ports to the parent process
         _addr_in  = self._in.getsockopt (zmq.LAST_ENDPOINT)
@@ -206,15 +225,6 @@ class Queue(Bridge):
         self._bridge_thread = mt.Thread(target=self._bridge_work)
         self._bridge_thread.daemon = True
         self._bridge_thread.start()
-
-        # inform clients about the bridge, no that the sockets are connected and
-        # work is about to start.
-        # FIXME: move to bridge starter tool
-        faddr = '%s/%s.url' % (self._pwd, self._channel)
-        self._log.debug('put addr into %s', faddr)
-        with open(faddr, 'w') as fout:
-            fout.write('PUT %s\n' % self._addr_in)
-            fout.write('GET %s\n' % self._addr_out)
 
         self._log.debug('addr: %s', self._addr_in)
         self._log.debug('      %s', self._addr_out)
@@ -308,49 +318,28 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel):
+    def __init__(self, channel, url):
 
         self._channel = channel
+        self._url     = url
 
         self._pwd = '.'
         self._uid = generate_id('%s.put.%s' % (self._channel, '%(counter)04d'),
                                 ID_CUSTOM)
-        self._log = Logger(name=self._uid, level='DEBUG')
-        self._log.debug('create putter for %s', self.channel)
-
-        # avoid superfluous logging calls in critical code sections
-        if self._log.getEffectiveLevel() == 10:  # logging.DEBUG:
-            self._debug = True
-        else:
-            self._debug = False
-
-        # get addr from bridge.url
-        if self._channel in ['client_queue', 'agent_queue']:
-            urlp  = os.environ.get('RP_BRIDGE', self._pwd)
-        else:
-            urlp  = self._pwd
-
-        faddr = '%s/%s.url' % (urlp, self._channel)
-        with open(faddr, 'r') as fin:
-            for line in fin.readlines():
-                elems = line.split()
-                if elems and elems[0] == 'PUT':
-                    self._addr = elems[1]
-                    break
-
-        self._log.info('connect put to %s: %s'  % (self._channel, self._addr))
+        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
         self._ctx      = zmq.Context()  # rely on the GC destroy the context
         self._q        = self._ctx.socket(zmq.PUSH)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._addr)
+        self._q.connect(self._url)
 
 
     # --------------------------------------------------------------------------
     #
     def __str__(self):
-        return 'Putter(%s @ %s)'  % (self.channel, self._addr)
+        return 'Putter(%s @ %s)'  % (self.channel, self._url)
 
     @property
     def name(self):
@@ -380,37 +369,16 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel):
+    def __init__(self, channel, url):
 
         self._channel = channel
+        self._url     = url
 
         self._pwd = '.'
         self._uid = generate_id('%s.get.%s' % (self._channel, '%(counter)04d'),
                                 ID_CUSTOM)
-        self._log = Logger(name=self._uid, level='DEBUG')
-        self._log.debug('create getter %s', self._uid)
-
-        # avoid superfluous logging calls in critical code sections
-        if self._log.getEffectiveLevel() == 10:  # logging.DEBUG:
-            self._debug = True
-        else:
-            self._debug = False
-
-        # get addr from bridge.url
-        if self._channel in ['client_queue', 'agent_queue']:
-            urlp  = os.environ.get('RP_BRIDGE', self._pwd)
-        else:
-            urlp  = self._pwd
-
-        faddr = '%s/%s.url' % (urlp, self._channel)
-        with open(faddr, 'r') as fin:
-            for line in fin.readlines():
-                elems = line.split()
-                if elems and elems[0] == 'GET':
-                    self._addr = elems[1]
-                    break
-
-        self._log.info('connect get to %s: %s'  % (self._channel, self._addr))
+        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
         self._lock     = mt.RLock()
         self._requested  = False        # send/recv sync
@@ -419,13 +387,13 @@ class Getter(object):
         self._q        = self._ctx.socket(zmq.REQ)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._addr)
+        self._q.connect(self._url)
 
 
     # --------------------------------------------------------------------------
     #
     def __str__(self):
-        return 'Getter(%s @ %s)'  % (self.channel, self._addr)
+        return 'Getter(%s @ %s)'  % (self.channel, self._url)
 
     @property
     def name(self):

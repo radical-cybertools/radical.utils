@@ -71,11 +71,11 @@ def _uninterruptible(f, *args, **kwargs):
 # have different scope (bound to the channel name).  Only one specific topic is
 # predefined: 'state' will be used for unit state updates.
 #
-class Pubsub(Bridge):
+class PubSub(Bridge):
 
     def __init__(self, cfg):
 
-        super(Pubsub, self).__init__(cfg)
+        super(PubSub, self).__init__(cfg)
 
         self._initialize_bridge()
 
@@ -94,6 +94,22 @@ class Pubsub(Bridge):
     def channel(self):
         return self._channel
 
+    @property
+    def addr_in(self):
+        return self._addr_in
+
+    @property
+    def addr_out(self):
+        return self._addr_out
+
+    @property
+    def type_in(self):
+        return 'PUB'
+
+    @property
+    def type_out(self):
+        return 'SUB'
+
 
     # --------------------------------------------------------------------------
     # 
@@ -101,18 +117,18 @@ class Pubsub(Bridge):
 
         self._log.info('start bridge %s', self._uid)
 
-        self._addr       = 'tcp://*:*'
+        self._url        = 'tcp://*:*'
 
         self._ctx        = zmq.Context()  # rely on the GC destroy the context
         self._in         = self._ctx.socket(zmq.XSUB)
         self._in.linger  = _LINGER_TIMEOUT
         self._in.hwm     = _HIGH_WATER_MARK
-        self._in.bind(self._addr)
+        self._in.bind(self._url)
 
         self._out        = self._ctx.socket(zmq.XPUB)
         self._out.linger = _LINGER_TIMEOUT
         self._out.hwm    = _HIGH_WATER_MARK
-        self._out.bind(self._addr)
+        self._out.bind(self._url)
 
         # communicate the bridge ports to the parent process
         _addr_in  = self._in.getsockopt (zmq.LAST_ENDPOINT)
@@ -144,12 +160,6 @@ class Pubsub(Bridge):
         self._bridge_thread = mt.Thread(target=self._bridge_work)
         self._bridge_thread.daemon = True
         self._bridge_thread.start()
-
-        # inform clients about the bridge, no that the sockets are connected and
-        # work is about to start.
-        with open('%s/%s.url' % (self._pwd, self.uid), 'w') as fout:
-            fout.write('PUB %s\n' % self._addr_in)
-            fout.write('SUB %s\n' % self._addr_out)
 
 
     # --------------------------------------------------------------------------
@@ -223,36 +233,22 @@ class Publisher(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel):
+    def __init__(self, channel, url):
 
         self._channel = channel
+        self._url     = url
 
         self._pwd = '.'
         self._uid = generate_id('%s.pub.%s' % (self._channel, '%(counter)04d'),
                                 ID_CUSTOM)
-        self._log = Logger(name=self._uid, level='DEBUG')  ## FIXME
-
-        # avoid superfluous logging calls in critical code sections
-        if self._log.getEffectiveLevel() == 10:  # logging.DEBUG:
-            self._debug = True
-        else:
-            self._debug = False
-
-        # get addr from bridge.url
-        with open('%s/%s.url' % (self._pwd, self._channel), 'r') as fin:
-            for line in fin.readlines():
-                elems = line.split()
-                if elems and elems[0] == 'PUB':
-                    self._addr = elems[1]
-                    break
-
-        self._log.info('connect pub to %s: %s'  % (self._channel, self._addr))
+        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
 
         self._ctx      = zmq.Context()  # rely on the GC destroy the context
         self._q        = self._ctx.socket(zmq.PUB)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._addr)
+        self._q.connect(self._url)
 
 
     # --------------------------------------------------------------------------
@@ -289,36 +285,24 @@ class Publisher(object):
 #
 class Subscriber(object):
 
-    def __init__(self, channel):
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, channel, url):
 
         self._channel = channel
+        self._url     = url
 
         self._pwd = '.'
         self._uid = generate_id('%s.sub.%s' % (self._channel, '%(counter)04d'),
                                 ID_CUSTOM)
-        self._log = Logger(name=self._uid, level='DEBUG') ## FIXME
-
-        # avoid superfluous logging calls in critical code sections
-        if self._log.getEffectiveLevel() == 10:  # logging.DEBUG:
-            self._debug = True
-        else:
-            self._debug = False
-
-        # get addr from bridge.url
-        with open('%s/%s.url' % (self._pwd, self._channel), 'r') as fin:
-            for line in fin.readlines():
-                elems = line.split()
-                if elems and elems[0] == 'SUB':
-                    self._addr = elems[1]
-                    break
-
-        self._log.info('connect sub to %s: %s'  % (self._channel, self._addr))
+        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
         self._ctx      = zmq.Context()  # rely on the GC destroy the context
         self._q        = self._ctx.socket(zmq.SUB)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._addr)
+        self._q.connect(self._url)
 
 
     # --------------------------------------------------------------------------

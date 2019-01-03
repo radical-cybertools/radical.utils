@@ -7,6 +7,7 @@ __license__   = "MIT"
 import os
 import sys
 import time
+import signal
 import socket
 import threading       as mt
 import multiprocessing as mp
@@ -28,6 +29,55 @@ _WATCH_TIMEOUT = 0.2      # time between thread and process health polls.
                           # on the socketpair; is done in a watcher thread.
 _STOP_TIMEOUT  = 2.0      # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
+
+
+# ------------------------------------------------------------------------------
+#
+def pid_watcher(pid, tgt_pid, timeout=1.0, sig=signal.SIGKILL):
+    '''
+    Watch the given `pid` in a separate thread, and if it disappears, kill the
+    process with `tgt_pid`, too.  The spwned thread is a daemon thread and does
+    not need joining - it will disappear once it has done its job, or once the
+    parent process dies - whichever happens first.
+
+    We use `kill(pid, 0)` to test watched process' health, which will raise an
+    exception if no process with `pid` exists, and otherwise has no side
+    effects.  While this has a race condition on PID reuse, the advantages
+    outweight that slim rarcing probability which has only the timout window to
+    happen (which is unlikely even on a very busy system with limited PID
+    range):
+      - very lightweigt with little runtime overhead;
+      - does not need a cooperative process; and
+      - does not suffer from Python level process management bugs.
+    '''
+
+    def _watch():
+
+        try:
+            sys.stdout.write('watch %s\n' % pid)
+            sys.stdout.flush()
+            while True:
+                time.sleep(timeout)
+                os.kill(pid, 0)
+
+        except OSError:
+            with open('/tmp/t.log', 'a') as fout:
+                fout.write('watcher for %s kills %s\n' % (pid, tgt_pid))
+                fout.flush()
+            time.sleep(1)
+            os.kill(tgt_pid, sig)
+
+        except Exception as e:
+            with open('/tmp/t.log', 'a') as fout:
+                fout.write('watcher for %s failed: %s\n' % (pid, e))
+                fout.flush()
+
+        time.sleep(1)
+
+
+    watcher = mt.Thread(target=_watch)
+    watcher.daemon = True
+    watcher.start()
 
 
 # ------------------------------------------------------------------------------

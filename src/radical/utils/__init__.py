@@ -10,7 +10,7 @@ from .atfork         import *
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
 from .singleton      import Singleton
-from .process        import Process
+from .process        import Process, pid_watcher
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid
@@ -53,8 +53,9 @@ from .timing         import timed_method, epoch, dt_epoch
 
 
 # import sub-modules
-from .               import scheduler
-# from .               import config
+import scheduler
+import config
+import zmq
 
 
 # ------------------------------------------------------------------------------

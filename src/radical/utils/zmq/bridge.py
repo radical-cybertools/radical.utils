@@ -17,13 +17,7 @@ class Bridge(object):
         self._channel = self._cfg['name']
         self._uid     = self._cfg['uid']   ## FIXME: generate?
         self._pwd     = self._cfg['pwd']
-        self._log     = Logger(name=self._uid, level='DEBUG')
-                               ##   level=self._cfg.get('log_level'))
-        # avoid superfluous logging calls in critical code sections
-        if self._log.getEffectiveLevel() == 10:  # logging.DEBUG:
-            self._debug  = True
-        else:
-            self._debug  = False
+        self._log     = Logger(name=self._uid, ns='radical.utils')
 
 
     # --------------------------------------------------------------------------
@@ -42,16 +36,16 @@ class Bridge(object):
         #        python stumbles over circular imports at that point :/
         #        Another option though is to discover and dynamically load
         #        components.
-        from .pubsub import Pubsub
+        from .pubsub import PubSub
         from .queue  import Queue
 
-        _btypemap = {'pubsub' : Pubsub, 
+        _btypemap = {'pubsub' : PubSub, 
                      'queue'  : Queue}
         # ----------------------------------------------------------------------
 
         kind = cfg['kind']
         uid  = cfg['uid']
-        log  = Logger(name=uid, level='DEBUG')  # FIXME level
+        log  = Logger(name=uid, ns='radical.utils')
 
         log.debug('start bridge %s [%s]', uid, kind)
 
