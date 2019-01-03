@@ -18,8 +18,9 @@
 #     immediately terminate itself if an incorrect secret is provided.  That
 #     secret will never live on the disk (but can be spotted via `/proc`.
 #
-# Its likely that better security measures will be needed for production use.
-# 
+# TODO: A  better security measures will be needed for production use:
+#       use named pipe in `$TMP` and apply unix FS auth mechanisms.
+#
 #
 # Implementation
 # --------------
