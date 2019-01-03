@@ -5,7 +5,7 @@ import time
 import regex
 import shlex
 import socket
-import importlib
+import pkgutil
 import netifaces
 
 import subprocess as sp
@@ -330,12 +330,30 @@ def tolist(thing):
 # python docs recommend to use.  This basically steps down the module path and
 # loads the respective submodule until arriving at the target.
 #
+# FIXME: should we cache this?
+#
 def import_module(name):
 
     mod = __import__(name)
     for s in name.split('.')[1:]:
         mod = getattr(mod, s)
     return mod
+
+
+# ------------------------------------------------------------------------------
+#
+# as import_module, but without the import part :-P
+#
+# FIXME: should we cache this?
+#
+def find_module(name):
+
+    package = pkgutil.get_loader(name)
+
+    if not package:
+        return None
+
+    return package.filename
 
 
 # ------------------------------------------------------------------------------
@@ -533,7 +551,7 @@ def stack():
 
     for mod in modules:
         try:
-            tmp = importlib.import_module(mod)
+            tmp = import_module(mod)
             ret['radical'][mod] = tmp.version_detail
         except:
             pass
