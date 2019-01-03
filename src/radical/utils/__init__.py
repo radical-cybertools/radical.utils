@@ -46,7 +46,7 @@ from .misc           import *
 from .algorithms     import *
 from .proxy          import *
 from .sh             import *
-from .which          import which
+from .which          import which, which_of
 from .tracer         import trace, untrace
 from .get_version    import get_version
 
