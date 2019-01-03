@@ -1,4 +1,9 @@
 
+__author__    = "Radical.Utils Development Team"
+__copyright__ = "Copyright 2018, RADICAL"
+__license__   = "GPL"
+
+
 """ 
 Provide an abstraction for distributed queue network.  
 
