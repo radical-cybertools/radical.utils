@@ -8,7 +8,8 @@ import socket
 import importlib
 import netifaces
 
-import url as ruu
+import subprocess as sp
+import url        as ruu
 
 
 # ------------------------------------------------------------------------------

@@ -179,7 +179,6 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     else:
         raise ValueError("mode '%s' not supported for ID generation", mode)
 
-
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
@@ -229,7 +228,8 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     #        a `try/except/finally` clause
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days), os.O_RDWR | os.O_CREAT)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, days)
+        fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
         info['day_counter'] = int(os.read(fd, 256) or 0)
@@ -239,7 +239,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
 
     if '%(item_counter)' in template:
         tmp   = re.sub('\.?%\(.*?\).*?[sdf]', '', prefix)
-        fname = "%s/ru_%s_%s.cnt" % (base, user, tmp)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, tmp)
         fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
