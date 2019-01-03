@@ -6,6 +6,9 @@ __license__   = "MIT"
 # we want atfork imported first, specifically before os and logging
 from .atfork         import *
 
+# import constants
+from .constants      import *
+
 # import utility classes
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
@@ -51,7 +54,6 @@ from .get_version    import get_version
 
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch
-
 
 # import sub-modules
 import scheduler

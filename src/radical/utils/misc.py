@@ -13,7 +13,8 @@ import subprocess as sp
 import threading  as mt
 
 
-import url as ruu
+from .url       import Url
+from .constants import *
 
 
 # ------------------------------------------------------------------------------
@@ -28,10 +29,10 @@ def split_dburl(dburl, default_dburl=None):
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
 
-    url = ruu.Url(dburl)
+    url = Url(dburl)
 
     if not url.schema and not url.host:
-        url      = ruu.Url(default_dburl)
+        url      = Url(default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...
@@ -640,7 +641,7 @@ def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
             self.stdout  = queue.Queue()
             self.stderr  = queue.Queue()
 
-            self.state   = 'RUNNING'
+            self.state   = RUNNING
             self._proc   = proc
 
             self._thread = mt.Thread(target=self._stdio) 
@@ -663,8 +664,8 @@ def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
                 else:
                     ret = self._proc.wait()
 
-                    if ret == 0: self.state = 'DONE'
-                    else       : self.state = 'FAILED'
+                    if ret == 0: self.state = DONE
+                    else       : self.state = FAILED
 
                     self.stdout.put(None)  # signal EOF
                     self.stdout.join()
