@@ -2,9 +2,11 @@
 import os
 import sys
 import time
+import fcntl
 import regex
 import shlex
 import socket
+import select
 import pkgutil
 import netifaces
 import queue
@@ -638,60 +640,123 @@ def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
     class _PROC(object):
 
         # ----------------------------------------------------------------------
-        #
-        def __init__(self, proc):
+        def __init__(self, cmd, stdout, stderr, shell):
 
-            self.stdin   = queue.Queue()
-            self.stdout  = queue.Queue()
-            self.stderr  = queue.Queue()
+            # convert string into arg list if needed
+            if not shell and isinstance(cmd, basestring):
+                cmd = shlex.split(cmd)
 
-            self.state   = RUNNING
-            self._proc   = proc
+            if  stdout is True:
+                stdout       = sp.PIPE
+                self._capout = True
+                self._stdout = queue.Queue()
 
-            self._thread = mt.Thread(target=self._stdio) 
-            self._thread.daemon = True               
-            self._thread.start()                     
+            elif stdout is False:
+                self._capout = False
+                stdout       = None
+
+            else:
+                self._capout = False
+
+
+            if  stderr is True:
+                stderr       = sp.PIPE
+                self._caperr = True
+                self._stderr = queue.Queue()
+
+            elif stderr is False:
+                self._caperr = False
+                stderr       = None
+
+            else:
+                self._caperr = False
+
+            self.state = RUNNING
+            self._proc = sp.Popen(cmd, stdout=stdout, stderr=stderr,
+                                  shell=shell, bufsize=1)
+
+            t = mt.Thread(target=self._watch) 
+            t.daemon = True
+            t.start()
+
+
+        @property
+        def stdout(self):
+            if not self._capout:
+                raise ValueError('stdout not captured')
+            return self._stdout
+
+
+        @property
+        def stderr(self):
+            if not self._caperr:
+                raise ValueError('stderr not captured')
+            return self._stderr
 
 
         # ----------------------------------------------------------------------
-        #
-        def _stdio(self):
+        def _watch(self):
 
+            poller = select.poll()
+            fdout  = None
+            fderr  = None
+
+            if self._capout:
+                fdout = self._proc.stdout.fileno()
+                poller.register(fdout, select.POLLIN | select.POLLHUP)
+
+            if self._caperr:
+                fderr = self._proc.stderr.fileno(),
+                poller.register(fderr, select.POLLIN | select.POLLHUP)
+
+            # try forever to read stdout and stderr, stop only when either
+            # signals that process died
             while True:
 
-                # TODO: implement stderr capture
-                line = self._proc.stdout.readline()
+                active = False
+                fds    = poller.poll(0)
 
-                if line:
-                    self.stdout.put(line)
+                for fd,mode in fds:
 
-                else:
-                    ret = self._proc.wait()
+                    if mode == select.POLLHUP:
+                        continue
 
-                    if ret == 0: self.state = DONE
-                    else       : self.state = FAILED
+                    if fd == fdout:
+                        q = self._stdout
+                        p = self._proc.stdout
 
-                    self.stdout.put(None)  # signal EOF
-                    self.stdout.join()
+                    elif fd == fderr:
+                        q = self._stderr
+                        p = self._proc.stderr
 
-                    return
+                    line = p.readline()
+
+                    if line:
+                        # found valid data (active)
+                        active = True
+                        q.put(line)
+
+                if not active:
+
+                    if self._proc.poll() is not None:
+
+                        ret = self._proc.returncode
+
+                        if ret == 0: self.state = DONE
+                        else       : self.state = FAILED
+
+                        if self._capout: self._stdout.put(None)
+                        if self._caperr: self._stderr.put(None)
+
+                        return
+
+                    else:
+                        # process alive, but nothing to read - avoid busy poll
+                        time.sleep(0.1)  # FIXME: configurable
 
     # --------------------------------------------------------------------------
 
-    # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
-        cmd = shlex.split(cmd)
-
-    if stdout: cap_stdout = sp.PIPE
-    else     : cap_stdout = None
-
-    if stderr: cap_stderr = sp.PIPE
-    else     : cap_stderr = None
-
-    p = sp.Popen(cmd, stdout=cap_stdout, stderr=cap_stderr, shell=shell,
-                 bufsize=1, universal_newlines=True)
-
-    return _PROC(proc=p)
+    return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)
 
 
 # ------------------------------------------------------------------------------
