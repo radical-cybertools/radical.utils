@@ -69,7 +69,7 @@ def test_sh_callout_async():
     t_0 = time.time()
     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
 
-    assert(p.stdout.get() == 'TRUE\n')
+    assert(p.stdout.get() == 'TRUE')
     assert(p.state        == ru.RUNNING)
 
     t_1 = time.time()

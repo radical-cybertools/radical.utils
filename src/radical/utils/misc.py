@@ -633,12 +633,29 @@ def is_str(s):
 #
 def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     '''
-    start a shell command, and capture stdout/stderr if so flagged.  The call
-    will return a `queue.Queue` instance on which the captured output can be
-    retrieved line by line (I/O is line buffered).  When the process is done,
-    the a `None` will pushed onto the queue, followed by a single and last
-    string formatted as `'RETVAL %d' % returncode`.  Lines are not stripped
-    before return.
+
+    Run a command, and capture stdout/stderr if so flagged.  The call will
+    return an PROC object instance on which the captured output can be retrieved
+    line by line (I/O is line buffered).  When the process is done, a `None`
+    will be returned on the I/O queues.
+
+    Line breaks are stripped.
+
+    stdout/stderr: True [default], False, string
+      - False : discard I/O
+      - True  : capture I/O as queue [default]
+      - string: capture I/O as queue, also write to named file
+
+    shell: True, False [default]
+      - pass to popen
+
+    PROC:
+      - PROC.stdout         : `queue.Queue` instance delivering stdout lines
+      - PROC.stderr         : `queue.Queue` instance delivering stderr lines
+      - PROC.state          : ru.RUNNING, ru.DONE, ru.FAILED
+      - PROC.rc             : returncode (None while ru.RUNNING)
+      - PROC.stdout_filename: name of stdout file (when available)
+      - PROC.stderr_filename: name of stderr file (when available)
     '''
 
     # --------------------------------------------------------------------------
@@ -737,12 +754,12 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                         q_out = self._err_q
                         f_out = self._err_f
 
-                    line = o_in.readline().rstrip('\n')  # `popen(bufsize=1...)`
+                    line = o_in.readline()  # `bufsize=1` in `popen`
 
                     if line:
                         # found valid data (active)
                         active = True
-                        if q_out: q_out.put(line)
+                        if q_out: q_out.put(line.rstrip('\n'))
                         if f_out: q_out.write(line)
 
                 # no data received - check process health
