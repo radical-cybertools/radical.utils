@@ -54,25 +54,21 @@ def pid_watcher(pid, tgt_pid, timeout=1.0, sig=signal.SIGKILL):
     def _watch():
 
         try:
-            sys.stdout.write('watch %s\n' % pid)
-            sys.stdout.flush()
+          # sys.stderr.write('watch %s\n' % pid)
+          # sys.stderr.flush()
             while True:
                 time.sleep(timeout)
                 os.kill(pid, 0)
 
         except OSError:
-            with open('/tmp/t.log', 'a') as fout:
-                fout.write('watcher for %s kills %s\n' % (pid, tgt_pid))
-                fout.flush()
-            time.sleep(1)
+          # sys.stderr.write('watcher for %s kills %s\n' % (pid, tgt_pid))
+          # sys.stderr.flush()
             os.kill(tgt_pid, sig)
 
         except Exception as e:
-            with open('/tmp/t.log', 'a') as fout:
-                fout.write('watcher for %s failed: %s\n' % (pid, e))
-                fout.flush()
-
-        time.sleep(1)
+          # sys.stderr.write('watcher for %s failed: %s\n' % (pid, e))
+          # sys.stderr.flush()
+            pass
 
 
     watcher = mt.Thread(target=_watch)

@@ -15,8 +15,8 @@ import subprocess as sp
 import threading  as mt
 
 
-from .url       import Url
-from .constants import *
+from . import url       as ruu
+from . import constants as ruc
 
 
 # ------------------------------------------------------------------------------
@@ -31,10 +31,10 @@ def split_dburl(dburl, default_dburl=None):
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
 
-    url = Url(dburl)
+    url = ruu.Url(dburl)
 
     if not url.schema and not url.host:
-        url      = Url(default_dburl)
+        url      = ruu.Url(default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...
@@ -625,7 +625,13 @@ def sh_callout(cmd, shell=False):
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
+def is_str(s):
+    return isinstance(s, basestring)
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     '''
     start a shell command, and capture stdout/stderr if so flagged.  The call
     will return a `queue.Queue` instance on which the captured output can be
@@ -642,117 +648,119 @@ def sh_callout_async(cmd, shell=True, stdout=True, stderr=False):
         # ----------------------------------------------------------------------
         def __init__(self, cmd, stdout, stderr, shell):
 
-            # convert string into arg list if needed
-            if not shell and isinstance(cmd, basestring):
-                cmd = shlex.split(cmd)
+            cmd = cmd.strip()
 
-            if  stdout is True:
-                stdout       = sp.PIPE
-                self._capout = True
-                self._stdout = queue.Queue()
+            self._out_c = bool(stdout)               # flag stdout capture
+            self._err_c = bool(stderr)               # flag stderr capture
 
-            elif stdout is False:
-                self._capout = False
-                stdout       = None
+            self._out_r, self._out_w = os.pipe()     # get stdout from child
+            self._err_r, self._err_w = os.pipe()     # get stderr from child
 
-            else:
-                self._capout = False
+            self._out_o = os.fdopen(self._out_r)     # file object for out ep
+            self._err_o = os.fdopen(self._err_r)     # file object for err ep
 
+            self._out_q = queue.Queue()              # put stdout to parent
+            self._err_q = queue.Queue()              # put stderr to parent
 
-            if  stderr is True:
-                stderr       = sp.PIPE
-                self._caperr = True
-                self._stderr = queue.Queue()
+            if is_str(stdout): self._out_f = open(stdout, 'w')
+            else             : self._out_f = None
 
-            elif stderr is False:
-                self._caperr = False
-                stderr       = None
+            if is_str(stderr): self._err_f = open(stderr, 'w')
+            else             : self._err_f = None
 
-            else:
-                self._caperr = False
-
-            self.state = RUNNING
-            self._proc = sp.Popen(cmd, stdout=stdout, stderr=stderr,
+            self.state = ruc.RUNNING
+            self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
                                   shell=shell, bufsize=1)
 
             t = mt.Thread(target=self._watch) 
             t.daemon = True
             t.start()
 
+            self.rc = None  # return code
+
+
 
         @property
         def stdout(self):
-            if not self._capout:
-                raise ValueError('stdout not captured')
-            return self._stdout
-
+            if not self._out_c:
+                raise RuntimeError('stdout not captured')
+            return self._out_q
 
         @property
         def stderr(self):
-            if not self._caperr:
-                raise ValueError('stderr not captured')
-            return self._stderr
+            if not self._err_c:
+                raise RuntimeError('stderr not captured')
+            return self._err_q
+
+
+        @property
+        def stdout_filename(self):
+            if not self._out_f:
+                raise RuntimeError('stdout not recorded')
+            return self._out_f.name
+
+        @property
+        def stderr_filename(self):
+            if not self._err_f:
+                raise RuntimeError('stderr not recorded')
+            return self._err_f.name
 
 
         # ----------------------------------------------------------------------
         def _watch(self):
 
             poller = select.poll()
-            fdout  = None
-            fderr  = None
-
-            if self._capout:
-                fdout = self._proc.stdout.fileno()
-                poller.register(fdout, select.POLLIN | select.POLLHUP)
-
-            if self._caperr:
-                fderr = self._proc.stderr.fileno(),
-                poller.register(fderr, select.POLLIN | select.POLLHUP)
+            poller.register(self._out_r, select.POLLIN | select.POLLHUP)
+            poller.register(self._err_r, select.POLLIN | select.POLLHUP)
 
             # try forever to read stdout and stderr, stop only when either
             # signals that process died
             while True:
 
                 active = False
-                fds    = poller.poll(0)
+                fds    = poller.poll(0.1)  # timeout configurable
 
                 for fd,mode in fds:
 
                     if mode == select.POLLHUP:
+                        # this fd died - grab data from the other one if any is
+                        # available
                         continue
 
-                    if fd == fdout:
-                        q = self._stdout
-                        p = self._proc.stdout
+                    if fd    == self._out_r:
+                        o_in  = self._out_o
+                        q_out = self._out_q
+                        f_out = self._out_f
 
-                    elif fd == fderr:
-                        q = self._stderr
-                        p = self._proc.stderr
+                    elif fd  == self._err_r:
+                        o_in  = self._err_o
+                        q_out = self._err_q
+                        f_out = self._err_f
 
-                    line = p.readline()
+                    line = o_in.readline().rstrip('\n')  # `popen(bufsize=1...)`
 
                     if line:
                         # found valid data (active)
                         active = True
-                        q.put(line)
+                        if q_out: q_out.put(line)
+                        if f_out: q_out.write(line)
 
-                if not active:
+                # no data received - check process health
+                if not active and self._proc.poll() is not None:
 
-                    if self._proc.poll() is not None:
+                    # process is dead
+                    self.rc = self._proc.returncode
 
-                        ret = self._proc.returncode
+                    if self.rc == 0: self.state = ruc.DONE
+                    else           : self.state = ruc.FAILED
 
-                        if ret == 0: self.state = DONE
-                        else       : self.state = FAILED
+                    if self._out_q: self._out_q.put(None)  # signal EOF
+                    if self._err_q: self._err_q.put(None)  # signal EOF
 
-                        if self._capout: self._stdout.put(None)
-                        if self._caperr: self._stderr.put(None)
+                    if self._out_q: self._out_q.join()     # ensure reads
+                    if self._err_q: self._err_q.join()     # ensure reads
 
-                        return
-
-                    else:
-                        # process alive, but nothing to read - avoid busy poll
-                        time.sleep(0.1)  # FIXME: configurable
+                    return  # finishes thread
 
     # --------------------------------------------------------------------------
 
