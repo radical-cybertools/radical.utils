@@ -760,7 +760,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                         # found valid data (active)
                         active = True
                         if q_out: q_out.put(line.rstrip('\n'))
-                        if f_out: q_out.write(line)
+                        if f_out: f_out.write(line)
 
                 # no data received - check process health
                 if not active and self._proc.poll() is not None:
