@@ -657,6 +657,13 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
       - PROC.stdout_filename: name of stdout file (when available)
       - PROC.stderr_filename: name of stderr file (when available)
     '''
+    # NOTE: Fucking python screws up stdio buffering when threads are used,
+    #       *even if the treads do not perform stdio*.  Its possible that the
+    #       logging module interfers, too.  Either way, I am fed up debugging
+    #       this shit, and give up.  This method does not work for threaded
+    #       python applications.
+    assert(False), 'this is broken for python apps'
+
 
     # --------------------------------------------------------------------------
     #
@@ -735,13 +742,12 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             while True:
 
                 active = False
-                fds    = poller.poll(0.1)  # timeout configurable
+                fds    = poller.poll(100)  # timeout configurable (ms)
 
                 for fd,mode in fds:
 
-                    if mode == select.POLLHUP:
-                        # this fd died - grab data from the other one if any is
-                        # available
+                    if mode & select.POLLHUP:
+                        # fd died - #grab data from other fds
                         continue
 
                     if fd    == self._out_r:
