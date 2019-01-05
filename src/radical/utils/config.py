@@ -346,11 +346,14 @@ class DefaultConfig(Config):
 
         pwd = os.getcwd()
 
-        cfg = {'log_lvl'  : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
-               'log_tgt'  : '${RADICAL_DEFAULT_LOG_TGT:radical.log}',
-               'log_dir'  : '${RADICAL_DEFAULT_LOG_DIR:%s}'  % pwd,
-               'prof_dir' : '${RADICAL_DEFAULT_PROF_DIR:%s}' % pwd,
-               'prof'     : '${RADICAL_DEFAULT_PROF:TRUE}',
+        cfg = {'log_lvl'   : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
+               'log_tgt'   : '${RADICAL_DEFAULT_LOG_TGT:.}',
+               'log_dir'   : '${RADICAL_DEFAULT_LOG_DIR:%s}'     % pwd,
+               'prof_dir'  : '${RADICAL_DEFAULT_PROFILE_DIR:%s}' % pwd,
+               'prof'      : '${RADICAL_DEFAULT_PROFILE:TRUE}',
+               'report'    : '${RADICAL_DEFAULT_REPORT:TRUE}',
+               'report_tgt': '${RADICAL_DEFAULT_REPORT_TGT:stderr}',
+               'report_dir': '${RADICAL_DEFAULT_REPORT_DIR:%s}'  % pwd,
                }
 
         super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)

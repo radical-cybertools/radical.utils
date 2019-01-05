@@ -177,7 +177,7 @@ class Logger(object):
                  verbose=False):
 
         with open('/tmp/t', 'a') as fout:
-            fout.write('LOGGER  with %s %s %s %s %s %s\n' 
+            fout.write('LOGGER: %-50s %-20s %-60s %-10s %-10s %-10s\n' 
                       % (name, ns, path, targets, level, verbose))
             fout.flush()
 
@@ -265,6 +265,11 @@ class Logger(object):
             warning = "invalid loglevel '%s', use '%s'" \
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']
+
+        with open('/tmp/t', 'a') as fout:
+            fout.write('        %-50s %-20s %-60s %-10s %-10s %-10s\n' 
+                      % (name, ns, path, targets, level, verbose))
+            fout.flush()
 
         formatter = logging.Formatter('%(asctime)s: '
                                       '%(name)-20s: '
