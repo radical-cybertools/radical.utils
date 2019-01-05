@@ -33,7 +33,17 @@ _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 # ------------------------------------------------------------------------------
 #
-def pid_watcher(pid, tgt_pid, timeout=1.0, sig=signal.SIGKILL):
+def ppid_watcher(timeout=1.0, sig=signal.SIGKILL, uid=None):
+    '''
+    same as below, but watch parent, and kill self
+    '''
+    return pid_watcher(os.getppid(), os.getpid(), 
+                       timeout=timeout, sig=sig, uid=uid)
+
+
+# ------------------------------------------------------------------------------
+#
+def pid_watcher(pid, tgt_pid, timeout=0.1, sig=signal.SIGKILL, uid=None):
     '''
     Watch the given `pid` in a separate thread, and if it disappears, kill the
     process with `tgt_pid`, too.  The spwned thread is a daemon thread and does
@@ -54,22 +64,27 @@ def pid_watcher(pid, tgt_pid, timeout=1.0, sig=signal.SIGKILL):
     def _watch():
 
         try:
-          # sys.stderr.write('watch %s\n' % pid)
-          # sys.stderr.flush()
             while True:
+              # sys.stderr.write('--- %s watches %s\n' % (uid, pid))
+              # sys.stderr.flush()
                 time.sleep(timeout)
                 os.kill(pid, 0)
 
         except OSError:
-          # sys.stderr.write('watcher for %s kills %s\n' % (pid, tgt_pid))
+          # sys.stderr.write('--- watcher for %s kills %s\n' % (pid, tgt_pid))
           # sys.stderr.flush()
             os.kill(tgt_pid, sig)
 
         except Exception as e:
-          # sys.stderr.write('watcher for %s failed: %s\n' % (pid, e))
+          # sys.stderr.write('--- watcher for %s failed: %s\n' % (pid, e))
           # sys.stderr.flush()
             pass
 
+    if pid == 1:
+        raise ValueError('refuse to watch init process [1]')
+
+  # sys.stderr.write('--- %s [%s] watches %s n' % (uid, tgt_pid, pid))
+  # sys.stderr.flush()
 
     watcher = mt.Thread(target=_watch)
     watcher.daemon = True

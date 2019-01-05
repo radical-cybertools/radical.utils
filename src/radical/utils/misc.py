@@ -609,7 +609,7 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout(cmd, shell=False):
+def sh_callout(cmd, stdout=False, stderr=False, shell=False):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
     '''
@@ -618,9 +618,36 @@ def sh_callout(cmd, shell=False):
     if not shell and isinstance(cmd, basestring):
         cmd = shlex.split(cmd)
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
-    stdout, stderr = p.communicate()
-    return stdout, stderr, p.returncode
+    if stdout: stdout = sp.PIPE
+    else     : stdout = None
+
+    if stderr: stderr = sp.PIPE
+    else     : stderr = None
+
+    p = sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+
+    if not stdout and not stderr:
+        ret = p.wait()
+    else:
+        stdout, stderr = p.communicate()
+        ret            = p.returncode
+    return stdout, stderr, ret
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout_bg(cmd, shell=False):
+    '''
+    call a shell command, don't capture anything, forget handle
+    '''
+
+    # convert string into arg list if needed
+    if not shell and isinstance(cmd, basestring):
+        cmd = shlex.split(cmd)
+
+    sp.Popen(cmd, stdout=None, stderr=None, shell=shell)
+
+    return 
 
 
 # ------------------------------------------------------------------------------

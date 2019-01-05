@@ -13,7 +13,7 @@ from .constants      import *
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
 from .singleton      import Singleton
-from .process        import Process, pid_watcher
+from .process        import Process, pid_watcher, ppid_watcher
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid

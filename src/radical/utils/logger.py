@@ -35,7 +35,6 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 #
 import os
 import sys
-import types
 import threading
 import colorama
 import logging
@@ -51,7 +50,6 @@ DEFAULT_LEVEL   =  'ERROR'
 DEFAULT_TARGETS = ['stderr']
 
 OFF = -1
-
 
 
 # ------------------------------------------------------------------------------
@@ -119,7 +117,6 @@ def _atfork_child():
 # ------------------------------------------------------------------------------
 #
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
-
 
 
 # ------------------------------------------------------------------------------
@@ -328,6 +325,36 @@ class Logger(object):
 
         # keep the handle a round, for cleaning up on fork
         _logger_registry.add(self._logger)
+
+        # store properties
+        self._name    = name
+        self._ns      = ns
+        self._path    = path
+        self._level   = level
+        self._targets = targets
+
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def ns(self):
+        return self._ns
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def level(self):
+        return self._level
+
+    @property
+    def targets(self):
+        return self._targets
 
 
     # --------------------------------------------------------------------------
