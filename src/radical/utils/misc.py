@@ -510,16 +510,16 @@ def get_env_ns(key, ns, default=None):
     will return the value of the first found env variable from the following
     sequence:
 
-        RADICAL_PILOT_UMGR_VERBOSE
-        RADICAL_PILOT_VERBOSE
-        RADICAL_VERBOSE
+        RADICAL_PILOT_UMGR_LOG_LVL
+        RADICAL_PILOT_LOG_LVL
+        RADICAL_LOG_LVL
 
     or 'None' if none of the above is set.  The given `name` and `key` are
     converted to upper case, dots are replaced by underscores.
 
     Note that an environment variable set with
 
-        export RADICAL_VERBOSE=
+        export RADICAL_LOG_LVL=
 
     (ie. without an explicit, non-empty value) will be returned as an empty
     string.

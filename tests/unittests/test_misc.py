@@ -87,12 +87,12 @@ def test_sh_callout_async():
 #
 def test_get_env_ns():
 
-    os.environ['RADICAL_UTILS_VERBOSE'] = 'DEBUG'
+    os.environ['RADICAL_UTILS_LOG_LVL'] = 'DEBUG'
     os.environ['RADICAL_LOG_TGT']       = '/dev/null'
 
     for ns in ['radical.utils.test', 'radical.utils']:
 
-        assert(ru.get_env_ns('VERBOSE', ns) == 'DEBUG')
+        assert(ru.get_env_ns('LOG_LVL', ns) == 'DEBUG')
         assert(ru.get_env_ns('log.tgt', ns) == '/dev/null')
         assert(ru.get_env_ns('LOG.TGT', ns) == '/dev/null')
         assert(ru.get_env_ns('LOG_TGT', ns) == '/dev/null')

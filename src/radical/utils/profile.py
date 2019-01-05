@@ -3,11 +3,12 @@ import os
 import csv
 import time
 
-from   .misc      import name2env        as ru_name2env
-from   .misc      import get_env_ns      as ru_get_env_ns
-from   .misc      import get_hostname    as ru_get_hostname
-from   .misc      import get_hostip      as ru_get_hostip
-from   .threads   import get_thread_name as ru_get_thread_name
+from   .misc    import name2env        as ru_name2env
+from   .misc    import get_env_ns      as ru_get_env_ns
+from   .misc    import get_hostname    as ru_get_hostname
+from   .misc    import get_hostip      as ru_get_hostip
+from   .threads import get_thread_name as ru_get_thread_name
+from   .config  import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -90,6 +91,8 @@ class Profiler(object):
         Open the file handle, sync the clock, and write timestam_zero
         """
 
+        ru_def = DefaultConfig()
+
         if not ns:
             ns = name
 
@@ -104,7 +107,7 @@ class Profiler(object):
         self._name    = name
 
         if not self._path:
-            self._path = os.getcwd()
+            self._path = ru_def['prof_dir']
 
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 

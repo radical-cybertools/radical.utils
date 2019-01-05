@@ -33,20 +33,10 @@ _BUFSIZE       = 1024     # default buffer size for socket recvs
 
 # ------------------------------------------------------------------------------
 #
-def ppid_watcher(timeout=1.0, sig=signal.SIGKILL, uid=None):
-    '''
-    same as below, but watch parent, and kill self
-    '''
-    return pid_watcher(os.getppid(), os.getpid(), 
-                       timeout=timeout, sig=sig, uid=uid)
-
-
-# ------------------------------------------------------------------------------
-#
-def pid_watcher(pid, tgt_pid, timeout=0.1, sig=signal.SIGKILL, uid=None):
+def pid_watcher(pid=None, tgt=None, timeout=0.1, sig=None, uid=None):
     '''
     Watch the given `pid` in a separate thread, and if it disappears, kill the
-    process with `tgt_pid`, too.  The spwned thread is a daemon thread and does
+    process with `tgt`, too.  The spwned thread is a daemon thread and does
     not need joining - it will disappear once it has done its job, or once the
     parent process dies - whichever happens first.
 
@@ -61,6 +51,11 @@ def pid_watcher(pid, tgt_pid, timeout=0.1, sig=signal.SIGKILL, uid=None):
       - does not suffer from Python level process management bugs.
     '''
 
+    if not pid: pid = os.getppid()
+    if not tgt: tgt = os.getpid()
+    if not sig: sig = signal.SIGKILL
+    if not uid: uid = '?'
+
     def _watch():
 
         try:
@@ -71,9 +66,9 @@ def pid_watcher(pid, tgt_pid, timeout=0.1, sig=signal.SIGKILL, uid=None):
                 os.kill(pid, 0)
 
         except OSError:
-          # sys.stderr.write('--- watcher for %s kills %s\n' % (pid, tgt_pid))
+          # sys.stderr.write('--- watcher for %s kills %s\n' % (pid, tgt))
           # sys.stderr.flush()
-            os.kill(tgt_pid, sig)
+            os.kill(tgt, sig)
 
         except Exception as e:
           # sys.stderr.write('--- watcher for %s failed: %s\n' % (pid, e))
@@ -81,9 +76,12 @@ def pid_watcher(pid, tgt_pid, timeout=0.1, sig=signal.SIGKILL, uid=None):
             pass
 
     if pid == 1:
-        raise ValueError('refuse to watch init process [1]')
+        sys.stderr.write('refuse to watch init process [1]\n')
+        sys.stderr.flush()
+        return
+      # raise ValueError('refuse to watch init process [1]')
 
-  # sys.stderr.write('--- %s [%s] watches %s n' % (uid, tgt_pid, pid))
+  # sys.stderr.write('--- %s [%s] watches %s n' % (uid, tgt, pid))
   # sys.stderr.flush()
 
     watcher = mt.Thread(target=_watch)

@@ -15,7 +15,7 @@ class Bridge(object):
         self._cfg     = copy.deepcopy(cfg)
 
         self._channel = self._cfg['name']
-        self._uid     = self._cfg['uid']   ## FIXME: generate?
+        self._uid     = self._cfg['uid']   # FIXME: generate?
         self._pwd     = self._cfg['pwd']
         self._log     = Logger(name=self._uid, ns='radical.utils')
 
@@ -45,7 +45,12 @@ class Bridge(object):
 
         kind = cfg['kind']
         uid  = cfg['uid']
-        log  = Logger(name=uid, ns='radical.utils')
+
+        ldir = cfg.get('logdir')
+        llvl = cfg.get('log_level')
+
+        log  = Logger(name=uid, ns='radical.utils',
+                      path=ldir, targets='%s.log' % uid, level=llvl)
 
         log.debug('start bridge %s [%s]', uid, kind)
 

@@ -44,10 +44,9 @@ from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
 from   .atfork  import *
 from   .misc    import get_env_ns       as ru_get_env_ns
 from   .misc    import import_module    as ru_import_module
+from   .config  import DefaultConfig
 
 
-DEFAULT_LEVEL   =  'ERROR'
-DEFAULT_TARGETS = ['stderr']
 
 OFF = -1
 
@@ -171,20 +170,19 @@ class FSHandler(logging.FileHandler):
 
 
 # ------------------------------------------------------------------------------
-# backward compatibility (`header` is discarded)
-def get_logger(name, target=None, level=None, path=None, header=True):
-
-    logger = Logger(name=name, targets=target, path=path, level=level)
-    logger.warn('ru.get_logger() is deprecated, use ru.Logger()')
-
-    return logger
-
-
-# ------------------------------------------------------------------------------
 #
 class Logger(object):
 
-    def __init__(self, name, ns=None, path=None, targets=None, level=None):
+    def __init__(self, name, ns=None, path=None, targets=None, level=None, 
+                 verbose=False):
+
+        with open('/tmp/t', 'a') as fout:
+            fout.write('LOGGER  with %s %s %s %s %s %s\n' 
+                      % (name, ns, path, targets, level, verbose))
+            fout.flush()
+
+        ru_def = DefaultConfig()
+
         """
         Get a logging handle.
 
@@ -210,8 +208,8 @@ class Logger(object):
         If `ns` is, for example, set to `radical.utils`, then the following
         environment variables are evaluated:
 
-            RADICAL_UTILS_VERBOSE
-            RADICAL_VERBOSE
+            RADICAL_UTILS_LOG_LVL
+            RADICAL_LOG_LVL
 
             RADICAL_UTILS_LOG_TGT
             RADICAL_LOG_TGT
@@ -229,7 +227,7 @@ class Logger(object):
 
         # otherwise configure this logger
         if not path:
-            path = os.getcwd()
+            path = ru_def['log_dir']
 
         if not ns:
             ns = name
@@ -237,7 +235,7 @@ class Logger(object):
         if not targets:
             targets = ru_get_env_ns('log_tgt', ns)
             if not targets:
-                targets = DEFAULT_TARGETS
+                targets = ru_def['log_tgt']
 
         if isinstance(targets, basestring):
             targets = targets.split(',')
@@ -246,19 +244,12 @@ class Logger(object):
             targets = [targets]
 
         if not level:
-            level = ru_get_env_ns('verbose', ns)
+            level = ru_get_env_ns('log_lvl', ns)
             if not level:
-                level = DEFAULT_LEVEL
+                level = ru_def['log_lvl']
 
         if level in [OFF, 'OFF']:
             targets = ['null']
-
-        # backward compatible interpretation of SAGA_VERBOSE
-        if name.lower().startswith('RADICAL_SAGA') or \
-             ns.lower().startswith('RADICAL_SAGA') or \
-           name.lower().startswith('radical.saga') or \
-             ns.lower().startswith('radical.saga')    :
-            level = os.environ.get('SAGA_VERBOSE', level)
 
         # translate numeric levels into upper case symbolic ones
         levels  = {'50' : 'CRITICAL',
@@ -266,13 +257,14 @@ class Logger(object):
                    '30' : 'WARNING',
                    '20' : 'INFO',
                    '10' : 'DEBUG',
-                    '0' :  DEFAULT_LEVEL,
+                    '0' :  ru_def['log_lvl'],
                    '-1' : 'OFF'}
         level   = levels.get(str(level), str(level)).upper()
         warning = None
         if level not in levels.values():
-            warning = "invalid loglevel '%s', use '%s'" % (level, DEFAULT_LEVEL)
-            level   = DEFAULT_LEVEL
+            warning = "invalid loglevel '%s', use '%s'" \
+                                      % (level, ru_def['log_lvl'])
+            level   = ru_def['log_lvl']
 
         formatter = logging.Formatter('%(asctime)s: '
                                       '%(name)-20s: '
@@ -301,27 +293,28 @@ class Logger(object):
             self._logger.warn(warning)
 
         # if `name` points to module, try to log its version info
-        try:
-            self._logger.info("%-20s version: %s", 'python.interpreter',
-                              ' '.join(sys.version.split()))
+        if verbose:
+            try:
+                self._logger.info("%-20s version: %s", 'python.interpreter',
+                                  ' '.join(sys.version.split()))
 
-            mod = ru_import_module(name)
-            if hasattr(mod, 'version_detail'):
-                self._logger.info("%-20s version: %s", 
-                                  name, getattr(mod, 'version_detail'))
+                mod = ru_import_module(name)
+                if hasattr(mod, 'version_detail'):
+                    self._logger.info("%-20s version: %s", 
+                                      name, getattr(mod, 'version_detail'))
 
-            elif hasattr(mod, 'version'):
-                self._logger.info("%-20s version: %s", 
-                                  name, getattr(mod, 'version'))
-        except:
-            pass
+                elif hasattr(mod, 'version'):
+                    self._logger.info("%-20s version: %s", 
+                                      name, getattr(mod, 'version'))
+            except:
+                pass
 
-        # also log pid and tid
-        try:
-            self._logger.info("%-20s pid/tid: %s/%s", '', os.getpid(), 
-                        threading.current_thread().name)
-        except:
-            pass
+            # also log pid and tid
+            try:
+                self._logger.info("%-20s pid/tid: %s/%s", '', os.getpid(), 
+                            threading.current_thread().name)
+            except:
+                pass
 
         # keep the handle a round, for cleaning up on fork
         _logger_registry.add(self._logger)

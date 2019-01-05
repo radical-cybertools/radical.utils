@@ -10,7 +10,7 @@ __license__   = "MIT"
 #
 #   - system config files will be merged with user configs (if those exist)
 #   - python style comments are filtered out before parsing 
-#   - after parsing, `$env{ABC:default}`-style values are set or expanded via 
+#   - after parsing, `${ABC:default}`-style values are set or expanded via 
 #     `os.environ`
 #
 #
@@ -98,7 +98,7 @@ __license__   = "MIT"
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
-#   '$env{RADICAL_UTILS_ENV:default_value}
+#   '${RADICAL_UTILS_ENV:default_value}
 #
 # which will be replaced by 
 #
@@ -119,15 +119,15 @@ __license__   = "MIT"
 #
 # ------------------------------------------------------------------------------
 
-import pkgutil
-import copy
 import glob
 import os
 import re
 
-from .misc       import find_module
+from .misc       import find_module, is_str
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
+
+from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
@@ -143,7 +143,7 @@ class Config(object, DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module, path=None, name=None):
+    def __init__(self, module, path=None, name=None, cfg=None):
 
         modpath = find_module(module)
         if not modpath:
@@ -159,15 +159,18 @@ class Config(object, DictMixin):
 
         # if a name starts with a module prefix, strip that prefix
         if name and name.startswith('%s.' % module):
-            name = name[len(module)+1:]
+            name = name[len(module) + 1:]
 
         # if a path starts with a module prefix, strip that prefix
         if path and path.startswith('%s/' % module.replace('.', '/')):
-            path = path[len(module)+1:]
+            path = path[len(module) + 1:]
 
         if not path and not name:
             # Default to `name='*'`.
             name = '*'
+
+        if not cfg:
+            cfg = dict()
 
 
         if path: path = path
@@ -182,6 +185,7 @@ class Config(object, DictMixin):
         sys_fspec = '%s/%s' % (sys_dir, path)
         usr_fspec = '%s/%s' % (usr_dir, path)
 
+        app_cfg = cfg
         sys_cfg = dict()
         usr_cfg = dict()
 
@@ -221,8 +225,11 @@ class Config(object, DictMixin):
                     usr_cfg[base] = read_json(usr_fname)
 
 
-        # we have the usr and sys config - merge them before env expansion
-        self._cfg = dict_merge(sys_cfg, usr_cfg, policy='overwrite')
+        # merge sys, app, and user cfg before expansion
+        self._cfg = dict()
+        self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
 
         # expand environmenet
         def _env_mixin(d):
@@ -232,18 +239,20 @@ class Config(object, DictMixin):
             elif isinstance(d, basestring):
                 out = ''
                 while True:
-                    res = re.search('\$env{(.*?)}', d)           # 'bar$env{FOO:foo}baz'
+                    # FIXME: use ru.re
+                    res = re.search('\${(.*?)}', d)  # 'bar${FOO:foo}baz'
                     if not res:
                         out += d
                         break
                     match = res.group(1)
-                    if not ':' in match:  
-                        match += ':'                             # $env{FOO} -> $env(FOO:}
+                    if ':' not in match:                         # ${FOO}    
+                        match += ':'                             # $(FOO:}
                     out += d[:res.start(0)]                      # out += 'bar'
                     out += os.environ.get(*match.split(':', 1))  # out += 'foo'
                     d    = d[res.end(0):]                        # d    = 'baz'
                 d = out
             return d
+
         _env_mixin(self._cfg)
 
 
@@ -254,14 +263,14 @@ class Config(object, DictMixin):
         import pprint
         return pprint.pformat(self._cfg)
 
-    
+
     # --------------------------------------------------------------------------
     #
     def as_dict(self):
 
         return self._cfg
 
-    
+
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented for the dict mixin
@@ -283,7 +292,8 @@ class Config(object, DictMixin):
     #
     def query(self, key, default=None):
 
-        elems = key.split('.')
+        if is_str(key): elems = key.split('.')
+        else          : elems = key
 
         if not elems:
             raise ValueError('empty key on query')
@@ -296,7 +306,7 @@ class Config(object, DictMixin):
 
             pos = pos.get(elem)
 
-            if None == pos:
+            if pos is None:
                 return default
 
         return pos
@@ -306,14 +316,14 @@ class Config(object, DictMixin):
     #
     @classmethod
     def test(self):
-    
+
         import pprint
-        
+
         # store this in $HOME/radical/pilot/resource_yake.json
         #
-        # { "grace": { "agent_launch_method": "$env{FOO:bar}" } }
+        # { "grace": { "agent_launch_method": "${FOO:bar}" } }
         os.environ['FOO'] = 'GSISSH'
-    
+
         cfg = Config(module='radical.pilot', name='resource_*')
         pprint.pprint(cfg['yale'])
         print cfg.query('yale.grace.agent_launch_method')
@@ -321,4 +331,31 @@ class Config(object, DictMixin):
 
 
 # ------------------------------------------------------------------------------
+#
+class DefaultConfig(Config):
+    '''
+    The settings in this default config are, unsurprisingly, used as default
+    values for various RU classes and methods, as for example for log file
+    locations, log levels, profile locations, etc.
+    '''
+
+    __metaclass__ = Singleton
+
+    def __init__(self):
+
+
+        pwd = os.getcwd()
+
+        cfg = {'log_lvl'  : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
+               'log_tgt'  : '${RADICAL_DEFAULT_LOG_TGT:radical.log}',
+               'log_dir'  : '${RADICAL_DEFAULT_LOG_DIR:%s}'  % pwd,
+               'prof_dir' : '${RADICAL_DEFAULT_PROF_DIR:%s}' % pwd,
+               'prof'     : '${RADICAL_DEFAULT_PROF:TRUE}',
+               }
+
+        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+
+
+# ------------------------------------------------------------------------------
+
 

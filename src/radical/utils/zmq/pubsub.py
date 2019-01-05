@@ -22,6 +22,9 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 
 def log_bulk(log, bulk, token):
 
+    if hasattr(bulk, 'read'):
+        bulk = msgpack.unpack(bulk)
+
     if not isinstance(bulk, list):
         bulk = [bulk]
 
@@ -33,7 +36,6 @@ def log_bulk(log, bulk, token):
             log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
     else:
         for e in bulk:
-            print token, e
             log.debug("%s: %s", str(token), str(e)[0:32])
 
 
@@ -211,7 +213,7 @@ class PubSub(Bridge):
                     # to the publishing channel, no questions asked.
                     msg = _uninterruptible(self._in.recv_multipart, flags=zmq.NOBLOCK)
                     _uninterruptible(self._out.send_multipart, msg)
-                    log_bulk(self._log, msgpack.unpack(bmsg), '>> %s' % self.channel)
+                    log_bulk(self._log, msg, '>> %s' % self.channel)
 
                 if self._out in _socks:
                     # if any outgoing socket signals a message, it's
