@@ -1,7 +1,8 @@
 
 import copy
 
-from ..logger import Logger
+from ..logger  import Logger
+from ..profile import Profiler
 
 
 # ------------------------------------------------------------------------------
@@ -15,9 +16,9 @@ class Bridge(object):
         self._cfg     = copy.deepcopy(cfg)
 
         self._channel = self._cfg['name']
-        self._uid     = self._cfg['uid']   # FIXME: generate?
-        self._pwd     = self._cfg['pwd']
-        self._log     = Logger(name=self._uid, ns='radical.utils')
+        self._uid     = self._cfg['uid']
+        self._log     = Logger(name=self._uid)
+        self._prof    = Profiler(name=self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -44,15 +45,6 @@ class Bridge(object):
         # ----------------------------------------------------------------------
 
         kind = cfg['kind']
-        uid  = cfg['uid']
-
-        ldir = cfg.get('logdir')
-        llvl = cfg.get('log_level')
-
-        log  = Logger(name=uid, ns='radical.utils',
-                      path=ldir, targets='%s.log' % uid, level=llvl)
-
-        log.debug('start bridge %s [%s]', uid, kind)
 
         if kind not in _btypemap:
             raise ValueError('unknown bridge type (%s)' % kind)

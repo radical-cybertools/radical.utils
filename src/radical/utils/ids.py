@@ -15,6 +15,11 @@ import singleton
 
 from .misc import dockerized, get_radical_base
 
+TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
+TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
+TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
+TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
+
 
 # ------------------------------------------------------------------------------
 #
@@ -65,7 +70,7 @@ class _IDRegistry(object):
         """
 
         with self._rlock:
-            
+
             if reset_all_others:
                 # reset all counters *but* the one given
                 for p in self._registry:
@@ -90,6 +95,7 @@ ID_UNIQUE  = 'unique'
 ID_PRIVATE = 'private'
 ID_CUSTOM  = 'custom'
 ID_UUID    = 'uiud'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -142,18 +148,22 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     Example:: 
 
-        sid   = ru.generate_id('re.session', ru.ID_PRIVATE)
-        print sid, ru.generate_id('pipeline.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
-        print sid, ru.generate_id('pipeline.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
+        sid  = generate_id('re.session', ID_PRIVATE)
+        uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
+        uid2 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
+        ...
 
 
-    This will generate the following output::
+    This will generate the following ids::
 
-        re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0000
-        re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0001
+        re.session.rivendell.vivek.017548.0001 
+        task.0000
+        task.0001
 
-    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.  If
-    `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
+    where the `task.*` IDs are unique for the used sid namespace.
+
+    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.
+    If `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
@@ -165,18 +175,17 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     template = ""
 
-    if dockerized() and mode == ID_PRIVATE:
-         mode = ID_UUID
+    if dockerized() and mode == ID_PRIVATE: mode = ID_UUID
 
-    if   mode == ID_SIMPLE : template = "%(prefix)s.%(counter)04d"
-    elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
-    elif mode == ID_PRIVATE: template = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
-    elif mode == ID_CUSTOM : template = prefix
-    elif mode == ID_UUID   : template = "%(prefix)s.%(uuid)s"
-    else:
-        raise ValueError("mode '%s' not supported for ID generation", mode)
+    if   mode == ID_CUSTOM : template = prefix
+    elif mode == ID_UUID   : template = TEMPLATE_UUID
+    elif mode == ID_SIMPLE : template = TEMPLATE_SIMPLE
+    elif mode == ID_UNIQUE : template = TEMPLATE_UNIQUE
+    elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
+    else: raise ValueError("unsupported mode '%s'", mode)
 
     return _generate_id(template, prefix, namespace)
+
 
 # ------------------------------------------------------------------------------
 #
@@ -200,7 +209,7 @@ def _generate_id(template, prefix, namespace=None):
     # seconds since epoch(float), and timestamp
     seconds = time.time()
     now     = datetime.datetime.fromtimestamp(seconds)
-    days    = int(seconds / (60*60*24))
+    days    = int(seconds / (60 * 60 * 24))
 
     try:
         user = getpass.getuser()
@@ -209,47 +218,48 @@ def _generate_id(template, prefix, namespace=None):
 
     info = dict()
 
-    info['day_counter' ]  = 0
-    info['item_counter']  = 0
-    info['counter'     ]  = 0
-    info['prefix'      ]  = prefix
-    info['now'         ]  = now
-    info['seconds'     ]  = int(seconds)              # full seconds since epoch
-    info['days'        ]  = days                      # full days since epoch
-    info['user'        ]  = user                      # local username
-    info['date'        ]  = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
-    info['time'        ]  = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-    info['pid'         ]  = os.getpid()
+    info['day_counter' ] = 0
+    info['item_counter'] = 0
+    info['counter'     ] = 0
+    info['prefix'      ] = prefix
+    info['seconds'     ] = int(seconds)     # full seconds since epoch
+    info['days'        ] = days             # full days since epoch
+    info['user'        ] = user             # local username
+    info['now'         ] = now
+    info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
+    info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
+    info['pid'         ] = os.getpid()
 
     # the following ones are time consuming, and only done when needed
-    if '%(host)' in template: info['host'] = socket.gethostname() # local hostname
-    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
+    if '%(host)' in template: info['host'] = socket.gethostname()
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days), os.O_RDWR | os.O_CREAT)
+        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days),
+                                          os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
         data = os.read(fd, 256)
         if not data: data = 0
         info['day_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET )
-        os.write(fd, "%d\n" % (info['day_counter']+1))
+        os.write(fd, "%d\n" % (info['day_counter'] + 1))
         os.close(fd)
 
     if '%(item_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, prefix), os.O_RDWR | os.O_CREAT)
+        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, prefix),
+                                          os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)
         if not data: data = 0
         info['item_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, "%d\n" % (info['item_counter']+1))
+        os.write(fd, "%d\n" % (info['item_counter'] + 1))
         os.close(fd)
 
     if '%(counter)' in template:
         info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
-
 
     ret = template % info
 
@@ -258,7 +268,11 @@ def _generate_id(template, prefix, namespace=None):
       # pprint.pprint(info)
       # print template
       # print ret
-        raise ValueError('unknown replacement pattern in template (%s)' % template)
+        raise ValueError('unknown pattern in template (%s)' % template)
+
+    if 'client_notify' in ret and 'get' in ret:
+        from .debug import print_stacktrace
+        print_stacktrace(ret)
 
     return ret
 

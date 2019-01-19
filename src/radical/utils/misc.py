@@ -609,7 +609,7 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout(cmd, stdout=False, stderr=False, shell=False):
+def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
     '''

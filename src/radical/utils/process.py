@@ -230,12 +230,9 @@ class Process(mp.Process):
 
         if not self._ru_spawned:
             # no child, no communication channel
-            info = "=== = %s\n=== = can't communicate w/o child %s -> %s [%s]" \
+            info = "%s\ncan't communicate w/o child %s -> %s [%s]" \
                     % (msg, os.getpid(), self.pid, self._ru_name)
-            self._ru_log.debug(info)
-            print info
-            raise RuntimeError("can't communicate w/o child (%s -> %s [%s]",
-                    os.getpid(), self.pid, self._ru_name)
+            raise RuntimeError(info)
 
         # NOTE:  this method should only be called by the watcher thread, which
         #        owns the endpoint.

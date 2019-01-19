@@ -23,23 +23,27 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 
 def log_bulk(log, bulk, token):
 
+    if not bulk:
+      # log.debug("%s: None", token)
+        return
+
     if not isinstance(bulk, list):
         bulk = [bulk]
-
-    if not bulk:
-        return
-
-    if not bulk[0]:
-        return
 
     if 'arg' in bulk[0]:
         bulk = [e['arg'] for e in bulk]
 
     if 'uid' in bulk[0]:
+        log.debug('=== have uid')
         for e in bulk:
+            log.debug('=== have elem')
             log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
     else:
+        log.debug('=== no uid')
         for e in bulk:
+            log.debug('=== have elem')
+            log.debug("%s: ?", str(token))
+            log.debug("%s: %s", token, unicode(e)[0:32])
             log.debug("%s: %s", token, str(e)[0:32])
 
 
@@ -142,6 +146,9 @@ class Queue(Bridge):
         self._stall_hwm  = self._cfg.get('stall_hwm', 1)  # FIXME: use
         self._bulk_size  = self._cfg.get('bulk_size', 10)
 
+        if self._bulk_size <= 0:
+            self._bulk_size = 1
+
         self._initialize_bridge()
 
 
@@ -184,7 +191,7 @@ class Queue(Bridge):
 
         self._url        = 'tcp://*:*'
 
-        self._ctx        = zmq.Context()  # rely on the GC destroy the context
+        self._ctx        = zmq.Context()  # rely on GC for destruction
         self._in         = self._ctx.socket(zmq.PULL)
         self._in.linger  = _LINGER_TIMEOUT
         self._in.hwm     = _HIGH_WATER_MARK
@@ -226,9 +233,6 @@ class Queue(Bridge):
         self._bridge_thread.daemon = True
         self._bridge_thread.start()
 
-        self._log.debug('addr: %s', self._addr_in)
-        self._log.debug('      %s', self._addr_out)
-
 
     # --------------------------------------------------------------------------
     # 
@@ -264,7 +268,10 @@ class Queue(Bridge):
 
             buf = list()
 
+            i = -1
             while True:
+
+                i += 1
 
                 # we avoid busy pulling during inactivity
                 active = False
@@ -280,6 +287,9 @@ class Queue(Bridge):
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
+
+                    log_bulk(self._log, msgs, '>< %s [%d]'
+                                              % (self._channel, len(buf)))
 
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
@@ -298,11 +308,11 @@ class Queue(Bridge):
                         data   = msgpack.packb(bulk) 
                         _uninterruptible(self._out.send, data)
 
+                        log_bulk(self._log, bulk, '<> %s' % (self._channel))
+
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
-                        log_bulk(self._log, bulk, 
-                                 '<> %s [%s]' % (self._channel, req))
 
                 # let CPU sleep a bit when there is nothing to do
                 if not active:
@@ -320,16 +330,15 @@ class Putter(object):
     #
     def __init__(self, channel, url):
 
-        self._channel = channel
-        self._url     = url
+        self._channel  = channel
+        self._url      = url
 
-        self._pwd = '.'
-        self._uid = generate_id('%s.put.%s' % (self._channel, '%(counter)04d'),
-                                ID_CUSTOM)
-        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._uid      = generate_id('%s.put.%s' % (self._channel,
+                                                   '%(counter)04d'), ID_CUSTOM)
+        self._log      = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
-        self._ctx      = zmq.Context()  # rely on the GC destroy the context
+        self._ctx      = zmq.Context()  # rely on GC for destruction
         self._q        = self._ctx.socket(zmq.PUSH)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
@@ -358,6 +367,7 @@ class Putter(object):
     #
     def put(self, msg):
 
+        self._log.debug('==== -> %s', msg)
         log_bulk(self._log, msg, '-> %s' % self._channel)
         data = msgpack.packb(msg) 
         _uninterruptible(self._q.send, data)
@@ -371,22 +381,21 @@ class Getter(object):
     #
     def __init__(self, channel, url):
 
-        self._channel = channel
-        self._url     = url
+        self._channel   = channel
+        self._url       = url
 
-        self._pwd = '.'
-        self._uid = generate_id('%s.get.%s' % (self._channel, '%(counter)04d'),
-                                ID_CUSTOM)
-        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._uid       = generate_id('%s.get.%s' % (self._channel, 
+                                                    '%(counter)04d'), ID_CUSTOM)
+        self._log       = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
-        self._lock     = mt.RLock()
-        self._requested  = False        # send/recv sync
+        self._lock      = mt.RLock()
+        self._requested = False          # send/recv sync
 
-        self._ctx      = zmq.Context()  # rely on the GC destroy the context
-        self._q        = self._ctx.socket(zmq.REQ)
-        self._q.linger = _LINGER_TIMEOUT
-        self._q.hwm    = _HIGH_WATER_MARK
+        self._ctx       = zmq.Context()  # rely on GC for destruction
+        self._q         = self._ctx.socket(zmq.REQ)
+        self._q.linger  = _LINGER_TIMEOUT
+        self._q.hwm     = _HIGH_WATER_MARK
         self._q.connect(self._url)
 
 
@@ -414,14 +423,14 @@ class Getter(object):
 
         if not self._requested:
             req = 'Request %s' % os.getpid()
-            log_bulk(self._log, req, '>> %s' % self._channel)
             _uninterruptible(self._q.send, req)
             self._requested = True
+            log_bulk(self._log, req, '>> %s [%-5s]' % (self._channel, self._requested))
 
         data = _uninterruptible(self._q.recv)
         msg  = msgpack.unpackb(data) 
         self._requested = False
-        log_bulk(self._log, msg, '<- %s' % self._channel)
+        log_bulk(self._log, msg, '-- %s [%-5s]' % (self._channel, self._requested))
 
         return msg
 
@@ -435,28 +444,19 @@ class Getter(object):
             if not self._requested:
                 # we can only send the request once per recieval
                 req = 'request %s' % os.getpid()
-                log_bulk(self._log, req, '-> %s' % self._channel)
                 _uninterruptible(self._q.send, req)
                 self._requested = True
-
-          # try:
-          #     msg = self._q.recv_json(flags=zmq.NOBLOCK)
-          #     self._requested = False
-          #     log_bulk(self._log, msg, '<< %s' % self._channel)
-          #     return msg
-          #
-          # except zmq.Again:
-          #     return None
+                log_bulk(self._log, req, '-> %s [%-5s]' % (self._channel, self._requested))
 
             if _uninterruptible(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
                 data = _uninterruptible(self._q.recv)
                 msg  = msgpack.unpackb(data) 
                 self._requested = False
-                log_bulk(self._log, msg, '<- %s' % self._channel)
+                log_bulk(self._log, msg, '<- %s [%-5s]' % (self._channel, self._requested))
                 return msg
 
             else:
-                log_bulk(self._log, None, '<- %s' % self._channel)
+                log_bulk(self._log, None, '-- %s [%-5s]' % (self._channel, self._requested))
                 return None
 
 

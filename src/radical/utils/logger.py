@@ -176,11 +176,6 @@ class Logger(object):
     def __init__(self, name, ns=None, path=None, targets=None, level=None, 
                  verbose=False):
 
-        with open('/tmp/t', 'a') as fout:
-            fout.write('LOGGER: %-50s %-20s %-60s %-10s %-10s %-10s\n' 
-                      % (name, ns, path, targets, level, verbose))
-            fout.flush()
-
         ru_def = DefaultConfig()
 
         """
@@ -230,7 +225,7 @@ class Logger(object):
             path = ru_def['log_dir']
 
         if not ns:
-            ns = name
+            ns = ru_def.get('ns', name)
 
         if not targets:
             targets = ru_get_env_ns('log_tgt', ns)
@@ -265,11 +260,6 @@ class Logger(object):
             warning = "invalid loglevel '%s', use '%s'" \
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']
-
-        with open('/tmp/t', 'a') as fout:
-            fout.write('        %-50s %-20s %-60s %-10s %-10s %-10s\n' 
-                      % (name, ns, path, targets, level, verbose))
-            fout.flush()
 
         formatter = logging.Formatter('%(asctime)s: '
                                       '%(name)-20s: '

@@ -59,14 +59,6 @@ if _use_pypoll:
           # self._log  = logger
             self._poll = select.poll()
 
-          # self._log.debug(' ==== POLLIN   : %s', POLLIN   )
-          # self._log.debug(' ==== POLLPRI  : %s', POLLPRI  )
-          # self._log.debug(' ==== POLLOUT  : %s', POLLOUT  )
-          # self._log.debug(' ==== POLLERR  : %s', POLLERR  )
-          # self._log.debug(' ==== POLLHUP  : %s', POLLHUP  )
-          # self._log.debug(' ==== POLLNVAL : %s', POLLNVAL )
-          # self._log.debug(' ==== POLLALL  : %s', POLLALL  )
-
         def close(self):
             self._poll = None
 
@@ -138,14 +130,6 @@ else:
                                 POLLOUT : list(),
                                 POLLERR : list(),
                                 POLLHUP : list()}
-
-          # self._log.debug(' ==== POLLIN   : %s', POLLIN   )
-          # self._log.debug(' ==== POLLPRI  : %s', POLLPRI  )
-          # self._log.debug(' ==== POLLOUT  : %s', POLLOUT  )
-          # self._log.debug(' ==== POLLERR  : %s', POLLERR  )
-          # self._log.debug(' ==== POLLHUP  : %s', POLLHUP  )
-          # self._log.debug(' ==== POLLNVAL : %s', POLLNVAL )
-          # self._log.debug(' ==== POLLALL  : %s', POLLALL  )
 
 
         # ----------------------------------------------------------------------

@@ -36,7 +36,8 @@ def log_bulk(log, bulk, token):
             log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
     else:
         for e in bulk:
-            log.debug("%s: %s", str(token), str(e)[0:32])
+          # log.debug("%s: %s", str(token), unicode(e)[0:32])
+            log.debug("%s: ?", str(token))
 
 
 # --------------------------------------------------------------------------
@@ -122,7 +123,7 @@ class PubSub(Bridge):
 
         self._url        = 'tcp://*:*'
 
-        self._ctx        = zmq.Context()  # rely on the GC destroy the context
+        self._ctx        = zmq.Context()  # rely on GC for destruction
         self._in         = self._ctx.socket(zmq.XSUB)
         self._in.linger  = _LINGER_TIMEOUT
         self._in.hwm     = _HIGH_WATER_MARK
@@ -144,9 +145,6 @@ class PubSub(Bridge):
         # use the local hostip for bridge addresses
         self._addr_in.host  = get_hostip()
         self._addr_out.host = get_hostip()
-
-        self._log.info('bound bridge %s to %s : %s', 
-                       self._uid, _addr_in, _addr_out)
 
         self._log.info('bridge in  on  %s: %s'  % (self._uid, self._addr_in ))
         self._log.info('       out on  %s: %s'  % (self._uid, self._addr_out))
@@ -238,16 +236,15 @@ class Publisher(object):
     #
     def __init__(self, channel, url):
 
-        self._channel = channel
-        self._url     = url
+        self._channel  = channel
+        self._url      = url
 
-        self._pwd = '.'
-        self._uid = generate_id('%s.pub.%s' % (self._channel, '%(counter)04d'),
-                                ID_CUSTOM)
-        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._uid      = generate_id('%s.pub.%s' % (self._channel,
+                                                   '%(counter)04d'), ID_CUSTOM)
+        self._log      = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
 
-        self._ctx      = zmq.Context()  # rely on the GC destroy the context
+        self._ctx      = zmq.Context()  # rely on GC for destruction
         self._q        = self._ctx.socket(zmq.PUB)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK
@@ -292,16 +289,15 @@ class Subscriber(object):
     #
     def __init__(self, channel, url):
 
-        self._channel = channel
-        self._url     = url
+        self._channel  = channel
+        self._url      = url
 
-        self._pwd = '.'
-        self._uid = generate_id('%s.sub.%s' % (self._channel, '%(counter)04d'),
-                                ID_CUSTOM)
-        self._log = Logger(name=self._uid, ns='radical.utils')
+        self._uid      = generate_id('%s.sub.%s' % (self._channel,
+                                                   '%(counter)04d'), ID_CUSTOM)
+        self._log      = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
-        self._ctx      = zmq.Context()  # rely on the GC destroy the context
+        self._ctx      = zmq.Context()  # rely on GC for destruction
         self._q        = self._ctx.socket(zmq.SUB)
         self._q.linger = _LINGER_TIMEOUT
         self._q.hwm    = _HIGH_WATER_MARK

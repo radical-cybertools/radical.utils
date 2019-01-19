@@ -98,16 +98,21 @@ class Profiler(object):
 
         # check if this profile is enabled via an env variable
         if ru_get_env_ns('profile', ns) is None:
+            self._enabled = ru_def['profile']
+
+        if self._enabled.lower in ['0', 'false', 'off', None]:
             self._enabled = False
+            # disabled
             return
+        else:
+            self._enables = True
 
         # profiler is enabled - set properties, sync time, open handle
-        self._enabled = True
-        self._path    = path
-        self._name    = name
+        self._path = path
+        self._name = name
 
         if not self._path:
-            self._path = ru_def['prof_dir']
+            self._path = ru_def['profile_dir']
 
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
@@ -155,6 +160,12 @@ class Profiler(object):
     def enabled(self):
 
         return self._enabled
+
+
+    @property
+    def path(self):
+
+        return self._path
 
 
     # --------------------------------------------------------------------------

@@ -111,14 +111,14 @@ class Reporter(object):
         # check if this profile is enabled via an env variable
         self._enabled = True
         if ru_get_env_ns('report', ns) is None:
-            self._enabled = ru_def['report']
+            self._enabled = str(ru_def['report']).lower()
 
-        if self._enabled.lower in ['0', 'false', 'off', None]:
+        if self._enabled in ['0', 'false', 'off', False]:
             self._enabled = False
             # disabled
             return
         else:
-            self._True = False
+            self._enables = True
 
 
         self._use_color = ru_get_env_ns('report_color', ns, default='True')
