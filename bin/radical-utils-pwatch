@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# This script couples the lifetime of two processes: while this watcher script
+# is alive, it will watch those two processes.  Once either one disappears, the
+# other one will be killed via `kill -9`.
+#
+# The process IDs (pid1 and pid2) to be watched is defined the following way:
+#
+#  - pid1:
+#    - if set  use $RU_PW_PID1
+#    - else    use the parent ID of this process: `ps -o ppid= -p $$` (*)
+#
+#  - pid2:
+#    - if set  use $RU_PW_PID2
+#    - else    run "$*" as child process, and use it's PID
+#
+# The two PIDs being coupled are treated equivalently - there is no difference,
+# exchanging their values will result in the exact same behavior.
+#
+#
+# Example 1:
+#
+#   ( ./radical-utils-pwatch sleep 5 & sleep $((RANDOM % 10)) )
+#
+# This will start a new shell which will first run `sleep 5` under this process
+# watcher, and then sleep for a random number of seconds (up to 10).  Then that
+# shell (which is the parent shell of the watcher) will finish.
+#
+# Depending on what finishes first, the sleep 5 or the random sleep (and thus
+# the parent shell), the process watcher will kill the other shell.
+#
+# 
+# Example 2:
+#
+#   sleep $((RANDOM % 10)) & RU_PW_PID1=$!;
+#   sleep $((RANDOM % 10)) & RU_PW_PID2=$!;
+#   ./radical-utils-pwatch &
+#
+# This will start two competing sleep processes, both of which will be watched.
+# Whichever finishes first will cause the other one being killed.
+#
+#
+# (*) PPID is available in many shell implementations, but not POSIX.
+
+
+# store all args in case we need them
+ARGS="$*"
+
+
+# check RU_PW_PPID and RU_PW_CPID are set, and use them
+test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
+test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
+
+
+# use fallbacks 
+pid=$$
+run=
+test -z "$pid1" || PID=$(ps -o ppid= -p $pid)
+test -z "$pid2" || run=1
+
+
+# check if we need to start the child process
+if ! test -z "$run"
+then
+    "$ARGS" &
+    pid2=$!
+fi
+
+
+# echo "pid1: $pid1"
+# echo "pid2: $pid2"
+
+while true
+do
+    # we test if a process is alive with `kill -0`.  This will silently succeed
+    # when the process is alive (but will not disturb the process), and will
+    # noisily fail if the process is gone (we redirect stderr because of that
+    # noise).
+    kill -0 $pid1 2>/dev/null || kill -9 $pid2
+    kill -0 $pid2 2>/dev/null || kill -9 $pid1
+    sleep 1
+done
+
