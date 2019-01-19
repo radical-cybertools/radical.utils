@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# ------------------------------------------------------------------------------
+#
 # This script couples the lifetime of two processes: while this watcher script
 # is alive, it will watch those two processes.  Once either one disappears, the
 # other one will be killed via `kill -9`.
@@ -16,6 +18,8 @@
 #
 # The two PIDs being coupled are treated equivalently - there is no difference,
 # exchanging their values will result in the exact same behavior.
+#
+# A special, single parameter `test` will invoke a self test.
 #
 #
 # Example 1:
@@ -40,44 +44,134 @@
 # Whichever finishes first will cause the other one being killed.
 #
 #
-# (*) PPID is available in many shell implementations, but not POSIX.
+# ------------------------------------------------------------------------------
 
 
 # store all args in case we need them
 ARGS="$*"
+export ARGS
 
 
-# check RU_PW_PPID and RU_PW_CPID are set, and use them
-test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
-test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
+# ------------------------------------------------------------------------------
+#
+function run_pwatch(){
+
+    # --------------------------------------------------------------------------
+    # check RU_PW_PPID and RU_PW_CPID are set, and use them
+    test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
+    test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
+    
+    # use fallback ppid: PPID for pid1, cmd subshell for pid3
+    test -z "$pid1" && pid1=$PPID
+    test -z "$pid2" && $ARGS &
+    test -z "$pid2" && pid2=$!
+    
+    # ensure we have two PIDs
+    test -z "$pid1" && echo 'missing process to watch  (1)' && return 1
+    test -z "$pid2" && echo 'missing process to watch  (2)' && return 2
+    
+    
+    # --------------------------------------------------------------------------
+    while true
+    do
+        # we test if a process is alive with `kill -0`.  This will silently succeed
+        # when the process is alive (but will not disturb the process), and will
+        # noisily fail if the process is gone (we redirect stderr because of that
+        # noise).
+        if ! kill -0  $pid1 2>/dev/null
+        then
+            kill  -9  $pid2
+            return 0
+        fi
+        if ! kill -0  $pid2 2>/dev/null
+        then
+            kill  -9  $pid1
+            return 0
+        fi
+    
+        sleep 1
+    done
+}
 
 
-# use fallbacks 
-pid=$$
-run=
-test -z "$pid1" || PID=$(ps -o ppid= -p $pid)
-test -z "$pid2" || run=1
+# ------------------------------------------------------------------------------
+#
+function run_tests(){
+
+    (   # discard stderr
+
+        echo -n 'running tests '
+        TID="/tmp/$(id -un)_$$.tmp"
+
+        # 'sleep 10' gets killed
+        (exec /bin/sh -c "sleep 10; echo 10 > $TID" ) & export RU_PW_PID1=$!
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID2=$!
+        $0
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1 RU_PW_PID2 2>/dev/null
+
+        # same in inverse order
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID1=$!
+        ( sleep 10; echo 10 > $TID ) & export RU_PW_PID2=$!
+        $0
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1 RU_PW_PID2
+
+        # same but spawn by watcher
+        ( sleep 10; echo 10 > $TID ) & export RU_PW_PID1=$!
+        $0 sleep 1
+        wait
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+        unset RU_PW_PID1
+
+        # same but inverse order
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID1=$!
+        $0 sleep 10
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1
+
+        # watch ppid and spawn by watcher
+        ( $0 sleep 1 & sleep 10; echo 10 > $TID )
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+
+        # same in inverse order
+        ( $0 sleep 10 & sleep 1; echo 1 > $TID )
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+
+        # watch ppid and spawn by watcher
+        ( $0 sleep 1 & sleep 10; echo 10 > $TID )
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+
+        echo
+
+    ) 2>/dev/null  # avoid 'child killed' messages
+
+}
 
 
-# check if we need to start the child process
-if ! test -z "$run"
+# ------------------------------------------------------------------------------
+#
+# main
+#
+if test "$ARGS" = "test"
 then
-    "$ARGS" &
-    pid2=$!
+    run_tests
+    exit $?
+else
+    run_pwatch
+    exit $?
 fi
 
 
-# echo "pid1: $pid1"
-# echo "pid2: $pid2"
-
-while true
-do
-    # we test if a process is alive with `kill -0`.  This will silently succeed
-    # when the process is alive (but will not disturb the process), and will
-    # noisily fail if the process is gone (we redirect stderr because of that
-    # noise).
-    kill -0 $pid1 2>/dev/null || kill -9 $pid2
-    kill -0 $pid2 2>/dev/null || kill -9 $pid1
-    sleep 1
-done
+# ------------------------------------------------------------------------------
 
