@@ -74,10 +74,10 @@ function run_pwatch(){
     # --------------------------------------------------------------------------
     while true
     do
-        # we test if a process is alive with `kill -0`.  This will silently succeed
-        # when the process is alive (but will not disturb the process), and will
-        # noisily fail if the process is gone (we redirect stderr because of that
-        # noise).
+        # we test if a process is alive with `kill -0`.  This will silently
+        # succeed when the process is alive (but will not disturb the process),
+        # and will noisily fail if the process is gone (we redirect stderr
+        # because of that noise).
         if ! kill -0  $pid1 2>/dev/null
         then
             kill  -9  $pid2
