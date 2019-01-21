@@ -1,14 +1,10 @@
-<<<<<<< Updated upstream
-#!/bin/bash
-=======
 #!/bin/sh
->>>>>>> Stashed changes
 
 # ------------------------------------------------------------------------------
 #
 # This script couples the lifetime of two processes: while this watcher script
 # is alive, it will watch those two processes.  Once either one disappears, the
-# other one will be killed via `kill -9`.
+# other one will be killed via `kill`.
 #
 # The process IDs (pid1 and pid2) to be watched is defined the following way:
 #
@@ -50,7 +46,6 @@
 #
 # ------------------------------------------------------------------------------
 
-
 # store all args in case we need them
 ARGS="$*"
 export ARGS
@@ -58,22 +53,34 @@ export ARGS
 
 # ------------------------------------------------------------------------------
 #
-function run_pwatch(){
+run_pwatch(){
 
     # --------------------------------------------------------------------------
     # check RU_PW_PPID and RU_PW_CPID are set, and use them
     test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
     test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
     
-    # use fallback ppid: PPID for pid1, cmd subshell for pid3
+    # use fallback pid1 (PPID)
     test -z "$pid1" && pid1=$PPID
-    test -z "$pid2" && $ARGS &
-    test -z "$pid2" && pid2=$!
+
+    # use fallback forpid2: cmd subshell
+    # NOTE: we cannot use `test -z $pid2 && $ARGS & pid2=$!` - that would give
+    #       us the pid of the subshell, not of the command (at least in bash)
+    if test -z "$pid2"
+    then 
+        # eval ensures that args could contain pipelines and I/O redirections,
+        # but we need to add the backgrounding to arga (if its not there, yet).
+        # Don't background `eval` itself, that results in a subshell pid.
+        ARGS=$(echo "$ARGS" | sed 's/[& ]\+$//')
+        eval "$ARGS &"
+        pid2=$!
+    fi
     
     # ensure we have two PIDs
     test -z "$pid1" && echo 'missing process to watch  (1)' && return 1
     test -z "$pid2" && echo 'missing process to watch  (2)' && return 2
-    
+
+  # echo "pwatch [$pid1] [$pid2]"
     
     # --------------------------------------------------------------------------
     while true
@@ -84,12 +91,12 @@ function run_pwatch(){
         # because of that noise).
         if ! kill -0  $pid1 2>/dev/null
         then
-            kill  -9  $pid2
+            kill      $pid2
             return 0
         fi
         if ! kill -0  $pid2 2>/dev/null
         then
-            kill  -9  $pid1
+            kill      $pid1
             return 0
         fi
     
@@ -100,7 +107,7 @@ function run_pwatch(){
 
 # ------------------------------------------------------------------------------
 #
-function run_tests(){
+run_tests(){
 
     (   # discard stderr
 
