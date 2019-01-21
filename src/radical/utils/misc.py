@@ -162,7 +162,7 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not isinstance(directive, basestring):
+        if  not is_str(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
@@ -609,14 +609,19 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
+def is_str(s):
+    return isinstance(s, basestring)
+
+
+# ------------------------------------------------------------------------------
+#
 def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
     '''
 
     # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
-        cmd = shlex.split(cmd)
+    if not shell and is_str(cmd): cmd = shlex.split(cmd)
 
     if stdout: stdout = sp.PIPE
     else     : stdout = None
@@ -636,24 +641,26 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_bg(cmd, shell=False):
+def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
     '''
-    call a shell command, don't capture anything, forget handle
+    call a shell command in the background.  Do not attempt to pipe STDOUT/ERR,
+    but only support writing to named files.
     '''
+
+    # pipes won't work - see sh_callout_async
+    if stdout == sp.PIPE: raise ValueError('stdout pipe unsupported')
+    if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
+
+    # openfile descriptors for I/O, if needed
+    if is_str(stdout): stdout = open(stdout, 'w')
+    if is_str(stderr): stderr = open(stderr, 'w')
 
     # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
-        cmd = shlex.split(cmd)
+    if not shell and is_str(cmd): cmd = shlex.split(cmd)
 
-    sp.Popen(cmd, stdout=None, stderr=None, shell=shell)
+    sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
 
     return 
-
-
-# ------------------------------------------------------------------------------
-#
-def is_str(s):
-    return isinstance(s, basestring)
 
 
 # ------------------------------------------------------------------------------
