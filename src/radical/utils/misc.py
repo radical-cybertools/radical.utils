@@ -5,11 +5,13 @@ import time
 import regex
 import shlex
 import socket
+import datetime
 import importlib
+import itertools
 import netifaces
 
 import subprocess as sp
-import url as ruu
+import url        as ruu
 
 
 # ------------------------------------------------------------------------------
@@ -93,7 +95,8 @@ def mongodb_connect(dburl, default_dburl=None):
         msg += "the second one for installation from pypi.\n\n"
         raise ImportError(msg)
 
-    [host, port, dbname, cname, pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
+    [host, port, dbname, cname,
+     pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
 
     mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
     db    = None
@@ -112,7 +115,6 @@ def mongodb_connect(dburl, default_dburl=None):
                 mongo[dbname].authenticate(user, pwd)
             except Exception:
                 pass
-
 
     return mongo, db, dbname, cname, pname
 
@@ -178,7 +180,6 @@ def time_stamp(spec):
     if  isinstance(spec, int)   or \
         isinstance(spec, float)    :
 
-        import datetime
         return datetime.datetime.utcfromtimestamp(spec)
 
     return spec
@@ -200,7 +201,6 @@ def time_diff(dt_abs, dt_stamp):
         isinstance(delta, float)    :
         return delta
 
-    import datetime
     if  not isinstance(delta, datetime.timedelta):
         raise TypeError("difference between '%s' and '%s' is not a .timedelta"
                      % (type(dt_abs), type(dt_stamp)))
@@ -217,7 +217,6 @@ def all_pairs(iterable, n):
     [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
     """
 
-    import itertools
     return list(itertools.combinations(iterable, n))
 
 
@@ -228,8 +227,7 @@ def cluster_list(iterable, n):
     s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
     """
 
-    from itertools import izip
-    return izip(*[iter(iterable)] * n)
+    return itertools.izip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
@@ -241,10 +239,8 @@ def window(seq, n=2):
     s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
     """
 
-    from itertools import islice
-
     it = iter(seq)
-    result = tuple(islice(it, n))
+    result = tuple(itertools.islice(it, n))
 
     if len(result) == n:
         yield result

@@ -214,12 +214,12 @@ def remove_common_prefix(data, extend=0):
 #
 if __name__ == '__main__':
 
-    test = [[0, 10],
+    test = [[ 0, 10],
             [20, 30],
             [40, 50],
             [60, 70],
             [80, 90],
-            [5, 15],
+            [ 5, 15],
             [35, 55]]
 
     import pprint

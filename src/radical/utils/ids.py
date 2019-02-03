@@ -143,18 +143,18 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     Example:: 
 
-        sid   = ru.generate_id('re.session', ru.ID_PRIVATE)
+        sid = ru.generate_id('re.session', ru.ID_PRIVATE)
         print sid, ru.generate_id('pipeline.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
         print sid, ru.generate_id('pipeline.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
 
 
     This will generate the following output::
 
-        re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0000
-        re.session.vivek-HP-Pavilion-m6-Notebook-PC.vivek.017548.0001 pipeline.0001
+        re.session.zappa.vivek.017548.0001 pipeline.0000
+        re.session.zappa.vivek.017548.0001 pipeline.0001
 
-    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.  If
-    `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
+    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.
+    If `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
@@ -211,21 +211,21 @@ def _generate_id(template, prefix, namespace=None):
 
     info = dict()
 
-    info['day_counter' ]  = 0
-    info['item_counter']  = 0
-    info['counter'     ]  = 0
-    info['prefix'      ]  = prefix
-    info['now'         ]  = now
-    info['seconds'     ]  = int(seconds)              # full seconds since epoch
-    info['days'        ]  = days                      # full days since epoch
-    info['user'        ]  = user                      # local username
-    info['date'        ]  = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
-    info['time'        ]  = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-    info['pid'         ]  = os.getpid()
+    info['day_counter' ] = 0
+    info['item_counter'] = 0
+    info['counter'     ] = 0
+    info['prefix'      ] = prefix
+    info['now'         ] = now
+    info['seconds'     ] = int(seconds)              # full seconds since epoch
+    info['days'        ] = days                      # full days since epoch
+    info['user'        ] = user                      # local username
+    info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
+    info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
+    info['pid'         ] = os.getpid()
 
     # the following ones are time consuming, and only done when needed
-    if '%(host)' in template: info['host'] = socket.gethostname()  # local hostname
-    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()         # pain old uuid
+    if '%(host)' in template: info['host'] = socket.gethostname()  # localhost
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # pain uuid
 
     if '%(day_counter)' in template:
         fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days), os.O_RDWR | os.O_CREAT)

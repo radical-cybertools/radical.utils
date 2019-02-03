@@ -7,8 +7,9 @@ __license__   = "MIT"
 import threading 
 
 
-# pylint: disable=protected-access
-def Lockable (cls) :
+# ------------------------------------------------------------------------------
+#
+def Lockable(cls):
     """ 
     This class decorator will add lock/unlock methods to the thusly decorated
     classes, which will be enacted via an also added `threading.RLock` member
@@ -103,7 +104,7 @@ def Lockable (cls) :
 
 
 # ------------------------------------------------------------------------------
-
+#
 # @Lockable
 # class A (object) :
 # 
