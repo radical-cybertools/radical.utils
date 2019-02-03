@@ -53,7 +53,7 @@ class _IDRegistry(object):
 
         with self._rlock:
 
-            if not prefix in self._registry:
+            if prefix not in self._registry:
                 self._registry[prefix] = 0
 
             ret = self._registry[prefix]
@@ -175,7 +175,8 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     template = ""
 
-    if dockerized() and mode == ID_PRIVATE: mode = ID_UUID
+    if dockerized() and mode == ID_PRIVATE:
+        mode = ID_UUID
 
     if   mode == ID_CUSTOM : template = prefix
     elif mode == ID_UUID   : template = TEMPLATE_UUID
@@ -231,8 +232,8 @@ def _generate_id(template, prefix, namespace=None):
     info['pid'         ] = os.getpid()
 
     # the following ones are time consuming, and only done when needed
-    if '%(host)' in template: info['host'] = socket.gethostname()
-    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()
+    if '%(host)' in template: info['host'] = socket.gethostname()  # localhost
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # plain uuid
 
     if '%(day_counter)' in template:
         fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days),

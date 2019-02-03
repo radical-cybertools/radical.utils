@@ -20,13 +20,13 @@ _DEFAULT_NS = 'global'
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
-class ObjectCache (object) :
+class ObjectCache(object):
 
     """ 
     This is a singleton object caching class -- it maintains a reference
     counted registry of existing objects.
     """
-    
+
     # TODO: we should introduce namespaces -- this is a singleton, but we may want
     # to use it in several places, thus need to make sure to not use colliding
     # names...
@@ -35,9 +35,10 @@ class ObjectCache (object) :
 
     __metaclass__ = singleton.Singleton
 
+
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, timeout=_TIMEOUT) :
+    def __init__(self, timeout=_TIMEOUT):
         """
         Make sure the object cache dict is initialized, exactly once.
 
@@ -52,50 +53,50 @@ class ObjectCache (object) :
 
     # --------------------------------------------------------------------------
     #
-    def get_obj (self, oid, creator, ns=_DEFAULT_NS) :
+    def get_obj(self, oid, creator, ns=_DEFAULT_NS):
         """
         For a given object id, attempt to retrieve an existing object.  If that
         object exists, increase the reference counter, as there is now one more
         user for that object.  
-        
+
         If that object does not exist, call the given creator, then register and
         return the object thusly created.
 
-        oid     : id of the object to get from the cache.  
-        creator : method to use to create a new object instance
+        oid    : id of the object to get from the cache.  
+        creator: method to use to create a new object instance
 
                   Example:
-                      def creator () :
+                      def creator():
                           return Logger(name)
 
-                      ret = object_cache.get_object (name, creator)
+                      ret = object_cache.get_object(name, creator)
         """
 
-        with self :
+        with self:
 
-            if  not ns in self._cache :
+            if  ns not in self._cache:
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
 
             oid = str(oid)
 
-            if  not oid in ns_cache :
+            if  oid not in ns_cache:
 
-                obj = creator ()
+                obj = creator()
 
-                ns_cache [oid]        = {}
-                ns_cache [oid]['cnt'] = 0
-                ns_cache [oid]['obj'] = obj
+                ns_cache[oid]        = dict()
+                ns_cache[oid]['cnt'] = 0
+                ns_cache[oid]['obj'] = obj
 
-            ns_cache [oid]['cnt'] += 1
+            ns_cache[oid]['cnt'] += 1
 
             return ns_cache [oid]['obj']
 
 
     # --------------------------------------------------------------------------
     #
-    def rem_obj (self, obj, ns=_DEFAULT_NS) :
+    def rem_obj(self, obj, ns=_DEFAULT_NS):
         """
         For a given objects instance, decrease the refcounter as the caller
         stops using that object.  Once the ref counter is '0', remove all traces
@@ -108,25 +109,26 @@ class ObjectCache (object) :
         semantics in the case of frequent creation/dstruction cycles.
         """
 
-        with self :
+        with self:
 
-            if  not ns in self._cache :
+            if  ns not in self._cache:
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
 
-            for oid in ns_cache.keys () :
+            for oid in ns_cache:
 
-                if  obj == ns_cache [oid]['obj'] :
+                if  obj == ns_cache [oid]['obj']:
 
-                    if  self._timeout > 0 :
+                    if  self._timeout:
                         # delay actual removeal by _timeout seconds
-                        threading.Timer (self._timeout, self._rem_obj, [oid]).start ()
+                        threading.Timer(self._timeout, 
+                                        self._rem_obj, [oid]).start()
 
-                    else :
+                    else:
                         # immediate removeal 
-                        self._rem_obj (oid)
-                        
+                        self._rem_obj(oid)
+
                     return True
 
             return False  # obj not found
@@ -134,24 +136,24 @@ class ObjectCache (object) :
 
     # --------------------------------------------------------------------------
     #
-    def _rem_obj (self, oid, ns=_DEFAULT_NS) :
+    def _rem_obj(self, oid, ns=_DEFAULT_NS):
         """
-        actual removal of an object (identified by oid) from the cache -- see
+        actual removal of an object(identified by oid) from the cache -- see
         :func:`rem_obj()` for details.
         """
 
-        with self :
+        with self:
 
-            if  not ns in self._cache :
+            if  ns not in self._cache:
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
 
             ns_cache [oid]['cnt'] -= 1
 
-            if  ns_cache [oid]['cnt'] == 0 :
+            if  ns_cache [oid]['cnt'] == 0:
                 ns_cache [oid]['obj'] = None  # free the obj reference
-                ns_cache.pop (oid, None)      # remove the cache entry
+                ns_cache.pop(oid, None)      # remove the cache entry
 
 
 # ------------------------------------------------------------------------------

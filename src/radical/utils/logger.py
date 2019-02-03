@@ -38,7 +38,6 @@ import sys
 import threading
 import colorama
 import logging
-from   logging  import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL  # re-export
 
 
 from   .atfork  import *
@@ -88,7 +87,6 @@ _logger_registry = _LoggerRegistry()
 
 
 # ------------------------------------------------------------------------------
-#
 def _after_fork():
 
     _logger_registry.release_all()
