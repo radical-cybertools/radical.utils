@@ -62,7 +62,6 @@ def test_env():
     tmp.warn('warning')
     tmp.error('error')
     tmp.fatal('fatal')
->>>>>>> master
 
 
 # ------------------------------------------------------------------------------
