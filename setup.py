@@ -270,6 +270,7 @@ setup_args = {
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-version',
+                            'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-stack'
                            ],
@@ -282,7 +283,8 @@ setup_args = {
                             'future', 
                             'colorama',
                             'netifaces',
-                            'setproctitle'
+                            'setproctitle',
+                            'pyzmq'
                            ],
     'extras_require'     : {
         'pymongo'        : ['pymongo'],

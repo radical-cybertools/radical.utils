@@ -163,11 +163,6 @@ class PluginManager (object) :
                 else :
                     pshort = pfile
 
-              # print "pfile : %s" % pfile
-              # print "npath : %s" % npath
-              # print "spath : %s" % spath
-              # print "pshort: %s" % pshort
-
                 # check for duplication
                 if  pshort in seen :
                     continue
@@ -181,7 +176,6 @@ class PluginManager (object) :
                                               os.path.basename(os.path.dirname(pfile)))
                 modname  = "%s.%s"         % (pmodname,
                                               os.path.splitext(os.path.basename(pfile))[0])
-
                 try :
                     # load and register the plugin
 
@@ -313,6 +307,7 @@ class PluginManager (object) :
     # 
     def dump (self) :
 
+        print 'plugins'
         import pprint
         pprint.pprint (self._plugins)
 
@@ -322,7 +317,7 @@ class PluginManager (object) :
     def dump_str (self) :
 
         import pprint
-        return "\n%s" % pprint.pformat (self._plugins)
+        return "plugins: \n%s" % pprint.pformat (self._plugins)
 
 
 # ------------------------------------------------------------------------------

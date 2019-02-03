@@ -6,11 +6,14 @@ __license__   = "MIT"
 # we want atfork imported first, specifically before os and logging
 from .atfork         import *
 
+# import constants
+from .constants      import *
+
 # import utility classes
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
 from .singleton      import Singleton
-from .process        import Process
+from .process        import Process, pid_watcher
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid
@@ -27,11 +30,12 @@ from .ru_regex       import ReString, ReSult
 from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .config         import Config, DefaultConfig
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
-from .logger         import Logger,   get_logger
+from .logger         import Logger
 from .reporter       import Reporter
 from .profile        import Profiler, timestamp
 from .profile        import read_profiles, combine_profiles, clean_profile
@@ -51,15 +55,14 @@ from .get_version    import get_version
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch
 
-
 # import sub-modules
-from .               import scheduler
-# from .               import config
+import scheduler
+import config
+import zmq
 
 
 # ------------------------------------------------------------------------------
-
-
+#
 import os
 
 _mod_root = os.path.dirname (__file__)
@@ -68,6 +71,7 @@ version_short, version_detail, version_base, \
                version_branch, sdist_name,   \
                sdist_path = get_version(_mod_root)
 version = version_short
+
 
 # ------------------------------------------------------------------------------
 

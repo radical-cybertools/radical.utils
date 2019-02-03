@@ -24,6 +24,11 @@ class DictMixin:
     dictionary.
     '''
 
+    # identify as dictionary
+    @property
+    def __class__(self):
+        return dict
+
 
     # --------------------------------------------------------------------------
     #

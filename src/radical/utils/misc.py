@@ -2,26 +2,34 @@
 import os
 import sys
 import time
+import fcntl
 import regex
+import queue
 import shlex
+import select
 import socket
+import pkgutil
 import datetime
 import importlib
 import itertools
 import netifaces
 
 import subprocess as sp
-import url        as ruu
+import threading  as mt
+
+
+from . import url       as ruu
+from . import constants as ruc
 
 
 # ------------------------------------------------------------------------------
 #
 def split_dburl(dburl, default_dburl=None):
-    """
+    '''
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
     collection id.
-    """
+    '''
 
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
@@ -79,10 +87,10 @@ def split_dburl(dburl, default_dburl=None):
 # ------------------------------------------------------------------------------
 #
 def mongodb_connect(dburl, default_dburl=None):
-    """
+    '''
     connect to the given mongodb, perform auth for the database (if a database
     was given).
-    """
+    '''
 
     try:
         import pymongo
@@ -95,8 +103,8 @@ def mongodb_connect(dburl, default_dburl=None):
         msg += "the second one for installation from pypi.\n\n"
         raise ImportError(msg)
 
-    [host, port, dbname, cname,
-     pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
+    [host, port, dbname, cname, pname,
+           user, pwd,    ssl] = split_dburl(dburl, default_dburl)
 
     mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
     db    = None
@@ -122,7 +130,7 @@ def mongodb_connect(dburl, default_dburl=None):
 # ------------------------------------------------------------------------------
 #
 def parse_file_staging_directives(directives):
-    """
+    '''
     staging directives
 
        [local_path] [operator] [remote_path]
@@ -145,7 +153,7 @@ def parse_file_staging_directives(directives):
     previously -- any strings which do not contain staging operators will be
     interpreted as simple paths (identical for src and tgt), operation is set to
     '=', which must be interpreted in the caller context.
-    """
+    '''
 
     bulk = True
     if  not isinstance(directives, list):
@@ -156,7 +164,7 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not isinstance(directive, basestring):
+        if  not is_str(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
@@ -177,8 +185,8 @@ def parse_file_staging_directives(directives):
 #
 def time_stamp(spec):
 
-    if  isinstance(spec, int)   or \
-        isinstance(spec, float)    :
+    if  isinstance(spec, int) or \
+        isinstance(spec, float)  :
 
         return datetime.datetime.utcfromtimestamp(spec)
 
@@ -188,17 +196,17 @@ def time_stamp(spec):
 # ------------------------------------------------------------------------------
 #
 def time_diff(dt_abs, dt_stamp):
-    """
+    '''
     return the time difference bewteen  two datetime
     objects in seconds (incl. fractions).  Exceptions (like on improper data
     types) fall through.
-    """
+    '''
 
     delta = dt_stamp - dt_abs
 
     # make it easy to use seconds since epoch instead of datetime objects
-    if  isinstance(delta, int)   or \
-        isinstance(delta, float)    :
+    if  isinstance(delta, int) or \
+        isinstance(delta, float)  :
         return delta
 
     if  not isinstance(delta, datetime.timedelta):
@@ -213,9 +221,9 @@ def time_diff(dt_abs, dt_stamp):
 # ------------------------------------------------------------------------------
 #
 def all_pairs(iterable, n):
-    """
+    '''
     [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
-    """
+    '''
 
     return list(itertools.combinations(iterable, n))
 
@@ -223,9 +231,12 @@ def all_pairs(iterable, n):
 # ------------------------------------------------------------------------------
 #
 def cluster_list(iterable, n):
-    """
-    s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
-    """
+    '''
+    s -> [ s0,  s1,    s2,    ... sn-1  ], 
+         [ sn,  sn+1,  sn+2,  ... s2n-1 ], 
+         [ s2n, s2n+1, s2n+2, ... s3n-1 ], 
+         ...
+    '''
 
     return itertools.izip(*[iter(iterable)] * n)
 
@@ -234,10 +245,10 @@ def cluster_list(iterable, n):
 # From https://docs.python.org/release/2.3.5/lib/itertools-example.html
 #
 def window(seq, n=2):
-    """
+    '''
     Returns a sliding window (of width n) over data from the iterable"
     s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
-    """
+    '''
 
     it = iter(seq)
     result = tuple(itertools.islice(it, n))
@@ -253,7 +264,7 @@ def window(seq, n=2):
 # ------------------------------------------------------------------------------
 #
 def round_to_base(value, base=1):
-    """
+    '''
     This method expects an integer or float value, and will round it to any
     given integer base.  For example:
 
@@ -266,7 +277,7 @@ def round_to_base(value, base=1):
       34.5, 20 -> 40
 
     The default base is '1'.
-    """
+    '''
 
     return int(base * round(float(value) / base))
 
@@ -274,12 +285,12 @@ def round_to_base(value, base=1):
 # ------------------------------------------------------------------------------
 #
 def round_upper_bound(value):
-    """
+    '''
     This method expects an integer or float value, and will return an integer upper
     bound suitable for example to define plot ranges.  The upper bound is the
     smallest value larger than the input value which is a multiple of 1, 2 or
     5 times the order of magnitude (10**x) of the value.
-    """
+    '''
 
     bound = 0
     order = 0
@@ -300,9 +311,9 @@ def round_upper_bound(value):
 # ------------------------------------------------------------------------------
 #
 def islist(thing):
-    """
+    '''
     return True if a thing is a list thing, False otherwise
-    """
+    '''
 
     return isinstance(thing, list)
 
@@ -310,9 +321,9 @@ def islist(thing):
 # ------------------------------------------------------------------------------
 #
 def tolist(thing):
-    """
+    '''
     return a non-list thing into a list thing
-    """
+    '''
 
     if islist(thing):
         return thing
@@ -326,6 +337,8 @@ def tolist(thing):
 # python docs recommend to use.  This basically steps down the module path and
 # loads the respective submodule until arriving at the target.
 #
+# FIXME: should we cache this?
+#
 def import_module(name):
 
     mod = __import__(name)
@@ -336,13 +349,29 @@ def import_module(name):
 
 # ------------------------------------------------------------------------------
 #
+# as import_module, but without the import part :-P
+#
+# FIXME: should we cache this?
+#
+def find_module(name):
+
+    package = pkgutil.get_loader(name)
+
+    if not package:
+        return None
+
+    return package.filename
+
+
+# ------------------------------------------------------------------------------
+#
 _hostname = None
 
 
 def get_hostname():
-    """
+    '''
     Look up the hostname
-    """
+    '''
 
     if not _hostname:
 
@@ -361,10 +390,10 @@ _hostip = None
 
 
 def get_hostip(req=None, logger=None):
-    """
+    '''
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
-    """
+    '''
 
     global _hostip
     if _hostip:
@@ -443,11 +472,11 @@ def get_hostip(req=None, logger=None):
 # ------------------------------------------------------------------------------
 #
 def watch_condition(cond, target=None, timeout=None, interval=0.1):
-    """
+    '''
     Watch a given condition (a callable) until it returns the target value, and
     return that value.  Stop watching on timeout, in that case return None.  The
     condition is tested approximately every 'interval' seconds.
-    """
+    '''
 
     start = time.time()
     while True:
@@ -462,10 +491,10 @@ def watch_condition(cond, target=None, timeout=None, interval=0.1):
 # ------------------------------------------------------------------------------
 #
 def name2env(name):
-    """
+    '''
     convert a name of the for 'radical.pilot' to an env vare base named
     'RADICAL_PILOT'.
-    """
+    '''
 
     return name.replace('.', '_').upper()
 
@@ -473,7 +502,7 @@ def name2env(name):
 # ------------------------------------------------------------------------------
 #
 def get_env_ns(key, ns, default=None):
-    """
+    '''
     get an environment setting within a namespace.  For example. 
 
         get_env_ns('verbose', 'radical.pilot.umgr'), 
@@ -481,20 +510,20 @@ def get_env_ns(key, ns, default=None):
     will return the value of the first found env variable from the following
     sequence:
 
-        RADICAL_PILOT_UMGR_VERBOSE
-        RADICAL_PILOT_VERBOSE
-        RADICAL_VERBOSE
+        RADICAL_PILOT_UMGR_LOG_LVL
+        RADICAL_PILOT_LOG_LVL
+        RADICAL_LOG_LVL
 
     or 'None' if none of the above is set.  The given `name` and `key` are
     converted to upper case, dots are replaced by underscores.
 
     Note that an environment variable set with
 
-        export RADICAL_VERBOSE=
+        export RADICAL_LOG_LVL=
 
     (ie. without an explicit, non-empty value) will be returned as an empty
     string.
-    """
+    '''
 
     ns     = name2env(ns)
     key    = name2env(key)
@@ -533,7 +562,7 @@ def stack():
 
     for mod in modules:
         try:
-            tmp = importlib.import_module(mod)
+            tmp = import_module(mod)
             ret['radical'][mod] = tmp.version_detail
         except:
             pass
@@ -580,18 +609,219 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout(cmd, shell=False):
+def is_str(s):
+    return isinstance(s, basestring)
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
     '''
 
     # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
-        cmd = shlex.split(cmd)
+    if not shell and is_str(cmd): cmd = shlex.split(cmd)
 
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
-    stdout, stderr = p.communicate()
-    return stdout, stderr, p.returncode
+    if stdout: stdout = sp.PIPE
+    else     : stdout = None
+
+    if stderr: stderr = sp.PIPE
+    else     : stderr = None
+
+    p = sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+
+    if not stdout and not stderr:
+        ret = p.wait()
+    else:
+        stdout, stderr = p.communicate()
+        ret            = p.returncode
+    return stdout, stderr, ret
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
+    '''
+    call a shell command in the background.  Do not attempt to pipe STDOUT/ERR,
+    but only support writing to named files.
+    '''
+
+    # pipes won't work - see sh_callout_async
+    if stdout == sp.PIPE: raise ValueError('stdout pipe unsupported')
+    if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
+
+    # openfile descriptors for I/O, if needed
+    if is_str(stdout): stdout = open(stdout, 'w')
+    if is_str(stderr): stderr = open(stderr, 'w')
+
+    # convert string into arg list if needed
+    if not shell and is_str(cmd): cmd = shlex.split(cmd)
+
+    sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+
+    return 
+
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
+    '''
+
+    Run a command, and capture stdout/stderr if so flagged.  The call will
+    return an PROC object instance on which the captured output can be retrieved
+    line by line (I/O is line buffered).  When the process is done, a `None`
+    will be returned on the I/O queues.
+
+    Line breaks are stripped.
+
+    stdout/stderr: True [default], False, string
+      - False : discard I/O
+      - True  : capture I/O as queue [default]
+      - string: capture I/O as queue, also write to named file
+
+    shell: True, False [default]
+      - pass to popen
+
+    PROC:
+      - PROC.stdout         : `queue.Queue` instance delivering stdout lines
+      - PROC.stderr         : `queue.Queue` instance delivering stderr lines
+      - PROC.state          : ru.RUNNING, ru.DONE, ru.FAILED
+      - PROC.rc             : returncode (None while ru.RUNNING)
+      - PROC.stdout_filename: name of stdout file (when available)
+      - PROC.stderr_filename: name of stderr file (when available)
+    '''
+    # NOTE: Fucking python screws up stdio buffering when threads are used,
+    #       *even if the treads do not perform stdio*.  Its possible that the
+    #       logging module interfers, too.  Either way, I am fed up debugging
+    #       this shit, and give up.  This method does not work for threaded
+    #       python applications.
+    assert(False), 'this is broken for python apps'
+
+
+    # --------------------------------------------------------------------------
+    #
+    class _PROC(object):
+
+        # ----------------------------------------------------------------------
+        def __init__(self, cmd, stdout, stderr, shell):
+
+            cmd = cmd.strip()
+
+            self._out_c = bool(stdout)               # flag stdout capture
+            self._err_c = bool(stderr)               # flag stderr capture
+
+            self._out_r, self._out_w = os.pipe()     # get stdout from child
+            self._err_r, self._err_w = os.pipe()     # get stderr from child
+
+            self._out_o = os.fdopen(self._out_r)     # file object for out ep
+            self._err_o = os.fdopen(self._err_r)     # file object for err ep
+
+            self._out_q = queue.Queue()              # put stdout to parent
+            self._err_q = queue.Queue()              # put stderr to parent
+
+            if is_str(stdout): self._out_f = open(stdout, 'w')
+            else             : self._out_f = None
+
+            if is_str(stderr): self._err_f = open(stderr, 'w')
+            else             : self._err_f = None
+
+            self.state = ruc.RUNNING
+            self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
+                                  shell=shell, bufsize=1)
+
+            t = mt.Thread(target=self._watch) 
+            t.daemon = True
+            t.start()
+
+            self.rc = None  # return code
+
+
+
+        @property
+        def stdout(self):
+            if not self._out_c:
+                raise RuntimeError('stdout not captured')
+            return self._out_q
+
+        @property
+        def stderr(self):
+            if not self._err_c:
+                raise RuntimeError('stderr not captured')
+            return self._err_q
+
+
+        @property
+        def stdout_filename(self):
+            if not self._out_f:
+                raise RuntimeError('stdout not recorded')
+            return self._out_f.name
+
+        @property
+        def stderr_filename(self):
+            if not self._err_f:
+                raise RuntimeError('stderr not recorded')
+            return self._err_f.name
+
+
+        # ----------------------------------------------------------------------
+        def _watch(self):
+
+            poller = select.poll()
+            poller.register(self._out_r, select.POLLIN | select.POLLHUP)
+            poller.register(self._err_r, select.POLLIN | select.POLLHUP)
+
+            # try forever to read stdout and stderr, stop only when either
+            # signals that process died
+            while True:
+
+                active = False
+                fds    = poller.poll(100)  # timeout configurable (ms)
+
+                for fd,mode in fds:
+
+                    if mode & select.POLLHUP:
+                        # fd died - #grab data from other fds
+                        continue
+
+                    if fd    == self._out_r:
+                        o_in  = self._out_o
+                        q_out = self._out_q
+                        f_out = self._out_f
+
+                    elif fd  == self._err_r:
+                        o_in  = self._err_o
+                        q_out = self._err_q
+                        f_out = self._err_f
+
+                    line = o_in.readline()  # `bufsize=1` in `popen`
+
+                    if line:
+                        # found valid data (active)
+                        active = True
+                        if q_out: q_out.put(line.rstrip('\n'))
+                        if f_out: f_out.write(line)
+
+                # no data received - check process health
+                if not active and self._proc.poll() is not None:
+
+                    # process is dead
+                    self.rc = self._proc.returncode
+
+                    if self.rc == 0: self.state = ruc.DONE
+                    else           : self.state = ruc.FAILED
+
+                    if self._out_q: self._out_q.put(None)  # signal EOF
+                    if self._err_q: self._err_q.put(None)  # signal EOF
+
+                    if self._out_q: self._out_q.join()     # ensure reads
+                    if self._err_q: self._err_q.join()     # ensure reads
+
+                    return  # finishes thread
+
+    # --------------------------------------------------------------------------
+
+    return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)
 
 
 # ------------------------------------------------------------------------------

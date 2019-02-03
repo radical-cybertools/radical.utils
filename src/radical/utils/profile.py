@@ -3,11 +3,12 @@ import os
 import csv
 import time
 
-from   .misc      import name2env        as ru_name2env
-from   .misc      import get_env_ns      as ru_get_env_ns
-from   .misc      import get_hostname    as ru_get_hostname
-from   .misc      import get_hostip      as ru_get_hostip
-from   .threads   import get_thread_name as ru_get_thread_name
+from   .misc    import name2env        as ru_name2env
+from   .misc    import get_env_ns      as ru_get_env_ns
+from   .misc    import get_hostname    as ru_get_hostname
+from   .misc    import get_hostip      as ru_get_hostip
+from   .threads import get_thread_name as ru_get_thread_name
+from   .config  import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -90,21 +91,28 @@ class Profiler(object):
         Open the file handle, sync the clock, and write timestam_zero
         """
 
+        ru_def = DefaultConfig()
+
         if not ns:
             ns = name
 
         # check if this profile is enabled via an env variable
         if ru_get_env_ns('profile', ns) is None:
+            self._enabled = ru_def['profile']
+
+        if self._enabled.lower in ['0', 'false', 'off', None]:
             self._enabled = False
+            # disabled
             return
+        else:
+            self._enables = True
 
         # profiler is enabled - set properties, sync time, open handle
-        self._enabled = True
-        self._path    = path
-        self._name    = name
+        self._path = path
+        self._name = name
 
         if not self._path:
-            self._path = os.getcwd()
+            self._path = ru_def['profile_dir']
 
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
@@ -152,6 +160,12 @@ class Profiler(object):
     def enabled(self):
 
         return self._enabled
+
+
+    @property
+    def path(self):
+
+        return self._path
 
 
     # --------------------------------------------------------------------------

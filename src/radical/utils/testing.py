@@ -161,8 +161,8 @@ class Testing(object):
         if not tc.get('test_suites'):
             tc['test_suites'] = ['.']
 
-        verbosity_env  = os.environ.get('NOSE_VERBOSE', 
-                         os.environ.get('RADICAL_VERBOSE', "3"))
+        verbosity_env  = os.environ.get('NOSE_LOG_LVL', 
+                         os.environ.get('RADICAL_LOG_LVL', "3"))
         verbosity_nose = {'1': 1, 'ERROR'   : 1,
                           '2': 2, 'WARNING' : 2,
                           '3': 3, 'INFO'    : 3, 

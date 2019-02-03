@@ -4,6 +4,9 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import time
+import os
+
 import radical.utils as ru
 
 
@@ -61,20 +64,39 @@ def test_sh_callout():
 
 # ------------------------------------------------------------------------------
 #
+def test_sh_callout_async():
+
+    t_0 = time.time()
+    p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
+
+    assert(p.stdout.get() == 'TRUE')
+    assert(p.state        == ru.RUNNING)
+
+    t_1 = time.time()
+
+    assert(p.stdout.get() is None)
+    assert(p.state        == ru.DONE)
+
+    t_2 = time.time()
+
+    assert(t_1 - t_0 < 0.1)
+    assert(t_2 - t_0 > 1.0)
+
+
+# ------------------------------------------------------------------------------
+#
 def test_get_env_ns():
 
-    import os
-
-    os.environ['RADICAL_UTILS_VERBOSE'] = 'DEBUG'
+    os.environ['RADICAL_UTILS_LOG_LVL'] = 'DEBUG'
     os.environ['RADICAL_LOG_TGT']       = '/dev/null'
 
-    ns = 'radical.utils'
+    for ns in ['radical.utils.test', 'radical.utils']:
 
-    assert(ru.get_env_ns(ns, 'VERBOSE') == 'DEBUG')
-    assert(ru.get_env_ns(ns, 'log.tgt') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG.TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG_TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'TGT_LOG') is None)
+        assert(ru.get_env_ns('LOG_LVL', ns) == 'DEBUG')
+        assert(ru.get_env_ns('log.tgt', ns) == '/dev/null')
+        assert(ru.get_env_ns('LOG.TGT', ns) == '/dev/null')
+        assert(ru.get_env_ns('LOG_TGT', ns) == '/dev/null')
+        assert(ru.get_env_ns('TGT_LOG', ns) is None)
 
 
 # ------------------------------------------------------------------------------
@@ -84,7 +106,9 @@ if __name__ == "__main__":
     test_round_to_base()
     test_round_upper_bound()
     test_sh_callout()
+    test_sh_callout_async()
     test_get_env_ns()
+
 
 # ------------------------------------------------------------------------------
 
