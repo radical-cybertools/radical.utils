@@ -79,6 +79,7 @@ def get_version (mod_root):
 
         if  p.returncode   !=  0  or \
             version_detail == '@' or \
+            'git-error'      in version_detail or \
             'not-a-git-repo' in version_detail or \
             'not-found'      in version_detail or \
             'fatal'          in version_detail :
@@ -275,9 +276,10 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
                            },
-    'install_requires'   : ['future', 
+    'install_requires'   : ['regex',
+                            'future', 
                             'colorama',
-                            'netifaces==0.10.4',
+                            'netifaces',
                             'setproctitle'
                            ],
     'extras_require'     : {
