@@ -276,7 +276,8 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
                            },
-    'install_requires'   : ['future', 
+    'install_requires'   : ['regex',
+                            'future', 
                             'colorama',
                             'netifaces',
                             'setproctitle'
