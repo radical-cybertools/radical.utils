@@ -279,8 +279,10 @@ setup_args = {
     'cmdclass'           : {
         'test'           : our_test,
                            },
-    'install_requires'   : ['regex',
+    'install_requires'   : ['zmq', 
+                            'regex',
                             'future', 
+                            'msgpack',
                             'colorama',
                             'netifaces',
                             'setproctitle'
