@@ -1,6 +1,7 @@
 
 import copy
 
+from ..misc    import Heartbeat
 from ..logger  import Logger
 from ..profile import Profiler
 
@@ -8,6 +9,12 @@ from ..profile import Profiler
 # ------------------------------------------------------------------------------
 #
 class Bridge(object):
+    '''
+    ...
+
+    A bridge can be configured to have a finite lifetime: when no messages are
+    received in `timeout` seconds, the bridge process will terminate.
+    '''
 
     # --------------------------------------------------------------------------
     #
@@ -17,14 +24,31 @@ class Bridge(object):
 
         self._channel = self._cfg['name']
         self._uid     = self._cfg['uid']
+
         self._log     = Logger(name=self._uid)
         self._prof    = Profiler(name=self._uid)
+
+        timeout       = self._cfg.get('timeout', 0)
+        frequency     = timeout / 10
+        self._hb      = Heartbeat(uid=self._uid, timeout=timeout,
+                                  frequency=frequency)
+        self._hb.beat()
 
 
     # --------------------------------------------------------------------------
     #
     def start(self):
         pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    def heartbeat(self):
+        '''
+        this *must* be called by deriving classes
+        '''
+
+        self._hb.beat()
 
 
     # --------------------------------------------------------------------------

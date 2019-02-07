@@ -314,8 +314,12 @@ class Queue(Bridge):
                         del(buf[:self._bulk_size])
 
 
-                # let CPU sleep a bit when there is nothing to do
-                if not active:
+                if active:
+                    # keep this bridge alive
+                    self.heartbeat()
+
+                else:
+                    # let CPU sleep a bit when there is nothing to do
                     time.sleep(0.01)
 
         except  Exception:
