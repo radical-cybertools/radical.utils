@@ -505,9 +505,15 @@ def get_env_ns(key, ns, default=None):
         check = base + key
         checks.append(check)
 
+    fout = open('/tmp/t', 'a')
+    fout.write('%s\n' % checks)
+
     for check in reversed(checks):
+        fout.write(' -- %s\n' % check)
         if check in os.environ:
-            return os.environ[check]
+            val = os.environ[check]
+            fout.write(' -- %s %s\n\n' % (check, val))
+            return val
 
     return default
 
