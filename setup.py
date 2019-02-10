@@ -14,6 +14,9 @@ import sys
 import shutil
 import subprocess as sp
 
+from distutils.ccompiler import new_compiler
+
+
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
 
@@ -233,6 +236,13 @@ def isgood(name):
     return False
 
 
+# compile gtod
+compiler = new_compiler(verbose=1)
+objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+
+
+
 # -------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
@@ -270,7 +280,8 @@ setup_args = {
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
-                            'bin/radical-stack'
+                            'bin/radical-utils-gtod',
+                            'bin/radical-stack',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION',
                                  'SDIST', sdist_name]},
