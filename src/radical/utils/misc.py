@@ -2,15 +2,16 @@
 import os
 import sys
 import time
-import fcntl
 import regex
+import queue
 import shlex
-import socket
 import select
 import signal
+import socket
 import pkgutil
+import datetime
+import itertools
 import netifaces
-import queue
 
 import subprocess as sp
 import threading  as mt
@@ -122,7 +123,6 @@ def mongodb_connect(dburl, default_dburl=None):
             except Exception:
                 pass
 
-
     return mongo, db, dbname, cname, pname
 
 
@@ -187,7 +187,6 @@ def time_stamp(spec):
     if  isinstance(spec, int) or \
         isinstance(spec, float)  :
 
-        import datetime
         return datetime.datetime.utcfromtimestamp(spec)
 
     return spec
@@ -209,7 +208,6 @@ def time_diff(dt_abs, dt_stamp):
         isinstance(delta, float)  :
         return delta
 
-    import datetime
     if  not isinstance(delta, datetime.timedelta):
         raise TypeError("difference between '%s' and '%s' is not a .timedelta"
                      % (type(dt_abs), type(dt_stamp)))
@@ -226,7 +224,6 @@ def all_pairs(iterable, n):
     [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
     '''
 
-    import itertools
     return list(itertools.combinations(iterable, n))
 
 
@@ -240,8 +237,7 @@ def cluster_list(iterable, n):
          ...
     '''
 
-    from itertools import izip
-    return izip(*[iter(iterable)] * n)
+    return itertools.izip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
@@ -253,10 +249,8 @@ def window(seq, n=2):
     s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
     '''
 
-    from itertools import islice
-
     it = iter(seq)
-    result = tuple(islice(it, n))
+    result = tuple(itertools.islice(it, n))
 
     if len(result) == n:
         yield result
@@ -371,6 +365,8 @@ def find_module(name):
 # ------------------------------------------------------------------------------
 #
 _hostname = None
+
+
 def get_hostname():
     '''
     Look up the hostname
@@ -390,6 +386,8 @@ def get_hostname():
 # ------------------------------------------------------------------------------
 #
 _hostip = None
+
+
 def get_hostip(req=None, logger=None):
     '''
     Look up the ip number for a given requested interface name.

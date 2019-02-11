@@ -6,6 +6,7 @@ __license__   = "MIT"
 import re
 import fnmatch
 
+
 PRESERVE  = 'preserve'
 OVERWRITE = 'overwrite'
 
@@ -14,7 +15,7 @@ OVERWRITE = 'overwrite'
 
 # ------------------------------------------------------------------------------
 #
-class DictMixin :
+class DictMixin:
     '''
     Mixin defining all dictionary methods for classes that already have
     a minimum dictionary interface including getitem, setitem, delitem,
@@ -63,7 +64,7 @@ class DictMixin :
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return self.has_key(key)            
+        return bool(key in self)
 
     def iteritems(self):
         for k in self:
@@ -101,7 +102,7 @@ class DictMixin :
         key = self.keys()[0]
         value = self[key]
         del self[key]
-        return (key, value)
+        return key, value
 
     def update(self, other):
         for key in other.keys():
@@ -118,13 +119,14 @@ class DictMixin :
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=[]):
+def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
     # thanks to 
-    # http://stackoverflow.com/questions/7204805/python-dictionaries-of-dictionaries-merge
+    # http://stackoverflow.com/questions/7204805/ \
+    #                          python-dictionaries-of-dictionaries-merge
     """
     This merges two dict in place, modifying the original dict in a.
 
-    Merge Policies :
+    Merge Policies:
         None (default) : raise an exception on conflicts
         PRESERVE       : original value in a are preserved, new values 
                          from b are only added where the original value 
@@ -133,64 +135,64 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=[]):
 
     """
 
-    if  a is None : return
-    if  b is None : return
+    if  a    is None: return
+    if  b    is None: return
+    if _path is None: _path = list()
 
-    if  not isinstance(a, dict) :
+    if  not isinstance(a, dict):
         raise TypeError("*dict*_merge expects dicts, not '%s'" % type(a))
 
-    if  not isinstance(b, dict) :
+    if  not isinstance(b, dict):
         raise TypeError("*dict*_merge expects dicts, not '%s'" % type(b))
 
 
     # --------------------------------------------------------------------------
-    def merge_key(a, key_a, b, key_b) :
+    #
+    def merge_key(a, key_a, b, key_b):
 
         # need to resolve conflict
         if  isinstance(a[key_a], dict) and isinstance(b[key_b], dict):
             dict_merge(a[key_a], b[key_b], 
-                        policy    = policy, 
-                        wildcards = wildcards, 
-                        logger    = logger, 
-                        _path     = _path + [str(key)])
+                       policy    = policy, 
+                       wildcards = wildcards, 
+                       logger    = logger, 
+                       _path     = _path + [str(key_a)])
 
-        elif (key_a not in a) and (key_b in b):
+        elif key_a not in a and key_b in b:
             a[key_a] = b[key_b]  # use b value
 
-        elif (key_a in a) and (key_b not in b):
+        elif key_a in a and key_b not in b:
             pass  # keep a value
 
         elif a[key_a] == b[key_b]:
             pass  # same leaf value
 
-        elif (key_a not in a) and (key_b not in b):
+        elif key_a not in a and key_b not in b:
             pass  # keep no a value
 
         else:
             if  policy == PRESERVE:
-                if  logger :
+                if  logger:
                     logger.debug("preserving key %s:%s \t(%s)" 
                                 % (":".join(_path), key_b, b[key_b]))
-                pass # keep original value
 
             elif policy == OVERWRITE:
-                if  logger :
+                if  logger:
                     logger.debug("overwriting key %s:%s \t(%s)"
                                 % (":".join(_path), key_b, b[key_b]))
-                a[key] = b[key]  # use new value
-
-            else :
-                raise ValueError('Conflict at %s (%s : %s)' \
-                               % ('.'.join(_path + [str(key)]),
-                                  a[key_a], b[key_b]))
-    # --------------------------------------------------------------------------
+                a[key_a] = b[key_b]  # use new value
+            else:
+                raise ValueError('Conflict at %s (%s : %s)'
+                              % ('.'.join(_path + [str(key_a)]),
+                                 a[key_a], b[key_b]))
 
     # first a clean merge, i.e. no interpretation of wildcards
     for key in b:
 
         if  key in a:
+
             # need to resolve conflict
-            merge_key (a, key, b, key)
+            merge_key(a, key, b, key)
 
         else:
             # no conflict - simply add.  Not that this is a potential shallow
@@ -200,19 +202,19 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=[]):
 
     # optionally, check if other merge options are also valid
     for key_b in b:
-        if  wildcards :
-            if  '*' in key_b :
-                pat = re.compile (fnmatch.translate (key_b))
-                for key_a in a :
-                    if  pat.match (key_a) :
-                        merge_key (a, key_a, b, key_b)
+        if  wildcards:
+            if  '*' in key_b:
+                pat = re.compile(fnmatch.translate(key_b))
+                for key_a in a:
+                    if  pat.match(key_a):
+                        merge_key(a, key_a, b, key_b)
 
     return a
 
 
 # ------------------------------------------------------------------------------
 #
-def dict_stringexpand (target, sources=None) :
+def dict_stringexpand(target, sources=None):
     """
     This expands dict entries (strings only) with keys from a second dict. For
     example, the dicts::
@@ -232,66 +234,66 @@ def dict_stringexpand (target, sources=None) :
     specified.
     """
 
-    assert (isinstance(target, dict))
+    assert(isinstance(target, dict))
 
     # expand from self, and all given dicts, but only use 
     # first-level primitive types (string, int, float)
-    if  sources :
-        if  isinstance (sources, dict) :
+    if  sources:
+        if  isinstance(sources, dict):
             sources = [sources]
-    else :
+    else:
         sources = list()
 
-    if  not isinstance (sources, list) :
-        raise TypeError ("Need dict as sources, not %s" % type(sources))
+    if  not isinstance(sources, list):
+        raise TypeError("Need dict as expansion source, not %s" % type(sources))
 
     # target must be first source, to avoid cycles (other sources are likely to
     # have *other* info)
-    sources.insert (0, target)
+    sources.insert(0, target)
 
     repl_source = dict()
-    for source in sources :
-        for (key, val) in source.iteritems() :
-            if  isinstance (val, basestring) or \
-                isinstance (val, int       ) or \
-                isinstance (val, float     ) :
+    for source in sources:
+        for key, val in source.iteritems():
+            if  isinstance(val, basestring) or \
+                isinstance(val, int       ) or \
+                isinstance(val, float     ) :
                 repl_source[key] = val
 
     again = True
-    while again :
-        target, again = _generic_stringexpand (target, repl_source)
+    while again:
+        target, again = _generic_stringexpand(target, repl_source)
 
     return target
 
 
 # ------------------------------------------------------------------------------
 #
-def _generic_stringexpand (target, source) :
+def _generic_stringexpand(target, source):
 
-    if  isinstance (target, basestring) : 
-        return _string_stringexpand (target, source)
+    if  isinstance(target, basestring): 
+        return _string_stringexpand(target, source)
 
-    elif  isinstance (target, list) : 
-        return _list_stringexpand (target, source)
+    elif  isinstance(target, list): 
+        return _list_stringexpand(target, source)
 
-    elif  isinstance (target, dict) : 
-        return _dict_stringexpand (target, source)
+    elif  isinstance(target, dict): 
+        return _dict_stringexpand(target, source)
 
-    else :
+    else:
         # ignore other types for now
         return target, False
 
 
 # ------------------------------------------------------------------------------
 #
-def _list_stringexpand (target, source) :
+def _list_stringexpand(target, source):
 
-    assert (isinstance(target, list))
-    assert (isinstance(source, dict))
+    assert(isinstance(target, list))
+    assert(isinstance(source, dict))
 
     all_again = 0
-    for (idx, elem) in enumerate(target) :
-        target[idx], again = _generic_stringexpand (elem, source)
+    for idx, elem in enumerate(target):
+        target[idx], again = _generic_stringexpand(elem, source)
         all_again += again
 
     return target, all_again
@@ -299,14 +301,14 @@ def _list_stringexpand (target, source) :
 
 # ------------------------------------------------------------------------------
 #
-def _dict_stringexpand (target, source) :
+def _dict_stringexpand(target, source):
 
     assert (isinstance(target, dict))
     assert (isinstance(source, dict))
 
     all_again = 0
-    for (key, val) in target.iteritems() :
-        target[key], again = _generic_stringexpand (val, source)
+    for key, val in target.iteritems():
+        target[key], again = _generic_stringexpand(val, source)
         all_again += again
 
     return target, all_again
@@ -314,13 +316,13 @@ def _dict_stringexpand (target, source) :
 
 # ------------------------------------------------------------------------------
 #
-def _string_stringexpand (target, source) :
+def _string_stringexpand(target, source):
 
     assert (isinstance(target, basestring))
     assert (isinstance(source, dict))
 
     orig = str(target)
-    try :
+    try:
         expanded = target % source
 
     except KeyError:
@@ -332,10 +334,8 @@ def _string_stringexpand (target, source) :
         return orig, False
 
     # only check for success after success.  Duh!
-    if  orig == expanded : return expanded, False
-    else                 : return expanded, True
-
+    if  orig == expanded: return expanded, False
+    else                : return expanded, True
 
 # ------------------------------------------------------------------------------
-
 
