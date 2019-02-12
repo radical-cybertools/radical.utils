@@ -9,7 +9,7 @@ import regex
 
 # ------------------------------------------------------------------------------
 #
-class ReSult (object) :
+class ReSult(object) :
     """
     This class is a container around a regular expression match, which provides
     some more conventient access methods, boolean tests, etc.
@@ -24,8 +24,9 @@ class ReSult (object) :
         construct with a `regex.MatchObject` instance.  This ctor should only be
         called from within the `ReString` class.
         """
-        self._glist = list()
-        self._gdict = dict()
+        self._glist  = list()
+        self._gdict  = dict()
+        self._result = result
 
 
         if  result :
@@ -69,6 +70,10 @@ class ReSult (object) :
             raise TypeError ("key %s needs to be integer, not %s"
                           % (key, type(key)))
 
+    # --------------------------------------------------------------------------
+    #
+    def start(self, idx):
+        return self._result.start(idx)
 
     # --------------------------------------------------------------------------
     #
@@ -202,14 +207,15 @@ class ReString(str):
     """
 
     # --------------------------------------------------------------------------
-    def __init__ (self, src) :
+    #
+    def __new__(cls, data):
 
-        self._result = None
-
-        str.__init__ (self, src)
+        cls._result = None
+        return str.__new__(cls, data)
 
 
     # --------------------------------------------------------------------------
+    #
     def __floordiv__ (self, re) :
 
         compiled_regex = None
@@ -220,8 +226,8 @@ class ReString(str):
             # FIXME: type check
             compiled_regex = re
 
-        if re :
-            self._result = ReSult (re.search (compiled_regex, self))
+        if re:
+            self._result = ReSult (compiled_regex.search (self))
             return self._result
 
         return None

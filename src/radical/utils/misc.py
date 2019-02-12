@@ -1,5 +1,6 @@
 
 import os
+import re
 import sys
 import time
 import regex
@@ -10,6 +11,8 @@ import netifaces
 
 import subprocess as sp
 import url as ruu
+
+from .ru_regex import ReString
 
 
 # ------------------------------------------------------------------------------
@@ -630,4 +633,70 @@ def get_radical_base(module=None):
 
 
 # ------------------------------------------------------------------------------
+#
+def expandvars(data, env=None, ignore_missing=True):
+    '''
+    expand the given string (`data`) with environment variables.  If `env` is
+    provided, use that env disctionary for expansion instead of `os.environ`.
+
+    The replacement is performed for the following variable specs 
+
+        assume  `export BAR=bar`:
+
+            $BAR      : foo_$BAR_baz   -> foo_bar_baz
+            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+
+        assume `unset BAR`, `ignore_missing=True`
+
+            $BAR      : foo_$BAR_baz   -> foo__baz
+            ${BAR}    : foo_${BAR}_baz -> foo__baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+        assume `unset BAR`, `ignore_missing=False`
+
+            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
+            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+    '''
+    if not env:
+        env = os.environ
+
+    data = ReString(data)
+    ret  = ''
+
+    while True:
+        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
+
+            if not res:
+                ret += data
+                break
+
+            ret  += res[0]
+
+            if   res[2] is not None: tmp = res[2]
+            elif res[3] is not None: tmp = res[3]
+            else: RuntimeError('regex inconsistency')
+
+            elems = tmp.split(':', 1)
+            key   = elems[0]
+            if len(elems) == 1: default = None
+            else              : default = elems[1]
+            val   = env.get(key, default)
+
+            if val is None:
+                if ignore_missing:
+                    val = ''
+                else:
+                    raise ValueError('cannot expand $%s' % key)
+
+            ret += data[:res.start(1)]
+            ret += val
+            data = ReString(res[4])
+
+    return ret
+
+
+# ------------------------------------------------------------------------------
+
 
