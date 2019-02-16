@@ -12,7 +12,8 @@ import re
 import os
 import sys
 import shutil
-import subprocess as sp
+
+from src.radica.utils importmisc
 
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
@@ -22,6 +23,7 @@ try:
 except ImportError as e:
     print("%s needs setuptools to install" % name)
     sys.exit(1)
+
 
 # ------------------------------------------------------------------------------
 #
@@ -41,7 +43,7 @@ def get_version (mod_root):
     mod_root
         a VERSION file containes the version strings is created in mod_root,
         during installation.  That file is used at runtime to get the version
-        information.  
+        information.
         """
 
     try:
@@ -50,26 +52,26 @@ def get_version (mod_root):
         version_detail = None
 
         # get version from './VERSION'
-        src_root = os.path.dirname (__file__)
+        src_root = os.path.dirname(__file__)
         if  not src_root:
             src_root = '.'
 
-        with open (src_root + '/VERSION', 'r') as f:
-            version_base = f.readline ().strip()
+        with open(src_root + '/VERSION', 'r') as f:
+            version_base = f.readline().strip()
 
         # attempt to get version detail information from git
-        # We only do that though if we are in a repo root dir, 
+        # We only do that though if we are in a repo root dir,
         # ie. if 'git rev-parse --show-prefix' returns an empty string --
         # otherwise we get confused if the ve lives beneath another repository,
         # and the pip version used uses an install tmp dir in the ve space
-        # instead of /tmp (which seems to happen with some pip/setuptools 
+        # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        p = sp.Popen ('cd %s ; '\
-                      'test -z `git rev-parse --show-prefix` || exit -1; '\
-                      'tag=`git describe --tags --always` 2>/dev/null ; '\
-                      'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '\
-                      'echo $tag@$branch'  % src_root,
-                      stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
+        p = sp.Popen('cd %s ; '
+                     'test -z `git rev-parse --show-prefix` || exit -1; '
+                     'tag=`git describe --tags --always` 2>/dev/null ; '
+                     'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
+                     'echo $tag@$branch' % src_root,
+                     stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         version_detail = str(p.communicate()[0].strip())
         version_detail = version_detail.replace('detached from ', 'detached-')
 
@@ -91,37 +93,37 @@ def get_version (mod_root):
 
         # make sure the version files exist for the runtime version inspection
         path = '%s/%s' % (src_root, mod_root)
-        with open (path + "/VERSION", "w") as f:
-            f.write (version + "\n")
+        with open(path + "/VERSION", "w") as f:
+            f.write(version + "\n")
 
         sdist_name = "%s-%s.tar.gz" % (name, version)
-        sdist_name = sdist_name.replace ('/', '-')
-        sdist_name = sdist_name.replace ('@', '-')
-        sdist_name = sdist_name.replace ('#', '-')
-        sdist_name = sdist_name.replace ('_', '-')
+        sdist_name = sdist_name.replace('/', '-')
+        sdist_name = sdist_name.replace('@', '-')
+        sdist_name = sdist_name.replace('#', '-')
+        sdist_name = sdist_name.replace('_', '-')
 
         if '--record'    in sys.argv or \
            'bdist_egg'   in sys.argv or \
            'bdist_wheel' in sys.argv    :
-           # pip install stage 2 or easy_install stage 1
-           #
-           # pip install will untar the sdist in a tmp tree.  In that tmp
-           # tree, we won't be able to derive git version tags -- so we pack the
-           # formerly derived version as ./VERSION
-            shutil.move ("VERSION", "VERSION.bak")           # backup version
-            shutil.copy ("%s/VERSION" % path, "VERSION")     # use full version instead
-            os.system   ("python setup.py sdist")            # build sdist
-            shutil.copy ('dist/%s' % sdist_name,
-                         '%s/%s'   % (mod_root, sdist_name)) # copy into tree
-            shutil.move ("VERSION.bak", "VERSION")           # restore version
+          # pip install stage 2 or easy_install stage 1
+          #
+          # pip install will untar the sdist in a tmp tree.  In that tmp
+          # tree, we won't be able to derive git version tags -- so we pack the
+          # formerly derived version as ./VERSION
+            shutil.move("VERSION", "VERSION.bak")            # backup version
+            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version instead
+            os.system  ("python setup.py sdist")             # build sdist
+            shutil.copy('dist/%s' % sdist_name,
+                        '%s/%s'   % (mod_root, sdist_name))  # copy into tree
+            shutil.move("VERSION.bak", "VERSION")            # restore version
 
-        with open (path + "/SDIST", "w") as f: 
-            f.write (sdist_name + "\n")
+        with open(path + "/SDIST", "w") as f:
+            f.write(sdist_name + "\n")
 
         return version_base, version_detail, sdist_name
 
     except Exception as e :
-        raise RuntimeError ('Could not extract/set version: %s' % e)
+        raise RuntimeError('Could not extract/set version: %s' % e)
 
 
 # ------------------------------------------------------------------------------
@@ -132,11 +134,7 @@ if  sys.hexversion < 0x02070000 or sys.hexversion >= 0x03000000:
 
 # ------------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
-version, version_detail, sdist_name = get_version (mod_root)
-
-print('version: %s' % version)
-print('detail : %s' % version_detail)
-print('sdist  : %s' % sdist_name)
+version, version_detail, sdist_name = get_version(mod_root)
 
 
 # ------------------------------------------------------------------------------
@@ -186,11 +184,11 @@ def makeDataFiles(prefix, dir):
                 subdir
                     file
 
-    makeDataFiles('prefix', 'root')  will create this distutil data_files structure:
+    makeDataFiles('prefix', 'root')  will create this distutil
+    data_files structure:
         [('prefix', ['file1', 'file2']),
          ('prefix/dir', ['file']),
          ('prefix/dir/subdir', ['file'])]
-
     """
     # Strip 'dir/' from of path before joining with prefix
     dir = dir.rstrip('/')
@@ -198,6 +196,7 @@ def makeDataFiles(prefix, dir):
     found = []
     os.path.walk(dir, visit, (prefix, strip, found))
     return found
+
 
 def visit((prefix, strip, found), dirname, names):
     """ Visit directory, create distutil tuple
@@ -222,6 +221,7 @@ def visit((prefix, strip, found), dirname, names):
     destination = os.path.join(prefix, dirname[strip:])
     found.append((destination, files))
 
+
 def isbad(name):
     """ Whether name should not be installed """
     return (name.startswith('.') or
@@ -229,20 +229,28 @@ def isbad(name):
             name.endswith('.pickle') or
             name == 'CVS')
 
+
 def isgood(name):
     """ Whether name should be installed """
     if not isbad(name):
-        if name.endswith('.py') or name.endswith('.json'):
+        if  name.endswith('.py')   or \
+            name.endswith('.json') or \
+            name.endswith('.tar'):
             return True
     return False
+
+
+# ------------------------------------------------------------------------------
+#
+if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
+    raise RuntimeError("SETUP ERROR: %s requires Python 2.6 or higher" % name)
 
 
 # -------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
     'version'            : version,
-    'description'        : 'Shared code and tools for various RADICAL Projects '
-                           '(http://radical.rutgers.edu/)',
+    'description'        : 'Utilities for RADICAL CybertoolsProjects',
     'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
@@ -275,12 +283,10 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-stack'
                            ],
-    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION', 'SDIST', sdist_name]},
-    'cmdclass'           : {
-        'test'           : our_test,
-                           },
+    'package_data'       : {'': ['*.sh', '*.json', '*.txt', '*.gz',
+                                 'VERSION', 'SDIST', sdist_name]},
     'install_requires'   : ['regex',
-                            'future', 
+                            'future',
                             'colorama',
                             'netifaces',
                             'setproctitle'
@@ -289,28 +295,20 @@ setup_args = {
         'pymongo'        : ['pymongo'],
         'nose'           : ['nose', 'coverage']
     },
-    'tests_require'      : ['nose', 'coverage'],
-    'test_suite'         : '%s.tests' % name,
+    'tests_require'      : ['pytest',
+                            'coverage',
+                           ],
     'zip_safe'           : False,
-#   'build_sphinx'       : {
-#       'source-dir'     : 'docs/',
-#       'build-dir'      : 'docs/build',
-#       'all_files'      : 1,
-#   },
-#   'upload_sphinx'      : {
-#       'upload-dir'     : 'docs/build/html',
-#   },
-    # This copies the contents of the examples/ dir under
-    # sys.prefix/share/$name
-    # It needs the MANIFEST.in entries to work.
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
 }
 
-# ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+#
 setup (**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
 
 # ------------------------------------------------------------------------------
+
 
