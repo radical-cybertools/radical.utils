@@ -29,6 +29,7 @@ from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
+from .shell          import sh_callout
 
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger,   get_logger

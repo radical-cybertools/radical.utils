@@ -89,7 +89,7 @@ def test_env():
     Print out some messages with different log levels
     '''
 
-    def _assert_reporter(fname, val=True):
+    def _assert_reporter(pname, fname, val=True):
 
         rep  = ru.Reporter(name=pname, ns='radical.utils.test', path='/tmp/')
         rep.info('foo')
@@ -112,16 +112,15 @@ def test_env():
 
         pname = 'ru.%d'        % os.getpid()
         fname = '/tmp/%s.prof' % pname
+        _assert_reporter(pname, fname, False)
 
         os.environ['RADICAL_UTILS_REPORT_TGT'] = fname
 
-        _assert_reporter(fname, False)
-
-        os.environ[key] = '';       _assert_reporter(fname)
-        os.environ[key] = '0';      _assert_reporter(fname)
-        os.environ[key] = '1';      _assert_reporter(fname)
-        os.environ[key] = 'True';   _assert_reporter(fname)
-        os.environ[key] = 'False';  _assert_reporter(fname)
+        os.environ[key] = '';       _assert_reporter(pname, fname)
+        os.environ[key] = '0';      _assert_reporter(pname, fname)
+        os.environ[key] = '1';      _assert_reporter(pname, fname)
+        os.environ[key] = 'True';   _assert_reporter(pname, fname)
+        os.environ[key] = 'False';  _assert_reporter(pname, fname)
 
 
 # ------------------------------------------------------------------------------

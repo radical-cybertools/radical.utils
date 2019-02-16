@@ -9,11 +9,15 @@ import threading
 import radical.utils as ru
 
 SIZE = 10
-MAX  = 4
+MAX  =  3
+ITER = 1000
+
 
 def debug(arg):
   # print arg
     pass
+
+
 # ------------------------------------------------------------------------------
 #
 def test_lease_manager() :
@@ -37,31 +41,32 @@ def test_lease_manager() :
           # self.lm2 = ru.LeaseManager()
 
             iw_thread_1 = threading.Thread(target=self.iw_thread, kwargs={'id': 1, 'pool': 'pool1'})
-            iw_thread_1.start() # thread will run until lock check
+            iw_thread_1.start()
 
             iw_thread_2 = threading.Thread(target=self.iw_thread, kwargs={'id': 2, 'pool': 'pool2'})
-            iw_thread_2.start() # thread will run until lock check
+            iw_thread_2.start()
 
             ow_thread_1 = threading.Thread(target=self.ow_thread, kwargs={'id': 1, 'pool': 'pool1'})
-            ow_thread_1.start() # thread will run until lock check
+            ow_thread_1.start()
 
             ow_thread_2 = threading.Thread(target=self.ow_thread, kwargs={'id': 2, 'pool': 'pool2'})
-            ow_thread_2.start() # thread will run until lock check
+            ow_thread_2.start()
 
             mon_thread = threading.Thread(target=self.mon_thread, kwargs={'id': 1, 'pool': 'pool1'})
-            mon_thread.start() # thread will run until lock check
+            mon_thread.start()
 
-            # mon_thread.join()
-            # iw_thread_1.join()
-            # iw_thread_2.join()
-            # ow_thread_1.join()
-            # ow_thread_2.join()
+            mon_thread.join()
+            iw_thread_1.join()
+            iw_thread_2.join()
+            ow_thread_1.join()
+            ow_thread_2.join()
 
-        # -----------------
+
+        # ----------------------------------------------------------------------
         def iw_thread(self, id, pool):
             name = "IWo Thread-%d (%s)" % (id, pool)
 
-            while True:
+            for _ in range(ITER):
                 leases = list()
                 for i in range(MAX):
                     debug("%s: >" % name)
@@ -85,7 +90,7 @@ def test_lease_manager() :
 
             name = "OWo Thread-%d (%s)" % (id, pool)
 
-            while True:
+            for _ in range(ITER):
                 leases = list()
                 for i in range(MAX):
                     debug("%s: >" % name)
@@ -106,7 +111,7 @@ def test_lease_manager() :
 
             name = "Mon Thread-%d (%s)" % (id, pool)
 
-            while True:
+            for _ in range(ITER):
                 leases = list()
                 for i in range(MAX):
                     debug("%s: >" % name)
@@ -120,12 +125,10 @@ def test_lease_manager() :
                 for lease in leases:
                     self.lm.release(lease)
                     debug("%s:   <" % name)
-                    #sys.exit(1)
 
 
     # --------------------------------------------------------------------------
     t = Test()
-
     t.test()
 
 
