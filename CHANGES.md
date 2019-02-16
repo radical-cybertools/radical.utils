@@ -5,6 +5,20 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+
+0.50.3 Release                                                        2018-12-19
+--------------------------------------------------------------------------------
+
+  - fix msg evaluation in process watcher (#149) 
+  - update setup.py (#146) 
+  - a bitarray based scheduler 
+  - use config files for bitarray scheduler configuration 
+  - add install info for macos 
+  - adding git-error in version check (#145) 
+  - fix div-by-zero on fast runs
+  - handle `None` messages in watcher (#141) 
+
+
 0.50.2 Release                                                        2018-08-20
 --------------------------------------------------------------------------------
 
