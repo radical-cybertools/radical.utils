@@ -47,7 +47,13 @@ from   .config  import DefaultConfig
 
 
 
-OFF = -1
+CRITICAL = logging.CRITICAL
+ERROR    = logging.ERROR
+WARNING  = logging.WARNING
+WARN     = logging.WARNING
+INFO     = logging.INFO
+DEBUG    = logging.DEBUG   
+OFF      = -1
 
 
 # ------------------------------------------------------------------------------

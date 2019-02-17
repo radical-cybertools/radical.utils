@@ -97,10 +97,14 @@ class Profiler(object):
             ns = name
 
         # check if this profile is enabled via an env variable
+        self._enabled = None
         if ru_get_env_ns('profile', ns) is None:
             self._enabled = ru_def['profile']
 
-        if self._enabled.lower in ['0', 'false', 'off', None]:
+        if not self._enabled:
+            self._enabled = ru_def['profile']
+
+        if self._enabled.lower in ['0', 'false', 'off']:
             self._enabled = False
             # disabled
             return

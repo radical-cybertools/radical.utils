@@ -27,7 +27,6 @@ from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
 from .registry       import Registry, READONLY, READWRITE
 from .ru_regex       import ReString, ReSult
-from .benchmark      import Benchmark
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
 from .config         import Config, DefaultConfig

@@ -64,7 +64,7 @@ class DictMixin:
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return bool(key in self)
+        return self.has_key(key)
 
     def iteritems(self):
         for k in self:
