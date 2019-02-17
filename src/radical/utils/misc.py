@@ -344,9 +344,9 @@ def get_hostname():
     Look up the hostname
     """
 
+    global _hostname
     if not _hostname:
 
-        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
         else:
