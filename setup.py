@@ -13,7 +13,7 @@ import os
 import sys
 import shutil
 
-sys.path.append('src/radical/utils')
+sys.path.append('src/radical/utils/')
 import shell as ru
 
 name     = 'radical.utils'
@@ -68,11 +68,11 @@ def get_version (mod_root):
         # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
         out, err, ret = ru.sh_callout(
-                     'cd %s ; '
-                     'test -z `git rev-parse --show-prefix` || exit -1; '
-                     'tag=`git describe --tags --always` 2>/dev/null ; '
-                     'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
-                     'echo $tag@$branch' % src_root, shell=True)
+            'cd %s ; '
+            'test -z `git rev-parse --show-prefix` || exit -1; '
+            'tag=`git describe --tags --always` 2>/dev/null ; '
+            'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
+            'echo $tag@$branch' % src_root, shell=True)
         version_detail = out.strip()
         version_detail = version_detail.replace('detached from ', 'detached-')
 
@@ -112,7 +112,7 @@ def get_version (mod_root):
           # tree, we won't be able to derive git version tags -- so we pack the
           # formerly derived version as ./VERSION
             shutil.move("VERSION", "VERSION.bak")            # backup version
-            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version instead
+            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version
             os.system  ("python setup.py sdist")             # build sdist
             shutil.copy('dist/%s' % sdist_name,
                         '%s/%s'   % (mod_root, sdist_name))  # copy into tree
@@ -304,6 +304,7 @@ setup_args = {
 setup (**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
+
 
 # ------------------------------------------------------------------------------
 
