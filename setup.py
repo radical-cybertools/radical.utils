@@ -281,7 +281,7 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-stack'
                            ],
-    'package_data'       : {'': ['*.sh', '*.json', '*.txt', '*.gz',
+    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION',
                                  'VERSION', 'SDIST', sdist_name]},
     'setup_requires'     : ['pytest-runner'],
     'install_requires'   : ['zmq', 
@@ -293,6 +293,7 @@ setup_args = {
                             'netifaces',
                             'setproctitle'],
     'tests_require'      : ['pytest', 'coverage'],
+    'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
     'cmdclass'           : {'upload': RunTwine},
