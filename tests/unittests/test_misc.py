@@ -70,11 +70,11 @@ def test_get_env_ns():
 
     ns = 'radical.utils'
 
-    assert(ru.get_env_ns(ns, 'VERBOSE') == 'DEBUG')
-    assert(ru.get_env_ns(ns, 'log.tgt') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG.TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG_TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'TGT_LOG') is None)
+    assert(ru.get_env_ns('VERBOSE', ns) == 'DEBUG')
+    assert(ru.get_env_ns('log.tgt', ns) == '/dev/null')
+    assert(ru.get_env_ns('LOG.TGT', ns) == '/dev/null')
+    assert(ru.get_env_ns('LOG_TGT', ns) == '/dev/null')
+    assert(ru.get_env_ns('TGT_LOG', ns) is None)
 
 
 # ------------------------------------------------------------------------------
