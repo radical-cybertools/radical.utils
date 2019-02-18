@@ -410,7 +410,7 @@ class Proxy(object):
         check all interfaces, but an interface can also be specified as optional
         argument, identified by its IP number.
 
-        Note that this mechanism does not *reserve* a port, so there is a race
+        NOTE: this mechanism does not *reserve* a port, so there is a race
         between finding a free port and using it.
         '''
 
