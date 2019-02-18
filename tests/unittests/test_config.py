@@ -28,6 +28,7 @@ def test_config () :
 
     os.remove (tmp)
 
+
 # ------------------------------------------------------------------------------
 #
 # run tests if called directly

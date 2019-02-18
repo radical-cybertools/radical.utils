@@ -60,9 +60,12 @@ def fix_logging_module():
     # Prevent fixing multiple times as that would cause a deadlock.
     if logging and getattr(logging, 'fixed_for_atfork', None):
         return
+
     if logging:
-        if os.environ.get('RADICAL_DEBUG'):
-            warnings.warn('logging module already imported before fixup.')
+      # if os.environ.get('RADICAL_DEBUG'):
+      #     warnings.warn('logging module already imported before fixup.')
+        pass
+
     import logging
     if logging.getLogger().handlers:
         # We could register each lock with atfork for these handlers but if
