@@ -10,28 +10,6 @@ import radical.utils as ru
 
 # ------------------------------------------------------------------------------
 #
-def test_obj_cache():
-    '''
-    Print out some messages with different log levels
-    '''
-
-    # make sure singleton works
-    assert ru.ObjectCache()                == ru.ObjectCache()
-    assert ru.ObjectCache('radical.utils') == ru.ObjectCache('radical.utils')
-
-    tmp = ru.Logger('engine')
-    tmp = ru.Logger('engine')
-    tmp.setLevel('DEBUG')
-
-    tmp.debug('debug')
-    tmp.info('info')
-    tmp.warn('warning')
-    tmp.error('error')
-    tmp.fatal('fatal')
-
-
-# ------------------------------------------------------------------------------
-#
 def test_logger():
     """
     Print out some messages with different log levels
@@ -48,6 +26,8 @@ def test_logger():
     cl.fatal('fatal')
 
 
+# ------------------------------------------------------------------------------
+#
 def test_env():
     '''
     Print out some messages with different log levels
