@@ -15,13 +15,12 @@ before_install:
   - df -h
   - ulimit -a
   - python -V
-  - pip install nose coverage codecov
 
 install:
   - pip install .
 
 script:
-  - python setup.py test
+  - python setup.py pytest
 
 notifications:
   email:
