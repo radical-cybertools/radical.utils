@@ -191,8 +191,12 @@ class Config(object, DictMixin):
         if starred and path.count('*') > 1:
             raise ValueError('only one wildcard allowed in config path')
 
-        sys_fspec = '%s/%s' % (sys_dir, path)
-        usr_fspec = '%s/%s' % (usr_dir, path)
+        if path.startswith('/'):
+            sys_fspec = path
+            usr_fspec = None
+        else:
+            sys_fspec = '%s/%s' % (sys_dir, path)
+            usr_fspec = '%s/%s' % (usr_dir, path)
 
         app_cfg = cfg
         sys_cfg = dict()
@@ -202,13 +206,13 @@ class Config(object, DictMixin):
             # no wildcard - just use the config as they exist
 
             sys_fname = sys_fspec
-            usr_fname = usr_fspec
-
             if not os.path.isfile(sys_fname): sys_fname += '.json' 
-            if not os.path.isfile(usr_fname): usr_fname += '.json'
-
             if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
-            if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
+
+            if usr_fspec:
+                usr_fname = usr_fspec
+                if not os.path.isfile(usr_fname): usr_fname += '.json'
+                if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
         else: 
 
@@ -222,16 +226,17 @@ class Config(object, DictMixin):
             for sys_fname in glob.glob(sys_fspec):
                 if sys_fname.endswith('.json'): post = postfix_len + 5
                 else                          : post = postfix_len
-                base = os.path.basename(sys_fname)[prefix_len:-post]
+                base = sys_fname[prefix_len:-post]
                 if base:
                     sys_cfg[base] = read_json(sys_fname)
 
-            for usr_fname in glob.glob(usr_fspec):
-                if usr_fname.endswith('.json'): post = postfix_len + 5
-                else                          : post = postfix_len
-                base = os.path.basename(usr_fname)[prefix_len:-post]
-                if base:
-                    usr_cfg[base] = read_json(usr_fname)
+            if usr_fspec:
+                for usr_fname in glob.glob(usr_fspec):
+                    if usr_fname.endswith('.json'): post = postfix_len + 5
+                    else                          : post = postfix_len
+                    base = os.path.basename(usr_fname)[prefix_len:-post]
+                    if base:
+                        usr_cfg[base] = read_json(usr_fname)
 
 
         # merge sys, app, and user cfg before expansion
@@ -319,24 +324,6 @@ class Config(object, DictMixin):
                 return default
 
         return pos
-
-
-    # --------------------------------------------------------------------------
-    #
-    @classmethod
-    def test(self):
-
-        import pprint
-
-        # store this in $HOME/radical/pilot/resource_yake.json
-        #
-        # { "grace": { "agent_launch_method": "${FOO:bar}" } }
-        os.environ['FOO'] = 'GSISSH'
-
-        cfg = Config(module='radical.pilot', name='resource_*')
-        pprint.pprint(cfg['yale'])
-        print cfg.query('yale.grace.agent_launch_method')
-        print cfg.query('yale.grace.no_launch_method')
 
 
 # ------------------------------------------------------------------------------

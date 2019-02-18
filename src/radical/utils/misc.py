@@ -3,22 +3,15 @@ import os
 import sys
 import time
 import regex
-import queue
-import shlex
-import select
-import signal
 import socket
 import pkgutil
 import datetime
 import itertools
 import netifaces
 
-import subprocess as sp
-import threading  as mt
+from .         import url       as ruu
+from .ru_regex import ReString
 
-
-from . import url       as ruu
-from . import constants as ruc
 
 
 # ------------------------------------------------------------------------------
@@ -331,6 +324,14 @@ def tolist(thing):
 
 # ------------------------------------------------------------------------------
 #
+is_list = islist  # FIXME
+to_list = tolist  # FIXME
+def is_str(s):
+    return isinstance(s, basestring)
+
+
+# ------------------------------------------------------------------------------
+#
 # to keep RU 2.6 compatible, we provide import_module which works around some
 # quirks of __import__ when being used with dotted names. This is what the
 # python docs recommend to use.  This basically steps down the module path and
@@ -372,9 +373,9 @@ def get_hostname():
     Look up the hostname
     '''
 
+    global _hostname
     if not _hostname:
 
-        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
         else:
@@ -535,9 +536,75 @@ def get_env_ns(key, ns, default=None):
 
     for check in reversed(checks):
         if check in os.environ:
-            return os.environ[check]
+            val = os.environ[check]
+            return val
 
     return default
+
+
+# ------------------------------------------------------------------------------
+#
+def expandvars(data, env=None, ignore_missing=True):
+    '''
+    expand the given string (`data`) with environment variables.  If `env` is
+    provided, use that env disctionary for expansion instead of `os.environ`.
+
+    The replacement is performed for the following variable specs 
+
+        assume  `export BAR=bar`:
+
+            $BAR      : foo_$BAR_baz   -> foo_bar_baz
+            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+
+        assume `unset BAR`, `ignore_missing=True`
+
+            $BAR      : foo_$BAR_baz   -> foo__baz
+            ${BAR}    : foo_${BAR}_baz -> foo__baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+        assume `unset BAR`, `ignore_missing=False`
+
+            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
+            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+    '''
+    if not env:
+        env = os.environ
+
+    data = ReString(data)
+    ret  = ''
+
+    while True:
+        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
+
+            if not res:
+                ret += data
+                break
+
+            ret  += res[0]
+
+            if   res[2] is not None: tmp = res[2]
+            elif res[3] is not None: tmp = res[3]
+            else: RuntimeError('regex inconsistency')
+
+            elems = tmp.split(':', 1)
+            key   = elems[0]
+            if len(elems) == 1: default = None
+            else              : default = elems[1]
+            val   = env.get(key, default)
+
+            if val is None:
+                if ignore_missing:
+                    val = ''
+                else:
+                    raise ValueError('cannot expand $%s' % key)
+
+            ret += data[:res.start(1)]
+            ret += val
+            data = ReString(res[4])
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
@@ -608,223 +675,6 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def is_str(s):
-    return isinstance(s, basestring)
-
-
-# ------------------------------------------------------------------------------
-#
-def sh_callout(cmd, stdout=True, stderr=True, shell=False):
-    '''
-    call a shell command, return `[stdout, stderr, retval]`.
-    '''
-
-    # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
-
-    if stdout: stdout = sp.PIPE
-    else     : stdout = None
-
-    if stderr: stderr = sp.PIPE
-    else     : stderr = None
-
-    p = sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
-
-    if not stdout and not stderr:
-        ret = p.wait()
-    else:
-        stdout, stderr = p.communicate()
-        ret            = p.returncode
-    return stdout, stderr, ret
-
-
-# ------------------------------------------------------------------------------
-#
-def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
-    '''
-    call a shell command in the background.  Do not attempt to pipe STDOUT/ERR,
-    but only support writing to named files.
-    '''
-
-    # pipes won't work - see sh_callout_async
-    if stdout == sp.PIPE: raise ValueError('stdout pipe unsupported')
-    if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
-
-    # openfile descriptors for I/O, if needed
-    if is_str(stdout): stdout = open(stdout, 'w')
-    if is_str(stderr): stderr = open(stderr, 'w')
-
-    # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
-
-    sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
-
-    return 
-
-
-# ------------------------------------------------------------------------------
-#
-def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
-    '''
-
-    Run a command, and capture stdout/stderr if so flagged.  The call will
-    return an PROC object instance on which the captured output can be retrieved
-    line by line (I/O is line buffered).  When the process is done, a `None`
-    will be returned on the I/O queues.
-
-    Line breaks are stripped.
-
-    stdout/stderr: True [default], False, string
-      - False : discard I/O
-      - True  : capture I/O as queue [default]
-      - string: capture I/O as queue, also write to named file
-
-    shell: True, False [default]
-      - pass to popen
-
-    PROC:
-      - PROC.stdout         : `queue.Queue` instance delivering stdout lines
-      - PROC.stderr         : `queue.Queue` instance delivering stderr lines
-      - PROC.state          : ru.RUNNING, ru.DONE, ru.FAILED
-      - PROC.rc             : returncode (None while ru.RUNNING)
-      - PROC.stdout_filename: name of stdout file (when available)
-      - PROC.stderr_filename: name of stderr file (when available)
-    '''
-    # NOTE: Fucking python screws up stdio buffering when threads are used,
-    #       *even if the treads do not perform stdio*.  Its possible that the
-    #       logging module interfers, too.  Either way, I am fed up debugging
-    #       this shit, and give up.  This method does not work for threaded
-    #       python applications.
-    assert(False), 'this is broken for python apps'
-
-
-    # --------------------------------------------------------------------------
-    #
-    class _PROC(object):
-
-        # ----------------------------------------------------------------------
-        def __init__(self, cmd, stdout, stderr, shell):
-
-            cmd = cmd.strip()
-
-            self._out_c = bool(stdout)               # flag stdout capture
-            self._err_c = bool(stderr)               # flag stderr capture
-
-            self._out_r, self._out_w = os.pipe()     # get stdout from child
-            self._err_r, self._err_w = os.pipe()     # get stderr from child
-
-            self._out_o = os.fdopen(self._out_r)     # file object for out ep
-            self._err_o = os.fdopen(self._err_r)     # file object for err ep
-
-            self._out_q = queue.Queue()              # put stdout to parent
-            self._err_q = queue.Queue()              # put stderr to parent
-
-            if is_str(stdout): self._out_f = open(stdout, 'w')
-            else             : self._out_f = None
-
-            if is_str(stderr): self._err_f = open(stderr, 'w')
-            else             : self._err_f = None
-
-            self.state = ruc.RUNNING
-            self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
-                                  shell=shell, bufsize=1)
-
-            t = mt.Thread(target=self._watch) 
-            t.daemon = True
-            t.start()
-
-            self.rc = None  # return code
-
-
-
-        @property
-        def stdout(self):
-            if not self._out_c:
-                raise RuntimeError('stdout not captured')
-            return self._out_q
-
-        @property
-        def stderr(self):
-            if not self._err_c:
-                raise RuntimeError('stderr not captured')
-            return self._err_q
-
-
-        @property
-        def stdout_filename(self):
-            if not self._out_f:
-                raise RuntimeError('stdout not recorded')
-            return self._out_f.name
-
-        @property
-        def stderr_filename(self):
-            if not self._err_f:
-                raise RuntimeError('stderr not recorded')
-            return self._err_f.name
-
-
-        # ----------------------------------------------------------------------
-        def _watch(self):
-
-            poller = select.poll()
-            poller.register(self._out_r, select.POLLIN | select.POLLHUP)
-            poller.register(self._err_r, select.POLLIN | select.POLLHUP)
-
-            # try forever to read stdout and stderr, stop only when either
-            # signals that process died
-            while True:
-
-                active = False
-                fds    = poller.poll(100)  # timeout configurable (ms)
-
-                for fd,mode in fds:
-
-                    if mode & select.POLLHUP:
-                        # fd died - #grab data from other fds
-                        continue
-
-                    if fd    == self._out_r:
-                        o_in  = self._out_o
-                        q_out = self._out_q
-                        f_out = self._out_f
-
-                    elif fd  == self._err_r:
-                        o_in  = self._err_o
-                        q_out = self._err_q
-                        f_out = self._err_f
-
-                    line = o_in.readline()  # `bufsize=1` in `popen`
-
-                    if line:
-                        # found valid data (active)
-                        active = True
-                        if q_out: q_out.put(line.rstrip('\n'))
-                        if f_out: f_out.write(line)
-
-                # no data received - check process health
-                if not active and self._proc.poll() is not None:
-
-                    # process is dead
-                    self.rc = self._proc.returncode
-
-                    if self.rc == 0: self.state = ruc.DONE
-                    else           : self.state = ruc.FAILED
-
-                    if self._out_q: self._out_q.put(None)  # signal EOF
-                    if self._err_q: self._err_q.put(None)  # signal EOF
-
-                    if self._out_q: self._out_q.join()     # ensure reads
-                    if self._err_q: self._err_q.join()     # ensure reads
-
-                    return  # finishes thread
-
-    # --------------------------------------------------------------------------
-
-    return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)
-
-
-# ------------------------------------------------------------------------------
-#
 def get_radical_base(module=None):
     '''
     Several parts of the RCT stack store state on the file system.  This should
@@ -856,64 +706,6 @@ def get_radical_base(module=None):
         os.makedirs(base)
 
     return base
-
-
-# ------------------------------------------------------------------------------
-#
-class Heartbeat(object):
-
-    # --------------------------------------------------------------------------
-    #
-    def __init__(self, uid, timeout, frequency=1):
-        '''
-        This is a simple hearteat monitor: after construction, it needs to be
-        called in ingtervals shorter than the given `timeout` value.  A thread
-        will be created which checks if heartbeats arrive timeely - if not, the
-        current process is killed via `os.kill()`.
-
-        If no timeout is given, all class methods are noops.
-        '''
-
-        self._uid     = uid
-        self._timeout = timeout
-        self._freq    = frequency
-        self._last    = time.time()
-        self._cnt     = 0
-        self._pid     = os.getpid()
-
-        if self._timeout:
-            self._watcher = mt.Thread(target=self._watch)
-            self._watcher.daemon = True
-            self._watcher.start()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _watch(self):
-
-        while True:
-
-            time.sleep(self._freq)
-
-            if time.time() - self._last > self._timeout:
-
-                os.kill(self._pid, signal.SIGTERM)
-                sys.stderr.write('Heartbeat timeout: %s\n' % self._uid)
-                sys.stderr.flush()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def beat(self, timestamp=None):
-
-        if not self._timeout:
-            return
-
-        if not timestamp:
-            timestamp = time.time()
-
-        self._last = timestamp
-        self._cnt += 1
 
 
 # ------------------------------------------------------------------------------

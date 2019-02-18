@@ -24,10 +24,10 @@ class DictMixin:
     dictionary.
     '''
 
-    # identify as dictionary
-    @property
-    def __class__(self):
-        return dict
+  # # identify as dictionary
+  # @property
+  # def __class__(self):
+  #     return dict
 
 
     # --------------------------------------------------------------------------
@@ -157,6 +157,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
                        wildcards = wildcards, 
                        logger    = logger, 
                        _path     = _path + [str(key_a)])
+
 
         elif key_a not in a and key_b in b:
             a[key_a] = b[key_b]  # use b value

@@ -97,23 +97,23 @@ class Profiler(object):
             ns = name
 
         # check if this profile is enabled via an env variable
-        self._enabled = None
-        if ru_get_env_ns('profile', ns) is None:
-            self._enabled = ru_def['profile']
+        self._enabled = ru_get_env_ns('profile', ns)
 
-        if not self._enabled:
-            self._enabled = ru_def['profile']
+        if  self._enabled is None:
+            self._enabled = ru_def.get('profile')
 
-        if self._enabled.lower in ['0', 'false', 'off']:
+        if self._enabled is None:
+            self._enabled = 'False'
+
+        if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
-            # disabled
             return
-        else:
-            self._enables = True
+
 
         # profiler is enabled - set properties, sync time, open handle
-        self._path = path
-        self._name = name
+        self._enabled = True
+        self._path    = path
+        self._name    = name
 
         if not self._path:
             self._path = ru_def['profile_dir']
@@ -725,11 +725,8 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
     # we have evaluated, cleaned and sorted all events -- now we recreate
     # a clean profile out of them
     ret = list()
-    for uid,entity in entities.iteritems():
-
+    for entity in entities.values():
         ret += entity['events']
-        for state,event in entity['states'].iteritems():
-            ret.append(event)
 
     # sort by time and return
     ret = sorted(ret[:], key=lambda k: k[TIME])

@@ -15,13 +15,12 @@ before_install:
   - df -h
   - ulimit -a
   - python -V
-  - pip install pytest codecov flake8 pylint pudb
 
 install:
   - pip install . -vvv
 
 script:
-  - python setup.py test
+  - python setup.py pytest
   - flake8 --show-source --statistics --config=.flake8
   - codecov
 

@@ -9,36 +9,38 @@ import regex
 
 # ------------------------------------------------------------------------------
 #
-class ReSult (object) :
-    """
+class ReSult(object):
+    '''
     This class is a container around a regular expression match, which provides
     some more conventient access methods, boolean tests, etc.
 
     We only handle base strings, not unicode strings!
-    """
+    '''
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, result=None) :
+    def __init__(self, result=None):
         """
         construct with a `regex.MatchObject` instance.  This ctor should only be
         called from within the `ReString` class.
         """
-        self._glist = list()
-        self._gdict = dict()
+        self._glist  = list()
+        self._gdict  = dict()
+        self._result = result
 
 
-        if  result :
-            if  not isinstance (result, type(regex.match("",""))) :  # fuck python
-                raise TypeError ('Need regex.MatchObject, not %s' % type(result))
+        if result:
+            # fuck python
+            if not isinstance(result, type(regex.match("",""))):
+                raise TypeError('Need regex.MatchObject, not %s' % type(result))
 
-            self._glist = result.groups ()
-            self._gdict = result.groupdict ()
+            self._glist = result.groups()
+            self._gdict = result.groupdict()
 
 
     # --------------------------------------------------------------------------
     #
-    def __str__ (self) :
+    def __str__(self):
         """
         The string representation is based on the match *list*, as the dict may
         not include all matches...
@@ -48,7 +50,7 @@ class ReSult (object) :
 
     # --------------------------------------------------------------------------
     #
-    def __len__ (self) :
+    def __len__(self):
         """
         The len representation is based on the match *list*, as the dict may
         not include all matches...
@@ -58,36 +60,40 @@ class ReSult (object) :
 
     # --------------------------------------------------------------------------
     #
-    def get (self, key, default=None) :
+    def get(self, key, default=None):
         """
         get is supported for default based dict access,
         """
 
-        if  isinstance (key, str) :
+        if isinstance(key, str):
             return self._gdict.get (key, default)
-        else :
-            raise TypeError ("key %s needs to be integer, not %s"
+        else:
+            raise TypeError("key %s needs to be integer, not %s"
                           % (key, type(key)))
-
 
     # --------------------------------------------------------------------------
     #
-    def __getitem__ (self, idx) :
+    def start(self, idx):
+        return self._result.start(idx)
+
+    # --------------------------------------------------------------------------
+    #
+    def __getitem__(self, idx):
         """
         getitem is supported for both array type access (using an int index),
         and for dict type access (using a string name).  All other key types
         will cause an exception.
         """
 
-        if  isinstance (idx, str) :
-            if  idx in self._gdict :
+        if isinstance (idx, str):
+            if idx in self._gdict:
                 return self._gdict[idx]
-        elif  isinstance (idx, int) :
-            if  len(self) > idx :
+        elif isinstance(idx, int):
+            if len(self) > idx :
                 return self._glist[idx]
-        else :
-            raise TypeError ("index %s needs to be integer or string, not %s"
-                          % (idx, type(idx)))
+        else:
+            raise TypeError("index %s needs to be integer or string, not %s"
+                           % (idx, type(idx)))
         return None
 
 
@@ -138,7 +144,6 @@ class ReSult (object) :
         pass
 
 
-
     # --------------------------------------------------------------------------
     #
     def __cmp__ (self, other) :
@@ -166,6 +171,7 @@ class ReSult (object) :
 
 
 # ------------------------------------------------------------------------------
+#
 class ReString(str):
     """
     This is a string class which supports simplified regular expression
@@ -202,41 +208,44 @@ class ReString(str):
     """
 
     # --------------------------------------------------------------------------
-    def __init__ (self, src) :
+    #
+    def __new__(cls, *args, **kw):
 
-        self._result = None
-
-        str.__init__ (self, src)
+        cls._result = None
+        return str.__new__(cls, *args, **kw)
 
 
     # --------------------------------------------------------------------------
-    def __floordiv__ (self, re) :
+    #
+    def __floordiv__(self, re):
 
         compiled_regex = None
-        if  isinstance (re, basestring) :
-            compiled_regex = regex.compile (re)
-        else :
+        if  isinstance (re, basestring):
+            compiled_regex = regex.compile(re)
+
+        else:
             # assume we got a compiled regex
             # FIXME: type check
             compiled_regex = re
 
-        if re :
-            self._result = ReSult (re.search (compiled_regex, self))
+        if re:
+            self._result = ReSult(compiled_regex.search(self))
             return self._result
 
         return None
 
 
     # --------------------------------------------------------------------------
-    def get (self, key=None, default=None) :
+    #
+    def get(self, key=None, default=None):
 
-        if  self._result and key :
+        if self._result and key:
 
-            try :
+            try:
                 return self._result[key]
 
-            except KeyError :
-                if  default :
+            except KeyError:
+                if default:
                     return default
                 raise
 
@@ -245,11 +254,11 @@ class ReString(str):
 
 # ------------------------------------------------------------------------------
 #
-def _example_re_string () :
+def _example_re_string():
 
-    txt = ReString ("The quick brown fox jumps over the lazy dog")
+    txt = ReString("The quick brown fox jumps over the lazy dog")
 
-    with txt // '(\s.u)(?P<x>.*?j\S+)' as res :
+    with txt // '(\s.u)(?P<x>.*?j\S+)' as res:
 
         if res : print 'Matched!'               # boolean check
         print "res      : '%s' " % res          # list of results
@@ -264,25 +273,26 @@ def _example_re_string () :
         assert (res == [' qu', 'ick brown fox jumps'])  # compare to list
 
 
-    if  txt // '(rabbit)' :                     # simple use in if / elif / ...
-        res = txt.get ()                        # get ReSult of last match
+    if txt // '(rabbit)':                       # simple use in if / elif / ...
+        res = txt.get()                         # get ReSult of last match
 
-    elif  txt // '((?:\s).{12,15}?(\S+))' :     # for full Python regex slang
-        res = txt.get ()
+    elif txt // '((?:\s).{12,15}?(\S+))':       # for full Python regex slang
+        res = txt.get()
 
-    else :
+    else:
         print 'no match'
 
 
 # ------------------------------------------------------------------------------
 #
-def _test_re_string () :
+def _test_re_string():
 
-    txt   = ReString ("The quick brown fox jumps over the lazy dog")
+    txt   = ReString("The quick brown fox jumps over the lazy dog")
     tgt_l = [' qu', 'ick brown fox jumps']
     tgt_d = {'x'  : 'ick brown fox jumps'}
 
-    with txt // '(\s.u)(?P<x>.*?j\S+)' as res :
+    with txt // '(\s.u)(?P<x>.*?j\S+)' as res:
+        print res
         assert (res)
         assert (len(res) == len(tgt_l))
         assert (res      == tgt_l), "%s != %s" % (str(res), str(tgt_l))
@@ -290,23 +300,25 @@ def _test_re_string () :
         assert (res[1]   == tgt_l[1])
         assert (res['x'] == tgt_d['x'])
         assert (res.x    == tgt_d['x'])
-        for i, r in enumerate (res) :
-            assert (r    == tgt_l[i])
+        for i, r in enumerate(res):
+            assert (r == tgt_l[i])
 
-    if  txt // '(rabbit)' :
+    if txt // '(rabbit)':
         assert (False)
 
-    elif  txt // '((?:\s).{12,15}?(\S+))' :     # full Python regex slang
+    elif txt // '((?:\s).{12,15}?(\S+))':     # full Python regex slang
         assert (True)
 
-    else :
+    else:
         assert (False)
 
 
 # ------------------------------------------------------------------------------
 
-# _example_re_string()
-# _test_re_string()
+if __name__ == '__main__':
+    _example_re_string()
+    _test_re_string()
+
 
 # ------------------------------------------------------------------------------
 

@@ -1,16 +1,15 @@
 
 import copy
 
-from ..misc    import Heartbeat
-from ..logger  import Logger
-from ..profile import Profiler
+from ..logger    import Logger
+from ..profile   import Profiler
+from ..heartbeat import Heartbeat
 
 
 # ------------------------------------------------------------------------------
 #
 class Bridge(object):
     '''
-    ...
 
     A bridge can be configured to have a finite lifetime: when no messages are
     received in `timeout` seconds, the bridge process will terminate.
@@ -49,6 +48,10 @@ class Bridge(object):
         '''
 
         self._hb.beat()
+
+        self._log     = Logger(name=self._uid)
+        self._prof    = Profiler(name=self._uid)
+
 
 
     # --------------------------------------------------------------------------

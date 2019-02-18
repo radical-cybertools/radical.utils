@@ -4,7 +4,7 @@ import time
 import errno
 import msgpack
 
-import threading         as mt
+import threading as mt
 
 from .bridge  import Bridge
 
@@ -233,8 +233,6 @@ class PubSub(Bridge):
 
         except Exception:
             self._log.exception('bridge failed')
-
-        # thread ends here
 
 
 # ------------------------------------------------------------------------------

@@ -1,0 +1,8 @@
+
+{
+    "grace": {
+        # some test key/val
+        "agent_launch_method": "${FOO:bar}"
+    }
+}
+

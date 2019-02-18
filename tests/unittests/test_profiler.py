@@ -57,21 +57,24 @@ def test_env():
     Print out some messages with different log levels
     '''
 
-    def _assert_profiler(val=True):
+    # --------------------------------------------------------------------------
+    #
+    def _assert_profiler(key, val, res):
 
         pname = 'ru.%d'        % os.getpid()
         fname = '/tmp/%s.prof' % pname
         prof  = ru.Profiler(name=pname, ns='radical.utils.test', path='/tmp/')
         prof.prof('foo')
 
-        assert(val == os.path.isfile(fname))
-        assert(val == _cmd('grep -e "^[0-9\.]*,foo,%s,MainThread,,,$"    %s' % (pname, fname)))
+        assert(res == os.path.isfile(fname))
+        assert(res == _cmd('grep -e "^[0-9\.]*,foo,%s," %s' % (pname, fname)))
 
         try   : os.unlink(fname)
         except: pass
 
 
-
+    # --------------------------------------------------------------------------
+    #
     for key in ['RADICAL_PROFILE', 
                 'RADICAL_UTILS_PROFILE',
                 'RADICAL_UTILS_TEST_PROFILE']:
@@ -80,20 +83,33 @@ def test_env():
             if k.startswith('RADICAL'):
                 del(os.environ[k])
 
-        _assert_profiler(False)
+        _assert_profiler('', '', True)
 
-        os.environ[key] = '';       _assert_profiler()
-        os.environ[key] = '0';      _assert_profiler()
-        os.environ[key] = '1';      _assert_profiler()
-        os.environ[key] = 'True';   _assert_profiler()
-        os.environ[key] = 'False';  _assert_profiler()
+        for val, res in [
+                         ['false', False],
+                         ['',      True ], 
+                         ['1',     True ],
+                         ['true',  True ],
+                         ['True',  True ],
+                         ['TRUE',  True ],
+                         ['false', False],
+                         ['False', False],
+                         ['FALSE', False],
+                         ['0',     False]]:
+
+            for k in os.environ.keys():
+                if k.startswith('RADICAL'):
+                    del(os.environ[k])
+
+            os.environ[key] = val
+            _assert_profiler(key, val, res)
 
 
 # ------------------------------------------------------------------------------
 #
 if __name__ == '__main__':
 
-    test_profiler()
+  # test_profiler()
     test_env()
 
 

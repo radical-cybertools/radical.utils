@@ -113,12 +113,12 @@ class Reporter(object):
         if ru_get_env_ns('report', ns) is None:
             self._enabled = str(ru_def['report']).lower()
 
-        if self._enabled in ['0', 'false', 'off', False]:
+        if self._enabled in ['0', 'false', 'off', False, None]:
             self._enabled = False
             # disabled
             return
         else:
-            self._enables = True
+            self._enabled = True
 
 
         self._use_color = ru_get_env_ns('report_color', ns, default='True')

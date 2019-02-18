@@ -66,21 +66,23 @@ def test_sh_callout():
 #
 def test_sh_callout_async():
 
-    t_0 = time.time()
-    p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
+    pass
 
-    assert(p.stdout.get() == 'TRUE')
-    assert(p.state        == ru.RUNNING)
-
-    t_1 = time.time()
-
-    assert(p.stdout.get() is None)
-    assert(p.state        == ru.DONE)
-
-    t_2 = time.time()
-
-    assert(t_1 - t_0 < 0.1)
-    assert(t_2 - t_0 > 1.0)
+#     t_0 = time.time()
+#     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
+# 
+#     assert(p.stdout.get() == 'TRUE')
+#     assert(p.state        == ru.RUNNING)
+# 
+#     t_1 = time.time()
+# 
+#     assert(p.stdout.get() is None)
+#     assert(p.state        == ru.DONE)
+# 
+#     t_2 = time.time()
+# 
+#     assert(t_1 - t_0 < 0.1)
+#     assert(t_2 - t_0 > 1.0)
 
 
 # ------------------------------------------------------------------------------
@@ -100,6 +102,33 @@ def test_get_env_ns():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_expandvars():
+
+    import os
+
+    noenv = {'FOO' : 'foo'}
+    env   = {'BAR' : 'bar'}
+
+    val = os.environ.get('BAR')
+    if val is None: tmp = 'buz'
+    else          : tmp = val
+    if val is None: val = ''
+
+    assert(ru.expandvars('foo_$BAR.baz'             ) == 'foo_%s.baz' % val)
+    assert(ru.expandvars('foo_${BAR}_baz'           ) == 'foo_%s_baz' % val)
+    assert(ru.expandvars('foo_${BAR:buz}_baz'       ) == 'foo_%s_baz' % tmp)
+
+    assert(ru.expandvars('foo_$BAR.baz'      , noenv) == 'foo_.baz'   )
+    assert(ru.expandvars('foo_${BAR}_baz'    , noenv) == 'foo__baz'   )
+    assert(ru.expandvars('foo_${BAR:buz}_baz', noenv) == 'foo_buz_baz')
+
+    assert(ru.expandvars('foo_$BAR.baz'      , env  ) == 'foo_bar.baz')
+    assert(ru.expandvars('foo_${BAR}_baz'    , env  ) == 'foo_bar_baz')
+    assert(ru.expandvars('foo_${BAR:buz}_baz', env  ) == 'foo_bar_baz')
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -108,6 +137,8 @@ if __name__ == "__main__":
     test_sh_callout()
     test_sh_callout_async()
     test_get_env_ns()
+    test_expandvars()
+
 
 
 # ------------------------------------------------------------------------------

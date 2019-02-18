@@ -5,7 +5,7 @@ import time
 import errno
 import msgpack
 
-import threading         as mt
+import threading as mt
 
 from .bridge  import Bridge
 
@@ -312,7 +312,6 @@ class Queue(Bridge):
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
-
 
                 if active:
                     # keep this bridge alive
