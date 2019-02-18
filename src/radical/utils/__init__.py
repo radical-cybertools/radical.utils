@@ -38,6 +38,8 @@ from .profile        import Profiler, timestamp
 from .profile        import read_profiles, combine_profiles, clean_profile
 from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
 from .profile        import PROF_KEY_MAX
+from .zmq            import Queue,  Putter,    Getter
+from .zmq            import PubSub, Publisher, Subscriber
 
 # import utility methods
 from .ids            import *
