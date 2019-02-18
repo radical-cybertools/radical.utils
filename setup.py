@@ -13,8 +13,8 @@ import os
 import sys
 import shutil
 
-print sys.path.append('src/radical/utils/')
-from shell import sh_callout
+sys.path.append('src/radical/utils/')
+import shell as ru
 
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
@@ -67,12 +67,12 @@ def get_version (mod_root):
         # and the pip version used uses an install tmp dir in the ve space
         # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        out, err, ret = sh_callout(
-                'cd %s ; '
-                'test -z `git rev-parse --show-prefix` || exit -1; '
-                'tag=`git describe --tags --always` 2>/dev/null ; '
-                'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
-                'echo $tag@$branch' % src_root, shell=True)
+        out, err, ret = ru.sh_callout(
+            'cd %s ; '
+            'test -z `git rev-parse --show-prefix` || exit -1; '
+            'tag=`git describe --tags --always` 2>/dev/null ; '
+            'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
+            'echo $tag@$branch' % src_root, shell=True)
         version_detail = out.strip()
         version_detail = version_detail.replace('detached from ', 'detached-')
 
@@ -112,7 +112,7 @@ def get_version (mod_root):
           # tree, we won't be able to derive git version tags -- so we pack the
           # formerly derived version as ./VERSION
             shutil.move("VERSION", "VERSION.bak")            # backup version
-            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version instead
+            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version
             os.system  ("python setup.py sdist")             # build sdist
             shutil.copy('dist/%s' % sdist_name,
                         '%s/%s'   % (mod_root, sdist_name))  # copy into tree
@@ -229,6 +229,17 @@ def isgood(name):
 
 # ------------------------------------------------------------------------------
 #
+class RunTwine(Command):
+    user_options = []
+    def initialize_options (self) : pass
+    def finalize_options   (self) : pass
+    def run (self) :
+        out,  err, ret = ru.sh_callout('python setup.py sdist upload -r pypi')
+        raise SystemExit(ret)
+
+
+# ------------------------------------------------------------------------------
+#
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
     raise RuntimeError("SETUP ERROR: %s requires Python 2.6 or higher" % name)
 
@@ -272,19 +283,19 @@ setup_args = {
                            ],
     'package_data'       : {'': ['*.sh', '*.json', '*.txt', '*.gz',
                                  'VERSION', 'SDIST', sdist_name]},
+    'setup_requires'     : ['pytest-runner'],
     'install_requires'   : ['zmq', 
                             'regex',
                             'future', 
                             'msgpack',
+                            'pymongo',
                             'colorama',
                             'netifaces',
                             'setproctitle'],
     'tests_require'      : ['pytest', 'coverage'],
-    'extras_require'     : {
-        'pymongo'        : ['pymongo']
-    },
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
+    'cmdclass'           : {'upload': RunTwine},
 }
 
 
@@ -294,6 +305,6 @@ setup (**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
 
-# ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
 
