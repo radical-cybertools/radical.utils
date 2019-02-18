@@ -13,7 +13,8 @@ import os
 import sys
 import shutil
 
-from src.radica.utils importmisc
+sys.path.append('src/radical/utils/')
+import shell as ru
 
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
@@ -66,20 +67,20 @@ def get_version (mod_root):
         # and the pip version used uses an install tmp dir in the ve space
         # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        p = sp.Popen('cd %s ; '
-                     'test -z `git rev-parse --show-prefix` || exit -1; '
-                     'tag=`git describe --tags --always` 2>/dev/null ; '
-                     'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
-                     'echo $tag@$branch' % src_root,
-                     stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-        version_detail = str(p.communicate()[0].strip())
+        out, err, ret = ru.sh_callout(
+            'cd %s ; '
+            'test -z `git rev-parse --show-prefix` || exit -1; '
+            'tag=`git describe --tags --always` 2>/dev/null ; '
+            'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
+            'echo $tag@$branch' % src_root, shell=True)
+        version_detail = out.strip()
         version_detail = version_detail.replace('detached from ', 'detached-')
 
         # remove all non-alphanumeric (and then some) chars
         version_detail = re.sub('[/ ]+', '-', version_detail)
         version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', version_detail)
 
-        if  p.returncode   !=  0  or \
+        if  ret            !=  0  or \
             version_detail == '@' or \
             'git-error'      in version_detail or \
             'not-a-git-repo' in version_detail or \
@@ -111,7 +112,7 @@ def get_version (mod_root):
           # tree, we won't be able to derive git version tags -- so we pack the
           # formerly derived version as ./VERSION
             shutil.move("VERSION", "VERSION.bak")            # backup version
-            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version instead
+            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version
             os.system  ("python setup.py sdist")             # build sdist
             shutil.copy('dist/%s' % sdist_name,
                         '%s/%s'   % (mod_root, sdist_name))  # copy into tree
@@ -228,6 +229,17 @@ def isgood(name):
 
 # ------------------------------------------------------------------------------
 #
+class RunTwine(Command):
+    user_options = []
+    def initialize_options (self) : pass
+    def finalize_options   (self) : pass
+    def run (self) :
+        out,  err, ret = ru.sh_callout('python setup.py sdist upload -r pypi')
+        raise SystemExit(ret)
+
+
+# ------------------------------------------------------------------------------
+#
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
     raise RuntimeError("SETUP ERROR: %s requires Python 2.6 or higher" % name)
 
@@ -271,20 +283,20 @@ setup_args = {
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION',
                                  'VERSION', 'SDIST', sdist_name]},
-    'install_requires'   : ['regex',
-                            'future',
+    'setup_requires'     : ['pytest-runner'],
+    'install_requires'   : ['zmq', 
+                            'regex',
+                            'future', 
+                            'msgpack',
+                            'pymongo',
                             'colorama',
                             'netifaces',
-                            'setproctitle'
-                           ],
-    'extras_require'     : {
-        'pymongo'        : ['pymongo'],
-        'nose'           : ['pytest', 'coverage']
-    },
+                            'setproctitle'],
     'tests_require'      : ['pytest', 'coverage'],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
+    'cmdclass'           : {'upload': RunTwine},
 }
 
 
@@ -294,6 +306,6 @@ setup (**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
 
-# ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
 
