@@ -94,11 +94,12 @@ def test_env():
         rep  = ru.Reporter(name=pname, ns='radical.utils.test', path='/tmp/')
         rep.info('foo')
 
-        assert(val == os.path.isfile(fname))
-        assert(val == _cmd('grep -e "foo" %s' % fname))
+        if fname:
+            assert(val == os.path.isfile(fname))
+            assert(val == _cmd('grep -e "foo" %s' % fname))
 
-        try   : os.unlink(fname)
-        except: pass
+            try   : os.unlink(fname)
+            except: pass
 
 
 
@@ -117,7 +118,7 @@ def test_env():
         os.environ['RADICAL_UTILS_REPORT_TGT'] = fname
 
         os.environ[key] = '';       _assert_reporter(pname, fname)
-        os.environ[key] = '0';      _assert_reporter(pname, fname)
+        os.environ[key] = '0';      _assert_reporter(pname, None)
         os.environ[key] = '1';      _assert_reporter(pname, fname)
         os.environ[key] = 'True';   _assert_reporter(pname, fname)
         os.environ[key] = 'False';  _assert_reporter(pname, fname)
