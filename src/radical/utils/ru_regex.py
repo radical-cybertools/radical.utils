@@ -24,8 +24,9 @@ class ReSult(object):
         construct with a `regex.MatchObject` instance.  This ctor should only be
         called from within the `ReString` class.
         """
-        self._glist = list()
-        self._gdict = dict()
+        self._glist  = list()
+        self._gdict  = dict()
+        self._result = result
 
 
         if result:
@@ -70,6 +71,10 @@ class ReSult(object):
             raise TypeError("key %s needs to be integer, not %s"
                           % (key, type(key)))
 
+    # --------------------------------------------------------------------------
+    #
+    def start(self, idx):
+        return self._result.start(idx)
 
     # --------------------------------------------------------------------------
     #
@@ -206,6 +211,7 @@ class ReString(str):
     #
     def __new__(cls, *args, **kw):
 
+        cls._result = None
         return str.__new__(cls, *args, **kw)
 
 
