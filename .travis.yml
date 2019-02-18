@@ -16,7 +16,6 @@ before_install:
   - df -h
   - ulimit -a
   - python -V
-  - pip install nose coverage codecov
 
 install:
   - pip install .
@@ -24,8 +23,7 @@ install:
   - pip install pylint
 
 script:
-  - py.test tests/
-  - find radical -name \*.py | xargs -n 1 pylint | grep -e '^E'
+  - python setup.py pytest
 
 notifications:
   email:

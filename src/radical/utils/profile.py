@@ -707,11 +707,8 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
     # we have evaluated, cleaned and sorted all events -- now we recreate
     # a clean profile out of them
     ret = list()
-    for uid,entity in entities.iteritems():
-
+    for entity in entities.values():
         ret += entity['events']
-        for state,event in entity['states'].iteritems():
-            ret.append(event)
 
     # sort by time and return
     ret = sorted(ret[:], key=lambda k: k[TIME])

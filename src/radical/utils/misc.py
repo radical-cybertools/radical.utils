@@ -1,15 +1,16 @@
 
 import os
+import re
 import sys
 import time
 import regex
-import shlex
 import socket
-import importlib
+import pkgutil
 import netifaces
 
-import subprocess as sp
 import url as ruu
+
+from .ru_regex import ReString
 
 
 # ------------------------------------------------------------------------------
@@ -330,6 +331,8 @@ def tolist(thing):
 # python docs recommend to use.  This basically steps down the module path and
 # loads the respective submodule until arriving at the target.
 #
+# FIXME: should we cache this?
+#
 def import_module(name):
 
     mod = __import__(name)
@@ -340,15 +343,31 @@ def import_module(name):
 
 # ------------------------------------------------------------------------------
 #
+# as import_module, but without the import part :-P
+#
+# FIXME: should we cache this?
+#
+def find_module(name):
+
+    package = pkgutil.get_loader(name)
+
+    if not package:
+        return None
+
+    return package.filename
+
+
+# ------------------------------------------------------------------------------
+#
 _hostname = None
 def get_hostname():
     """
     Look up the hostname
     """
 
+    global _hostname
     if not _hostname:
 
-        global _hostname
         if socket.gethostname().find('.') >= 0:
             _hostname = socket.gethostname()
         else:
@@ -505,9 +524,15 @@ def get_env_ns(key, ns, default=None):
         check = base + key
         checks.append(check)
 
+    fout = open('/tmp/t', 'a')
+    fout.write('%s\n' % checks)
+
     for check in reversed(checks):
+        fout.write(' -- %s\n' % check)
         if check in os.environ:
-            return os.environ[check]
+            val = os.environ[check]
+            fout.write(' -- %s %s\n\n' % (check, val))
+            return val
 
     return default
 
@@ -533,7 +558,7 @@ def stack():
 
     for mod in modules:
         try:
-            tmp = importlib.import_module(mod)
+            tmp = import_module(mod)
             ret['radical'][mod] = tmp.version_detail
         except:
             pass
@@ -580,22 +605,6 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout(cmd, shell=False):
-    '''
-    call a shell command, return `[stdout, stderr, retval]`.
-    '''
-
-    # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
-        cmd = shlex.split(cmd)
-
-    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=shell)
-    stdout, stderr = p.communicate()
-    return stdout, stderr, p.returncode
-
-
-# ------------------------------------------------------------------------------
-#
 def get_radical_base(module=None):
     '''
     Several parts of the RCT stack store state on the file system.  This should
@@ -630,4 +639,70 @@ def get_radical_base(module=None):
 
 
 # ------------------------------------------------------------------------------
+#
+def expandvars(data, env=None, ignore_missing=True):
+    '''
+    expand the given string (`data`) with environment variables.  If `env` is
+    provided, use that env disctionary for expansion instead of `os.environ`.
+
+    The replacement is performed for the following variable specs 
+
+        assume  `export BAR=bar`:
+
+            $BAR      : foo_$BAR_baz   -> foo_bar_baz
+            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+
+        assume `unset BAR`, `ignore_missing=True`
+
+            $BAR      : foo_$BAR_baz   -> foo__baz
+            ${BAR}    : foo_${BAR}_baz -> foo__baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+        assume `unset BAR`, `ignore_missing=False`
+
+            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
+            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+    '''
+    if not env:
+        env = os.environ
+
+    data = ReString(data)
+    ret  = ''
+
+    while True:
+        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
+
+            if not res:
+                ret += data
+                break
+
+            ret  += res[0]
+
+            if   res[2] is not None: tmp = res[2]
+            elif res[3] is not None: tmp = res[3]
+            else: RuntimeError('regex inconsistency')
+
+            elems = tmp.split(':', 1)
+            key   = elems[0]
+            if len(elems) == 1: default = None
+            else              : default = elems[1]
+            val   = env.get(key, default)
+
+            if val is None:
+                if ignore_missing:
+                    val = ''
+                else:
+                    raise ValueError('cannot expand $%s' % key)
+
+            ret += data[:res.start(1)]
+            ret += val
+            data = ReString(res[4])
+
+    return ret
+
+
+# ------------------------------------------------------------------------------
+
 

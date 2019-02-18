@@ -70,11 +70,38 @@ def test_get_env_ns():
 
     ns = 'radical.utils'
 
-    assert(ru.get_env_ns(ns, 'VERBOSE') == 'DEBUG')
-    assert(ru.get_env_ns(ns, 'log.tgt') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG.TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'LOG_TGT') == '/dev/null')
-    assert(ru.get_env_ns(ns, 'TGT_LOG') is None)
+    assert(ru.get_env_ns('VERBOSE', ns) == 'DEBUG')
+    assert(ru.get_env_ns('log.tgt', ns) == '/dev/null')
+    assert(ru.get_env_ns('LOG.TGT', ns) == '/dev/null')
+    assert(ru.get_env_ns('LOG_TGT', ns) == '/dev/null')
+    assert(ru.get_env_ns('TGT_LOG', ns) is None)
+
+
+# ------------------------------------------------------------------------------
+#
+def test_expandvars():
+
+    import os
+
+    noenv = {'FOO' : 'foo'}
+    env   = {'BAR' : 'bar'}
+
+    val = os.environ.get('BAR')
+    if val is None: tmp = 'buz'
+    else          : tmp = val
+    if val is None: val = ''
+
+    assert(ru.expandvars('foo_$BAR.baz'             ) == 'foo_%s.baz' % val)
+    assert(ru.expandvars('foo_${BAR}_baz'           ) == 'foo_%s_baz' % val)
+    assert(ru.expandvars('foo_${BAR:buz}_baz'       ) == 'foo_%s_baz' % tmp)
+
+    assert(ru.expandvars('foo_$BAR.baz'      , noenv) == 'foo_.baz'   )
+    assert(ru.expandvars('foo_${BAR}_baz'    , noenv) == 'foo__baz'   )
+    assert(ru.expandvars('foo_${BAR:buz}_baz', noenv) == 'foo_buz_baz')
+
+    assert(ru.expandvars('foo_$BAR.baz'      , env  ) == 'foo_bar.baz')
+    assert(ru.expandvars('foo_${BAR}_baz'    , env  ) == 'foo_bar_baz')
+    assert(ru.expandvars('foo_${BAR:buz}_baz', env  ) == 'foo_bar_baz')
 
 
 # ------------------------------------------------------------------------------
@@ -85,6 +112,8 @@ if __name__ == "__main__":
     test_round_upper_bound()
     test_sh_callout()
     test_get_env_ns()
+    test_expandvars()
+
 
 # ------------------------------------------------------------------------------
 
