@@ -31,6 +31,10 @@ from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 from .shell          import sh_callout
 
+from .zmq            import Bridge
+from .zmq            import Queue,  Putter,    Getter
+from .zmq            import PubSub, Publisher, Subscriber
+
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger,   get_logger
 from .reporter       import Reporter

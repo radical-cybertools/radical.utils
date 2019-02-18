@@ -284,21 +284,18 @@ setup_args = {
     'package_data'       : {'': ['*.sh', '*.json', '*.txt', '*.gz',
                                  'VERSION', 'SDIST', sdist_name]},
     'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['regex',
-                            'future',
+    'install_requires'   : ['zmq', 
+                            'regex',
+                            'future', 
+                            'msgpack',
                             'pymongo',
                             'colorama',
                             'netifaces',
-                            'setproctitle',
-                           ],
-    'tests_require'      : ['pytest',
-                            'coverage',
-                           ],
+                            'setproctitle'],
+    'tests_require'      : ['pytest', 'coverage'],
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
-    'cmdclass'           : {
-        'upload'         :   RunTwine,
-                           },
+    'cmdclass'           : {'upload': RunTwine},
 }
 
 
