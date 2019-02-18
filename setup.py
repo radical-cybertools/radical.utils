@@ -272,19 +272,17 @@ setup_args = {
                            ],
     'package_data'       : {'': ['*.sh', '*.json', '*.txt', '*.gz',
                                  'VERSION', 'SDIST', sdist_name]},
-    'install_requires'   : ['regex',
-                            'future',
+    'install_requires'   : ['zmq', 
+                            'regex',
+                            'future', 
+                            'msgpack',
                             'colorama',
                             'netifaces',
-                            'setproctitle'
-                           ],
+                            'setproctitle'],
+    'tests_require'      : ['pytest', 'coverage'],
     'extras_require'     : {
-        'pymongo'        : ['pymongo'],
-        'nose'           : ['nose', 'coverage']
+        'pymongo'        : ['pymongo']
     },
-    'tests_require'      : ['pytest',
-                            'coverage',
-                           ],
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
 }
