@@ -51,6 +51,8 @@ import threading
 import traceback
 
 
+# ------------------------------------------------------------------------------
+#
 def monkeypatch_os_fork_functions():
     """
     Replace os.fork* with wrappers that use ForkSafeLock to acquire
@@ -73,16 +75,19 @@ def monkeypatch_os_fork_functions():
 
 
 # This lock protects all of the lists below.
-_fork_lock = threading.Lock()
-_prepare_call_list = []
-_prepare_call_exceptions = []
-_parent_call_list = []
-_child_call_list = []
+_fork_lock               = threading.Lock()
+_prepare_call_list       = list()
+_prepare_call_exceptions = list()
+_parent_call_list        = list()
+_child_call_list         = list()
 
 
+# ------------------------------------------------------------------------------
+#
 def atfork(prepare=None, parent=None, child=None):
-    """A Python work-a-like of pthread_atfork.
-    
+    """
+    A Python work-a-like of pthread_atfork.
+
     Any time a fork() is called from Python, all 'prepare' callables will
     be called in the order they were registered using this function.
 
@@ -116,6 +121,8 @@ def atfork(prepare=None, parent=None, child=None):
         _fork_lock.release()
 
 
+# ------------------------------------------------------------------------------
+#
 def _call_atfork_list(call_list):
     """
     Given a list of callables in call_list, call them all in order and save
@@ -130,12 +137,16 @@ def _call_atfork_list(call_list):
     return exception_list
 
 
+# ------------------------------------------------------------------------------
+#
 def prepare_to_fork_acquire():
     """Acquire our lock and call all prepare callables."""
     _fork_lock.acquire()
     _prepare_call_exceptions.extend(_call_atfork_list(_prepare_call_list))
 
 
+# ------------------------------------------------------------------------------
+#
 def parent_after_fork_release():
     """
     Call all parent after fork callables, release the lock and print
@@ -145,10 +156,12 @@ def parent_after_fork_release():
     del _prepare_call_exceptions[:]
     exceptions = _call_atfork_list(_parent_call_list)
     _fork_lock.release()
-   #_print_exception_list(prepare_exceptions, 'before fork')
-   #_print_exception_list(exceptions, 'after fork from parent')
+  # _print_exception_list(prepare_exceptions, 'before fork')
+  # _print_exception_list(exceptions, 'after fork from parent')
 
 
+# ------------------------------------------------------------------------------
+#
 def child_after_fork_release():
     """
     Call all child after fork callables, release lock and print all
@@ -160,6 +173,8 @@ def child_after_fork_release():
    #_print_exception_list(exceptions, 'after fork from child')
 
 
+# ------------------------------------------------------------------------------
+#
 def _print_exception_list(exceptions, message, output_file=None):
     """
     Given a list of sys.exc_info tuples, print them all using the traceback
@@ -174,6 +189,8 @@ def _print_exception_list(exceptions, message, output_file=None):
         output_file.write('\n')
 
 
+# ------------------------------------------------------------------------------
+#
 def os_fork_wrapper():
     """Wraps os.fork() to run atfork handlers."""
     pid = None
@@ -190,6 +207,8 @@ def os_fork_wrapper():
     return pid
 
 
+# ------------------------------------------------------------------------------
+#
 def os_forkpty_wrapper():
     """Wraps os.forkpty() to run atfork handlers."""
     pid = None

@@ -23,12 +23,17 @@ from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
 from .registry       import Registry, READONLY, READWRITE
-from .regex          import ReString, ReSult
-from .benchmark      import Benchmark
+from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .config         import Config
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
+from .shell          import sh_callout
+
+from .zmq            import Bridge
+from .zmq            import Queue,  Putter,    Getter
+from .zmq            import PubSub, Publisher, Subscriber
 
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger,   get_logger
@@ -62,7 +67,6 @@ from .               import scheduler
 
 # ------------------------------------------------------------------------------
 #
-
 import os
 
 _mod_root = os.path.dirname (__file__)
@@ -71,6 +75,7 @@ version_short, version_detail, version_base, \
                version_branch, sdist_name,   \
                sdist_path = get_version(_mod_root)
 version = version_short
+
 
 # ------------------------------------------------------------------------------
 
