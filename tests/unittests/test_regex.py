@@ -6,8 +6,10 @@ __license__   = "MIT"
 
 import radical.utils as ru
 
+
 # ------------------------------------------------------------------------------
-def test_re_string () :
+#
+def test_re_string():
     """
     Test regex matching
     """
@@ -15,8 +17,9 @@ def test_re_string () :
     txt   = ru.ReString ("The quick brown fox jumps over the lazy dog")
     tgt_l = [' qu', 'ick brown fox jumps']
     tgt_d = {'x'  : 'ick brown fox jumps'}
-    
-    with txt // '(\s.u)(?P<x>.*?j\S+)' as res :
+
+    with txt // r'(\s.u)(?P<x>.*?j\S+)' as res:
+        print res
         assert (res)
         assert (len(res) == len(tgt_l))
         assert (res      == tgt_l), "%s != %s" % (str(res), str(tgt_l))
@@ -24,16 +27,17 @@ def test_re_string () :
         assert (res[1]   == tgt_l[1])
         assert (res['x'] == tgt_d['x'])
         assert (res.x    == tgt_d['x'])
-        for i, r in enumerate (res) :
+
+        for i, r in enumerate (res):
             assert (r    == tgt_l[i])
-    
-    if  txt // '(rabbit)' :
+
+    if  txt // '(rabbit)':
         assert (False)
-    
-    elif  txt // '((?:\s).{12,15}?(\S+))' :     # support for full Python regex slang
+
+    elif  txt // '((?:\s).{12,15}?(\S+))':
         assert (True)
-    
-    else :
+
+    else:
         assert (False)
 
 
@@ -42,6 +46,7 @@ def test_re_string () :
 if __name__ == "__main__":
 
     test_re_string ()
+
 
 # ------------------------------------------------------------------------------
 

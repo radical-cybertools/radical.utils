@@ -6,25 +6,34 @@ __license__   = "MIT"
 
 import os
 
-def which(program):
-    '''taken from:
-        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+
+# ------------------------------------------------------------------------------
+#
+def which(names):
     '''
+    Takes a (list of) name(s) and looks for an executable in the path.  It
+    will return the first match found, or `None` if none of the given names
+    is found. 
+    '''
+
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
+    if not isinstance(names, list):
+        names = [names]
 
-    if  fpath:
-        if  is_exe (program) :
-            return program
-    else:
-        for path in os.environ["PATH"].split (os.pathsep) :
-            exe_file = os.path.join (path, program)
-            if  is_exe (exe_file) :
-                return exe_file
+    for name in names:
+
+        if is_exe(name):
+            return name
+
+        for path in os.environ.get('PATH', '').split(':'):
+            fpath = '%s/%s' % (path, name)
+            if is_exe(fpath):
+                return fpath
 
     return None
 
 
+# ------------------------------------------------------------------------------
 

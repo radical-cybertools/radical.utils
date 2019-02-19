@@ -5,36 +5,32 @@ __license__   = "MIT"
 
 
 import os
-import radical.utils.config as ruc
+import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
-def test_config () :
-    """ Test if configuration location is picked up from env """
+#
+def test_config():
 
-    tmp = '/tmp/radical.util.cfg.%s' % os.getpid ()
-    os.environ ['RADICAL_UTILS_CONFIG'] = tmp
+    path = '%s/data/resource_*' % os.path.abspath(os.path.dirname(__file__))
 
-    with  open (tmp, 'w') as tmp_file :
-        tmp_file.write ("[test]\n")
-        tmp_file.write ("key=val\n")
+    cfg1 = ru.Config(module='radical.utils', path=path)
+    assert('bar' == cfg1.query('yale.grace.agent_launch_method'))
+    assert(None  is cfg1.query('yale.grace.no_launch_method'))
 
+    os.environ['FOO'] = 'GSISSH'
 
-    # set the configuration options for this object
-    configurable = ruc.Configurable        ('radical.utils')
-    config       = configurable.get_config ('test')
+    cfg2 = ru.Config(module='radical.utils', path=path)
+    assert('GSISSH' == cfg2.query('yale.grace.agent_launch_method'))
+    assert(None     is cfg2.query('yale.grace.no_launch_method'))
 
-    assert ('val' == config['key'].get_value ())
-
-    os.remove (tmp)
 
 # ------------------------------------------------------------------------------
 #
-# run tests if called directly
-#
-if __name__ == "__main__":
+if __name__ == '__main__':
 
-    test_config ()
+    test_config()
+
 
 # ------------------------------------------------------------------------------
 

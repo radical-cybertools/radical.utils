@@ -10,7 +10,7 @@ import lockable
 import singleton
 import threading
 
-from .logger import get_logger
+from .logger import Logger
 
 # default settings for lease manager
 MAX_POOL_SIZE = 15     # unlimited
@@ -106,7 +106,7 @@ class LeaseManager (object) :
 
         import radical.utils.logger as rul
 
-        self._log = get_logger('radical.utils')
+        self._log = Logger('radical.utils')
       # self._log.setLevel ('DEBUG')
 
         self._log.debug ('lm new manager')
@@ -239,7 +239,7 @@ class LeaseManager (object) :
 
                         Example:
                             def creator () :
-                                return get_logger (name)
+                                return Logger(name)
 
                             ret = lease_manager.lease (name, creator)
         """

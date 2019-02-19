@@ -1,12 +1,34 @@
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
 language: python
+
 services:
+
 python:
   - "2.7"
+
+before_install:
+  - pwd
+  - ls -a
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+  - python -V
+
 install:
   - pip install .
+
+script:
+  - python setup.py pytest
+
 notifications:
   email:
     recipients:
       - andre@merzky.net
     on_success: change
     on_failure: always
+
+after_success:
+  - codecov
+
