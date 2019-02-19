@@ -1,5 +1,5 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
+__author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
@@ -23,37 +23,49 @@ from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
 from .registry       import Registry, READONLY, READWRITE
-from .regex          import ReString, ReSult
-from .reporter       import Reporter
-from .benchmark      import Benchmark
+from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
 from .daemonize      import Daemon
+from .config         import Config
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
+from .shell          import sh_callout
+
+from .zmq            import Bridge
+from .zmq            import Queue,  Putter,    Getter
+from .zmq            import PubSub, Publisher, Subscriber
+
+from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
+from .logger         import Logger,   get_logger
+from .reporter       import Reporter
+from .profile        import Profiler, timestamp
+from .profile        import read_profiles, combine_profiles, clean_profile
+from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
+from .profile        import PROF_KEY_MAX
 
 # import utility methods
-from .logger         import *
 from .ids            import *
 from .read_json      import *
-from .tracer         import trace, untrace
-from .which          import which
 from .debug          import *
 from .misc           import *
-from .get_version    import get_version
 from .algorithms     import *
 from .profile        import *
 from .proxy          import *
+from .which          import which
+from .tracer         import trace, untrace
+from .get_version    import get_version
 
 # import decorators
-from .timing         import timed_method
+from .timing         import timed_method, epoch, dt_epoch
+
 
 # import sub-modules
-# from config         import Configuration, Configurable, ConfigOption, getConfig
+from .               import scheduler
+# from .               import config
 
 
 # ------------------------------------------------------------------------------
-
-
+#
 import os
 
 _mod_root = os.path.dirname (__file__)
@@ -62,6 +74,7 @@ version_short, version_detail, version_base, \
                version_branch, sdist_name,   \
                sdist_path = get_version(_mod_root)
 version = version_short
+
 
 # ------------------------------------------------------------------------------
 
