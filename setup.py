@@ -281,7 +281,7 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-stack'
                            ],
-    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION',
+    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz',
                                  'VERSION', 'SDIST', sdist_name]},
     'setup_requires'     : ['pytest-runner'],
     'install_requires'   : ['zmq', 
