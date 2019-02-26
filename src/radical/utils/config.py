@@ -159,11 +159,11 @@ class Config(object, DictMixin):
 
         # if a name starts with a module prefix, strip that prefix
         if name and name.startswith('%s.' % module):
-            name = name[len(module)+1:]
+            name = name[len(module) + 1:]
 
         # if a path starts with a module prefix, strip that prefix
         if path and path.startswith('%s/' % module.replace('.', '/')):
-            path = path[len(module)+1:]
+            path = path[len(module) + 1:]
 
         if not path and not name:
             # Default to `name='*'`.
@@ -213,7 +213,8 @@ class Config(object, DictMixin):
             for sys_fname in glob.glob(sys_fspec):
                 if sys_fname.endswith('.json'): post = postfix_len + 5
                 else                          : post = postfix_len
-                base = sys_fname[prefix_len:-post]
+                fbase = os.path.basename(sys_fname)
+                base  = fbase[prefix_len:-post]
                 if base:
                     sys_cfg[base] = read_json(sys_fname)
 
@@ -221,7 +222,8 @@ class Config(object, DictMixin):
                 for usr_fname in glob.glob(usr_fspec):
                     if usr_fname.endswith('.json'): post = postfix_len + 5
                     else                          : post = postfix_len
-                    base = os.path.basename(usr_fname)[prefix_len:-post]
+                    fbase = os.path.basename(usr_fname)
+                    base  = fbase[prefix_len:-post]
                     if base:
                         usr_cfg[base] = read_json(usr_fname)
 
@@ -259,19 +261,21 @@ class Config(object, DictMixin):
         import pprint
         return pprint.pformat(self._cfg)
 
-    
+
     # --------------------------------------------------------------------------
     #
     def as_dict(self):
 
         return self._cfg
 
-    
+
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented for the dict mixin
     #
     def __getitem__(self, key):
+        if key not in self._cfg:
+            print self._cfg.keys()
         return self._cfg[key]
 
     def __setitem__(self, key, value):

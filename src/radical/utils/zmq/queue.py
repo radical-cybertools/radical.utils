@@ -30,10 +30,10 @@ def log_bulk(log, bulk, token):
     if not isinstance(bulk, list):
         bulk = [bulk]
 
-    if 'arg' in bulk[0]:
+    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
         bulk = [e['arg'] for e in bulk]
 
-    if 'uid' in bulk[0]:
+    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
         log.debug('=== have uid')
         for e in bulk:
             log.debug('=== have elem')
