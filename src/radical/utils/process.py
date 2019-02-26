@@ -7,6 +7,7 @@ __license__   = "MIT"
 import os
 import sys
 import time
+import signal
 import socket
 import threading       as mt
 import multiprocessing as mp
@@ -28,6 +29,64 @@ _WATCH_TIMEOUT = 0.2      # time between thread and process health polls.
                           # on the socketpair; is done in a watcher thread.
 _STOP_TIMEOUT  = 2.0      # time between temination signal and killing child
 _BUFSIZE       = 1024     # default buffer size for socket recvs
+
+
+# ------------------------------------------------------------------------------
+#
+def pid_watcher(pid=None, tgt=None, timeout=0.1, sig=None, uid=None):
+    '''
+    Watch the given `pid` in a separate thread, and if it disappears, kill the
+    process with `tgt`, too.  The spwned thread is a daemon thread and does
+    not need joining - it will disappear once it has done its job, or once the
+    parent process dies - whichever happens first.
+
+    We use `kill(pid, 0)` to test watched process' health, which will raise an
+    exception if no process with `pid` exists, and otherwise has no side
+    effects.  While this has a race condition on PID reuse, the advantages
+    outweight that slim rarcing probability which has only the timout window to
+    happen (which is unlikely even on a very busy system with limited PID
+    range):
+      - very lightweigt with little runtime overhead;
+      - does not need a cooperative process; and
+      - does not suffer from Python level process management bugs.
+    '''
+
+    if not pid: pid = os.getppid()
+    if not tgt: tgt = os.getpid()
+    if not sig: sig = signal.SIGKILL
+    if not uid: uid = '?'
+
+    def _watch():
+
+        try:
+            while True:
+              # sys.stderr.write('--- %s watches %s\n' % (uid, pid))
+              # sys.stderr.flush()
+                time.sleep(timeout)
+                os.kill(pid, 0)
+
+        except OSError:
+          # sys.stderr.write('--- watcher for %s kills %s\n' % (pid, tgt))
+          # sys.stderr.flush()
+            os.kill(tgt, sig)
+
+        except Exception as e:
+          # sys.stderr.write('--- watcher for %s failed: %s\n' % (pid, e))
+          # sys.stderr.flush()
+            pass
+
+    if pid == 1:
+        sys.stderr.write('refuse to watch init process [1]\n')
+        sys.stderr.flush()
+        return
+      # raise ValueError('refuse to watch init process [1]')
+
+  # sys.stderr.write('--- %s [%s] watches %s n' % (uid, tgt, pid))
+  # sys.stderr.flush()
+
+    watcher = mt.Thread(target=_watch)
+    watcher.daemon = True
+    watcher.start()
 
 
 # ------------------------------------------------------------------------------
@@ -171,12 +230,9 @@ class Process(mp.Process):
 
         if not self._ru_spawned:
             # no child, no communication channel
-            info = "=== = %s\n=== = can't communicate w/o child %s -> %s [%s]" \
+            info = "%s\ncan't communicate w/o child %s -> %s [%s]" \
                     % (msg, os.getpid(), self.pid, self._ru_name)
-            self._ru_log.debug(info)
-            print info
-            raise RuntimeError("can't communicate w/o child (%s -> %s [%s]",
-                    os.getpid(), self.pid, self._ru_name)
+            raise RuntimeError(info)
 
         # NOTE:  this method should only be called by the watcher thread, which
         #        owns the endpoint.

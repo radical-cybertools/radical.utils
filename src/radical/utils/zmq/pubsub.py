@@ -201,8 +201,9 @@ class PubSub(Bridge):
 
             while True:
 
-                _socks = dict(_uninterruptible(self._poll.poll, timeout=1000))
                 # timeout in ms
+                _socks = dict(_uninterruptible(self._poll.poll, timeout=1000))
+                active = False
 
                 if self._in in _socks:
 
@@ -213,6 +214,8 @@ class PubSub(Bridge):
                     _uninterruptible(self._out.send_multipart, msg)
                     log_bulk(self._log, msg, '>> %s' % self.channel)
 
+                    active = True
+
                 if self._out in _socks:
                     # if any outgoing socket signals a message, it's
                     # likely a topic subscription.  We forward that on
@@ -222,10 +225,14 @@ class PubSub(Bridge):
                     _uninterruptible(self._in.send_multipart, msg)
                     log_bulk(self._log, msg, '<< %s' % self.channel)
 
+                    active = True
+
+                if active:
+                    # keep this bridge alive
+                    self.heartbeat()
+
         except Exception:
             self._log.exception('bridge failed')
-
-        # thread ends here
 
 
 # ------------------------------------------------------------------------------

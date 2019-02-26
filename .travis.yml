@@ -17,10 +17,12 @@ before_install:
   - python -V
 
 install:
-  - pip install .
+  - pip install . -vvv
 
 script:
   - python setup.py pytest
+  - flake8 --show-source --statistics --config=.flake8
+  - codecov
 
 notifications:
   email:
@@ -30,5 +32,4 @@ notifications:
     on_failure: always
 
 after_success:
-  - codecov
 

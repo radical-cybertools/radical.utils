@@ -1,26 +1,27 @@
 
 import os
-import re
 import sys
 import time
 import regex
 import socket
 import pkgutil
+import datetime
+import itertools
 import netifaces
 
-import url as ruu
-
+from .         import url       as ruu
 from .ru_regex import ReString
+
 
 
 # ------------------------------------------------------------------------------
 #
 def split_dburl(dburl, default_dburl=None):
-    """
+    '''
     we split the url into the base mongodb URL, and the path element, whose
     first element is the database name, and the remainder is interpreted as
     collection id.
-    """
+    '''
 
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
@@ -78,10 +79,10 @@ def split_dburl(dburl, default_dburl=None):
 # ------------------------------------------------------------------------------
 #
 def mongodb_connect(dburl, default_dburl=None):
-    """
+    '''
     connect to the given mongodb, perform auth for the database (if a database
     was given).
-    """
+    '''
 
     try:
         import pymongo
@@ -94,7 +95,8 @@ def mongodb_connect(dburl, default_dburl=None):
         msg += "the second one for installation from pypi.\n\n"
         raise ImportError(msg)
 
-    [host, port, dbname, cname, pname, user, pwd, ssl] = split_dburl(dburl, default_dburl)
+    [host, port, dbname, cname, pname,
+           user, pwd,    ssl] = split_dburl(dburl, default_dburl)
 
     mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
     db    = None
@@ -114,14 +116,13 @@ def mongodb_connect(dburl, default_dburl=None):
             except Exception:
                 pass
 
-
     return mongo, db, dbname, cname, pname
 
 
 # ------------------------------------------------------------------------------
 #
 def parse_file_staging_directives(directives):
-    """
+    '''
     staging directives
 
        [local_path] [operator] [remote_path]
@@ -144,7 +145,7 @@ def parse_file_staging_directives(directives):
     previously -- any strings which do not contain staging operators will be
     interpreted as simple paths (identical for src and tgt), operation is set to
     '=', which must be interpreted in the caller context.
-    """
+    '''
 
     bulk = True
     if  not isinstance(directives, list):
@@ -155,7 +156,7 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not isinstance(directive, basestring):
+        if  not is_str(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
@@ -176,10 +177,9 @@ def parse_file_staging_directives(directives):
 #
 def time_stamp(spec):
 
-    if  isinstance(spec, int)   or \
-        isinstance(spec, float)    :
+    if  isinstance(spec, int) or \
+        isinstance(spec, float)  :
 
-        import datetime
         return datetime.datetime.utcfromtimestamp(spec)
 
     return spec
@@ -188,20 +188,19 @@ def time_stamp(spec):
 # ------------------------------------------------------------------------------
 #
 def time_diff(dt_abs, dt_stamp):
-    """
+    '''
     return the time difference bewteen  two datetime
     objects in seconds (incl. fractions).  Exceptions (like on improper data
     types) fall through.
-    """
+    '''
 
     delta = dt_stamp - dt_abs
 
     # make it easy to use seconds since epoch instead of datetime objects
-    if  isinstance(delta, int)   or \
-        isinstance(delta, float)    :
+    if  isinstance(delta, int) or \
+        isinstance(delta, float)  :
         return delta
 
-    import datetime
     if  not isinstance(delta, datetime.timedelta):
         raise TypeError("difference between '%s' and '%s' is not a .timedelta"
                      % (type(dt_abs), type(dt_stamp)))
@@ -214,38 +213,37 @@ def time_diff(dt_abs, dt_stamp):
 # ------------------------------------------------------------------------------
 #
 def all_pairs(iterable, n):
-    """
+    '''
     [ABCD] -> [AB], [AC], [AD], [BC], [BD], [CD]
-    """
+    '''
 
-    import itertools
     return list(itertools.combinations(iterable, n))
 
 
 # ------------------------------------------------------------------------------
 #
 def cluster_list(iterable, n):
-    """
-    s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
-    """
+    '''
+    s -> [ s0,  s1,    s2,    ... sn-1  ], 
+         [ sn,  sn+1,  sn+2,  ... s2n-1 ], 
+         [ s2n, s2n+1, s2n+2, ... s3n-1 ], 
+         ...
+    '''
 
-    from itertools import izip
-    return izip(*[iter(iterable)] * n)
+    return itertools.izip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
 # From https://docs.python.org/release/2.3.5/lib/itertools-example.html
 #
 def window(seq, n=2):
-    """
+    '''
     Returns a sliding window (of width n) over data from the iterable"
     s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
-    """
-
-    from itertools import islice
+    '''
 
     it = iter(seq)
-    result = tuple(islice(it, n))
+    result = tuple(itertools.islice(it, n))
 
     if len(result) == n:
         yield result
@@ -258,7 +256,7 @@ def window(seq, n=2):
 # ------------------------------------------------------------------------------
 #
 def round_to_base(value, base=1):
-    """
+    '''
     This method expects an integer or float value, and will round it to any
     given integer base.  For example:
 
@@ -271,7 +269,7 @@ def round_to_base(value, base=1):
       34.5, 20 -> 40
 
     The default base is '1'.
-    """
+    '''
 
     return int(base * round(float(value) / base))
 
@@ -279,12 +277,12 @@ def round_to_base(value, base=1):
 # ------------------------------------------------------------------------------
 #
 def round_upper_bound(value):
-    """
+    '''
     This method expects an integer or float value, and will return an integer upper
     bound suitable for example to define plot ranges.  The upper bound is the
     smallest value larger than the input value which is a multiple of 1, 2 or
     5 times the order of magnitude (10**x) of the value.
-    """
+    '''
 
     bound = 0
     order = 0
@@ -305,9 +303,9 @@ def round_upper_bound(value):
 # ------------------------------------------------------------------------------
 #
 def islist(thing):
-    """
+    '''
     return True if a thing is a list thing, False otherwise
-    """
+    '''
 
     return isinstance(thing, list)
 
@@ -315,13 +313,21 @@ def islist(thing):
 # ------------------------------------------------------------------------------
 #
 def tolist(thing):
-    """
+    '''
     return a non-list thing into a list thing
-    """
+    '''
 
     if islist(thing):
         return thing
     return [thing]
+
+
+# ------------------------------------------------------------------------------
+#
+is_list = islist  # FIXME
+to_list = tolist  # FIXME
+def is_str(s):
+    return isinstance(s, basestring)
 
 
 # ------------------------------------------------------------------------------
@@ -360,10 +366,12 @@ def find_module(name):
 # ------------------------------------------------------------------------------
 #
 _hostname = None
+
+
 def get_hostname():
-    """
+    '''
     Look up the hostname
-    """
+    '''
 
     global _hostname
     if not _hostname:
@@ -379,11 +387,13 @@ def get_hostname():
 # ------------------------------------------------------------------------------
 #
 _hostip = None
+
+
 def get_hostip(req=None, logger=None):
-    """
+    '''
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
-    """
+    '''
 
     global _hostip
     if _hostip:
@@ -462,11 +472,11 @@ def get_hostip(req=None, logger=None):
 # ------------------------------------------------------------------------------
 #
 def watch_condition(cond, target=None, timeout=None, interval=0.1):
-    """
+    '''
     Watch a given condition (a callable) until it returns the target value, and
     return that value.  Stop watching on timeout, in that case return None.  The
     condition is tested approximately every 'interval' seconds.
-    """
+    '''
 
     start = time.time()
     while True:
@@ -481,10 +491,10 @@ def watch_condition(cond, target=None, timeout=None, interval=0.1):
 # ------------------------------------------------------------------------------
 #
 def name2env(name):
-    """
+    '''
     convert a name of the for 'radical.pilot' to an env vare base named
     'RADICAL_PILOT'.
-    """
+    '''
 
     return name.replace('.', '_').upper()
 
@@ -492,7 +502,7 @@ def name2env(name):
 # ------------------------------------------------------------------------------
 #
 def get_env_ns(key, ns, default=None):
-    """
+    '''
     get an environment setting within a namespace.  For example. 
 
         get_env_ns('verbose', 'radical.pilot.umgr'), 
@@ -500,20 +510,20 @@ def get_env_ns(key, ns, default=None):
     will return the value of the first found env variable from the following
     sequence:
 
-        RADICAL_PILOT_UMGR_VERBOSE
-        RADICAL_PILOT_VERBOSE
-        RADICAL_VERBOSE
+        RADICAL_PILOT_UMGR_LOG_LVL
+        RADICAL_PILOT_LOG_LVL
+        RADICAL_LOG_LVL
 
     or 'None' if none of the above is set.  The given `name` and `key` are
     converted to upper case, dots are replaced by underscores.
 
     Note that an environment variable set with
 
-        export RADICAL_VERBOSE=
+        export RADICAL_LOG_LVL=
 
     (ie. without an explicit, non-empty value) will be returned as an empty
     string.
-    """
+    '''
 
     ns     = name2env(ns)
     key    = name2env(key)
@@ -524,17 +534,77 @@ def get_env_ns(key, ns, default=None):
         check = base + key
         checks.append(check)
 
-    fout = open('/tmp/t', 'a')
-    fout.write('%s\n' % checks)
-
     for check in reversed(checks):
-        fout.write(' -- %s\n' % check)
         if check in os.environ:
             val = os.environ[check]
-            fout.write(' -- %s %s\n\n' % (check, val))
             return val
 
     return default
+
+
+# ------------------------------------------------------------------------------
+#
+def expandvars(data, env=None, ignore_missing=True):
+    '''
+    expand the given string (`data`) with environment variables.  If `env` is
+    provided, use that env disctionary for expansion instead of `os.environ`.
+
+    The replacement is performed for the following variable specs 
+
+        assume  `export BAR=bar`:
+
+            $BAR      : foo_$BAR_baz   -> foo_bar_baz
+            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+
+        assume `unset BAR`, `ignore_missing=True`
+
+            $BAR      : foo_$BAR_baz   -> foo__baz
+            ${BAR}    : foo_${BAR}_baz -> foo__baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+        assume `unset BAR`, `ignore_missing=False`
+
+            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
+            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+    '''
+    if not env:
+        env = os.environ
+
+    data = ReString(data)
+    ret  = ''
+
+    while True:
+        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
+
+            if not res:
+                ret += data
+                break
+
+            ret  += res[0]
+
+            if   res[2] is not None: tmp = res[2]
+            elif res[3] is not None: tmp = res[3]
+            else: RuntimeError('regex inconsistency')
+
+            elems = tmp.split(':', 1)
+            key   = elems[0]
+            if len(elems) == 1: default = None
+            else              : default = elems[1]
+            val   = env.get(key, default)
+
+            if val is None:
+                if ignore_missing:
+                    val = ''
+                else:
+                    raise ValueError('cannot expand $%s' % key)
+
+            ret += data[:res.start(1)]
+            ret += val
+            data = ReString(res[4])
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
@@ -639,70 +709,4 @@ def get_radical_base(module=None):
 
 
 # ------------------------------------------------------------------------------
-#
-def expandvars(data, env=None, ignore_missing=True):
-    '''
-    expand the given string (`data`) with environment variables.  If `env` is
-    provided, use that env disctionary for expansion instead of `os.environ`.
-
-    The replacement is performed for the following variable specs 
-
-        assume  `export BAR=bar`:
-
-            $BAR      : foo_$BAR_baz   -> foo_bar_baz
-            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
-
-        assume `unset BAR`, `ignore_missing=True`
-
-            $BAR      : foo_$BAR_baz   -> foo__baz
-            ${BAR}    : foo_${BAR}_baz -> foo__baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
-
-        assume `unset BAR`, `ignore_missing=False`
-
-            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
-            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
-    '''
-    if not env:
-        env = os.environ
-
-    data = ReString(data)
-    ret  = ''
-
-    while True:
-        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
-
-            if not res:
-                ret += data
-                break
-
-            ret  += res[0]
-
-            if   res[2] is not None: tmp = res[2]
-            elif res[3] is not None: tmp = res[3]
-            else: RuntimeError('regex inconsistency')
-
-            elems = tmp.split(':', 1)
-            key   = elems[0]
-            if len(elems) == 1: default = None
-            else              : default = elems[1]
-            val   = env.get(key, default)
-
-            if val is None:
-                if ignore_missing:
-                    val = ''
-                else:
-                    raise ValueError('cannot expand $%s' % key)
-
-            ret += data[:res.start(1)]
-            ret += val
-            data = ReString(res[4])
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-
 

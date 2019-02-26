@@ -1,7 +1,4 @@
 
-import os
-import regex
-
 
 # ------------------------------------------------------------------------------
 #
@@ -150,8 +147,8 @@ def partition(space, nparts):
 
     for k in range(nparts):
 
-        q, r = divmod(n-k, nparts)
-        a, b = b, b + q + (r!=0)
+        q, r = divmod(n - k, nparts)
+        a, b = b, b + q + (r != 0)
 
         ret.append(space[a:b])
 
@@ -207,7 +204,7 @@ def remove_common_prefix(data, extend=0):
             break
 
     if extend > 0 and len(prefix) < len(s1):
-        prefix = s1[:min(len(prefix)-extend, len(s1))]
+        prefix = s1[:min(len(prefix) - extend, len(s1))]
 
     # remove the found prefix from all elements
     return [elem.split(prefix, 1)[-1] for elem in data]
@@ -217,20 +214,20 @@ def remove_common_prefix(data, extend=0):
 #
 if __name__ == '__main__':
 
-    test = [ [ 0, 10],
-             [20, 30],
-             [40, 50],
-             [60, 70],
-             [80, 90],
-             [ 5, 15],
-             [35, 55] ]
+    test = [[ 0, 10],
+            [20, 30],
+            [40, 50],
+            [60, 70],
+            [80, 90],
+            [ 5, 15],
+            [35, 55]]
 
     import pprint
-    pprint.pprint (test)
-    pprint.pprint (collapse_ranges (test))
+    pprint.pprint(test)
+    pprint.pprint(collapse_ranges(test))
 
-    space = range(75)
-    parts = partition(space, 8)
+    test_space = range(75)
+    parts = partition(test_space, 8)
     for part in parts:
         print "%3d: %s" % (len(part), part)
 

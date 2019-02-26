@@ -4,15 +4,9 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import os
-import sys
-import time
-import signal
-import thread
 import traceback
 
 import threading as mt
-import misc      as rumisc
 
 
 _out_lock = mt.RLock()
@@ -56,7 +50,7 @@ class Future(mt.Thread):
         '''
 
         if not callable(call):
-            raise ValueError("Thread requires a callable to function, not %s" \
+            raise ValueError("Thread requires a callable to function, not %s"
                             % (str(call)))
 
         mt.Thread.__init__(self)

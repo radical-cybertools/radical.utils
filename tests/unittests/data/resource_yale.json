@@ -2,7 +2,7 @@
 {
     "grace": {
         # some test key/val
-        "agent_launch_method": "$env{FOO:bar}"
+        "agent_launch_method": "${FOO:bar}"
     }
 }
 

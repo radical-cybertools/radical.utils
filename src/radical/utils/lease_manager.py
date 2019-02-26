@@ -4,86 +4,92 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import os
 import time
 import lockable
-import singleton
 import threading
 
 from .logger import Logger
 
 # default settings for lease manager
-MAX_POOL_SIZE = 15     # unlimited
-MAX_POOL_WAIT = 60     # seconds
-MAX_OBJ_AGE   = 60*10  # 10 minutes
+MAX_POOL_SIZE = 15       # unlimited
+MAX_POOL_WAIT = 60       # seconds
+MAX_OBJ_AGE   = 60 * 10  # 10 minutes
 
 
 # ------------------------------------------------------------------------------
 #
-class _LeaseObject (object) :
+class _LeaseObject(object):
 
     _uid = 0
 
     # --------------------------------------------------------------------------
-    def __init__ (self, lm, logger, creator, args) :
+    def __init__(self, lm, logger, creator, args):
 
         self.lm         = lm
         self.used       = False
         self.log        = logger
-        self.obj        = creator (*args)
+        self.obj        = creator(*args)
         self.uid        = 'lo.%04d' % _LeaseObject._uid
         self.t_created  = time.time()
         self.t_leased   = None
-        self.t_released = time.time() # we take control *now*
+        self.t_released = time.time()  # we take control *now*
 
         _LeaseObject._uid += 1
 
-    # --------------------------------------------------------------------------
-    def __cmp__ (self, other) :
-
-        return (other == self.obj)
 
     # --------------------------------------------------------------------------
-    def __enter__ (self) :
+    #
+    def __cmp__(self, other):
+
+        return bool(other == self.obj)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __enter__(self):
 
         return self.obj
 
-    # --------------------------------------------------------------------------
-    def __exit__ (self, *args) :
-
-        self.lm.release (self)
 
     # --------------------------------------------------------------------------
-    def lease (self, *args) :
+    #
+    def __exit__(self, *args):
 
-        if  self.used :
-            raise RuntimeError ("LeaseObject is already leased: %s" % self)
+        self.lm.release(self)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def lease(self, *args):
+
+        if  self.used:
+            raise RuntimeError("LeaseObject is already leased: %s" % self)
 
         self.used     = True
         self.t_leased = time.time()
 
-      # self.log.debug ("%s was unused for %6.1fs" % (self.uid, self.t_leased-self.t_released))
 
     # --------------------------------------------------------------------------
-    def release (self, *args) :
+    #
+    def release(self, *args):
 
-        if  not self.used :
-            raise RuntimeError ("LeaseObject is not leased: %s" % self)
+        if  not self.used:
+            raise RuntimeError("LeaseObject is not leased: %s" % self)
 
         self.used       = False
-        self.t_released = time.time ()
+        self.t_released = time.time()
 
-      # self.log.debug ("%s was leased for %6.1fs" % (self.uid, self.t_released-self.t_leased))
 
     # --------------------------------------------------------------------------
-    def is_leased (self, *args) :
+    def is_leased(self, *args):
 
         return self.used
-        
+
+
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
-class LeaseManager (object) :
+class LeaseManager(object):
 
     """ 
     This is a lease manager -- it creates resource instances on demand and hands
@@ -95,21 +101,18 @@ class LeaseManager (object) :
     If that limit is reached, no objects are returned, and instead the lease
     call blocks until one of the existing objects gets released.
     """
-    
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, max_pool_size=MAX_POOL_SIZE, max_pool_wait=MAX_POOL_WAIT, max_obj_age=MAX_OBJ_AGE) :
+    def __init__(self, max_pool_size=MAX_POOL_SIZE, max_pool_wait=MAX_POOL_WAIT,
+                       max_obj_age=MAX_OBJ_AGE):
         """
         Make sure the object dict is initialized, exactly once.
         """
 
-        import radical.utils.logger as rul
-
         self._log = Logger('radical.utils')
-      # self._log.setLevel ('DEBUG')
 
-        self._log.debug ('lm new manager')
+        self._log.debug('lm new manager')
         self._pools = dict()
         self._max_pool_size = max_pool_size
         self._max_pool_wait = max_pool_wait 
@@ -118,52 +121,47 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
-    def _initialize_pool (self, pool_id) :
+    def _initialize_pool(self, pool_id):
         """
         set up a new pool, but do not create any instances, yet.
         """
 
-        with self :
+        with self:
 
-          # self._log.debug ('lm check   pool (%s)' % self._pools.keys())
+            if pool_id not in self._pools:
 
-            if  not pool_id in self._pools :
-
-                self._log.debug ('lm create  pool   for %s (%s) (%s)' \
+                self._log.debug('lm create  pool   for %s (%s) (%s)'
                         % (pool_id, type(pool_id), self))
 
                 self._pools[pool_id] = dict()
                 self._pools[pool_id]['objects'] = list()
                 self._pools[pool_id]['freed']   = None
-                self._pools[pool_id]['event']   = threading.Event ()
-
-              # import pprint
-              # pprint.pprint (self._pools)
+                self._pools[pool_id]['event']   = threading.Event()
 
             return self._pools[pool_id]
 
 
     # --------------------------------------------------------------------------
     #
-    def _create_object (self, pool_id, creator, args) :
+    def _create_object(self, pool_id, creator, args):
         """
         a new instance is needed -- create one, unless max_pool_size is reached.
         If that is the case, return `None`, otherwise return the created object
         (which is locked before return).
         """
 
-        with self :
+        with self:
 
-            self._log.debug ('lm create  object for %s' % pool_id)
+            self._log.debug('lm create  object for %s' % pool_id)
 
-            if  pool_id not in self._pools :
-                raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
+            if  pool_id not in self._pools:
+                raise RuntimeError("internal error: no pool for '%s'!" % pool_id)
 
             pool = self._pools[pool_id]
 
             # check if a poolsize cap is set and reched
             if  self._max_pool_size >  0 and \
-                self._max_pool_size <= len(pool['objects']) :
+                self._max_pool_size <= len(pool['objects']):
 
                 # no more space...
                 return None
@@ -171,15 +169,15 @@ class LeaseManager (object) :
             # poolsize cap not reached -- increase pool.  If creating a new
             # object does not work for any reason, return None.
             obj = None
-            try :
-                obj = _LeaseObject (self, self._log, creator, args)
-                obj.lease ()
-                pool['objects'].append (obj)
+            try:
+                obj = _LeaseObject(self, self._log, creator, args)
+                obj.lease()
+                pool['objects'].append(obj)
 
-            except Exception as e :
+            except Exception as e:
                 # this exception needs to fall through -- we can't wait
                 # for object creation problems to fix themself over time...
-                self._log.exception ("Could not create lease object")
+                self._log.exception("Could not create lease object: %s", e)
                 raise
 
             return obj
@@ -188,30 +186,28 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
-    def _remove_object (self, pool_id, obj) :
+    def _remove_object(self, pool_id, obj):
         """
         a new instance is needed -- create one, unless max_pool_size is reached.
         If that is the case, return `None`, otherwise return the created object
         (which is locked before return).
         """
 
-        with self :
+        with self:
 
-          # self._log.debug ('lm remove  object for %s' % pool_id)
-
-            if  pool_id not in self._pools :
-                raise RuntimeError ("internal error: no pool for '%s'!" % pool_id)
+            if  pool_id not in self._pools:
+                raise RuntimeError("internal error: no pool for %s!" % pool_id)
 
             pool = self._pools[pool_id]
 
             # poolsize cap not reached -- increase pool.  If creating a new
             # object does not work for any reason, return None.
             obj = None
-            try :
-                pool['objects'].remove (obj)
+            try:
+                pool['objects'].remove(obj)
 
-            except Exception as e :
-                self._log.exception ("Could not remove lease object")
+            except Exception as e:
+                self._log.exception("Could not remove lease object: %s", e)
 
             return obj
 
@@ -219,7 +215,7 @@ class LeaseManager (object) :
 
     # --------------------------------------------------------------------------
     #
-    def lease (self, pool_id, creator, args=[]) :
+    def lease(self, pool_id, creator, args=[]):
         """
 
         For a given object identified, attempt to retrieve an existing object
@@ -238,50 +234,43 @@ class LeaseManager (object) :
         creator       : method to use to create a new object instance
 
                         Example:
-                            def creator () :
+                            def creator() :
                                 return Logger(name)
 
-                            ret = lease_manager.lease (name, creator)
+                            ret = lease_manager.lease(name, creator)
         """
 
         pool_id = str(pool_id)
 
-        if  not isinstance (args, list) :
+        if  not isinstance(args, list):
             args = [args]
 
-        with self :
+        with self:
 
             # make sure the pool exists
-            pool = self._initialize_pool (pool_id)
-
-          # self._log.debug ('lm lease   object for %s (%s)' \
-          #               % (pool_id, len(pool['objects'])))
-          # self._log.debug (pool['objects'])
+            pool = self._initialize_pool(pool_id)
 
             # find an unlocked object instance in the pool
             # NOTE: we iterate over a copy of the list, as an eventual object 
             # removeal would screw up the index...
-            for obj in pool['objects'][:] :
+            for obj in pool['objects'][:]:
 
-              # self._log.debug ('lm lease   object %s use: %s' % (obj, obj.is_leased()))
-
-                if  not obj.is_leased () :
+                if  not obj.is_leased():
 
                     # check age
                     age = time.time() - obj.t_created
-                    if  age > self._max_obj_age :
-                        # too old -- remove and continue to search for a younger unleased object
-                      # self._log.debug ('lm retire  object %s (%6.2fs)' % (obj, age))
-                        self._remove_object (pool_id, obj)
+                    if  age > self._max_obj_age:
+                        # too old -- remove and continue to search for
+                        # a younger unleased object
+                        self._remove_object(pool_id, obj)
                         continue
 
                     # found one -- lease/lock and return it
-                  # self._log.debug ('lm lease   object %s use: ok!' % obj)
-                    obj.lease ()
+                    obj.lease()
                     return obj
 
             # no unlocked object found -- create a new one 
-            obj = self._create_object (pool_id, creator, args)
+            obj = self._create_object(pool_id, creator, args)
 
             # FIXME: we could try_catch the above error, and then check if the
             #        pool has anything worth to wait on.  That might be useful
@@ -290,11 +279,9 @@ class LeaseManager (object) :
             #        errors, so we don't do that at this point...
 
             # check if we got an object
-            if  obj is not None :
+            if  obj is not None:
 
                 # we got a locked object -- return
-              # self._log.debug ('lm lease   object %s use: %s -- new!' \
-              #               % (obj, obj.is_leased()))
                 return obj
 
 
@@ -308,119 +295,112 @@ class LeaseManager (object) :
         # seconds.
         # Not that we release our lock here, to give other threads the
         # chance to release objects.
-        self._log.warn ('lm lease   object: pool is full')
+        self._log.warn('lm lease   object: pool is full')
         timer_start = time.time()
         timer_now   = time.time()
 
-        while (timer_now - timer_start) < self._max_pool_wait :
+        while(timer_now - timer_start) < self._max_pool_wait:
 
             # wait for any release activity on the pool
             timer_left = self._max_pool_wait - (timer_now - timer_start)
-            pool['event'].wait (timer_left)
+            pool['event'].wait(timer_left)
 
-            with self :
+            with self:
 
-                if  pool['event'].is_set () :
+                if  pool['event'].is_set():
 
                     # make sure we don't lock up
-                    pool['event'].clear ()
+                    pool['event'].clear()
 
                     # we won the race!  now get the freed object
                     obj = pool['freed']
                     pool['freed'] = None
 
-                    if  obj is None :
+                    if  obj is None:
 
                         # object was deleted -- we should have space to create
                         # a new one!
-                        obj = self._create_object (pool_id, creator, args)
+                        obj = self._create_object(pool_id, creator, args)
 
                         # check if we got an object
-                        if  obj is not None :
+                        if  obj is not None:
 
                             # we got a locked object -- return
                             return obj
 
-                        else :
+                        else:
 
                             # find did not find a freed object, did not get to
                             # create a new one -- is there a free one in the
                             # pool?
-                            for obj in pool['objects'] :
+                            for obj in pool['objects']:
 
-                                if  not obj.is_leased () :
+                                if  not obj.is_leased():
 
                                     # found one -- lease/lock and return it
-                                    obj.lease ()
+                                    obj.lease()
                                     return obj
 
                             # apparently not - so we give up for now...
 
 
-                    else :
+                    else:
                         # we got a freed object -- lock and return
-                        obj.lease ()
+                        obj.lease()
                         return obj
 
 
                 # none free, none created - or we lost the rase for handling the 
                 # event.  Wait again.
-                timer_now = time.time ()
+                timer_now = time.time()
 
 
         # at this point we give up: we can't create a new object, can't find
         # a free one, and we are running out of wait time...
-        raise LookupError ("stop waiting on object lease")
+        raise LookupError("stop waiting on object lease")
 
 
     # --------------------------------------------------------------------------
     #
-    def release (self, instance, delete=False) :
+    def release(self, instance, delete=False):
         """
         the given object is not needed right now -- unlock it so that somebody
         else can lease it.  This will not delete the object,
         """
 
-      # self._log.debug ('lm release object')
+        with self:
 
-        with self :
+            for pool_id in self._pools:
 
-          # import pprint
-          # pprint.pprint (self._pools)
-
-            for pool_id in self._pools :
-
-                for obj in self._pools [pool_id]['objects'] :
-                    if  instance is not obj :
+                for obj in self._pools [pool_id]['objects']:
+                    if  instance is not obj:
                         # this is not the object you are looking for.
                         continue
 
-                  # self._log.debug ('lm release object %s for %s' % (obj, pool_id))
-
                     # remove the lease lock on the object
-                    obj.release ()
+                    obj.release()
 
-                    if  delete :
+                    if  delete:
                         # remove the object from the pool (decreasing its 
                         # ref counter and thus making it eligible for 
                         # garbage collection).  
-                        self._pools [pool_id]['objects'].remove (obj)
+                        self._pools [pool_id]['objects'].remove(obj)
                         self._pools [pool_id]['freed'] = None
 
-                    else :
+                    else:
                         # mark the object as freed for lease.  
                         self._pools [pool_id]['freed'] = obj
 
                     # notify waiting threads about the lease or creation
                     # opportunity.
-                    self._pools [pool_id]['event'].set ()
+                    self._pools [pool_id]['event'].set()
 
                     # object has been released
                     return 
 
             # FIXME: log warning
             # for now we ignore double-frees
-            # raise RuntimeError ("cannot release object -- not managed")
+            # raise RuntimeError("cannot release object -- not managed")
 
 
 # ------------------------------------------------------------------------------

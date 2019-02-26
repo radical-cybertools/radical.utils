@@ -313,9 +313,12 @@ class Queue(Bridge):
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
+                if active:
+                    # keep this bridge alive
+                    self.heartbeat()
 
-                # let CPU sleep a bit when there is nothing to do
-                if not active:
+                else:
+                    # let CPU sleep a bit when there is nothing to do
                     time.sleep(0.01)
 
         except  Exception:
