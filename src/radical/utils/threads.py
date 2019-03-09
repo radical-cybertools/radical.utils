@@ -758,6 +758,9 @@ class RLock(object):
 #
 def get_thread_name():
 
+    if not mt.current_thread():
+        return None
+
     return mt.current_thread().name
 
 
