@@ -18,6 +18,7 @@ before_install:
 
 install:
   - pip install . -vvv
+  - pip install pylint coverage flake8 codecov
 
 script:
   - python setup.py pytest
