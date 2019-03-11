@@ -1,5 +1,5 @@
 [flake8]
-exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin
+exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin,.eggs
 max-complexity  = 10
 max-line-length = 80
 ignore          =
