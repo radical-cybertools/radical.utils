@@ -103,7 +103,7 @@ def test_get_env_ns():
 
 # ------------------------------------------------------------------------------
 #
-def test_expandvars():
+def test_expand_env():
 
     import os
 
@@ -115,17 +115,17 @@ def test_expandvars():
     else          : tmp = val
     if val is None: val = ''
 
-    assert(ru.expandvars('foo_$BAR.baz'             ) == 'foo_%s.baz' % val)
-    assert(ru.expandvars('foo_${BAR}_baz'           ) == 'foo_%s_baz' % val)
-    assert(ru.expandvars('foo_${BAR:buz}_baz'       ) == 'foo_%s_baz' % tmp)
+    assert(ru.expand_env('foo_$BAR.baz'             ) == 'foo_%s.baz' % val)
+    assert(ru.expand_env('foo_${BAR}_baz'           ) == 'foo_%s_baz' % val)
+    assert(ru.expand_env('foo_${BAR:buz}_baz'       ) == 'foo_%s_baz' % tmp)
 
-    assert(ru.expandvars('foo_$BAR.baz'      , noenv) == 'foo_.baz'   )
-    assert(ru.expandvars('foo_${BAR}_baz'    , noenv) == 'foo__baz'   )
-    assert(ru.expandvars('foo_${BAR:buz}_baz', noenv) == 'foo_buz_baz')
+    assert(ru.expand_env('foo_$BAR.baz'      , noenv) == 'foo_.baz'   )
+    assert(ru.expand_env('foo_${BAR}_baz'    , noenv) == 'foo__baz'   )
+    assert(ru.expand_env('foo_${BAR:buz}_baz', noenv) == 'foo_buz_baz')
 
-    assert(ru.expandvars('foo_$BAR.baz'      , env  ) == 'foo_bar.baz')
-    assert(ru.expandvars('foo_${BAR}_baz'    , env  ) == 'foo_bar_baz')
-    assert(ru.expandvars('foo_${BAR:buz}_baz', env  ) == 'foo_bar_baz')
+    assert(ru.expand_env('foo_$BAR.baz'      , env  ) == 'foo_bar.baz')
+    assert(ru.expand_env('foo_${BAR}_baz'    , env  ) == 'foo_bar_baz')
+    assert(ru.expand_env('foo_${BAR:buz}_baz', env  ) == 'foo_bar_baz')
 
 
 # ------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     test_sh_callout()
     test_sh_callout_async()
     test_get_env_ns()
-    test_expandvars()
+    test_expand_env()
 
 
 

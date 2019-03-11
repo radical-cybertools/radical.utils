@@ -121,9 +121,8 @@ __license__   = "MIT"
 
 import glob
 import os
-import re
 
-from .misc       import find_module, is_str
+from .misc       import find_module, is_str, expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
 
@@ -226,8 +225,7 @@ class Config(object, DictMixin):
             for sys_fname in glob.glob(sys_fspec):
                 if sys_fname.endswith('.json'): post = postfix_len + 5
                 else                          : post = postfix_len
-                fbase = os.path.basename(sys_fname)
-                base  = fbase[prefix_len:-post]
+                base  = sys_fname[prefix_len:-post]
                 if base:
                     sys_cfg[base] = read_json(sys_fname)
 
@@ -235,8 +233,7 @@ class Config(object, DictMixin):
                 for usr_fname in glob.glob(usr_fspec):
                     if usr_fname.endswith('.json'): post = postfix_len + 5
                     else                          : post = postfix_len
-                    fbase = os.path.basename(usr_fname)
-                    base  = fbase[prefix_len:-post]
+                    base  = usr_fname[prefix_len:-post]
                     if base:
                         usr_cfg[base] = read_json(usr_fname)
 
@@ -247,29 +244,19 @@ class Config(object, DictMixin):
         self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
         self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
 
-        # expand environmenet
-        def _env_mixin(d):
+        # expand environment
+        def _expand_env(d):
             if isinstance(d, dict):
                 for k,v in d.iteritems():
-                    d[k] = _env_mixin(v)
+                    d[k] = _expand_env(v)
+            elif isinstance(d, list):
+                for i,v in enumerate(d):
+                    d[i] = _expand_env(v)
             elif isinstance(d, basestring):
-                out = ''
-                while True:
-                    # FIXME: use ru.re
-                    res = re.search('\${(.*?)}', d)  # 'bar${FOO:foo}baz'
-                    if not res:
-                        out += d
-                        break
-                    match = res.group(1)
-                    if ':' not in match:                         # ${FOO}    
-                        match += ':'                             # $(FOO:}
-                    out += d[:res.start(0)]                      # out += 'bar'
-                    out += os.environ.get(*match.split(':', 1))  # out += 'foo'
-                    d    = d[res.end(0):]                        # d    = 'baz'
-                d = out
+                d = expand_env(d)
             return d
 
-        _env_mixin(self._cfg)
+        _expand_env(self._cfg)
 
 
     # --------------------------------------------------------------------------
@@ -293,7 +280,7 @@ class Config(object, DictMixin):
     #
     def __getitem__(self, key):
         if key not in self._cfg:
-            print self._cfg.keys()
+            raise KeyError('no such key [%s]')
         return self._cfg[key]
 
     def __setitem__(self, key, value):
