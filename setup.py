@@ -301,7 +301,7 @@ setup_args = {
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
-    'setup_requires'     : ['pytest-runner'],
+  # 'setup_requires'     : ['pytest-runner'],
     'install_requires'   : ['zmq', 
                             'regex',
                             'future', 
