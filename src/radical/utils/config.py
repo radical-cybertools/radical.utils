@@ -174,15 +174,15 @@ class Config(object, DictMixin):
             path = path[len(module) + 1:]
 
         if not path and not name:
-            # Default to `name='*'`.
-            name = '*'
+            # Default to `name='*.json'`
+            name = '*.json'
 
         if not cfg:
             cfg = dict()
 
 
         if path: path = path
-        else   : path = name.replace('.', '/')
+        else   : path = name
 
         if '*' in path: starred = True
         else          : starred = False
@@ -202,11 +202,11 @@ class Config(object, DictMixin):
         usr_cfg = dict()
 
         if not starred:
-            # no wildcard - just use the config as they exist
 
-            sys_fname = sys_fspec
-            if not os.path.isfile(sys_fname): sys_fname += '.json' 
-            if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
+            if sys_fspec:
+                sys_fname = sys_fspec
+                if not os.path.isfile(sys_fname): sys_fname += '.json' 
+                if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
 
             if usr_fspec:
                 usr_fname = usr_fspec
@@ -218,24 +218,26 @@ class Config(object, DictMixin):
             # wildcard mode: whatever the '*' expands into is used as root dict
             # entry, and the respective content of the config file is stored
             # underneath it.
-            star_idx    = path.find('*')
-            prefix_len  = star_idx
-            postfix_len = len(path) - star_idx - 1
+            if sys_fspec:
 
-            for sys_fname in glob.glob(sys_fspec):
-                if sys_fname.endswith('.json'): post = postfix_len + 5
-                else                          : post = postfix_len
-                base  = sys_fname[prefix_len:-post]
-                if base:
-                    sys_cfg[base] = read_json(sys_fname)
+                prefix_len  = sys_fspec.find('*')
+                postfix_len = len(sys_fspec) - prefix_len - 1
+
+                for sys_fname in glob.glob(sys_fspec):
+                    base = sys_fname[prefix_len:-postfix_len]
+                    scfg = read_json(sys_fname)
+                    sys_cfg[base] = scfg
+
 
             if usr_fspec:
+
+                prefix_len  = usr_fspec.find('*')
+                postfix_len = len(usr_fspec) - prefix_len - 1
+
                 for usr_fname in glob.glob(usr_fspec):
-                    if usr_fname.endswith('.json'): post = postfix_len + 5
-                    else                          : post = postfix_len
-                    base  = usr_fname[prefix_len:-post]
-                    if base:
-                        usr_cfg[base] = read_json(usr_fname)
+                    base = usr_fname[prefix_len:-postfix_len]
+                    ucfg = read_json(usr_fname)
+                    usr_cfg[base] = ucfg
 
 
         # merge sys, app, and user cfg before expansion
