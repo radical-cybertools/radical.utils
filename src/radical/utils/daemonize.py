@@ -161,7 +161,7 @@ class Daemon (object) :
 
 
         if  not pid:
-            raise RuntimeError ("no pidfile %s / pid not known.  Daemon not running?\n"
+            raise RuntimeError ("no pidfile %s / pid unknown / not running?\n"
                                % self.pidfile)
 
         # Try killing the daemon process    
@@ -199,4 +199,7 @@ class Daemon (object) :
         daemonized by start() or restart().
         """
         raise RuntimeError ("deamon workload undefined")
+
+
+# ------------------------------------------------------------------------------
 

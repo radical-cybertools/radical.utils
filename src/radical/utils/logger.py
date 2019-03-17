@@ -31,6 +31,7 @@ multiple times (from within the same thread), and we have to unlock them that
 many times.  We use a shortcut, and create a new, unlocked lock.
 """
 
+
 # ------------------------------------------------------------------------------
 #
 import os
@@ -244,8 +245,11 @@ class Logger(object):
 
         if not level:
             level = ru_get_env_ns('log_lvl', ns)
-            if not level:
-                level = ru_def['log_lvl']
+        if not level:
+            # backward compatibility
+            level = ru_get_env_ns('verbose', ns)
+        if not level:
+            level = ru_def['log_lvl']
 
         if level in [OFF, 'OFF']:
             targets = ['null']

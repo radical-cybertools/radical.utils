@@ -338,5 +338,6 @@ def _string_stringexpand(target, source):
     if  orig == expanded: return expanded, False
     else                : return expanded, True
 
+
 # ------------------------------------------------------------------------------
 
