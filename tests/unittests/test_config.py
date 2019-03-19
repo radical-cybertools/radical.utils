@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import os
+import pytest
 import radical.utils as ru
 
 
@@ -16,9 +17,11 @@ def test_config():
 
     cfg1 = ru.Config(module='radical.utils', path=path)
     assert('bar' == cfg1.query('yale.grace.agent_launch_method'))
-    assert(None  is cfg1.query('yale.grace.no_launch_method'))
     assert('bar' == cfg1['yale']['grace']['agent_launch_method'])
-    assert(None  is cfg1['yale']['grace']['no_launch_method'])
+
+    assert(None  is cfg1.query('yale.grace.no_launch_method'))
+    with pytest.raises(KeyError):
+        _ = cfg1['yale']['grace']['no_launch_method']
 
     os.environ['FOO'] = 'GSISSH'
 

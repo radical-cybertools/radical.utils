@@ -280,7 +280,7 @@ class Config(object, DictMixin):
     #
     def __getitem__(self, key):
         if key not in self._cfg:
-            return None
+            raise KeyError('no such key [%s]' % key)
         return self._cfg[key]
 
     def __setitem__(self, key, value):
