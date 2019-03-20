@@ -224,7 +224,10 @@ class Config(object, DictMixin):
                 postfix_len = len(sys_fspec) - prefix_len - 1
 
                 for sys_fname in glob.glob(sys_fspec):
-                    base = sys_fname[prefix_len:-postfix_len]
+
+                    if postfix_len: base = sys_fname[prefix_len:-postfix_len]
+                    else          : base = sys_fname[prefix_len:]
+
                     scfg = read_json(sys_fname)
                     sys_cfg[base] = scfg
 
