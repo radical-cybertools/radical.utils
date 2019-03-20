@@ -227,7 +227,7 @@ class Profiler(object):
                           timestamp=timestamp, comp=comp, tid=tid)
             return
 
-        data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
+        data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
                 % (timestamp, event, comp, tid, uid, state, msg)
         self._handle.write(data)
 
