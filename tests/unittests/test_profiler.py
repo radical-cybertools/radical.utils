@@ -44,7 +44,7 @@ def test_profiler():
     assert(os.path.isfile(fname))
     assert(_cmd('grep -e "^[0-9\.]*,foo,%s,MainThread,,,$"    %s' % (pname, fname)))
     assert(_cmd('grep -e "^[0-9\.]*,bar,%s,MainThread,baz,,$" %s' % (pname, fname)))
-    assert(_cmd('grep -e "^%.4f,buz,%s,MainThread,,,$"        %s' % (now, pname, fname)))
+    assert(_cmd('grep -e "^%.7f,buz,%s,MainThread,,,$"        %s' % (now, pname, fname)))
 
     try   : os.unlink(fname)
     except: pass
@@ -109,7 +109,7 @@ def test_env():
 #
 if __name__ == '__main__':
 
-  # test_profiler()
+    test_profiler()
     test_env()
 
 
