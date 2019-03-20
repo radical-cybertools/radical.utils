@@ -303,16 +303,17 @@ class Config(object, DictMixin):
         if not elems:
             raise ValueError('empty key on query')
 
-        pos = self._cfg
+        pos  = self._cfg
+        path = list()
         for elem in elems:
 
             if not isinstance(pos, dict):
-                raise ValueError('key too long')
+                raise KeyError('no such key [%s]' % '.'.join(path))
 
-            pos = pos.get(elem)
+            if elem in pos: pos = pos[elem]
+            else          : pos = default
 
-            if pos is None:
-                return default
+            path.append(elem)
 
         return pos
 
