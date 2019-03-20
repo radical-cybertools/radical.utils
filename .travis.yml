@@ -18,10 +18,11 @@ before_install:
 
 install:
   - pip install . -vvv
+  - pip install pylint coverage flake8 codecov pytest
 
 script:
-  - python setup.py pytest
-  - flake8 --show-source --statistics --config=.flake8
+  - pytest tests/
+  - flake8 --show-source --statistics --config=.flake8 || true
   - codecov
 
 notifications:

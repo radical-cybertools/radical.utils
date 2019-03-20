@@ -1,4 +1,5 @@
 
+import re
 import os
 import sys
 import time
@@ -433,7 +434,7 @@ def get_hostip(req=None, logger=None):
                       iface not in white_list and
                       iface not in black_list]
 
-    preflist = req + white_list + black_list + rest
+    preflist = req + white_list + rest
 
     for iface in preflist:
 
@@ -544,7 +545,7 @@ def get_env_ns(key, ns, default=None):
 
 # ------------------------------------------------------------------------------
 #
-def expandvars(data, env=None, ignore_missing=True):
+def expand_env(data, env=None, ignore_missing=True):
     '''
     expand the given string (`data`) with environment variables.  If `env` is
     provided, use that env disctionary for expansion instead of `os.environ`.
@@ -569,40 +570,45 @@ def expandvars(data, env=None, ignore_missing=True):
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
     '''
+    if '$' not in data:
+        return data
+
+    # convert from `abc.$FOO.def` to `abc${FOO}.def` to s implify parsing
+    data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
+
     if not env:
         env = os.environ
 
-    data = ReString(data)
-    ret  = ''
+    ret = ''
+    while data:
 
-    while True:
-        with data // '(.*?)(\$(?:{([a-zA-Z0-9_:]+)}|([a-zA-Z0-9_]+)))(.*)' as res:
+        data = ReString(data)
+
+        # idea     :   pre     ${  Vari_ABLE            : val     } post
+        # captures :  (   )(?    (                  )(?  (     ))  )(  )
+        # indexes  :  1          2                       3          4
+        with data // r'(.*?)(?:\${([A-Z][a-zA-Z0-9_]+)(?::([^}]+))?})(.*)' \
+            as res:
 
             if not res:
                 ret += data
                 break
 
-            ret  += res[0]
+            pre  = res[0]
+            key  = res[1]
+            val  = res[2]
+            post = res[3]
 
-            if   res[2] is not None: tmp = res[2]
-            elif res[3] is not None: tmp = res[3]
-            else: RuntimeError('regex inconsistency')
+            if pre  is None: pre  = ''
+            if val  is None: val  = ''
+            if post is None: post = ''
 
-            elems = tmp.split(':', 1)
-            key   = elems[0]
-            if len(elems) == 1: default = None
-            else              : default = elems[1]
-            val   = env.get(key, default)
+            val = env.get(key, val)
 
-            if val is None:
-                if ignore_missing:
-                    val = ''
-                else:
-                    raise ValueError('cannot expand $%s' % key)
-
-            ret += data[:res.start(1)]
+            ret += pre
             ret += val
-            data = ReString(res[4])
+
+            data = ReString(post)
 
     return ret
 
@@ -621,7 +627,6 @@ def stack():
 
     modules = ['radical.utils', 
                'radical.saga', 
-               'saga', 
                'radical.pilot', 
                'radical.entk',
                'radical.analytics']
