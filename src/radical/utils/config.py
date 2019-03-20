@@ -296,6 +296,17 @@ class Config(object, DictMixin):
     # --------------------------------------------------------------------------
     #
     def query(self, key, default=None):
+        '''
+        For a query like
+
+            config.query('some.path.to.key', 'foo')
+
+        this method behaves like:
+
+            config['some']['path']['to'].get('key', default='foo')
+
+        '''
+
 
         if is_str(key): elems = key.split('.')
         else          : elems = key
