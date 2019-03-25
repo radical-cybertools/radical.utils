@@ -59,6 +59,17 @@ def test_url_issue_61():
 # ------------------------------------------------------------------------------
 #
 def test_url_issue_rs_305():
+    '''
+    This compensates
+
+        >>> import os
+        >>> os.path.normpath('//path//to//dir//')
+        '//path/to/dir'
+
+    to a normalization resulting in
+
+        '/path/to/dir'
+    '''
 
     url1 = ru.Url ("advert://localhost/path/to/file")
     url2 = ru.Url ("advert://localhost//path/to/file")
