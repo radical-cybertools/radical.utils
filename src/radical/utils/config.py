@@ -224,7 +224,10 @@ class Config(object, DictMixin):
                 postfix_len = len(sys_fspec) - prefix_len - 1
 
                 for sys_fname in glob.glob(sys_fspec):
-                    base = sys_fname[prefix_len:-postfix_len]
+
+                    if postfix_len: base = sys_fname[prefix_len:-postfix_len]
+                    else          : base = sys_fname[prefix_len:]
+
                     scfg = read_json(sys_fname)
                     sys_cfg[base] = scfg
 
@@ -282,7 +285,7 @@ class Config(object, DictMixin):
     #
     def __getitem__(self, key):
         if key not in self._cfg:
-            return None
+            raise KeyError('no such key [%s]' % key)
         return self._cfg[key]
 
     def __setitem__(self, key, value):
@@ -298,6 +301,17 @@ class Config(object, DictMixin):
     # --------------------------------------------------------------------------
     #
     def query(self, key, default=None):
+        '''
+        For a query like
+
+            config.query('some.path.to.key', 'foo')
+
+        this method behaves like:
+
+            config['some']['path']['to'].get('key', default='foo')
+
+        '''
+
 
         if is_str(key): elems = key.split('.')
         else          : elems = key
@@ -305,16 +319,17 @@ class Config(object, DictMixin):
         if not elems:
             raise ValueError('empty key on query')
 
-        pos = self._cfg
+        pos  = self._cfg
+        path = list()
         for elem in elems:
 
             if not isinstance(pos, dict):
-                raise ValueError('key too long')
+                raise KeyError('no such key [%s]' % '.'.join(path))
 
-            pos = pos.get(elem)
+            if elem in pos: pos = pos[elem]
+            else          : pos = default
 
-            if pos is None:
-                return default
+            path.append(elem)
 
         return pos
 
