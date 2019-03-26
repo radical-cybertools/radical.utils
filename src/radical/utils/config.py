@@ -182,7 +182,7 @@ class Config(object, DictMixin):
 
 
         if path: path = path
-        else   : path = name
+        else   : path = name.replace('.', '/')
 
         if '*' in path: starred = True
         else          : starred = False
