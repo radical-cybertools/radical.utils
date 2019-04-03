@@ -1,8 +1,8 @@
 
 import os
+import re
 import sys
 import time
-import regex
 import shlex
 import socket
 import importlib
@@ -10,6 +10,8 @@ import netifaces
 
 import subprocess as sp
 import url as ruu
+
+from .ru_regex import ReString
 
 
 # ------------------------------------------------------------------------------
@@ -158,7 +160,7 @@ def parse_file_staging_directives(directives):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
-        rs = regex.ReString(directive)
+        rs = ReString(directive)
 
         if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
             res = rs.get()
@@ -510,6 +512,76 @@ def get_env_ns(key, ns, default=None):
             return os.environ[check]
 
     return default
+
+
+# ------------------------------------------------------------------------------
+#
+def expand_env(data, env=None, ignore_missing=True):
+    '''
+    expand the given string (`data`) with environment variables.  If `env` is
+    provided, use that env disctionary for expansion instead of `os.environ`.
+
+    The replacement is performed for the following variable specs 
+
+        assume  `export BAR=bar`:
+
+            $BAR      : foo_$BAR_baz   -> foo_bar_baz
+            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+
+        assume `unset BAR`, `ignore_missing=True`
+
+            $BAR      : foo_$BAR_baz   -> foo__baz
+            ${BAR}    : foo_${BAR}_baz -> foo__baz
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+        assume `unset BAR`, `ignore_missing=False`
+
+            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
+            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
+            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+    '''
+    if '$' not in data:
+        return data
+
+    # convert from `abc.$FOO.def` to `abc${FOO}.def` to s implify parsing
+    data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
+
+    if not env:
+        env = os.environ
+
+    ret = ''
+    while data:
+
+        data = ReString(data)
+
+        # idea     :   pre     ${  Vari_ABLE            : val     } post
+        # captures :  (   )(?    (                  )(?  (     ))  )(  )
+        # indexes  :  1          2                       3          4
+        with data // r'(.*?)(?:\${([A-Z][a-zA-Z0-9_]+)(?::([^}]+))?})(.*)' \
+            as res:
+
+            if not res:
+                ret += data
+                break
+
+            pre  = res[0]
+            key  = res[1]
+            val  = res[2]
+            post = res[3]
+
+            if pre  is None: pre  = ''
+            if val  is None: val  = ''
+            if post is None: post = ''
+
+            val = env.get(key, val)
+
+            ret += pre
+            ret += val
+
+            data = ReString(post)
+
+    return ret
 
 
 # ------------------------------------------------------------------------------
