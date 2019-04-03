@@ -543,7 +543,7 @@ def expand_env(data, env=None, ignore_missing=True):
     '''
 
     if not data:
-        return
+        return data
 
     if '$' not in data:
         return data
