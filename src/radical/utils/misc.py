@@ -570,6 +570,10 @@ def expand_env(data, env=None, ignore_missing=True):
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
     '''
+
+    if not data:
+        return data
+
     if '$' not in data:
         return data
 
