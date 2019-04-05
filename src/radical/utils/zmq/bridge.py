@@ -49,10 +49,6 @@ class Bridge(object):
 
         self._hb.beat()
 
-        self._log     = Logger(name=self._uid)
-        self._prof    = Profiler(name=self._uid)
-
-
 
     # --------------------------------------------------------------------------
     #
