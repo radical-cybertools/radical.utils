@@ -6,6 +6,37 @@
 
 
 
+0.60.0 Release                                                        2019-04-10
+--------------------------------------------------------------------------------
+
+  - fir network interface blacklisting
+  - add pep8 and pylint configs
+  - add expand_env
+  - fix ReString class
+  - add heartbeat class
+  - add shell level proc watcher 
+  - add stdio redirect for background callouts 
+  - add zmq support, backported from v2 
+  - add gtod support
+  - dict mixin cleanup 
+  - clean out stale code 
+  - consolidate configuration system across RCT stack
+  - fix config error handling and test 
+  - fix config getter
+  - fix env expansion, apply in config patrser
+  - fix path interpretation 
+  - fix state event duplicaation 
+  - fix setup and test suite 
+  - improve scheduler viz 
+  - increase timing precision in profiler 
+  - impove shell process mgmt 
+  - more resilient mod loading 
+  - move configuration tooling to util layer 
+  - remove some debug prints 
+  - switch to pytest 
+  - use dict mixin for config 
+
+
 0.50.3 Release                                                        2018-12-19
 --------------------------------------------------------------------------------
 
