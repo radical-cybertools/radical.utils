@@ -302,7 +302,7 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['zmq', 
+    'install_requires'   : ['pyzmq', 
                             'regex',
                             'future', 
                             'msgpack',
@@ -310,7 +310,6 @@ setup_args = {
                             'colorama',
                             'netifaces',
                             'setproctitle',
-                            'pyzmq'
                            ],
     'tests_require'      : ['pytest', 'coverage', 'flake8', 'pudb', 'pylint'],
     'test_suite'         : '%s.tests' % name,
