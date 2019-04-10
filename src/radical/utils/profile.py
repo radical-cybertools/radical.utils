@@ -3,11 +3,12 @@ import os
 import csv
 import time
 
-from   .misc      import name2env        as ru_name2env
-from   .misc      import get_env_ns      as ru_get_env_ns
-from   .misc      import get_hostname    as ru_get_hostname
-from   .misc      import get_hostip      as ru_get_hostip
-from   .threads   import get_thread_name as ru_get_thread_name
+from   .misc    import name2env        as ru_name2env
+from   .misc    import get_env_ns      as ru_get_env_ns
+from   .misc    import get_hostname    as ru_get_hostname
+from   .misc    import get_hostip      as ru_get_hostip
+from   .threads import get_thread_name as ru_get_thread_name
+from   .config  import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -90,13 +91,24 @@ class Profiler(object):
         Open the file handle, sync the clock, and write timestam_zero
         """
 
+        ru_def = DefaultConfig()
+
         if not ns:
             ns = name
 
         # check if this profile is enabled via an env variable
-        if ru_get_env_ns('profile', ns) is None:
+        self._enabled = ru_get_env_ns('profile', ns)
+
+        if  self._enabled is None:
+            self._enabled = ru_def.get('profile')
+
+        if self._enabled is None:
+            self._enabled = 'False'
+
+        if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
             return
+
 
         # profiler is enabled - set properties, sync time, open handle
         self._enabled = True
@@ -104,7 +116,7 @@ class Profiler(object):
         self._name    = name
 
         if not self._path:
-            self._path = os.getcwd()
+            self._path = ru_def['profile_dir']
 
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
@@ -140,18 +152,18 @@ class Profiler(object):
         self.close()
 
 
-    # --------------------------------------------------------------------------
-    #
-    def __del__(self):
-        self.close()
-
-
     # ------------------------------------------------------------------------------
     #
     @property
     def enabled(self):
 
         return self._enabled
+
+
+    @property
+    def path(self):
+
+        return self._path
 
 
     # --------------------------------------------------------------------------
@@ -209,7 +221,7 @@ class Profiler(object):
                           timestamp=timestamp, comp=comp, tid=tid)
             return
 
-        data = "%.4f,%s,%s,%s,%s,%s,%s\n" \
+        data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
                 % (timestamp, event, comp, tid, uid, state, msg)
         self._handle.write(data)
 

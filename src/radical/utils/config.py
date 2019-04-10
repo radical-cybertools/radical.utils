@@ -10,7 +10,7 @@ __license__   = "MIT"
 #
 #   - system config files will be merged with user configs (if those exist)
 #   - python style comments are filtered out before parsing 
-#   - after parsing, `$env{ABC:default}`-style values are set or expanded via 
+#   - after parsing, `${ABC:default}`-style values are set or expanded via 
 #     `os.environ`
 #
 #
@@ -98,7 +98,7 @@ __license__   = "MIT"
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
-#   '$env{RADICAL_UTILS_ENV:default_value}
+#   '${RADICAL_UTILS_ENV:default_value}
 #
 # which will be replaced by 
 #
@@ -119,15 +119,14 @@ __license__   = "MIT"
 #
 # ------------------------------------------------------------------------------
 
-import pkgutil
-import copy
 import glob
 import os
-import re
 
-from .misc       import find_module
+from .misc       import find_module, is_str, expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
+
+from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
@@ -141,9 +140,18 @@ class Config(object, DictMixin):
     #        instance creations do not trigger a new (identical) round of
     #        parsing.
 
+
+    # identify as dictionary
+    # FIXME: why is this not inherited from DictMixin?
+    # FIXME: we also want to identify as ru.Config!
+    @property
+    def __class__(self):
+        return dict
+
+
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module, path=None, name=None):
+    def __init__(self, module, path=None, name=None, cfg=None):
 
         modpath = find_module(module)
         if not modpath:
@@ -159,15 +167,18 @@ class Config(object, DictMixin):
 
         # if a name starts with a module prefix, strip that prefix
         if name and name.startswith('%s.' % module):
-            name = name[len(module)+1:]
+            name = name[len(module) + 1:]
 
         # if a path starts with a module prefix, strip that prefix
         if path and path.startswith('%s/' % module.replace('.', '/')):
-            path = path[len(module)+1:]
+            path = path[len(module) + 1:]
 
         if not path and not name:
-            # Default to `name='*'`.
-            name = '*'
+            # Default to `name='*.json'`
+            name = '*.json'
+
+        if not cfg:
+            cfg = dict()
 
 
         if path: path = path
@@ -186,15 +197,16 @@ class Config(object, DictMixin):
             sys_fspec = '%s/%s' % (sys_dir, path)
             usr_fspec = '%s/%s' % (usr_dir, path)
 
+        app_cfg = cfg
         sys_cfg = dict()
         usr_cfg = dict()
 
         if not starred:
-            # no wildcard - just use the config as they exist
 
-            sys_fname = sys_fspec
-            if not os.path.isfile(sys_fname): sys_fname += '.json' 
-            if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
+            if sys_fspec:
+                sys_fname = sys_fspec
+                if not os.path.isfile(sys_fname): sys_fname += '.json' 
+                if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
 
             if usr_fspec:
                 usr_fname = usr_fspec
@@ -206,50 +218,50 @@ class Config(object, DictMixin):
             # wildcard mode: whatever the '*' expands into is used as root dict
             # entry, and the respective content of the config file is stored
             # underneath it.
-            star_idx    = path.find('*')
-            prefix_len  = star_idx
-            postfix_len = len(path) - star_idx - 1
+            if sys_fspec:
 
-            for sys_fname in glob.glob(sys_fspec):
-                if sys_fname.endswith('.json'): post = postfix_len + 5
-                else                          : post = postfix_len
-                base = sys_fname[prefix_len:-post]
-                if base:
-                    sys_cfg[base] = read_json(sys_fname)
+                prefix_len  = sys_fspec.find('*')
+                postfix_len = len(sys_fspec) - prefix_len - 1
+
+                for sys_fname in glob.glob(sys_fspec):
+
+                    if postfix_len: base = sys_fname[prefix_len:-postfix_len]
+                    else          : base = sys_fname[prefix_len:]
+
+                    scfg = read_json(sys_fname)
+                    sys_cfg[base] = scfg
+
 
             if usr_fspec:
+
+                prefix_len  = usr_fspec.find('*')
+                postfix_len = len(usr_fspec) - prefix_len - 1
+
                 for usr_fname in glob.glob(usr_fspec):
-                    if usr_fname.endswith('.json'): post = postfix_len + 5
-                    else                          : post = postfix_len
-                    base = os.path.basename(usr_fname)[prefix_len:-post]
-                    if base:
-                        usr_cfg[base] = read_json(usr_fname)
+                    base = usr_fname[prefix_len:-postfix_len]
+                    ucfg = read_json(usr_fname)
+                    usr_cfg[base] = ucfg
 
 
-        # we have the usr and sys config - merge them before env expansion
-        self._cfg = dict_merge(sys_cfg, usr_cfg, policy='overwrite')
+        # merge sys, app, and user cfg before expansion
+        self._cfg = dict()
+        self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
 
-        # expand environmenet
-        def _env_mixin(d):
+        # expand environment
+        def _expand_env(d):
             if isinstance(d, dict):
                 for k,v in d.iteritems():
-                    d[k] = _env_mixin(v)
+                    d[k] = _expand_env(v)
+            elif isinstance(d, list):
+                for i,v in enumerate(d):
+                    d[i] = _expand_env(v)
             elif isinstance(d, basestring):
-                out = ''
-                while True:
-                    res = re.search('\$env{(.*?)}', d)           # 'bar$env{FOO:foo}baz'
-                    if not res:
-                        out += d
-                        break
-                    match = res.group(1)
-                    if not ':' in match:  
-                        match += ':'                             # $env{FOO} -> $env(FOO:}
-                    out += d[:res.start(0)]                      # out += 'bar'
-                    out += os.environ.get(*match.split(':', 1))  # out += 'foo'
-                    d    = d[res.end(0):]                        # d    = 'baz'
-                d = out
+                d = expand_env(d)
             return d
-        _env_mixin(self._cfg)
+
+        _expand_env(self._cfg)
 
 
     # --------------------------------------------------------------------------
@@ -259,19 +271,21 @@ class Config(object, DictMixin):
         import pprint
         return pprint.pformat(self._cfg)
 
-    
+
     # --------------------------------------------------------------------------
     #
     def as_dict(self):
 
         return self._cfg
 
-    
+
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented for the dict mixin
     #
     def __getitem__(self, key):
+        if key not in self._cfg:
+            raise KeyError('no such key [%s]' % key)
         return self._cfg[key]
 
     def __setitem__(self, key, value):
@@ -287,25 +301,68 @@ class Config(object, DictMixin):
     # --------------------------------------------------------------------------
     #
     def query(self, key, default=None):
+        '''
+        For a query like
 
-        elems = key.split('.')
+            config.query('some.path.to.key', 'foo')
+
+        this method behaves like:
+
+            config['some']['path']['to'].get('key', default='foo')
+
+        '''
+
+
+        if is_str(key): elems = key.split('.')
+        else          : elems = key
 
         if not elems:
             raise ValueError('empty key on query')
 
-        pos = self._cfg
+        pos  = self._cfg
+        path = list()
         for elem in elems:
 
             if not isinstance(pos, dict):
-                raise ValueError('key too long')
+                raise KeyError('no such key [%s]' % '.'.join(path))
 
-            pos = pos.get(elem)
+            if elem in pos: pos = pos[elem]
+            else          : pos = default
 
-            if None == pos:
-                return default
+            path.append(elem)
 
         return pos
 
 
 # ------------------------------------------------------------------------------
+#
+class DefaultConfig(Config):
+    '''
+    The settings in this default config are, unsurprisingly, used as default
+    values for various RU classes and methods, as for example for log file
+    locations, log levels, profile locations, etc.
+    '''
+
+    __metaclass__ = Singleton
+
+    def __init__(self):
+
+        pwd = os.getcwd()
+
+        cfg = {'ns'         : '${RADICAL_DEFAULT_NS:radical}',
+               'log_lvl'    : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
+               'log_tgt'    : '${RADICAL_DEFAULT_LOG_TGT:.}',
+               'log_dir'    : '${RADICAL_DEFAULT_LOG_DIR:%s}'          % pwd,
+               'report'     : '${RADICAL_DEFAULT_REPORT:TRUE}',
+               'report_tgt' : '${RADICAL_DEFAULT_REPORT_TGT:stderr}',
+               'report_dir' : '${RADICAL_DEFAULT_REPORT_DIR:%s}'       % pwd,
+               'profile'    : '${RADICAL_DEFAULT_PROFILE:TRUE}',
+               'profile_dir': '${RADICAL_DEFAULT_PROFILE_DIR:%s}'      % pwd,
+               }
+
+        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+
+
+# ------------------------------------------------------------------------------
+
 

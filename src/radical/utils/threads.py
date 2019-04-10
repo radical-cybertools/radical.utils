@@ -20,12 +20,12 @@ from .logger  import Logger
 
 # ------------------------------------------------------------------------------
 #
-_ALIVE_MSG     = 'alive'  # message to use as alive signal
-_START_TIMEOUT = 20.0     # time to wait for thread's startup signal.
-                          # startup signal: 'alive' message
-                          # is sent in both directions to ensure correct setup
-_STOP_TIMEOUT  = 3.0      # time between temination signal and killing child
-_BUFSIZE       = 1024*10  # default buffer size for socket recvs
+_ALIVE_MSG     = 'alive'    # message to use as alive signal
+_START_TIMEOUT = 20.0       # time to wait for thread's startup signal.
+                            # startup signal: 'alive' message
+                            # is sent in both directions to ensure correct setup
+_STOP_TIMEOUT  = 3.0        # time between temination signal and killing child
+_BUFSIZE       = 1024 * 10  # default buffer size for socket recvs
 
 
 # ------------------------------------------------------------------------------
@@ -37,15 +37,15 @@ class Thread(mt.Thread):
     on signal handling is made, no exceptions and interrupts are used, we expect
     to exclusively communicate between parent and child via a `mt.Events` and
     `Queue.Queue` instances.
-   
+
     NOTE: At this point we do not implement the full `mt.Thread` constructor.
-   
+
     The class also implements a number of initialization and finalization
     methods which can be overloaded by any deriving class.  While this can at
     first be a confusing richness of methods to overload, it significantly
     simplifies the implementation of non-trivial child threads.  By default,
     none of the initialized and finalizers needs to be overloaded.
-   
+
     An important semantic difference are the `start()` and `stop()` methods:
     both accept an optional `timeout` parameter, and both guarantee that the
     child threads successfully started and completed upon return, respectively.
@@ -59,15 +59,17 @@ class Thread(mt.Thread):
     can thus expect the child bootstrapping to be completed (avoiding the need
     for additional handshakes etc).  Any error in child or parent initialization
     will result in an exception, and the child will be terminated.
-   
+
     Along the same lines, the parent and child finalizers are executed in the
     `stop()` method, prompting similar considerations for the `timeout` value.
-   
-    Any class which derives from this Thread class *must* overload the 'work_cb()`
+
+    Any class which derives from this Thread class must overload the 'work_cb()`
     method.  That method is repeatedly called by the child thread's main loop,
     until:
+
       - an exception occurs (causing the child to fail with an error)
-      - `False` is returned by `work_cb()` (causing the child to finish w/o error)
+      - `False` is returned by `work_cb()` (child finishes w/o error)
+      - the parent thread finishes
     '''
 
     # FIXME: assert that start() was called for some / most methods
@@ -128,10 +130,6 @@ class Thread(mt.Thread):
         # base class initialization
         super(Thread, self).__init__(name=self._ru_local.name)
 
-        # we don't want threads to linger around, waiting for children to
-        # terminate, and thus create sub-threads as daemons.
-        self.daemon = True
-
 
     # --------------------------------------------------------------------------
     #
@@ -154,7 +152,7 @@ class Thread(mt.Thread):
     def _ru_msg_recv(self, timeout=None):
         '''
         receive a message from self._ru_endpoint.
-        
+
         This call is non-blocking: if no message is available, return an empty 
         string.
         '''
@@ -205,7 +203,7 @@ class Thread(mt.Thread):
         This method provides a self-check, and will call `stop()` if that check
         fails and `term` is set.  If `term` is not set, the return value of
         `is_alive()` is passed through.
-        
+
         The check will basically assert that `is_alive()` is `True`.   The
         purpose is to call this check frequently, e.g. at the begin of each
         method invocation and during longer loops, as to catch failing
@@ -220,7 +218,7 @@ class Thread(mt.Thread):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warn('alive check failed - stop [%s - %s]', alive, term)
+            self._ru_log.warn('alive check failed, stop [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
@@ -268,7 +266,7 @@ class Thread(mt.Thread):
                 msg = self._ru_msg_recv(timeout=timeout)
 
                 if msg != _ALIVE_MSG:
-                    raise RuntimeError('Unexpected child message from %s (%s)' \
+                    raise RuntimeError('Unexpected child message from %s (%s)'
                                       % (self._ru_local.name, msg))
 
 
@@ -277,8 +275,8 @@ class Thread(mt.Thread):
             # assumptions about successful child startup.
             self._ru_initialize()
 
-        except Exception as e:
-            self._ru_log.exception('%s initialization failed', self._ru_local.name)
+        except Exception:
+            self._ru_log.exception('%s init failed', self._ru_local.name)
             self.stop()
             raise
 
@@ -301,9 +299,9 @@ class Thread(mt.Thread):
         `False`.
 
         The implementation of `work_cb()` needs to make sure that this thread is
-        not spinning idly -- if there is nothing to do in `work_cb()` at any point
-        in time, the routine should at least sleep for a fraction of a second or
-        something.
+        not spinning idly -- if there is nothing to do in `work_cb()` at any
+        point in time, the routine should at least sleep for a fraction of
+        a second or something.
 
         The child thread will automatically terminate (incl. finalizer calls)
         when the parent thread dies. It is thus not possible to create orphaned
@@ -328,7 +326,7 @@ class Thread(mt.Thread):
         # otherwise we run under the profiler, obviously
         else:
             import cprofile
-            cprofiler = cProfile.Profile()
+            cprofiler = cprofile.Profile()
             cprofiler.runcall(self._run)
             cprofiler.dump_stats('%s.cprof' % (self._ru_local.name))
 
@@ -339,6 +337,8 @@ class Thread(mt.Thread):
 
         # FIXME: ensure that this is not overloaded
         # TODO:  how?
+
+      # _main_thread = main_thread()
 
         try:
             # we consider the invocation of the child initializers to be part of
@@ -363,14 +363,19 @@ class Thread(mt.Thread):
 
             # enter the main loop and repeatedly call 'work_cb()'.  
             #
-            # If `work_cb()` ever returns `False`, we break out of the loop to call the
-            # finalizers and terminate.
+            # If `work_cb()` ever returns `False`, we break out of the loop to
+            # call the finalizers and terminate.
             #
             # In each iteration, we also check if the Event is set -- if this is
             # the case, we assume the parent to be dead and terminate (break the
             # loop).
             while not self._ru_term.is_set():
-            
+
+              # _main_thread.join(0)
+              # if not _main_thread.is_alive():
+              #     # parent thread is gone - finish also
+              #     break
+
                 # des Pudel's Kern
                 if not self.work_cb():
                     self._ru_msg_send('work finished')
@@ -427,7 +432,7 @@ class Thread(mt.Thread):
             #
             # Specifically, we will not be able to join this thread, and no
             # timeout is enforced
-            self._ru_log.info('signal stop for %s - do not join', get_thread_name())
+            self._ru_log.info('signal stop for %s', get_thread_name())
             self._ru_term.set()
             return
 
@@ -480,7 +485,7 @@ class Thread(mt.Thread):
             #
             # Specifically, we will not be able to join this thread, and no
             # timeout is enforced
-            self._ru_log.info('signal stop for %s - do not join', get_thread_name())
+            self._ru_log.info('signal stop for %s', get_thread_name())
             self._ru_term.set()
             return
 
@@ -582,7 +587,7 @@ class Thread(mt.Thread):
         `start()`, in the child thread.  If this fails, the thread startup is
         considered failed.
         '''
-    
+
         self._ru_log.debug('ru_initialize_child (NOOP)')
 
 
@@ -591,7 +596,7 @@ class Thread(mt.Thread):
     def _ru_finalize(self):
         '''
         Call common and parent/child initializers.  
-        
+
         Note that finalizers are called in inverse order of initializers.
         '''
 
@@ -622,21 +627,21 @@ class Thread(mt.Thread):
     # --------------------------------------------------------------------------
     #
     def _ru_finalize_common(self):
-    
+
         pass
 
 
     # --------------------------------------------------------------------------
     #
     def _ru_finalize_parent(self):
-    
+
         pass
 
 
     # --------------------------------------------------------------------------
     #
     def _ru_finalize_child(self):
-    
+
         pass
 
 
@@ -684,14 +689,14 @@ class Thread(mt.Thread):
         This has several implications:
 
           * `work_cb()` needs to enforce any call rate limits on its own!
-          * in order to terminate the child, `work_cb()` needs to either raise an
-            exception, or call `sys.exit()` (which actually also raises an
+          * in order to terminate the child, `work_cb()` needs to either raise
+            an exception, or call `sys.exit()` (which actually also raises an
             exception).
 
-        Before the first invocation, `self.ru_initialize_child()` will be called.
-        After the last invocation, `self.ru_finalize_child()` will be called, if
-        possible.  The latter will not always be possible if the child is
-        terminated by a signal, such as when the parent thread calls
+        Before the first invocation, `self.ru_initialize_child()` will be
+        called.  After the last invocation, `self.ru_finalize_child()` will be
+        called, if possible.  The latter will not always be possible if the
+        child is terminated by a signal, such as when the parent thread calls
         `child.terminate()` -- `child.stop()` should be used instead.
 
         The overloaded method MUST return `True` or `False` -- the child will
@@ -700,8 +705,6 @@ class Thread(mt.Thread):
         '''
 
         raise NotImplementedError('ru.Thread.work_cb() MUST be overloaded')
-
-
 
 
 # ------------------------------------------------------------------------------
@@ -740,7 +743,7 @@ class RLock(object):
         try:
             self._lock.release()
 
-        except RuntimeError as e:
+        except RuntimeError:
             # lock has been released meanwhile - we allow that
             pass
 
@@ -751,10 +754,12 @@ class RLock(object):
     def __exit__ (self, type, value, traceback): self.release()
 
 
-
 # ------------------------------------------------------------------------------
 #
 def get_thread_name():
+
+    if not mt.current_thread():
+        return None
 
     return mt.current_thread().name
 
@@ -781,7 +786,6 @@ def gettid():
         return int(libc.syscall(SYS_gettid))
     except:
         return None
-
 
 
 # ------------------------------------------------------------------------------
@@ -818,7 +822,7 @@ def main_thread():
 
     for t in mt.enumerate():
         if isinstance(t, mt._MainThread):
-            return T
+            return t
 
     assert(False), 'main thread not found'
 
@@ -837,12 +841,14 @@ def this_thread():
 #
 _signal_lock = mt.Lock()
 _signal_sent = dict()
+
+
 def cancel_main_thread(signame=None, once=False):
     """
     This method will call thread.interrupt_main from any calling subthread.
     That will cause a 'KeyboardInterrupt' exception in the main thread.  This
     can be excepted via `except KeyboardInterrupt`
-    
+
     The main thread MUST NOT have a SIGINT signal handler installed (other than
     the default handler or SIGIGN), otherwise this call will cause an exception
     in the core python signal handling (see http://bugs.python.org/issue23395).
@@ -923,6 +929,7 @@ def _sigusr2_handler(signum, frame):
     signal.signal(signal.SIGUSR2, signal.SIG_IGN)
     raise KeyboardInterrupt('sigusr2')
 
+
 def set_cancellation_handler():
 
     # check if any handler exists
@@ -992,7 +999,7 @@ def get_signal_by_name(signame):
              'xcpu'    : signal.SIGXCPU,
              'xfsz'    : signal.SIGXFSZ,
              }
-    
+
     return table[signame.lower()]
 
 
@@ -1000,6 +1007,7 @@ def get_signal_by_name(signame):
 #
 class ThreadExit(SystemExit):
     pass
+
 
 class SignalRaised(SystemExit):
 
