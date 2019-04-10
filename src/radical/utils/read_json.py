@@ -10,8 +10,8 @@ import json
 
 # ------------------------------------------------------------------------------
 #
-def read_json (filename) :
-    """
+def read_json(fname):
+    '''
     Comments in the form of
         # rest of line
     are stripped from json before parsing
@@ -21,9 +21,9 @@ def read_json (filename) :
         import pprint
         pprint.pprint (read_json (sys.argv[1]))
 
-    """
+    '''
 
-    with open (filename) as f:
+    with open (fname) as f:
 
         content = ''
 
@@ -31,7 +31,11 @@ def read_json (filename) :
         for line in f.readlines () :
             content += re.sub (r'^\s*#.*', '', line)
 
-        return json.loads (content)
+        try:
+            return json.loads(content)
+
+        except ValueError as e:
+            raise ValueError('error parsing %s: %s' % (fname, e.message))
 
 
 # ------------------------------------------------------------------------------

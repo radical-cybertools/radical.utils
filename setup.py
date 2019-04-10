@@ -13,17 +13,26 @@ import os
 import sys
 import shutil
 
-sys.path.append('src/radical/utils/')
-import shell as ru
+import subprocess as sp
 
+from distutils.ccompiler import new_compiler
+from setuptools          import setup, Command, find_packages
+
+
+# ------------------------------------------------------------------------------
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
 
-try:
-    from setuptools import setup, Command, find_packages
-except ImportError as e:
-    print("%s needs setuptools to install" % name)
-    sys.exit(1)
+
+# ------------------------------------------------------------------------------
+#
+def sh_callout(cmd):
+
+    p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+
+    stdout, stderr = p.communicate()
+    ret            = p.returncode
+    return stdout, stderr, ret
 
 
 # ------------------------------------------------------------------------------
@@ -39,7 +48,7 @@ except ImportError as e:
 #     tree.
 #   - The VERSION file is used to provide the runtime version information.
 #
-def get_version (mod_root):
+def get_version(mod_root):
     """
     mod_root
         a VERSION file containes the version strings is created in mod_root,
@@ -67,12 +76,12 @@ def get_version (mod_root):
         # and the pip version used uses an install tmp dir in the ve space
         # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        out, err, ret = ru.sh_callout(
+        out, err, ret = sh_callout(
             'cd %s ; '
             'test -z `git rev-parse --show-prefix` || exit -1; '
             'tag=`git describe --tags --always` 2>/dev/null ; '
             'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
-            'echo $tag@$branch' % src_root, shell=True)
+            'echo $tag@$branch' % src_root)
         version_detail = out.strip()
         version_detail = version_detail.replace('detached from ', 'detached-')
 
@@ -123,7 +132,7 @@ def get_version (mod_root):
 
         return version_base, version_detail, sdist_name
 
-    except Exception as e :
+    except Exception as e:
         raise RuntimeError('Could not extract/set version: %s' % e)
 
 
@@ -141,9 +150,10 @@ version, version_detail, sdist_name = get_version(mod_root)
 # ------------------------------------------------------------------------------
 #
 def read(*rnames):
-    try :
+
+    try:
         return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
-    except Exception :
+    except Exception:
         return ''
 
 
@@ -227,6 +237,12 @@ def isgood(name):
     return False
 
 
+# compile gtod
+compiler = new_compiler(verbose=1)
+objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+
+
 # ------------------------------------------------------------------------------
 #
 class RunTwine(Command):
@@ -234,7 +250,7 @@ class RunTwine(Command):
     def initialize_options (self) : pass
     def finalize_options   (self) : pass
     def run (self) :
-        out,  err, ret = ru.sh_callout('python setup.py sdist upload -r pypi')
+        out,  err, ret = sh_callout('python setup.py sdist upload -r pypi')
         raise SystemExit(ret)
 
 
@@ -277,15 +293,17 @@ setup_args = {
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
-                            'bin/radical-utils-version',
                             'bin/radical-utils-pylint.sh',
+                            'bin/radical-utils-version',
+                            'bin/radical-utils-pwatch',
+                            'bin/radical-utils-gtod',
                             'bin/radical-stack',
                             'bin/ru.sh.py',
                            ],
-    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', 'VERSION',
+    'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
-    'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['zmq', 
+  # 'setup_requires'     : ['pytest-runner'],
+    'install_requires'   : ['pyzmq', 
                             'regex',
                             'future', 
                             'msgpack',
@@ -293,8 +311,9 @@ setup_args = {
                             'colorama',
                             'psutil',
                             'netifaces',
-                            'setproctitle'],
-    'tests_require'      : ['pytest', 'coverage'],
+                            'setproctitle',
+                           ],
+    'tests_require'      : ['pytest', 'coverage', 'flake8', 'pudb', 'pylint'],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
@@ -304,7 +323,7 @@ setup_args = {
 
 # ------------------------------------------------------------------------------
 #
-setup (**setup_args)
+setup(**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
 

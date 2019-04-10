@@ -65,7 +65,7 @@ class Daemon (object) :
             # second fork
             try : 
                 f2_pid = os.fork () 
-                
+
                 if  f2_pid > 0 :
                     # communicate pid to first parent
                     self.queue.put (f2_pid)
@@ -82,11 +82,11 @@ class Daemon (object) :
                 # redirect standard file descriptors
                 sys.stdout.flush ()
                 sys.stderr.flush ()
-                
+
                 si = file (self.stdin,  'r' )
                 so = file (self.stdout, 'a+')
                 se = file (self.stderr, 'a+', 0)
-                
+
                 os.dup2 (si.fileno (), sys.stdin.fileno  ())
                 os.dup2 (so.fileno (), sys.stdout.fileno ())
                 os.dup2 (se.fileno (), sys.stderr.fileno ())
@@ -119,7 +119,7 @@ class Daemon (object) :
       #     return self.run ()
 
         if  self.pidfile :
-            
+
             # Check for a pidfile to see if the daemon already runs
             try :
                 pf  = file (self.pidfile,'r')
@@ -129,7 +129,7 @@ class Daemon (object) :
                 pid = None
 
             if pid :
-                raise RuntimeError ("pidfile %s exist - daemon running?\n" \
+                raise RuntimeError ("pidfile %s exist - daemon running?\n"
                                    % self.pidfile)
 
         # Start the daemon, and in the demon, run the workload
@@ -161,7 +161,7 @@ class Daemon (object) :
 
 
         if  not pid:
-            raise RuntimeError ("no pidfile %s / pid not known.  Daemon not running?\n" \
+            raise RuntimeError ("no pidfile %s / pid unknown / not running?\n"
                                % self.pidfile)
 
         # Try killing the daemon process    
@@ -199,4 +199,7 @@ class Daemon (object) :
         daemonized by start() or restart().
         """
         raise RuntimeError ("deamon workload undefined")
+
+
+# ------------------------------------------------------------------------------
 

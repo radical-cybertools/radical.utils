@@ -30,18 +30,14 @@ def log_bulk(log, bulk, token):
     if not isinstance(bulk, list):
         bulk = [bulk]
 
-    if 'arg' in bulk[0]:
+    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
         bulk = [e['arg'] for e in bulk]
 
-    if 'uid' in bulk[0]:
-        log.debug('=== have uid')
+    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
         for e in bulk:
-            log.debug('=== have elem')
             log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
     else:
-        log.debug('=== no uid')
         for e in bulk:
-            log.debug('=== have elem')
             log.debug("%s: ?", str(token))
             log.debug("%s: %s", token, unicode(e)[0:32])
             log.debug("%s: %s", token, str(e)[0:32])
@@ -313,9 +309,12 @@ class Queue(Bridge):
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
+                if active:
+                    # keep this bridge alive
+                    self.heartbeat()
 
-                # let CPU sleep a bit when there is nothing to do
-                if not active:
+                else:
+                    # let CPU sleep a bit when there is nothing to do
                     time.sleep(0.01)
 
         except  Exception:
@@ -367,7 +366,6 @@ class Putter(object):
     #
     def put(self, msg):
 
-        self._log.debug('==== -> %s', msg)
         log_bulk(self._log, msg, '-> %s' % self._channel)
         data = msgpack.packb(msg) 
         _uninterruptible(self._q.send, data)

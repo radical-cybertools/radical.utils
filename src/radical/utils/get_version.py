@@ -1,10 +1,9 @@
 
-
 import re
 import os
-import sys
 
-_pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+_pat = r'^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -15,7 +14,7 @@ _pat = '^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@
 #   - both are derived from the last git tag and branch information
 #   - VERSION files are created on install, with the version_detail
 #
-def get_version (paths=None):
+def get_version(paths=None):
     """
     paths:
         a VERSION file containing the detailed version is checked for in every
@@ -26,13 +25,13 @@ def get_version (paths=None):
 
     if not paths:
         # by default, get version for myself
-        pwd   = os.path.dirname (__file__)
+        pwd   = os.path.dirname(__file__)
         root  = "%s/.." % pwd
         paths = [root, pwd]
-    
-    if not isinstance (paths, list):
+
+    if not isinstance(paths, list):
         paths = [paths]
-    
+
     version_short  = None
     version_detail = None
     version_base   = None
@@ -40,60 +39,49 @@ def get_version (paths=None):
     sdist_name     = None
     sdist_path     = None
     err            = ''
-    
-    
-    
+
     # if in any of the paths a VERSION file exists, we use the detailed version
     # in there.
     for path in paths:
 
         try:
             version_path = "%s/VERSION" % path
-    
-            with open (version_path) as f:
-                line = f.readline()
-                line.strip()
-                pattern = re.compile (_pat)
-                match   = pattern.search (line)
-    
+
+            with open(version_path) as f:
+                line    = f.readline().strip()
+                pattern = re.compile(_pat)
+                match   = pattern.search(line)
+
                 if match:
-                    version_short  = match.group ('short').strip()
-                    version_detail = match.group ('detail').strip()
-                    version_base   = match.group ('base').strip()
-                    version_branch = match.group ('branch').strip()
-                  # print 'reading        : %s' % version_path
-                  # print '               : %s' % line
-                  # print 'version_base   : %s' % version_base
-                  # print 'version_detail : %s' % version_detail
-                  # print 'version_short  : %s' % version_short
-                  # print 'version_branch : %s' % version_branch
+                    version_short  = match.group('short').strip()
+                    version_detail = match.group('detail').strip()
+                    version_base   = match.group('base').strip()
+                    version_branch = match.group('branch').strip()
                     break
-    
+
         except Exception as e:
             # ignore missing VERSION file -- this is caught below.  But ew keep
             # the error message
             err += '%s\n' % repr(e)
-            pass
-
 
     if version_detail:
         # check if there is also an SDIST near the version_path
-        sdist_path = version_path.replace ('/VERSION', '/SDIST')
+        sdist_path = version_path.replace('/VERSION', '/SDIST')
         try:
             sdist_name = open(sdist_path).read().strip()
         except Exception as e:
             # ignore missing SDIST file
             pass
-        
-        sdist_path = version_path.replace ('/VERSION', '/%s' % sdist_name)
+
+        sdist_path = version_path.replace('/VERSION', '/%s' % sdist_name)
 
     # check if any one worked ok
     if version_detail:
-        return (version_short, version_detail, version_base, \
-                version_branch, sdist_name, sdist_path)
+        return (version_short, version_detail, version_base, version_branch,
+                sdist_name, sdist_path)
     else:
-        raise RuntimeError ("Cannot determine version from %s (%s)" % 
-                            (paths, err.strip()))
+        raise RuntimeError("Cannot determine version from %s (%s)"
+                          % (paths, err.strip()))
 
 
 # ------------------------------------------------------------------------------

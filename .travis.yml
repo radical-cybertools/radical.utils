@@ -17,10 +17,13 @@ before_install:
   - python -V
 
 install:
-  - pip install .
+  - pip install . -vvv
+  - pip install pylint coverage flake8 codecov pytest
 
 script:
-  - python setup.py pytest
+  - pytest tests/
+  - flake8 --show-source --statistics --config=.flake8 || true
+  - codecov
 
 notifications:
   email:
@@ -30,5 +33,4 @@ notifications:
     on_failure: always
 
 after_success:
-  - codecov
 

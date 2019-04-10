@@ -16,6 +16,11 @@ import threading
 from .misc      import dockerized, get_radical_base
 from .singleton import Singleton
 
+TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
+TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
+TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
+TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
+
 
 # ------------------------------------------------------------------------------
 #
@@ -144,18 +149,21 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
 
     Example:: 
 
-        sid   = ru.generate_id('re.session', ru.ID_PRIVATE)
-        print ru.generate_id('item.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
-        print ru.generate_id('item.%(item_counter)04d', ru.ID_CUSTOM, namespace=sid)
+        sid  = generate_id('re.session', ID_PRIVATE)
+        uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
+        uid2 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
+        ...
 
 
-    This will generate the following output::
+    This will generate the following ids::
 
-        re.session.ruvendell.vivek.017548.0001 pipeline.0000
-        re.session.ruvendell.vivek.017548.0001 pipeline.0001
+        re.session.rivendell.vivek.017548.0001 
+        task.0000
+        task.0001
 
-    'base' is the directory used to store persistent information which survive
-    application runs.  This defaults to `$RADICAL_BASE_DIR/.radical/utils/`.
+    where the `task.*` IDs are unique for the used sid namespace.
+
+    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.
     If `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
@@ -171,13 +179,13 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     if dockerized() and mode == ID_PRIVATE:
         mode = ID_UUID
 
-    if   mode == ID_SIMPLE : template = "%(prefix)s.%(counter)04d"
-    elif mode == ID_UNIQUE : template = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
-    elif mode == ID_PRIVATE: template = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
-    elif mode == ID_CUSTOM : template = prefix
-    elif mode == ID_UUID   : template = "%(prefix)s.%(uuid)s"
-    else:
-        raise ValueError("mode '%s' not supported for ID generation", mode)
+    if   mode == ID_CUSTOM : template = prefix
+    elif mode == ID_UUID   : template = TEMPLATE_UUID
+    elif mode == ID_SIMPLE : template = TEMPLATE_SIMPLE
+    elif mode == ID_UNIQUE : template = TEMPLATE_UNIQUE
+    elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
+    else: raise ValueError("unsupported mode '%s'", mode)
+
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
@@ -212,10 +220,10 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     info['item_counter'] = 0
     info['counter'     ] = 0
     info['prefix'      ] = prefix
+    info['seconds'     ] = int(seconds)     # full seconds since epoch
+    info['days'        ] = days             # full days since epoch
+    info['user'        ] = user             # local username
     info['now'         ] = now
-    info['seconds'     ] = int(seconds)              # full seconds since epoch
-    info['days'        ] = days                      # full days since epoch
-    info['user'        ] = user                      # local username
     info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
     info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
     info['pid'         ] = os.getpid()
@@ -254,11 +262,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     ret = template % info
 
     if '%(' in ret:
-      # import pprint
-      # pprint.pprint(info)
-      # print template
-      # print ret
-        raise ValueError('unknown template pattern (%s)' % template)
+        raise ValueError('unknown pattern in template (%s)' % template)
 
     return ret
 

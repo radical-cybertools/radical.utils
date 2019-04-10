@@ -10,9 +10,8 @@ import string
 
 # import colorama as c
 
-from .misc import get_env_ns as ru_get_env_ns
-
-DEFAULT_TARGETS = ['stdout']
+from .misc    import get_env_ns as ru_get_env_ns
+from .config  import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -104,12 +103,19 @@ class Reporter(object):
           M : text to report
         '''
 
+        ru_def = DefaultConfig()
+
         if not ns:
             ns = name
 
         # check if this profile is enabled via an env variable
-        if ru_get_env_ns('report', ns) in ['0', 'false', 'off', None]:
+        self._enabled = True
+        if ru_get_env_ns('report', ns) is None:
+            self._enabled = str(ru_def['report']).lower()
+
+        if self._enabled in ['0', 'false', 'off', False, None]:
             self._enabled = False
+            # disabled
             return
         else:
             self._enabled = True
@@ -138,7 +144,7 @@ class Reporter(object):
         if not targets:
             targets = ru_get_env_ns('report_tgt', ns)
             if not targets:
-                targets = DEFAULT_TARGETS
+                targets = ru_def['report_tgt']
 
         if isinstance(targets, basestring):
             targets = targets.split(',')

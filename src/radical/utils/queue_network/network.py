@@ -11,12 +11,12 @@ The network nodes are instances of queue_network::Node.  A node can exist either
 as thread, as a local process, or as a remote process, the latter spawned via
 SAGA.
 
-The communication between nodes is always via queues, were
-groups of nodes feed into the same queues, and/or are fed from the same queues.
-A node can be fed from multiple queues, where queues are prioritized according
-to some policy.  Depending if two communicating nodes are co-threads,
-co-processes, or remote processes, different queue implementations (with the
-same semantic) are used.
+The communication or work items between nodes is always via queues, were groups
+of nodes feed into the same queues, and/or are fed from the same queues.  A node
+can be fed from multiple queues, where queues are prioritized according to some
+policy.  Depending if two communicating nodes are co-threads, co-processes, or
+remote processes, different queue implementations (with the same semantic) are
+used.
 
 A network is created according to a specific state model.  That model describes
 the state of entities passing through the queue network.  Each active state is

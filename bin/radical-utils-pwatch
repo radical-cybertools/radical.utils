@@ -1,0 +1,187 @@
+#!/bin/sh
+
+# ------------------------------------------------------------------------------
+#
+# This script couples the lifetime of two processes: while this watcher script
+# is alive, it will watch those two processes.  Once either one disappears, the
+# other one will be killed via `kill`.
+#
+# The process IDs (pid1 and pid2) to be watched is defined the following way:
+#
+#  - pid1:
+#    - if set  use $RU_PW_PID1
+#    - else    use the parent ID of this process: `ps -o ppid= -p $$` (*)
+#
+#  - pid2:
+#    - if set  use $RU_PW_PID2
+#    - else    run "$*" as child process, and use it's PID
+#
+# The two PIDs being coupled are treated equivalently - there is no difference,
+# exchanging their values will result in the exact same behavior.
+#
+# A special, single parameter `test` will invoke a self test.
+#
+#
+# Example 1:
+#
+#   ( ./radical-utils-pwatch sleep 5 & sleep $((RANDOM % 10)) )
+#
+# This will start a new shell which will first run `sleep 5` under this process
+# watcher, and then sleep for a random number of seconds (up to 10).  Then that
+# shell (which is the parent shell of the watcher) will finish.
+#
+# Depending on what finishes first, the sleep 5 or the random sleep (and thus
+# the parent shell), the process watcher will kill the other shell.
+#
+# 
+# Example 2:
+#
+#   sleep $((RANDOM % 10)) & RU_PW_PID1=$!;
+#   sleep $((RANDOM % 10)) & RU_PW_PID2=$!;
+#   ./radical-utils-pwatch &
+#
+# This will start two competing sleep processes, both of which will be watched.
+# Whichever finishes first will cause the other one being killed.
+#
+#
+# ------------------------------------------------------------------------------
+
+# store all args in case we need them
+ARGS="$*"
+export ARGS
+
+# ------------------------------------------------------------------------------
+#
+run_pwatch(){
+
+    # --------------------------------------------------------------------------
+    # check RU_PW_PPID and RU_PW_CPID are set, and use them
+    test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
+    test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
+    
+    # use fallback pid1 (PPID)
+    test -z "$pid1" && pid1=$PPID
+
+    # use fallback forpid2: cmd subshell
+    # NOTE: we cannot use `test -z $pid2 && $ARGS & pid2=$!` - that would give
+    #       us the pid of the subshell, not of the command (at least in bash)
+    if test -z "$pid2"
+    then 
+        # eval ensures that args could contain pipelines and I/O redirections,
+        # but we need to add the backgrounding to arga (if its not there, yet).
+        # Don't background `eval` itself, that results in a subshell pid.
+        ARGS=$(echo "$ARGS" | sed 's/[& ]\+$//')
+        eval "$ARGS &"
+        pid2=$!
+    fi
+    
+    # ensure we have two PIDs
+    test -z "$pid1" && echo 'missing process to watch  (1)' && return 1
+    test -z "$pid2" && echo 'missing process to watch  (2)' && return 2
+
+  # echo "pwatch [$pid1] [$pid2]"
+    
+    # --------------------------------------------------------------------------
+    while true
+    do
+        # we test if a process is alive with `kill -0`.  This will silently
+        # succeed when the process is alive (but will not disturb the process),
+        # and will noisily fail if the process is gone (we redirect stderr
+        # because of that noise).
+        if ! kill -0  $pid1 2>/dev/null
+        then
+            kill      $pid2
+            return 0
+        fi
+        if ! kill -0  $pid2 2>/dev/null
+        then
+            kill      $pid1
+            return 0
+        fi
+    
+        sleep 1
+    done
+}
+
+
+# ------------------------------------------------------------------------------
+#
+run_tests(){
+
+    (   # discard stderr
+
+        echo -n 'running tests '
+        TID="/tmp/$(id -un)_$$.tmp"
+
+        # 'sleep 9' gets killed
+        (exec /bin/sh -c "sleep 9; echo 9 > $TID" ) & export RU_PW_PID1=$!
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID2=$!
+        $0
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1 RU_PW_PID2 2>/dev/null
+
+        # same in inverse order
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID1=$!
+        ( sleep 9; echo 9 > $TID ) & export RU_PW_PID2=$!
+        $0
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1 RU_PW_PID2
+
+        # same but spawn by watcher
+        ( sleep 9; echo 9 > $TID ) & export RU_PW_PID1=$!
+        $0 sleep 1
+        wait
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+        unset RU_PW_PID1
+
+        # same but inverse order
+        ( sleep 1; echo 1 > $TID ) & export RU_PW_PID1=$!
+        $0 sleep 9
+        wait
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+        unset RU_PW_PID1
+
+        # watch ppid and spawn by watcher
+        ( $0 sleep 1 & sleep 9; echo 9 > $TID )
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+
+        # same in inverse order
+        ( $0 sleep 9 & sleep 1; echo 1 > $TID )
+        test "$(cat $TID)" = "1" && echo -n '+' || echo -n '-'
+        rm -f $TID
+
+        # watch ppid and spawn by watcher
+        ( $0 sleep 1 & sleep 9; echo 9 > $TID )
+        test -e $TID && echo -n '-' || echo -n '+'
+        rm -f $TID
+
+        echo
+
+    ) 2>/dev/null  # avoid 'child killed' messages
+
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# main
+#
+if test "$ARGS" = "test"
+then
+    run_tests
+    exit $?
+else
+    run_pwatch
+    exit $?
+fi
+
+
+# ------------------------------------------------------------------------------
+
