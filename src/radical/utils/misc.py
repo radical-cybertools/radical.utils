@@ -3,7 +3,6 @@ import re
 import os
 import sys
 import time
-import regex
 import socket
 import pkgutil
 import datetime
@@ -12,7 +11,6 @@ import netifaces
 
 from .         import url       as ruu
 from .ru_regex import ReString
-
 
 
 # ------------------------------------------------------------------------------
@@ -161,7 +159,7 @@ def parse_file_staging_directives(directives):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
-        rs = regex.ReString(directive)
+        rs = ReString(directive)
 
         if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
             res = rs.get()
@@ -570,6 +568,10 @@ def expand_env(data, env=None, ignore_missing=True):
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
     '''
+
+    if not data:
+        return data
+
     if '$' not in data:
         return data
 
