@@ -545,8 +545,8 @@ def get_env_ns(key, ns, default=None):
 #
 def expand_env(data, env=None, ignore_missing=True):
     '''
-    Expand the given data with environment variables.  If `env` is provided, use
-    that env disctionary for expansion instead of `os.environ`.
+    Expand the given data with environment variables from `os.environ`.
+    If `env` is provided, use that dictionary for expansion instead.
 
     `data` can be one of three types: 
 
