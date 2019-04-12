@@ -602,8 +602,6 @@ def expand_env(data, env=None, ignore_missing=True):
     elif not isinstance(data, basestring):
         return data
 
-    assert(isinstance(data, basestring))
-
     # handle string expansion, which is what we really care about
     if '$' not in data:
         return data
