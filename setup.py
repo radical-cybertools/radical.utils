@@ -272,7 +272,7 @@ setup_args = {
     'name'               : name,
     'version'            : version,
     'description'        : 'Utilities for RADICAL CybertoolsProjects',
-    'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
+  # 'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'The RADICAL Group',
