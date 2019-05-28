@@ -5,6 +5,17 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.60.2 Hotfix                                                         2019-05-28
+--------------------------------------------------------------------------------
+
+  - delay env expansion for configs
+
+
+0.60.1 Hotfix                                                         2019-04-12
+--------------------------------------------------------------------------------
+
+  - fallback to `time.time()` on failing `gtod` compile
+
 
 0.60.0 Release                                                        2019-04-10
 --------------------------------------------------------------------------------
