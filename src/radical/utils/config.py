@@ -122,7 +122,8 @@ __license__   = "MIT"
 import glob
 import os
 
-from .misc       import find_module, is_str, expand_env
+from .misc       import find_module, is_str
+from .misc       import expand_env as ru_expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
 
@@ -151,7 +152,14 @@ class Config(object, DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module, path=None, name=None, cfg=None):
+    def __init__(self, module, path=None, name=None, cfg=None,
+                       expand=True, env=None):
+        '''
+        expand:  enable / disable environment var expansion.  When disabled, the
+                 consumer should expand manually upon use of config entries.
+        env:     environment dictionary to be used for expansion
+                 defaults to `os.environ`
+        '''
 
         modpath = find_module(module)
         if not modpath:
@@ -249,6 +257,14 @@ class Config(object, DictMixin):
         self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
         self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
 
+        if expand:
+            self.expand_env(env)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def expand_env(self, env):
+
         # expand environment
         def _expand_env(d):
             if isinstance(d, dict):
@@ -258,7 +274,7 @@ class Config(object, DictMixin):
                 for i,v in enumerate(d):
                     d[i] = _expand_env(v)
             elif isinstance(d, basestring):
-                d = expand_env(d)
+                d = ru_expand_env(d, env)
             return d
 
         _expand_env(self._cfg)
@@ -311,7 +327,6 @@ class Config(object, DictMixin):
             config['some']['path']['to'].get('key', default='foo')
 
         '''
-
 
         if is_str(key): elems = key.split('.')
         else          : elems = key
