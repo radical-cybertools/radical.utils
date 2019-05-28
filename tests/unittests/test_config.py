@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 __author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
@@ -29,6 +30,13 @@ def test_config():
     cfg2 = ru.Config(module='radical.utils', path=path)
     assert('GSISSH' == cfg2.query('yale.grace.agent_launch_method'))
     assert(None     is cfg2.query('yale.grace.no_launch_method'))
+
+    cfg3 = ru.Config(module='radical.utils', path=path, expand=False)
+    assert('${FOO:bar}' == cfg3.query('yale.grace.agent_launch_method'))
+
+    env  = {'FOO' : 'baz'}
+    cfg4 = ru.Config(module='radical.utils', path=path, env=env)
+    assert('baz' == cfg4.query('yale.grace.agent_launch_method'))
 
 
 # ------------------------------------------------------------------------------
