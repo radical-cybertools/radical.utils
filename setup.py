@@ -238,9 +238,16 @@ def isgood(name):
 
 
 # compile gtod
-compiler = new_compiler(verbose=1)
-objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+try:
+    compiler = new_compiler(verbose=1)
+    objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+    exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+except:
+    with open('bin/radical-utils-gtod', 'w') as fout:
+        fout.write('#!/usr/bin/env python\n'
+                   'import time\n'
+                   'print time.time()\n')
+        os.chmod('bin/radical-utils-gtod', 0o755) 
 
 
 # ------------------------------------------------------------------------------
@@ -265,7 +272,7 @@ setup_args = {
     'name'               : name,
     'version'            : version,
     'description'        : 'Utilities for RADICAL CybertoolsProjects',
-    'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
+  # 'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'The RADICAL Group',
