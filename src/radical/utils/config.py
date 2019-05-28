@@ -328,7 +328,6 @@ class Config(object, DictMixin):
 
         '''
 
-
         if is_str(key): elems = key.split('.')
         else          : elems = key
 
