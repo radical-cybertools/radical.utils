@@ -139,6 +139,7 @@ class Config(object, DictMixin):
     # FIXME: we should cache config files after reading, so that repeated
     #        instance creations do not trigger a new (identical) round of
     #        parsing.
+    # FIXME: ensure that deepcopy is working (or add `from_dict` c'tor)
 
 
     # identify as dictionary
