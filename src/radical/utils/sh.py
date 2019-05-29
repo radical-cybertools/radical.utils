@@ -76,7 +76,7 @@ class Cmd(object):
     CANCELED = 'canceled'   # caller canceled exection
     PURGED   = 'purged'     # remote state will be unavailable
 
-    FINAL    = [DONE, FAILED, CANCELED]
+    FINAL    = [DONE, FAILED, CANCELED, PURGED]
 
 
     # ----------------------------------------------------------------------

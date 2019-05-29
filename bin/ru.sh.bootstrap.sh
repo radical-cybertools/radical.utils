@@ -80,9 +80,10 @@ RUSH_BS1="$RUSH_HOME/rush.bs.1.sh"
 # create a shell script which executes commands on the netcat'ed port.  As
 # motivated above, we don't invoke a shell directly, to (a) add some security,
 # and (b) avoid the need for prompt parsing.
-# This script is created no matter what, wven if it already exists.  This allows
+# This script is created no matter what, even if it already exists.  This allows
 # for seemless upgrade of this bootstrapper.  We use a `mv` command to
 # atomically replace any existing script.
+#
 cat >  "$RUSH_BS1.$$" \
     << EOT
 #!/bin/sh

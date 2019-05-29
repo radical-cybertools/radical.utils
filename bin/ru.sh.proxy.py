@@ -12,7 +12,7 @@ import radical.utils as ru
 def usage (error=None, noexit=False) :
 
     if  error :
-        print "\n    ERROR: %s\n" % error
+        print "\n\terror: %s\n" % error
 
     print '''
     synopsis: Create a proxy tunnel using the given proxy URL.

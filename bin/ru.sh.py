@@ -19,7 +19,7 @@ def test():
 
     sys.exit()
 
-test()
+# test()
 
 
 if len(sys.argv) <= 1:

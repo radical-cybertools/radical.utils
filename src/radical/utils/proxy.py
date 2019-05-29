@@ -211,7 +211,7 @@ class Proxy(object):
     if not os.path.isdir(_proxy_base):
         os.makedirs(_proxy_base)
 
-    # `_ptty_command` is the shell command to be run on the proxy host upon
+    # `_ptty_cmd` is the shell command to be run on the proxy host upon
     # establishing the proxy connection
   # _ptty_cmd = '''
   # echo 1
