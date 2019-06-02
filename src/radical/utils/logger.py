@@ -230,7 +230,7 @@ class Logger(object):
             path = ru_def['log_dir']
 
         if not ns:
-            ns = ru_def.get('ns', name)
+            ns = name
 
         if not targets:
             targets = ru_get_env_ns('log_tgt', ns)
