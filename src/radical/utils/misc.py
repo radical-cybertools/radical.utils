@@ -2,6 +2,7 @@
 import re
 import os
 import sys
+import glob
 import time
 import socket
 import pkgutil
@@ -618,6 +619,10 @@ def expand_env(data, env=None, ignore_missing=True):
 # ------------------------------------------------------------------------------
 #
 def stack():
+    '''
+    returns a dict with information about the currently active python
+    interpreter and all radical modules (incl. version details)
+    '''
 
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
@@ -626,19 +631,20 @@ def stack():
            'radical' : dict()
           }
 
+    import radical
+    rpath = radical.__path__
 
-    modules = ['radical.utils', 
-               'radical.saga', 
-               'radical.pilot', 
-               'radical.entk',
-               'radical.analytics']
+    if isinstance(rpath, list):
+        rpath = rpath[0]
 
-    for mod in modules:
-        try:
-            tmp = import_module(mod)
-            ret['radical'][mod] = tmp.version_detail
-        except:
-            pass
+    for mpath in sorted(glob.glob('%s/*' % rpath)):
+        print mpath
+
+        if os.path.isdir(mpath):
+
+            mname = 'radical.%s' % os.path.basename(mpath)
+            try:    ret['radical'][mname] = import_module(mname).version_detail
+            except: ret['radical'][mname] = '?'
 
     return ret
 
