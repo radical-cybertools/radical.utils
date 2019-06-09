@@ -195,7 +195,7 @@ def makeDataFiles(prefix, dir):
     return found
 
 
-def visit((prefix, strip, found), dirname, names):
+def visit(data, dirname, names):
     """ Visit directory, create distutil tuple
 
     Add distutil tuple for each directory using this format:
@@ -203,6 +203,7 @@ def visit((prefix, strip, found), dirname, names):
 
     distutil will copy later file1, file2, ... info destination.
     """
+    (prefix, strip, found) = data
     files = []
     # Iterate over a copy of names, modify names
     for name in names[:]:
@@ -247,7 +248,7 @@ except:
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
                    'print time.time()\n')
-        os.chmod('bin/radical-utils-gtod', 0o755) 
+        os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
@@ -286,8 +287,8 @@ setup_args = {
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
         'Topic :: Scientific/Engineering',
@@ -309,9 +310,9 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['pyzmq', 
+    'install_requires'   : ['pyzmq',
                             'regex',
-                            'future', 
+                            'future',
                             'msgpack',
                             'pymongo',
                             'colorama',
