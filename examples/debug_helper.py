@@ -22,16 +22,16 @@ def worker_outer():
 
 def worker_inner():
     cnt = 0
-    print 'worker starts'
+    print('worker starts')
     time.sleep(3)
     while cnt < 100:
-        print cnt
+        print(cnt)
         cnt += 1
         time.sleep(1)
 
 # ------------------------------------------------------------------------------
 #
-print os.getpid()
+print(os.getpid())
 dh = ru.DebugHelper()
 t  = ru.Thread(name='worker', target=worker_outer)
 t.start()
