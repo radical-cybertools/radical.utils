@@ -19,7 +19,7 @@ def test_re_string():
     tgt_d = {'x'  : 'ick brown fox jumps'}
 
     with txt // r'(\s.u)(?P<x>.*?j\S+)' as res:
-        print res
+        print(res)
         assert (res)
         assert (len(res) == len(tgt_l))
         assert (res      == tgt_l), "%s != %s" % (str(res), str(tgt_l))

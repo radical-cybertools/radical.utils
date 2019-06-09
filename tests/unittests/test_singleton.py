@@ -8,12 +8,10 @@ import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
-class _Test () :
+class _Test (metaclass=ru.Singleton) :
     """
     singleton helper class
     """
-
-    __metaclass__ = ru.Singleton
 
 
 # ------------------------------------------------------------------------------

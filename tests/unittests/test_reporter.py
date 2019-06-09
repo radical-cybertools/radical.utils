@@ -107,7 +107,7 @@ def test_env():
                 'RADICAL_UTILS_REPORT',
                 'RADICAL_UTILS_TEST_REPORT']:
 
-        for k in os.environ.keys():
+        for k in list(os.environ.keys()):
             if k.startswith('RADICAL'):
                 del(os.environ[k])
 

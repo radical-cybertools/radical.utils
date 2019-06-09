@@ -79,7 +79,7 @@ def test_env():
                 'RADICAL_UTILS_PROFILE',
                 'RADICAL_UTILS_TEST_PROFILE']:
 
-        for k in os.environ.keys():
+        for k in list(os.environ.keys()):
             if k.startswith('RADICAL'):
                 del(os.environ[k])
 
@@ -97,7 +97,7 @@ def test_env():
                          ['FALSE', False],
                          ['0',     False]]:
 
-            for k in os.environ.keys():
+            for k in list(os.environ.keys()):
                 if k.startswith('RADICAL'):
                     del(os.environ[k])
 

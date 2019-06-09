@@ -67,9 +67,9 @@ def test_lockable () :
     t = Test ()
 
     # check lock with resource manager
-    with t : 
+    with t :
         pass
-    
+
     # check explicit and recursive lock/unlock
     t.lock   (); assert (    t.locked())
     t.unlock (); assert (not t.locked())
@@ -85,7 +85,7 @@ def test_lockable () :
     # --------------------------------------------------------------------------
     # check double unlock
     try                      : t.unlock (); assert (not t.locked())
-    except RuntimeError as e : pass 
+    except RuntimeError as e : pass
     except Exception    as e : assert (False), "RuntimeError != %s" % type(e)
     else                     : assert (False), "expected RuntimeError Exception, got nothing"
 

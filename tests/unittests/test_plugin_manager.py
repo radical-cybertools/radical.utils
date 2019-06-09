@@ -22,7 +22,7 @@ def test_plugin_manager () :
 
     try :
         plugin_1 = pmgr.load ('unittests_1', 'default_1')
-        assert False 
+        assert False
     except LookupError :
         pass
     except :
@@ -33,19 +33,19 @@ def test_plugin_manager () :
     plugin_2.init ('a', 1)
     ret = plugin_2.run ()
     assert (ret == (1, 'a')), "plugin_2 invocation: '%s' != '%s'" % ([1, 'a'], ret)
-    
+
     plugin_3 = pmgr.load ('unittests_2', 'default_2')
     plugin_3.init ('a', 1)
     ret = plugin_3.run ()
     assert (ret == (1, 'a')), "plugin_3 invocation: '%s' != '%s'" % ([1, 'a'], ret)
-    
+
     # load twice -- plugin_2 is marked as singleton plugin_2, and will raise if it
     # is created twice
     plugin_3 = pmgr.load ('unittests_2', 'default_2')
     plugin_3.init ('a', 1)
     ret = plugin_3.run ()
     assert (ret == (1, 'a')), "plugin_3 invocation: '%s' != '%s'" % ([1, 'a'], ret)
-    
+
 
     try :
         pmgr = ru.PluginManager     ('troy')
@@ -60,13 +60,13 @@ def test_plugin_manager () :
 
     import resource
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (0, mem)
+    print("%5d  %d" % (0, mem))
 
     pmgr = ru.PluginManager ('radical.utils')
 
     import resource
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (0, mem)
+    print("%5d  %d" % (0, mem))
 
     for i in range (1000000) :
         plugin_4 = pmgr.load ('unittests_2', 'default_2')
@@ -76,11 +76,10 @@ def test_plugin_manager () :
 
         if not i % 100000 :
             mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            print "%5d  %d" % (i, mem)
+            print("%5d  %d" % (i, mem))
 
     mem = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    print "%5d  %d" % (i+1, mem)
-
+    print("%5d  %d" % (i + 1, mem))
 
 
 # ------------------------------------------------------------------------------

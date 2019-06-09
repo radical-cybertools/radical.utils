@@ -4,7 +4,7 @@ __copyright__ = "Copyright 2016, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-''' 
+'''
 Unit tests for ru.Process()
 '''
 
@@ -143,7 +143,7 @@ def test_process_final_fail():
         p.start()
         p.stop()
     except Exception as e:
-        print 'excepted: %s' %e
+        print('excepted: %s' % e)
         assert('oops final' in str(e)), str(e)
     else:
         pass
@@ -218,14 +218,14 @@ if __name__ == "__main__":
     test_process_autostart()
     for i in range(N):
         test_process_final_fail()
-        print '.',
+        print('.', end=' ')
         test_process_init_fail()
-        print '.',
+        print('.', end=' ')
         test_process_parent_fail()
-        print '.',
+        print('.', end=' ')
         test_process_basic()
-        print '.',
-        print i
+        print('.', end=' ')
+        print(i)
 
     sys.exit()
 
