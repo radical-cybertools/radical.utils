@@ -5,7 +5,7 @@ import sys
 import time
 import random
 import pprint
-import thread
+import _thread
 
 from Xlib import X, display, Xutil
 
@@ -46,7 +46,7 @@ class SchedulerViz(object):
         self.req_bulk  = req_bulk
         self.rel_prob  = rel_prob
 
-        print scheduler
+        print(scheduler)
 
         self.d      = display.Display()
         self.screen = self.d.screen()
@@ -85,8 +85,8 @@ class SchedulerViz(object):
                                         min_height=20)
         self.window.map()
 
-        self._thread = thread.start_new_thread(self.update_viz,   tuple())
-        self._thread = thread.start_new_thread(self.update_sched, tuple())
+        self._thread = _thread.start_new_thread(self.update_viz,   tuple())
+        self._thread = _thread.start_new_thread(self.update_sched, tuple())
 
 
     # --------------------------------------------------------------------------
@@ -124,7 +124,7 @@ class SchedulerViz(object):
 
         while True:
 
-            print 1
+            print(1)
 
             state   = self.scheduler.get_map()
             active  = list()
@@ -151,7 +151,7 @@ class SchedulerViz(object):
             if passive_chunk:
                 passive.append(passive_chunk)
 
-            print 2
+            print(2)
 
             self.gc.change(foreground=red)
             for active_chunk in active:
@@ -160,10 +160,10 @@ class SchedulerViz(object):
             self.gc.change(foreground=blue)
             for passive_chunk in passive:
                 self.window.poly_point(self.gc, X.CoordModeOrigin, passive_chunk)
-            print 3
+            print(3)
 
             self.d.flush()
-            print 'done'
+            print('done')
             time.sleep(0.1)
 
 
@@ -237,7 +237,7 @@ class SchedulerViz(object):
                     for req in requests:
                         tmp.append(scheduler.alloc(req))
                 except Exception as e:
-                    print e
+                    print(e)
                     abort_cycles = True
                 stop = time.time()
     
@@ -262,7 +262,7 @@ class SchedulerViz(object):
     
                     # build a list of release candidates and, well, release them
                     to_release = list()
-                    for idx in reversed(range(len(running))):
+                    for idx in reversed(list(range(len(running)))):
                         if random.random() < rel_prob:
                             to_release.append(running[idx])
                             del(running[idx])
@@ -273,7 +273,7 @@ class SchedulerViz(object):
                             scheduler.dealloc(res)
                             done.append(res)
                     except Exception as e:
-                        print e
+                        print(e)
                         abort_cycles = True
                     stop   = time.time()
                     total_dealloc += len(to_release)
@@ -283,49 +283,49 @@ class SchedulerViz(object):
                     else:
                         dealloc_rate = len(to_release) / (stop - start)
     
-                print "%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
+                print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
                         (cycle, total_alloc, alloc_rate, 
                                 total_dealloc, dealloc_rate, 
-                                scheduler._cores.count())
+                                scheduler._cores.count()))
     
             if abort_cycles:
-                print 'cycle aborted'
+                print('cycle aborted')
             else:
-                print 'cycles done'
+                print('cycles done')
     
         except Exception as e:
             import traceback
-            print traceback.format_exc(sys.exc_info())
+            print(traceback.format_exc(sys.exc_info()))
     
         total_stop = time.time()
         stats = scheduler.get_stats()
     
         # continuous stretches of #free/busy cores
         if False:
-            print
-            print '\ncores :  free :  busy'
-            counts = set(stats['free_dist'].keys() + stats['busy_dist'].keys())
+            print()
+            print('\ncores :  free :  busy')
+            counts = set(list(stats['free_dist'].keys()) + list(stats['busy_dist'].keys()))
             for count in sorted(counts):
-                print '%5d : %5s : %5s' % (count, 
+                print('%5d : %5s : %5s' % (count, 
                         stats['free_dist'].get(count, ''), 
-                        stats['busy_dist'].get(count, ''))
+                        stats['busy_dist'].get(count, '')))
     
         # distributions of free cores over nodes
-        print
-        print 'free : nodes'
+        print()
+        print('free : nodes')
         for i in sorted(stats['node_free'].keys()):
-            print ' %3d : %5d' % (i, stats['node_free'].get(i, ''))
+            print(' %3d : %5d' % (i, stats['node_free'].get(i, '')))
     
-        print
-        print 'total cores  : %9d' % stats['total']
-        print '      free   : %9d' % stats['free']
-        print '      busy   : %9d' % stats['busy']
-        print '      alloc  : %9d' % total_alloc
-        print '      align  : %9d' % total_align
-        print '      scatter: %9d' % total_scatter
-        print '      dealloc: %9d' % total_dealloc
-        print '      runtime: %9.1fs'  % (total_stop - total_start)
-        print '      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start))
+        print()
+        print('total cores  : %9d' % stats['total'])
+        print('      free   : %9d' % stats['free'])
+        print('      busy   : %9d' % stats['busy'])
+        print('      alloc  : %9d' % total_alloc)
+        print('      align  : %9d' % total_align)
+        print('      scatter: %9d' % total_scatter)
+        print('      dealloc: %9d' % total_dealloc)
+        print('      runtime: %9.1fs'  % (total_stop - total_start))
+        print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start)))
     
         if False:
             idx = 0
@@ -341,7 +341,7 @@ class SchedulerViz(object):
                     idx += 1
                 f.write(node)
     
-        print '\nuse <Esc> in viz-window to quit\n'
+        print('\nuse <Esc> in viz-window to quit\n')
 
 
 # ------------------------------------------------------------------------------
@@ -365,8 +365,8 @@ if __name__ == "__main__":
         cluster  = config['cluster'][cluster_id]
         workload = config['workload'][workload_id]
 
-        print 'using cluster: %s'  % pprint.pformat(cluster)
-        print 'using workload: %s' % pprint.pformat(workload)
+        print('using cluster: %s'  % pprint.pformat(cluster))
+        print('using workload: %s' % pprint.pformat(workload))
 
         cores   =  int(cluster['cores'])
         ppn     =  int(cluster['ppn'])

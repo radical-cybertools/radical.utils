@@ -20,9 +20,9 @@ if  'RADICAL_PILOT_DBURL' in os.environ :
 def usage (msg=None, noexit=False) :
 
     if  msg :
-        print "\n\t%s\n" % msg
+        print("\n\t%s\n" % msg)
 
-    print """
+    print("""
 
       usage   : %s -m mode [-d url]
       example : %s mongodb://localhost/synapse_profiles/profiles/
@@ -39,7 +39,7 @@ def usage (msg=None, noexit=False) :
         remove: remove the specified subtree
 
       The default command is 'tree'.  
-      The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL
+      The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL)
 
     if  msg :
         sys.exit (1)
@@ -57,7 +57,7 @@ def dump (url, mode) :
 
     mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
-    print dbname
+    print(dbname)
  
     if  dbname : dbnames = [dbname]
     else       : dbnames = mongo.database_names ()
@@ -65,14 +65,14 @@ def dump (url, mode) :
     for name in dbnames :
 
         if  mode == 'list' and not dbname :
-            print " +-- db   %s" % name
+            print(" +-- db   %s" % name)
 
         elif  mode == 'remove' :
             
             if (not dbname) or (name == dbname) :
                 try :
                     mongo.drop_database (name)
-                    print "  removed database %s" % name
+                    print("  removed database %s" % name)
                 except :
                     pass # ignore system tables
 
@@ -89,7 +89,7 @@ def handle_db (mongo, mode, dbname, cname, pname) :
     """
 
     database = mongo[dbname]
-    print " +-- db   %s" % dbname
+    print(" +-- db   %s" % dbname)
 
 
     if  cname : cnames = [cname]
@@ -98,12 +98,12 @@ def handle_db (mongo, mode, dbname, cname, pname) :
     for name in cnames :
 
         if  mode == 'list' and not cname :
-            print " | +-- coll %s" % name
+            print(" | +-- coll %s" % name)
 
         elif  mode == 'remove' and not pname :
             try :
                 database.drop_collection (name)
-                print "  removed collection %s" % name
+                print("  removed collection %s" % name)
             except :
                 pass # ignore errors
 
@@ -122,7 +122,7 @@ def handle_coll (database, mode, cname, pname) :
         return
 
     collection = database[cname]
-    print " | +-- coll %s" % cname
+    print(" | +-- coll %s" % cname)
 
     docs = collection.find ()
 
@@ -131,13 +131,13 @@ def handle_coll (database, mode, cname, pname) :
         name = doc['_id']
 
         if  mode == 'list' and not pname :
-            print " | | +-- doc  %s" % name
+            print(" | | +-- doc  %s" % name)
 
         elif  mode == 'remove' :
             if (not pname) or (str(name)==str(pname)) :
                 try :
                     collection.remove (name)
-                    print "  removed document %s" % name
+                    print("  removed document %s" % name)
                 except Exception as e:
                     pass # ignore errors
 
@@ -157,15 +157,15 @@ def handle_doc (collection, mode, doc) :
     if  mode == 'list' :
 
         for key in doc :
-            print " | | | +-- %s" % (key)
+            print(" | | | +-- %s" % (key))
 
     elif  mode == 'tree' :
-        print " | | +-- doc  %s" % (name)
+        print(" | | +-- doc  %s" % (name))
         for key in doc :
-            print " | | | +-- %s" % (key)
+            print(" | | | +-- %s" % (key))
 
     elif  mode == 'dump' :
-        print " | | +-- doc  %s" % (name)
+        print(" | | +-- doc  %s" % (name))
         for key in doc :
             txt_in  = pprint.pformat (doc[key])
             txt_out = ""
@@ -177,7 +177,7 @@ def handle_doc (collection, mode, doc) :
                 txt_out += '\n'
                 lnum    += 1
 
-            print " | | | +-- %-10s : %s" % (key, txt_out[:-1]) # remove last \n
+            print(" | | | +-- %-10s : %s" % (key, txt_out[:-1])) # remove last \n
 
 
 # ------------------------------------------------------------------------------
@@ -202,8 +202,8 @@ if __name__ == '__main__' :
     if not mode  : mode  = _DEFAULT_MODE
     if not dburl : dburl = _DEFAULT_DBURL
 
-    print "modes   : %s" % mode
-    print "db url  : %s" % dburl
+    print("modes   : %s" % mode)
+    print("db url  : %s" % dburl)
 
     for m in mode.split (',') :
 
