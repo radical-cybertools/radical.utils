@@ -17,12 +17,10 @@ PLUGIN_DESCRIPTION = {
 
 # ------------------------------------------------------------------------------
 #
-class PLUGIN_CLASS (object) :
+class PLUGIN_CLASS (object, metaclass=ru.Singleton) :
     """
     This class implements the (empty) default unittest plugin for radical.utils.
     """
-
-    __metaclass__ = ru.Singleton
     _created      = False # singleton test
 
 

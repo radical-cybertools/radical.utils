@@ -45,6 +45,7 @@ scheme_chars = ('abcdefghijklmnopqrstuvwxyz'
 MAX_CACHE_SIZE = 20
 _parse_cache = {}
 
+
 def clear_cache():
     """Clear the parse cache."""
     global _parse_cache
@@ -172,6 +173,7 @@ def urlparse(url, scheme='', allow_fragments=True):
         params = ''
     return ParseResult(scheme, netloc, url, params, query, fragment)
 
+
 def _splitparams(url):
     if '/'  in url:
         i = url.find(';', url.rfind('/'))
@@ -180,6 +182,7 @@ def _splitparams(url):
     else:
         i = url.find(';')
     return url[:i], url[i+1:]
+
 
 def _splitnetloc(url, start=0, allow_hash_in_hostname=False):
     delim = len(url)   # position of end of domain part of url, default is end
@@ -192,6 +195,7 @@ def _splitnetloc(url, start=0, allow_hash_in_hostname=False):
         if wdelim >= 0:                    # if found
             delim = min(delim, wdelim)     # use earliest delim position
     return url[start:delim], url[delim:]   # return (domain, rest)
+
 
 def urlsplit(url, scheme='', allow_fragments=True):
     """Parse a URL into 5 components:
@@ -239,16 +243,20 @@ def urlsplit(url, scheme='', allow_fragments=True):
     _parse_cache[key] = v
     return v
 
-def urlunparse((scheme, netloc, url, params, query, fragment)):
+
+def urlunparse(data):
     """Put a parsed URL back together again.  This may result in a
     slightly different, but equivalent URL, if the URL that was parsed
     originally had redundant delimiters, e.g. a ? with an empty query
     (the draft states that these are equivalent)."""
+    (scheme, netloc, url, params, query, fragment) = data
     if params:
         url = "%s;%s" % (url, params)
     return urlunsplit((scheme, netloc, url, query, fragment))
 
-def urlunsplit((scheme, netloc, url, query, fragment)):
+
+def urlunsplit(data):
+    (scheme, netloc, url, query, fragment) = data
     if netloc or (scheme and url[:2] != '//'):
         if url and url[:1] != '/': url = '/' + url
         url = '//' + (netloc or '') + url
@@ -259,6 +267,7 @@ def urlunsplit((scheme, netloc, url, query, fragment)):
     if fragment:
         url = url + '#' + fragment
     return url
+
 
 def urljoin(base, url, allow_fragments=True):
     """Join a base URL and a possibly relative URL to form an absolute
@@ -285,7 +294,7 @@ def urljoin(base, url, allow_fragments=True):
         return urlunparse((scheme, netloc, bpath,
                            bparams, bquery, fragment))
     segments = bpath.split('/')[:-1] + path.split('/')
-    # XXX The stuff below is bogus in various ways...
+    # FIXME: The stuff below is bogus in various ways...
     if segments[-1] == '.':
         segments[-1] = ''
     while '.' in segments:
@@ -307,6 +316,7 @@ def urljoin(base, url, allow_fragments=True):
         segments[-2:] = ['']
     return urlunparse((scheme, netloc, '/'.join(segments),
                        params, query, fragment))
+
 
 def urldefrag(url):
     """Removes any existing fragment from URL.
@@ -357,6 +367,7 @@ test_input = """
       http:g?y/./x    = <URL:http://a/b/c/g?y/./x>
 """
 
+
 def test():
     import sys
     base = ''
@@ -368,9 +379,9 @@ def test():
             fp = open(fn)
     else:
         try:
-            from cStringIO import StringIO
+            from io import StringIO
         except ImportError:
-            from StringIO import StringIO
+            from io import StringIO
         fp = StringIO(test_input)
     while 1:
         line = fp.readline()
@@ -380,15 +391,16 @@ def test():
             continue
         url = words[0]
         parts = urlparse(url)
-        print '%-10s : %s' % (url, parts)
+        print('%-10s : %s' % (url, parts))
         abs = urljoin(base, url)
         if not base:
             base = abs
         wrapped = '<URL:%s>' % abs
-        print '%-10s = %s' % (url, wrapped)
+        print('%-10s = %s' % (url, wrapped))
         if len(words) == 3 and words[1] == '=':
             if wrapped != words[2]:
-                print 'EXPECTED', words[2], '!!!!!!!!!!'
+                print('EXPECTED', words[2], '!!!!!!!!!!')
+
 
 if __name__ == '__main__':
     test()
