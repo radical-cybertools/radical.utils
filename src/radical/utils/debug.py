@@ -179,7 +179,7 @@ def get_stacktraces():
         id2name[th.ident] = th.name
 
     ret = dict()
-    for tid, stack in sys._current_frames().items():
+    for tid, stack in list(sys._current_frames().items()):
         if tid in id2name:
             ret[tid,id2name[tid]] = traceback.extract_stack(stack)
         else:
@@ -293,7 +293,7 @@ def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
     testing purposes, for example when handling the n'th unit, getting the n'th
-    heartbeat signal, etc.  
+    heartbeat signal, etc.
 
     The tag parameter is interpreted as follows: on the `n`'th invocation of
     this method with any given `tag`, an exception is raised, and the counter
@@ -340,7 +340,7 @@ def raise_on(tag, log=None, msg=None):
         elif _verb: info = '%s [%2d / %2d]'      % (tag, count, limit     )
 
         if log    : log.debug('raise_on checked   %s' , info)
-        elif _verb: print     'raise_on checked   %s' % info
+        elif _verb: print('raise_on checked   %s' % info)
 
         if limit and count == limit:
             _raise_on_state[tag]['count'] = 0
@@ -350,11 +350,11 @@ def raise_on(tag, log=None, msg=None):
                 val = random.randint(0, 100)
                 if val > rate:
                     if log:     log.warn('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
-                    elif _verb: print   ('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
+                    elif _verb: print('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
                     return
 
             if log:     log.warn('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
-            elif _verb: print    'raise_on triggered %s [%2d / %2d]' % (tag, val, rate)
+            elif _verb: print('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
 
             # reset counter and raise exception
             raise RuntimeError('raise_on for %s [%s]' % (tag, val))
@@ -372,7 +372,7 @@ def attach_pudb(logger=None):
     if logger:
         logger.info('debugger open: telnet %s %d', host, port)
     else:
-        print 'debugger open: telnet %s %d' % (host, port)
+        print('debugger open: telnet %s %d' % (host, port))
 
     import pudb
     from   pudb.remote import set_trace

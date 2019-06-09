@@ -8,7 +8,7 @@ import time
 import threading
 import contextlib
 import weakref
-import singleton as rus
+from . import singleton as rus
 
 
 # ------------------------------------------------------------------------------
@@ -20,7 +20,7 @@ READWRITE = 'ReadWrite'
 
 # ------------------------------------------------------------------------------
 #
-class _Registry (object) :
+class _Registry (object, metaclass=rus.Singleton) :
     """
     This singleton registry class maintains a set of object instances, by some
     entity ID.  Consumers can acquire and release those instances, for
@@ -107,7 +107,6 @@ class _Registry (object) :
     This is a singleton class.  We assume that Workload *and* Overlay IDs are
     unique.
     """
-    __metaclass__ = rus.Singleton
 
 
     # --------------------------------------------------------------------------

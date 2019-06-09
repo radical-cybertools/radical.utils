@@ -6,8 +6,8 @@ __license__   = "MIT"
 
 import os
 
-import contrib.urlparse25 as urlparse
-import signatures         as rus
+from . import contrib.urlparse25 as urlparse
+from . import signatures         as rus
 
 
 # ------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     @rus.takes   ('Url', 
-                  rus.optional ((basestring, 'Url')))
+                  rus.optional ((str, 'Url')))
     @rus.returns (rus.nothing)
     def __init__(self, url_in=''):
         """ 
@@ -66,7 +66,7 @@ class Url (object):
     #
     ##
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def __str__  (self):
         """
         __str__()
@@ -79,14 +79,14 @@ class Url (object):
     #
     ##
     @rus.takes   ('Url')
-    @rus.returns (basestring)
+    @rus.returns (str)
     def __unicode__(self):
         """ 
         __unicode__()
 
         Unicode representation.
         """
-        return u'%s'  %  unicode(self._urlobj.geturl())
+        return '%s'  %  str(self._urlobj.geturl())
 
 
     # --------------------------------------------------------------------------
@@ -121,11 +121,11 @@ class Url (object):
     #
     ##
     @rus.takes   ('Url', 
-                  rus.optional(basestring),
-                  rus.optional(basestring),
-                  rus.optional(basestring),
-                  rus.optional((basestring, int)))
-    @rus.returns (basestring)
+                  rus.optional(str),
+                  rus.optional(str),
+                  rus.optional(str),
+                  rus.optional((str, int)))
+    @rus.returns (str)
     def _make_netloc (self, username, password, hostname, port):
         """ 
         _make_netloc(self, username, password, hostname, port)
@@ -199,7 +199,7 @@ class Url (object):
     # Scheme property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_scheme(self, scheme):
         """ 
@@ -215,7 +215,7 @@ class Url (object):
 
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_scheme(self):
         """
         get_scheme()
@@ -234,7 +234,7 @@ class Url (object):
     # Host property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_host(self, hostname):
         """ 
@@ -249,7 +249,7 @@ class Url (object):
 
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_host(self):
         """ 
         get_host()
@@ -267,7 +267,7 @@ class Url (object):
     # Port property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring, int))
+                  (rus.nothing, str, int))
     @rus.returns (rus.nothing)
     def set_port(self, port):
         """ 
@@ -303,7 +303,7 @@ class Url (object):
     # Username property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_username(self, username):
         """ 
@@ -317,7 +317,7 @@ class Url (object):
         self._renew_netloc (username=username)
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_username(self):
         """ 
         get_username()
@@ -335,7 +335,7 @@ class Url (object):
     # Password property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_password(self, password):
         """ 
@@ -349,7 +349,7 @@ class Url (object):
         self._renew_netloc (password=password)
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_password(self):
         """ 
         get_password()
@@ -367,7 +367,7 @@ class Url (object):
     # Fragment property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_fragment(self, fragment):
         """ 
@@ -381,7 +381,7 @@ class Url (object):
         self._renew_url (fragment=fragment)
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_fragment(self):
         """ 
         get_fragment()
@@ -399,7 +399,7 @@ class Url (object):
     # Path property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_path(self, path):
         """ 
@@ -413,7 +413,7 @@ class Url (object):
         self._renew_url (path=path, force_path=True)
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_path(self):
         """ 
         get_path()
@@ -437,7 +437,7 @@ class Url (object):
     # Query property
     #
     @rus.takes   ('Url', 
-                  (rus.nothing, basestring))
+                  (rus.nothing, str))
     @rus.returns (rus.nothing)
     def set_query(self, query):
         """ 
@@ -451,7 +451,7 @@ class Url (object):
         self._renew_url (query=query)
 
     @rus.takes   ('Url')
-    @rus.returns ((rus.nothing, basestring))
+    @rus.returns ((rus.nothing, str))
     def get_query(self):
         """
         get_query()

@@ -5,7 +5,7 @@ __license__   = "MIT"
 
 
 import time
-import lockable
+from . import lockable
 import threading
 
 from .logger import Logger

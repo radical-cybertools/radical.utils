@@ -229,7 +229,7 @@ def cluster_list(iterable, n):
          ...
     '''
 
-    return itertools.izip(*[iter(iterable)] * n)
+    return zip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
@@ -326,7 +326,7 @@ def tolist(thing):
 is_list = islist  # FIXME
 to_list = tolist  # FIXME
 def is_str(s):
-    return isinstance(s, basestring)
+    return isinstance(s, str)
 
 
 # ------------------------------------------------------------------------------
@@ -659,8 +659,8 @@ def get_size(obj, seen=None, strict=False):
         seen.add(obj_id)
 
     if isinstance(obj, dict):
-        size += sum([get_size(v, seen, strict) for v in obj.values()])
-        size += sum([get_size(k, seen, strict) for k in obj.keys()])
+        size += sum([get_size(v, seen, strict) for v in list(obj.values())])
+        size += sum([get_size(k, seen, strict) for k in list(obj.keys())])
 
     elif hasattr(obj, '__dict__'):
         size += get_size(obj.__dict__, seen, strict)

@@ -5,8 +5,8 @@ __license__   = "MIT"
 
 
 import threading
-import lockable
-import singleton
+from . import lockable
+from . import singleton
 
 
 # ------------------------------------------------------------------------------
@@ -20,9 +20,9 @@ _DEFAULT_NS = 'global'
 # ------------------------------------------------------------------------------
 #
 @lockable.Lockable
-class ObjectCache(object):
+class ObjectCache(object, metaclass=singleton.Singleton):
 
-    """ 
+    """
     This is a singleton object caching class -- it maintains a reference
     counted registry of existing objects.
     """
@@ -32,8 +32,6 @@ class ObjectCache(object):
     # names...
     #
     # FIXME: this class is not thread-safe!
-
-    __metaclass__ = singleton.Singleton
 
 
     # --------------------------------------------------------------------------
@@ -57,12 +55,12 @@ class ObjectCache(object):
         """
         For a given object id, attempt to retrieve an existing object.  If that
         object exists, increase the reference counter, as there is now one more
-        user for that object.  
+        user for that object.
 
         If that object does not exist, call the given creator, then register and
         return the object thusly created.
 
-        oid    : id of the object to get from the cache.  
+        oid    : id of the object to get from the cache.
         creator: method to use to create a new object instance
 
                   Example:
@@ -122,11 +120,11 @@ class ObjectCache(object):
 
                     if  self._timeout:
                         # delay actual removeal by _timeout seconds
-                        threading.Timer(self._timeout, 
+                        threading.Timer(self._timeout,
                                         self._rem_obj, [oid]).start()
 
                     else:
-                        # immediate removeal 
+                        # immediate removeal
                         self._rem_obj(oid)
 
                     return True

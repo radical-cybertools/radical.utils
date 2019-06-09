@@ -226,10 +226,10 @@ if __name__ == '__main__':
     pprint.pprint(test)
     pprint.pprint(collapse_ranges(test))
 
-    test_space = range(75)
+    test_space = list(range(75))
     parts = partition(test_space, 8)
     for part in parts:
-        print "%3d: %s" % (len(part), part)
+        print("%3d: %s" % (len(part), part))
 
 
 # ------------------------------------------------------------------------------

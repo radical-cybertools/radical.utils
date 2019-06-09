@@ -269,12 +269,12 @@ class Config(object, DictMixin):
         # expand environment
         def _expand_env(d):
             if isinstance(d, dict):
-                for k,v in d.iteritems():
+                for k,v in d.items():
                     d[k] = _expand_env(v)
             elif isinstance(d, list):
                 for i,v in enumerate(d):
                     d[i] = _expand_env(v)
-            elif isinstance(d, basestring):
+            elif isinstance(d, str):
                 d = ru_expand_env(d, env)
             return d
 
@@ -312,7 +312,7 @@ class Config(object, DictMixin):
         del(self._cfg[key])
 
     def keys(self):
-        return self._cfg.keys()
+        return list(self._cfg.keys())
 
 
     # --------------------------------------------------------------------------
@@ -352,14 +352,12 @@ class Config(object, DictMixin):
 
 # ------------------------------------------------------------------------------
 #
-class DefaultConfig(Config):
+class DefaultConfig(Config, metaclass=Singleton):
     '''
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
     '''
-
-    __metaclass__ = Singleton
 
     def __init__(self):
 

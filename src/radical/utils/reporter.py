@@ -146,7 +146,7 @@ class Reporter(object):
             if not targets:
                 targets = ru_def['report_tgt']
 
-        if isinstance(targets, basestring):
+        if isinstance(targets, str):
             targets = targets.split(',')
 
         if not isinstance(targets, list):
@@ -272,7 +272,7 @@ class Reporter(object):
             else:
                 msg = msg.replace('<<', '')
 
-        mlen  = len(filter(lambda x: x in string.printable, msg))
+        mlen  = len([x for x in msg if x in string.printable])
         mlen -= msg.count('\b')
 
       # print "<%s>" % (self._pos),

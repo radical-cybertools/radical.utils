@@ -52,10 +52,10 @@ class DictMixin:
     # second level definitions which assume only getitem and keys
     #
     def has_key(self, key):
-        return key in self.keys()
+        return key in list(self.keys())
 
     def __iter__(self):
-        for k in self.keys():
+        for k in list(self.keys()):
             yield k
 
 
@@ -64,7 +64,7 @@ class DictMixin:
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return self.has_key(key)
+        return key in self
 
     def iteritems(self):
         for k in self:
@@ -79,17 +79,17 @@ class DictMixin:
         return self.__iter__()
 
     def itervalues(self):
-        for _, v in self.iteritems():
+        for _, v in self.items():
             yield v
 
     def values(self):
-        return list(self.itervalues())
+        return list(self.values())
 
     def items(self):
-        return list(self.iteritems())
+        return list(self.items())
 
     def clear(self):
-        for key in self.keys():
+        for key in list(self.keys()):
             del self[key]
 
     def setdefault(self, key, default):
@@ -99,13 +99,13 @@ class DictMixin:
         return self[key]
 
     def popitem(self):
-        key = self.keys()[0]
+        key = list(self.keys())[0]
         value = self[key]
         del self[key]
         return key, value
 
     def update(self, other):
-        for key in other.keys():
+        for key in list(other.keys()):
             self[key] = other[key]
 
     def get(self, key, default=None):
@@ -114,7 +114,7 @@ class DictMixin:
         return default
 
     def __repr__(self):
-        return repr(dict(self.items()))
+        return repr(dict(list(self.items())))
 
 
 # ------------------------------------------------------------------------------
@@ -254,8 +254,8 @@ def dict_stringexpand(target, sources=None):
 
     repl_source = dict()
     for source in sources:
-        for key, val in source.iteritems():
-            if  isinstance(val, basestring) or \
+        for key, val in source.items():
+            if  isinstance(val, str) or \
                 isinstance(val, int       ) or \
                 isinstance(val, float     ) :
                 repl_source[key] = val
@@ -271,7 +271,7 @@ def dict_stringexpand(target, sources=None):
 #
 def _generic_stringexpand(target, source):
 
-    if  isinstance(target, basestring): 
+    if  isinstance(target, str): 
         return _string_stringexpand(target, source)
 
     elif  isinstance(target, list): 
@@ -308,7 +308,7 @@ def _dict_stringexpand(target, source):
     assert (isinstance(source, dict))
 
     all_again = 0
-    for key, val in target.iteritems():
+    for key, val in target.items():
         target[key], again = _generic_stringexpand(val, source)
         all_again += again
 
@@ -319,7 +319,7 @@ def _dict_stringexpand(target, source):
 #
 def _string_stringexpand(target, source):
 
-    assert (isinstance(target, basestring))
+    assert (isinstance(target, str))
     assert (isinstance(source, dict))
 
     orig = str(target)

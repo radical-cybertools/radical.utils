@@ -117,7 +117,7 @@ class ReSult(object):
 
     # --------------------------------------------------------------------------
     #
-    def __nonzero__ (self) :
+    def __bool__ (self) :
         """
         Boolean check for 'if / elif / else' constructs
         """
@@ -220,7 +220,7 @@ class ReString(str):
     def __floordiv__(self, re):
 
         compiled_regex = None
-        if  isinstance (re, basestring):
+        if  isinstance (re, str):
             compiled_regex = regex.compile(re)
 
         else:
@@ -260,14 +260,14 @@ def _example_re_string():
 
     with txt // '(\s.u)(?P<x>.*?j\S+)' as res:
 
-        if res : print 'Matched!'               # boolean check
-        print "res      : '%s' " % res          # list of results
-        print "res[0]   : '%s' " % res[0]       # index by number ...
-        print "res[1]   : '%s' " % res[1]       # ... for all matches
-        print "res['x'] : '%s' " % res['x']     # index by match name
-        print "res.x    : '%s' " % res.x        # ...   as properties
+        if res : print('Matched!')               # boolean check
+        print("res      : '%s' " % res)          # list of results
+        print("res[0]   : '%s' " % res[0])       # index by number ...
+        print("res[1]   : '%s' " % res[1])       # ... for all matches
+        print("res['x'] : '%s' " % res['x'])     # index by match name
+        print("res.x    : '%s' " % res.x)        # ...   as properties
         for i, r in enumerate (res) :
-            print "res %d    : '%s' " % (i, r)  # matches as iterable
+            print("res %d    : '%s' " % (i, r))  # matches as iterable
 
         assert (len(res) == 2)                  # number of matches
         assert (res == [' qu', 'ick brown fox jumps'])  # compare to list
@@ -280,7 +280,7 @@ def _example_re_string():
         res = txt.get()
 
     else:
-        print 'no match'
+        print('no match')
 
 
 # ------------------------------------------------------------------------------
@@ -292,7 +292,7 @@ def _test_re_string():
     tgt_d = {'x'  : 'ick brown fox jumps'}
 
     with txt // '(\s.u)(?P<x>.*?j\S+)' as res:
-        print res
+        print(res)
         assert (res)
         assert (len(res) == len(tgt_l))
         assert (res      == tgt_l), "%s != %s" % (str(res), str(tgt_l))

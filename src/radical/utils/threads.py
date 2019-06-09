@@ -8,10 +8,10 @@ import os
 import sys
 import time
 import signal
-import thread
+import _thread
 import traceback
 
-import Queue        as queue
+import queue        as queue
 import threading    as mt
 import setproctitle as spt
 
@@ -893,7 +893,7 @@ def cancel_main_thread(signame=None, once=False):
             # NOTE: see http://bugs.python.org/issue23395 for problems on using
             #       SIGINT in combination with signal handlers!
             try:
-                thread.interrupt_main()
+                _thread.interrupt_main()
             except TypeError:
                 # this is known to be a side effect of `thread.interrup_main()`
                 pass
@@ -923,7 +923,7 @@ def cancel_main_thread(signame=None, once=False):
 #        `set_cancellation_handler()` should, too.
 #
 def _sigusr2_handler(signum, frame):
-    print 'caught sigusr2 (%s)' % os.getpid()
+    print('caught sigusr2 (%s)' % os.getpid())
     # we only want to get this exception once, so we unset the signal handler
     # before we raise it
     signal.signal(signal.SIGUSR2, signal.SIG_IGN)

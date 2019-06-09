@@ -62,10 +62,10 @@ def write_json (data,  filename) :
     # http://stackoverflow.com/questions/956867/#13105359
     def _byteify(input):
         if isinstance(input, dict):
-            return {_byteify(key):_byteify(value) for key,value in input.iteritems()}
+            return {_byteify(key):_byteify(value) for key,value in input.items()}
         elif isinstance(input, list):
             return [_byteify(element) for element in input]
-        elif isinstance(input, unicode):
+        elif isinstance(input, str):
             return input.encode('utf-8')
         else:
             return input
@@ -113,7 +113,7 @@ def _unicode_to_strings (unicode_data) :
 
     if isinstance (unicode_data, dict) :
         ret = dict ()
-        for key, value in unicode_data.iteritems() :
+        for key, value in unicode_data.items() :
             ret[_unicode_to_strings(key)] = _unicode_to_strings(value) 
         return ret
 
@@ -123,7 +123,7 @@ def _unicode_to_strings (unicode_data) :
             ret.append (_unicode_to_strings (element))
         return ret
 
-    elif isinstance (unicode_data, unicode) :
+    elif isinstance (unicode_data, str) :
         return unicode_data.encode ('utf-8')
 
     else:

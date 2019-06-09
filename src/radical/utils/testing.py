@@ -7,7 +7,7 @@ __license__   = "MIT"
 import os
 import sys
 
-import read_json as rj
+from . import read_json as rj
 
 
 # ------------------------------------------------------------------------------
@@ -96,15 +96,15 @@ class Testing(object):
         try:
             module = __import__(modname)
         
-        except Exception, e:
+        except Exception as e:
             srcdir = "%s/../" % os.path.dirname(os.path.realpath(basedir))
             sys.path.insert(0, os.path.abspath(srcdir))
             module = __import__(modname)
 
 
-        print "______________________________________________________________________"
-        print "Using %s from: %s" % (modname, module.__path__[0])
-        print "______________________________________________________________________"
+        print("______________________________________________________________________")
+        print("Using %s from: %s" % (modname, module.__path__[0]))
+        print("______________________________________________________________________")
 
         try:
             import nose
@@ -179,13 +179,13 @@ class Testing(object):
             config.stream     = sys.stderr
 
             # and run tests
-            print "____________________________________________________________"
-            print "%s" % test_suite
-            print "____________________________________________________________"
+            print("____________________________________________________________")
+            print("%s" % test_suite)
+            print("____________________________________________________________")
             rc = nose.core.run(argv=[sys.argv[0]], config=config)
             results.append(rc)
-            print "RC: %s" % rc
-            print "____________________________________________________________"
+            print("RC: %s" % rc)
+            print("____________________________________________________________")
 
         # if we get a 'false' results it means that something went wrong. in
         # that case we return a non-zero exit code

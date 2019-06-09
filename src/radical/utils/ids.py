@@ -11,7 +11,7 @@ import fcntl
 import socket
 import datetime
 import threading
-import singleton
+from . import singleton
 
 from .misc import dockerized, get_radical_base
 
@@ -23,15 +23,13 @@ TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 
 # ------------------------------------------------------------------------------
 #
-class _IDRegistry(object):
+class _IDRegistry(object, metaclass=singleton.Singleton):
     """
     This helper class (which is not exposed to any user of radical.utils)
     generates a sequence of continous numbers for each known ID prefix.  It is
     a singleton, and thread safe (assuming that the Singleton metaclass supports
     thread safe construction).
     """
-
-    __metaclass__ = singleton.Singleton
 
 
     # --------------------------------------------------------------------------
@@ -170,7 +168,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     """
 
     if not prefix or \
-        not isinstance(prefix, basestring):
+        not isinstance(prefix, str):
         raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""

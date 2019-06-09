@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 import sys
 import os
+from functools import reduce
 
 
 # ------------------------------------------------------------------------------
@@ -14,7 +15,7 @@ import os
 # Distributed under BSD license.
 #
 # code adjustements by 'The SAGA Project', 2013
-# See also 
+# See also
 # http://code.activestate.com/recipes/577065-type-checking-function-overloading-decorator/
 #
 #
@@ -24,7 +25,7 @@ import os
 #
 # @takes(int, str) # takes   int, str, upon a problem throws TypeError
 # @returns(int)    # returns int,      upon a problem throws TypeError
-# def foo(i, s): 
+# def foo(i, s):
 #     return i + len(s)
 #
 # @takes((int, long), by_regex("^[0-9]+$")) # int or long, numerical string
@@ -37,7 +38,7 @@ import os
 #
 # Note: @takes for positional arguments, @takes for keyword arguments and @returns
 # all support the same checker syntax, for example for the following declaration
-# 
+#
 # @takes(C)
 # def foo(x):
 #     ...
@@ -70,7 +71,7 @@ import os
 # list_of  (checker)        ==> ok if x is a list  of checker-conformant values
 # tuple_of (checker)        ==> ok if x is a tuple of checker-conformant values
 # set_of   (checker)        ==> ok if x is a set   of checker-conformant values
-# dict_of  (key_checker, 
+# dict_of  (key_checker,
 #           value_checker)  ==> ok if x is a dict  mapping key_checker-
 #                           conformant keys to value_checker-conformant values
 #
@@ -83,7 +84,7 @@ import os
 #     @takes ("foo", int)            # foo, and int if presents in args,
 #     def bar (self, *args):         # if args is empty, the check passes ok
 #         ...
-#     @takes ("foo")                 
+#     @takes ("foo")
 #     @returns (object)              # returns foo which is fine, because
 #     def biz (self):                # foo is an object
 #         return self
@@ -91,11 +92,11 @@ import os
 #     @takes (type)                  # go same way
 #     def baz (cls):
 #         ...
-#    
+#
 # @takes   (int)
 # @returns (optional ("int", foo))   # returns either int, foo or NoneType
 # def bar (i):                       # "int" (rather than just int) is for fun
-#     if i > 0: 
+#     if i > 0:
 #         return i
 #     elif i == 0:
 #         return foo()               # otherwise returns NoneType
@@ -113,15 +114,15 @@ import os
 # anything is an alias for predicate lambda: True,
 # nothing is an alias for NoneType, as in:
 #
-# @takes   (callable, readable, 
-#           optional (anything), 
+# @takes   (callable, readable,
+#           optional (anything),
 #           optional (int))
 # @returns (nothing)
 # def foo (f, r, x = None, i = None):
 #     ...
 #
 #                                    # another way of protocol checking
-# @takes (with_attr ("read", "write")) 
+# @takes (with_attr ("read", "write"))
 # def foo (pipe):
 #     ...
 #
@@ -134,7 +135,7 @@ import os
 #     print x[0]()
 #
 #                                    # dict mapping strs to lists of int
-# @takes (dict_of (str, list_of (int))) 
+# @takes (dict_of (str, list_of (int)))
 # def foo (x):
 #     print sum (x["foo"])
 #
@@ -151,7 +152,7 @@ import os
 #
 # ------------------------------------------------------------------------------
 
-__all__ = [ "takes",    "returns",   "optional", "nothing",   
+__all__ = [ "takes",    "returns",   "optional", "nothing",
             "anything", "list_of",   "tuple_of", "dict_of",
             "by_regex", "with_attr", "one_of",   "set_of" ]
 
@@ -174,7 +175,7 @@ from functools import wraps
 def base_names (C):
     "Returns list of base class names for a given class"
     return [ x.__name__ for x in C.__mro__ ]
-    
+
 # ------------------------------------------------------------------------------
 
 def type_name (v):
@@ -220,7 +221,7 @@ class StrChecker (Checker):
         value_base_names = base_names (type (value))
         return self.reference in value_base_names or \
                "instance"     in value_base_names
-   
+
 Checker._registered.append ((lambda x: isinstance (x, str), StrChecker))
 
 # ------------------------------------------------------------------------------
@@ -228,14 +229,14 @@ Checker._registered.append ((lambda x: isinstance (x, str), StrChecker))
 class TupleChecker (Checker):
 
     def __init__ (self, reference):
-        self.reference = map (Checker.create, reference)
+        self.reference = list(map (Checker.create, reference))
         self.spectype  = reference
 
     def check (self, value):
         return reduce (lambda r, c: r or c.check (value), self.reference, False)
 
 Checker._registered.append ((lambda x: isinstance (x, tuple) and not
-                     filter (lambda y: Checker.create (y) is None, x), 
+                     [y for y in x if Checker.create (y) is None],
                      TupleChecker))
 
 optional = lambda *args: args + (NoneType, )
@@ -263,7 +264,7 @@ class ListOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, list) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 list_of = lambda *args: ListOfChecker (*args).check
 
@@ -276,7 +277,7 @@ class TupleOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, tuple) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 tuple_of = lambda *args: TupleOfChecker (*args).check
 
@@ -289,7 +290,7 @@ class SetOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, set) and \
-               not filter (lambda e: not self.reference.check (e), value)
+               not [e for e in value if not self.reference.check (e)]
 
 set_of = lambda *args: SetOfChecker (*args).check
 
@@ -303,8 +304,8 @@ class DictOfChecker (Checker):
 
     def check (self, value):
         return isinstance (value, dict) and \
-               not filter (lambda e: not self.key_reference.check   (e), value.iterkeys  ()) and \
-               not filter (lambda e: not self.value_reference.check (e), value.itervalues())
+               not [e for e in iter(value.keys  ()) if not self.key_reference.check   (e)] and \
+               not [e for e in iter(value.values()) if not self.value_reference.check (e)]
 
 dict_of = lambda *args: DictOfChecker (*args).check
 
@@ -316,7 +317,7 @@ class RegexChecker (Checker):
         self.reference = regex (reference)
 
     def check (self, value):
-        return isinstance (value, basestring) and self.reference.match (value)
+        return isinstance (value, str) and self.reference.match (value)
 
 by_regex = lambda *args: RegexChecker (*args).check
 
@@ -328,8 +329,8 @@ class AttrChecker (Checker):
         self.attrs = attrs
 
     def check (self, value):
-        return reduce (lambda r, c: r and c, 
-                  map (lambda a: hasattr (value, a), self.attrs), True)
+        return reduce (lambda r, c: r and c,
+                  [hasattr (value, a) for a in self.attrs], True)
 
 with_attr = lambda *args: AttrChecker (*args).check
 
@@ -349,7 +350,7 @@ one_of = lambda *args: OneOfChecker (*args).check
 def create_return_exception (method, spectype, result) :
 
     stack = extract_stack ()
-    for f in stack : 
+    for f in stack :
         if  'utils/signatures.py' in f[0] :
             break
         frame = f
@@ -369,14 +370,14 @@ def create_return_exception (method, spectype, result) :
 def create_type_exception (method, arg0, i, arg, spectype, kwname="") :
 
     narg = 0
-    
+
     if  arg0 and isinstance (arg0, object) :
         narg = i
     else :
         narg = i+1
-    
+
     stack = extract_stack ()
-    for f in stack : 
+    for f in stack :
         if  'utils/signatures.py' in f[0] :
             break
         frame = f
@@ -434,7 +435,7 @@ def takes (*args, **kwargs):
             checkers.append (checker)
 
         kwcheckers = {}
-        for kwname, kwarg in kwargs.iteritems ():
+        for kwname, kwarg in kwargs.items ():
             checker = Checker.create (kwarg)
             if checker is None:
                 raise TypeError ("@takes decorator got parameter %s of unsupported "
@@ -443,12 +444,12 @@ def takes (*args, **kwargs):
 
 
         def takes_proxy (method):
-            
+
             method_args, method_defaults = getargspec (method)[0::3]
 
             @wraps(method)
             def signature_check (*pargs, **pkwargs):
-    
+
                 # append the default parameters
 
                 if  method_defaults is not None and len (method_defaults) > 0 \
@@ -460,25 +461,28 @@ def takes (*args, **kwargs):
                 for i, (arg, checker) in enumerate (zip (pargs, checkers)):
                     if  not checker.check (arg):
                       # print 'Checker.spectype %s' % checker.spectype
-                        raise (create_type_exception (method, pargs[0], i,
-                                                      arg, checker.spectype))
+                        excpt = create_type_exception(method, pargs[0], i,
+                                                      arg, checker.spectype)
+                        raise excpt
 
-                for kwname, checker in kwcheckers.iteritems ():
+                for kwname, checker in kwcheckers.items ():
                     if  not checker.check (pkwargs.get (kwname, None)):
                       # print 'checker.spectype %s' % checker.spectype
-                        raise (create_type_exception (method, pargs[0], i,
-                                                      arg, checker.spectype, kwname))
+                        excpt = create_type_exception(method, pargs[0], i,
+                                                      arg, checker.spectype,
+                                                      kwname)
+                        raise excpt
 
                 try :
                     return method(*pargs, **pkwargs)
                 except :
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et, ei, tb.tb_next
+                    raise et(ei).with_traceback(tb.tb_next)
 
             signature_check.__name__ = method.__name__
             return signature_check
-    
+
     return takes_proxy
 
 # ------------------------------------------------------------------------------
@@ -494,35 +498,38 @@ def returns (sometype):
     else:
 
         # convert decorator argument into a checker
-        
+
         checker = Checker.create(sometype)
         if checker is None:
             raise TypeError ("@returns decorator got parameter of unsupported "
                              "type %s" % type_name (sometype))
 
         def returns_proxy (method):
-            
+
             @wraps(method)
             def signature_check (*args, **kwargs):
-                
+
                 try :
                     result = method (*args, **kwargs)
                 except :
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et, ei, tb.tb_next
-                
+                    raise et(ei).with_traceback(tb.tb_next)
+
                 if  not checker.check (result):
-                    
+
                     if not  no_return_check:
                       # print 'Checker.spectype %s' % checker.spectype
-                        raise (create_return_exception (method, checker.spectype, result))
+                        excpt = create_return_exception (method,
+                                                         checker.spectype,
+                                                         result)
+                        raise excpt
 
                 return result
-    
+
             signature_check.__name__ = method.__name__
             return signature_check
-        
+
     return returns_proxy
 
 

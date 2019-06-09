@@ -68,14 +68,14 @@ def _tracer (frame, event, arg) :
         if idx >= 0 :
 
             name = filename[idx:]
-            print "%-60s:%4d: %s" % (name, lineno, line.rstrip ())
+            print("%-60s:%4d: %s" % (name, lineno, line.rstrip ()))
           # fout.write("%-60s:%4d: %s\n" % (name, lineno, line.rstrip ()))
             _trace_external = False
 
         else :
 
             if not _trace_external :
-                print "--> %-56s:%4d: %s" % (filename, lineno, line.rstrip ())
+                print("--> %-56s:%4d: %s" % (filename, lineno, line.rstrip ()))
               # fout.write("--> %-56s:%4d: %s\n" % (filename, lineno, line.rstrip ()))
             _trace_external = True
 

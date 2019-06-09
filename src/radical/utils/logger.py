@@ -59,10 +59,9 @@ OFF      = -1
 
 # ------------------------------------------------------------------------------
 #
-class _LoggerRegistry(object):
+class _LoggerRegistry(object, metaclass=Singleton):
 
     from .singleton import Singleton
-    __metaclass__ = Singleton
 
     def __init__(self):
         self._registry = list()
@@ -237,7 +236,7 @@ class Logger(object):
             if not targets:
                 targets = ru_def['log_tgt']
 
-        if isinstance(targets, basestring):
+        if isinstance(targets, str):
             targets = targets.split(',')
 
         if not isinstance(targets, list):
@@ -264,7 +263,7 @@ class Logger(object):
                    '-1' : 'OFF'}
         level   = levels.get(str(level), str(level)).upper()
         warning = None
-        if level not in levels.values():
+        if level not in list(levels.values()):
             warning = "invalid loglevel '%s', use '%s'" \
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']

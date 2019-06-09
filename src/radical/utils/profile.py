@@ -374,14 +374,14 @@ def read_profiles(profiles, sid=None, efilter=None):
                             row = new_row
 
                     if None in row:
-                        print 'row invalid [%s]: %s' % (prof, raw)
+                        print('row invalid [%s]: %s' % (prof, raw))
                         continue
                       # raise ValueError('row invalid [%s]: %s' % (prof, row))
 
                     # apply the filter.  We do that after adding the entity
                     # field above, as the filter might also apply to that.
                     skip = False
-                    for field, pats in efilter.iteritems():
+                    for field, pats in efilter.items():
                         for pattern in pats:
                             if pattern in row[field]:
                                 skip = True
@@ -453,7 +453,7 @@ def combine_profiles(profs):
 
     # first get all absolute and relative timestamp sync from the profiles,
     # for all hosts
-    for pname, prof in profs.iteritems():
+    for pname, prof in profs.items():
 
         sync_abs = list()
         sync_rel = list()
@@ -471,7 +471,7 @@ def combine_profiles(profs):
         # we can have any number of sync_rel's - but if we find none, we expect
         # a sync_abs
         if not sync_rel and not sync_abs:
-            print 'unsynced     %s' % pname
+            print('unsynced     %s' % pname)
 
         syncs[pname] = {'rel' : sync_rel,
                         'abs' : sync_abs}
@@ -480,7 +480,7 @@ def combine_profiles(profs):
   #     if prof:
   #         print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
 
-    for pname, prof in profs.iteritems():
+    for pname, prof in profs.items():
 
         if not len(prof):
           # print 'empty        %s' % pname
@@ -510,7 +510,7 @@ def combine_profiles(profs):
                     break
 
         if offset is None:
-            print 'no rel sync  %s' % pname
+            print('no rel sync  %s' % pname)
             continue
 
       # print 'sync profile %-100s : %20.3fs' % (pname, offset)
@@ -560,10 +560,10 @@ def combine_profiles(profs):
 
                 # we allow for *some* amount of inconsistency before warning
                 if diff > NTP_DIFF_WARN_LIMIT:
-                    print 'conflicting time sync for %-45s (%15s): ' \
+                    print('conflicting time sync for %-45s (%15s): ' \
                         % (pname.split('/')[-1], host_id) \
                         + '%10.2f - %10.2f = %5.2f' \
-                        % (t_off,t_host[host_id], diff)
+                        % (t_off,t_host[host_id], diff))
                     continue
 
             t_host[host_id] = t_off
@@ -573,14 +573,14 @@ def combine_profiles(profs):
     last     = None
     # now that we can align clocks for all hosts, apply that correction to all
     # profiles
-    for pname, prof in profs.iteritems():
+    for pname, prof in profs.items():
 
         if not len(prof):
           # print 'empty prof: %s' % pname
             continue
 
         if not syncs[pname]['abs']:
-            print 'no sync_abs event: %s' % prof[0]
+            print('no sync_abs event: %s' % prof[0])
             continue
 
         sync_abs = syncs[pname]['abs'][0]
@@ -623,7 +623,7 @@ def combine_profiles(profs):
 
         # Check for proper closure of profiling files
         if c_end == 0:
-            print 'WARNING: profile "%s" not correctly closed.' % pname
+            print('WARNING: profile "%s" not correctly closed.' % pname)
       # elif c_end > 1:
       #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
 
@@ -719,7 +719,7 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
     # we have evaluated, cleaned and sorted all events -- now we recreate
     # a clean profile out of them
     ret = list()
-    for entity in entities.values():
+    for entity in list(entities.values()):
         ret += entity['events']
 
     # sort by time and return

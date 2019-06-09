@@ -467,7 +467,7 @@ class Process(mp.Process):
     def _ru_watch_things(self):
 
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.iteritems():
+            for tname,thing in self._ru_things.items():
                 if not thing.is_alive():
                     self._ru_log.warn('%s died')
                     return False
@@ -719,7 +719,7 @@ class Process(mp.Process):
 
         # stop all things we watch
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.iteritems():
+            for tname,thing in self._ru_things.items():
                 try:
                     thing.stop(timeout=_STOP_TIMEOUT)
                 except Exception as e:
@@ -731,7 +731,7 @@ class Process(mp.Process):
         # distinguishing.
 
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.iteritems():
+            for tname,thing in self._ru_things.items():
                 try:
                     thing.join(timeout=_STOP_TIMEOUT)
                 except Exception as e:
@@ -808,7 +808,7 @@ class Process(mp.Process):
 
         # stop all things we watch
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.iteritems():
+            for tname,thing in self._ru_things.items():
                 try:
                     thing.stop(timeout=timeout)
                 except Exception as e:
@@ -841,7 +841,7 @@ class Process(mp.Process):
         # `join()` will cause little overhead, so we don't bother
         # distinguishing.
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.iteritems():
+            for tname,thing in self._ru_things.items():
                 try:
                     thing.join(timeout=timeout)
                 except Exception as e:
