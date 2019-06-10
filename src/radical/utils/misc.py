@@ -638,7 +638,6 @@ def stack():
         rpath = rpath[0]
 
     for mpath in glob.glob('%s/*' % rpath):
-        print mpath
 
         if os.path.isdir(mpath):
 
