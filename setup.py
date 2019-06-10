@@ -244,17 +244,18 @@ def isgood(name):
     return False
 
 
+# FIXME: pip3 bug: binaries files cannot be installed into bin.
 # compile gtod
-try:
-    compiler = new_compiler(verbose=1)
-    objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-    exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-except:
-    with open('bin/radical-utils-gtod', 'w') as fout:
-        fout.write('#!/usr/bin/env python\n'
-                   'import time\n'
-                   'print time.time()\n')
-        os.chmod('bin/radical-utils-gtod', 0o755)
+# try:
+#     compiler = new_compiler(verbose=1)
+#     objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+#     exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+# except:
+#     with open('bin/radical-utils-gtod', 'w') as fout:
+#         fout.write('#!/usr/bin/env python\n'
+#                    'import time\n'
+#                    'print time.time()\n')
+#         os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
@@ -310,7 +311,7 @@ setup_args = {
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
-                            'bin/radical-utils-gtod',
+                            # 'bin/radical-utils-gtod',
                             'bin/radical-stack',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
