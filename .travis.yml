@@ -37,8 +37,8 @@ install:
 
 before_script:
   - LOC=/home/travis/virtualenv/python3.5  # Location where VE is created on travis
-  - sed -i 's|VENV|'"$LOC"'|g' .coveragerc  # Update source in coveragerc
-  - cat .coveragerc
+ # - sed -i 's|VENV|'"$LOC"'|g' .coveragerc  # Update source in coveragerc
+ # - cat .coveragerc
 
 script:
   - echo $MAIN_CMD
