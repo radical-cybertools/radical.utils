@@ -47,19 +47,19 @@ def test_round_upper_bound():
 def test_sh_callout():
 
     out, err, ret = ru.sh_callout('echo TRUE')
-    assert(out == 'TRUE\n'),  out
-    assert(err == ''),      err
-    assert(ret == 0),       ret
+    assert(out == b'TRUE\n'),  out
+    assert(err == b''),        err
+    assert(ret == 0),          ret
 
     out, err, ret = ru.sh_callout('false')
-    assert(out == ''),      out
-    assert(err == ''),      err
-    assert(ret == 1),       ret
+    assert(out == b''),        out
+    assert(err == b''),        err
+    assert(ret == 1),          ret
 
     out, err, ret = ru.sh_callout('echo FALSE 1>&2; exit 2', shell=True)
-    assert(out == ''),      out
-    assert(err == 'FALSE\n'), err
-    assert(ret == 2),       ret
+    assert(out == b''),        out
+    assert(err == b'FALSE\n'), err
+    assert(ret == 2),          ret
 
 
 # ------------------------------------------------------------------------------
@@ -70,17 +70,17 @@ def test_sh_callout_async():
 
 #     t_0 = time.time()
 #     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
-# 
+#
 #     assert(p.stdout.get() == 'TRUE')
 #     assert(p.state        == ru.RUNNING)
-# 
+#
 #     t_1 = time.time()
-# 
+#
 #     assert(p.stdout.get() is None)
 #     assert(p.state        == ru.DONE)
-# 
+#
 #     t_2 = time.time()
-# 
+#
 #     assert(t_1 - t_0 < 0.1)
 #     assert(t_2 - t_0 > 1.0)
 
