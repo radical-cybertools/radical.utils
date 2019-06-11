@@ -224,9 +224,9 @@ def all_pairs(iterable, n):
 #
 def cluster_list(iterable, n):
     '''
-    s -> [ s0,  s1,    s2,    ... sn-1  ], 
-         [ sn,  sn+1,  sn+2,  ... s2n-1 ], 
-         [ s2n, s2n+1, s2n+2, ... s3n-1 ], 
+    s -> [ s0,  s1,    s2,    ... sn-1  ],
+         [ sn,  sn+1,  sn+2,  ... s2n-1 ],
+         [ s2n, s2n+1, s2n+2, ... s3n-1 ],
          ...
     '''
 
@@ -360,7 +360,10 @@ def find_module(name):
     if not package:
         return None
 
-    return package.filename
+    # NOTE: Python 3: package.filename does not exist anymore. Use
+    # .get_filename() instead.
+    # return package.filename
+    return package.get_filename()
 
 
 # ------------------------------------------------------------------------------
@@ -409,7 +412,7 @@ def get_hostip(req=None, logger=None):
     # Then this list is traversed, we check if the interface exists and has an
     # IP address.  The first match is used.
 
-    if req: 
+    if req:
         if not isinstance(req, list):
             req = [req]
     else:
@@ -503,9 +506,9 @@ def name2env(name):
 #
 def get_env_ns(key, ns, default=None):
     '''
-    get an environment setting within a namespace.  For example. 
+    get an environment setting within a namespace.  For example.
 
-        get_env_ns('verbose', 'radical.pilot.umgr'), 
+        get_env_ns('verbose', 'radical.pilot.umgr'),
 
     will return the value of the first found env variable from the following
     sequence:
@@ -549,7 +552,7 @@ def expand_env(data, env=None, ignore_missing=True):
     expand the given string (`data`) with environment variables.  If `env` is
     provided, use that env disctionary for expansion instead of `os.environ`.
 
-    The replacement is performed for the following variable specs 
+    The replacement is performed for the following variable specs
 
         assume  `export BAR=bar`:
 
@@ -627,7 +630,7 @@ def stack():
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
                         'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
-                                       os.environ.get('CONDA_DEFAULT_ENV','')}, 
+                                       os.environ.get('CONDA_DEFAULT_ENV','')},
            'radical' : dict()
           }
 
