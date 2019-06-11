@@ -34,7 +34,7 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     else:
         stdout, stderr = p.communicate()
         ret            = p.returncode
-    return stdout, stderr, ret
+    return stdout.decode("utf-8"), stderr.decode("utf-8"), ret
 
 
 # ------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
 
     sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
 
-    return 
+    return
 
 
 # ------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
                                   shell=shell, bufsize=1)
 
-            t = mt.Thread(target=self._watch) 
+            t = mt.Thread(target=self._watch)
             t.daemon = True
             t.start()
 

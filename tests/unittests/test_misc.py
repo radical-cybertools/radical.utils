@@ -47,19 +47,19 @@ def test_round_upper_bound():
 def test_sh_callout():
 
     out, err, ret = ru.sh_callout('echo TRUE')
-    assert(out == b'TRUE\n'),  out
-    assert(err == b''),        err
-    assert(ret == 0),          ret
+    assert(out == 'TRUE\n'),  out
+    assert(err == ''),        err
+    assert(ret == 0),         ret
 
     out, err, ret = ru.sh_callout('false')
-    assert(out == b''),        out
-    assert(err == b''),        err
-    assert(ret == 1),          ret
+    assert(out == ''),        out
+    assert(err == ''),        err
+    assert(ret == 1),         ret
 
     out, err, ret = ru.sh_callout('echo FALSE 1>&2; exit 2', shell=True)
-    assert(out == b''),        out
-    assert(err == b'FALSE\n'), err
-    assert(ret == 2),          ret
+    assert(out == ''),        out
+    assert(err == 'FALSE\n'), err
+    assert(ret == 2),         ret
 
 
 # ------------------------------------------------------------------------------
