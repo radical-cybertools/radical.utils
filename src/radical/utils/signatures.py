@@ -166,9 +166,11 @@ if 'RADICAL_DEBUG_SIG' in os.environ:
 
 from traceback import extract_stack
 from inspect   import getargspec, isclass
-from types     import NoneType
 from re        import compile as regex
 from functools import wraps
+
+# NOTE: Python 3: type NoneType does not exist anymore. Test against None.
+# from types     import NoneType
 
 # ------------------------------------------------------------------------------
 
@@ -211,7 +213,7 @@ class TypeChecker (Checker):
         return isinstance (value, self.reference)
 
 Checker._registered.append ((isclass, TypeChecker))
-nothing = NoneType
+nothing = None
 
 # ------------------------------------------------------------------------------
 
@@ -239,7 +241,7 @@ Checker._registered.append ((lambda x: isinstance (x, tuple) and not
                      [y for y in x if Checker.create (y) is None],
                      TupleChecker))
 
-optional = lambda *args: args + (NoneType, )
+optional = lambda *args: args + (None, )
 
 # ------------------------------------------------------------------------------
 

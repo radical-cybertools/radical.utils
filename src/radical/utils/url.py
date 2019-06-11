@@ -6,7 +6,7 @@ __license__   = "MIT"
 
 import os
 
-from . import contrib.urlparse25 as urlparse
+from .contrib import urlparse25 as urlparse
 from . import signatures         as rus
 
 

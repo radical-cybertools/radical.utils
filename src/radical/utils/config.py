@@ -9,8 +9,8 @@ __license__   = "MIT"
 # We provide a json based config file parser with following properties
 #
 #   - system config files will be merged with user configs (if those exist)
-#   - python style comments are filtered out before parsing 
-#   - after parsing, `${ABC:default}`-style values are set or expanded via 
+#   - python style comments are filtered out before parsing
+#   - after parsing, `${ABC:default}`-style values are set or expanded via
 #     `os.environ`
 #
 #
@@ -41,12 +41,12 @@ __license__   = "MIT"
 #   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
 #   usr_config_dir = /home/merzky/.radical/utils/
 #
-# The remaining two arguments are exclusive (exactly *one* must be specified).  
-# If `path` is given, it is interpreted as a path under those locations.  
-# If `name` is given, then the same `. -> /` replacement as on the module name 
-# is performed, and the result is interpreted like `path` again.  
+# The remaining two arguments are exclusive (exactly *one* must be specified).
+# If `path` is given, it is interpreted as a path under those locations.
+# If `name` is given, then the same `. -> /` replacement as on the module name
+# is performed, and the result is interpreted like `path` again.
 #
-# In both cases, we add the file extension `.json` if no match is found without 
+# In both cases, we add the file extension `.json` if no match is found without
 # it.  It is not an error if the so specified config files do not exist -- in
 # that case, the config is considered empty.
 #
@@ -94,13 +94,13 @@ __license__   = "MIT"
 #
 # Environment
 # -----------
-# 
+#
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
 #   '${RADICAL_UTILS_ENV:default_value}
 #
-# which will be replaced by 
+# which will be replaced by
 #
 #   `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
 #
@@ -132,7 +132,7 @@ from .singleton  import Singleton
 
 # ------------------------------------------------------------------------------
 #
-class Config(object, DictMixin):
+class Config(DictMixin):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -214,7 +214,7 @@ class Config(object, DictMixin):
 
             if sys_fspec:
                 sys_fname = sys_fspec
-                if not os.path.isfile(sys_fname): sys_fname += '.json' 
+                if not os.path.isfile(sys_fname): sys_fname += '.json'
                 if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
 
             if usr_fspec:
@@ -222,7 +222,7 @@ class Config(object, DictMixin):
                 if not os.path.isfile(usr_fname): usr_fname += '.json'
                 if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
-        else: 
+        else:
 
             # wildcard mode: whatever the '*' expands into is used as root dict
             # entry, and the respective content of the config file is stored
