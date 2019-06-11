@@ -139,12 +139,12 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
     and can thus span multiple applications.
 
-    'namespace' argument can be specified to a value such that unique IDs are 
+    'namespace' argument can be specified to a value such that unique IDs are
     created local to that namespace, . For example, you can create a session
     and use the session ID as a namespace for all the IDs of the objects of that
-    execution. 
+    execution.
 
-    Example:: 
+    Example::
 
         sid  = generate_id('re.session', ID_PRIVATE)
         uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
@@ -154,7 +154,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     This will generate the following ids::
 
-        re.session.rivendell.vivek.017548.0001 
+        re.session.rivendell.vivek.017548.0001
         task.0000
         task.0001
 
@@ -242,7 +242,9 @@ def _generate_id(template, prefix, namespace=None):
         if not data: data = 0
         info['day_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET )
-        os.write(fd, "%d\n" % (info['day_counter'] + 1))
+        line = "%d\n" % (info['day_counter'] + 1)
+        line = str.encode(line)
+        os.write(fd, line)
         os.close(fd)
 
     if '%(item_counter)' in template:
@@ -254,7 +256,9 @@ def _generate_id(template, prefix, namespace=None):
         if not data: data = 0
         info['item_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, "%d\n" % (info['item_counter'] + 1))
+        line = "%d\n" % (info['item_counter'] + 1)
+        line = str.encode(line)
+        os.write(fd, line)
         os.close(fd)
 
     if '%(counter)' in template:
