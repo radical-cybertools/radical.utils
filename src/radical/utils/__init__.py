@@ -60,9 +60,10 @@ from .get_version    import get_version
 from .timing         import timed_method, epoch, dt_epoch
 
 # import sub-modules
-import scheduler
-import config
-import zmq
+import radical.utils.scheduler
+import radical.utils.scheduler
+import radical.utils.config
+import radical.utils.zmq
 
 
 # ------------------------------------------------------------------------------
