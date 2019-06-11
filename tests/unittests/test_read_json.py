@@ -29,8 +29,11 @@ def test_read_json () :
     # --------------------------------------------------------------------------
     def _write_json (data) :
 
+        data = str.encode(data)
+        comment = b'# comments are ignored, right?\n'
+
         [tmpfile, tmpname] = tempfile.mkstemp ()
-        os.write (tmpfile, "# comments are ignored, right?\n")
+        os.write (tmpfile, comment)
         os.write (tmpfile, data)
         return tmpname
 
@@ -38,19 +41,19 @@ def test_read_json () :
     # --------------------------------------------------------------------------
     def _read_json (filename) :
 
-        data = ru.read_json (filename)
-        os.unlink (filename)
+        data = ru.read_json(filename)
+        os.unlink(filename)
         return data
 
 
     # --------------------------------------------------------------------------
     # initial state
-    data = {'test_1' : 1, 
-            'test_2' : 'one', 
+    data = {'test_1' : 1,
+            'test_2' : 'one',
             'test_3' : [1, 'one']}
 
     filename  = _write_json (json.dumps (data))
-    data_copy = _read_json  (filename) 
+    data_copy = _read_json  (filename)
 
     for key in data :
         assert (key in data_copy)
