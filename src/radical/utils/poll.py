@@ -252,7 +252,7 @@ else:
                     elif hasattr(fd, 'read'):
                         try:
                             fd.read(0)
-                            fd.write('')
+                            fd.write(b'')
                         except:
                             hup = True
 
@@ -260,9 +260,8 @@ else:
                     elif hasattr(fd, 'recv'):
                         try:
                             fd.recv(0)
-                            fd.send('')
-                        except Exception as e:
-                          # print 'check : error %s' % e
+                            fd.send(b'')
+                        except:
                             hup = True
 
                     # we can't handle errors on other types
