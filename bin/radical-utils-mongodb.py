@@ -38,7 +38,7 @@ def usage (msg=None, noexit=False) :
         list:   list entries in the subtree, but do not traverse
         remove: remove the specified subtree
 
-      The default command is 'tree'.  
+      The default command is 'tree'.
       The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL)
 
     if  msg :
@@ -58,7 +58,7 @@ def dump (url, mode) :
     mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
     print(dbname)
- 
+
     if  dbname : dbnames = [dbname]
     else       : dbnames = mongo.database_names ()
 
@@ -68,13 +68,13 @@ def dump (url, mode) :
             print(" +-- db   %s" % name)
 
         elif  mode == 'remove' :
-            
+
             if (not dbname) or (name == dbname) :
                 try :
                     mongo.drop_database (name)
                     print("  removed database %s" % name)
                 except :
-                    pass # ignore system tables
+                    pass  # ignore system tables
 
         else :
             handle_db (mongo, mode, name, cname, pname)
@@ -105,11 +105,10 @@ def handle_db (mongo, mode, dbname, cname, pname) :
                 database.drop_collection (name)
                 print("  removed collection %s" % name)
             except :
-                pass # ignore errors
+                pass  # ignore errors
 
         else :
             handle_coll (database, mode, name, pname)
-
 
 
 # ------------------------------------------------------------------------------
@@ -134,15 +133,15 @@ def handle_coll (database, mode, cname, pname) :
             print(" | | +-- doc  %s" % name)
 
         elif  mode == 'remove' :
-            if (not pname) or (str(name)==str(pname)) :
+            if (not pname) or (str(name) == str(pname)) :
                 try :
                     collection.remove (name)
                     print("  removed document %s" % name)
                 except Exception as e:
-                    pass # ignore errors
+                    pass  # ignore errors
 
         else :
-            if (not pname) or (str(name)==str(pname)) :
+            if (not pname) or (str(name) == str(pname)) :
                 handle_doc (collection, mode, doc)
 
 
@@ -177,7 +176,8 @@ def handle_doc (collection, mode, doc) :
                 txt_out += '\n'
                 lnum    += 1
 
-            print(" | | | +-- %-10s : %s" % (key, txt_out[:-1])) # remove last \n
+            # remove last \n
+            print(" | | | +-- %-10s : %s" % (key, txt_out[:-1]))
 
 
 # ------------------------------------------------------------------------------
@@ -193,10 +193,10 @@ if __name__ == '__main__' :
 
     options, args = parser.parse_args ()
 
-    if  args         : usage ("Too many arguments (%s)" % args) 
+    if  args         : usage ("Too many arguments (%s)" % args)
     if  options.help : usage ()
 
-    mode    = options.mode 
+    mode    = options.mode
     dburl   = options.dburl
 
     if not mode  : mode  = _DEFAULT_MODE
@@ -207,16 +207,15 @@ if __name__ == '__main__' :
 
     for m in mode.split (',') :
 
-        if  m not in ['list', 'dump', 'tree', 'remove', 'help'] : 
+        if  m not in ['list', 'dump', 'tree', 'remove', 'help'] :
             usage ("Unsupported mode '%s'" % m)
 
-        elif m == 'tree'   : dump  (dburl, m) 
-        elif m == 'dump'   : dump  (dburl, m) 
-        elif m == 'list'   : dump  (dburl, m) 
-        elif m == 'remove' : dump  (dburl, m) 
+        elif m == 'tree'   : dump  (dburl, m)
+        elif m == 'dump'   : dump  (dburl, m)
+        elif m == 'list'   : dump  (dburl, m)
+        elif m == 'remove' : dump  (dburl, m)
         elif m == 'help'   : usage (noexit=True)
         else               : usage ("unknown mode '%s'" % mode)
 
 
 # ------------------------------------------------------------------------------
-
