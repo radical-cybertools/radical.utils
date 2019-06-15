@@ -88,7 +88,7 @@ def test_dict_merge():
 
     ru.dict_merge(dict_1, dict_2, policy='preserve')
 
-    assert (list(dict_1.keys())  == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (list(dict_1.keys())  == ['key_shared', 'key_orig_1', 'key_orig_2'])
     assert (dict_1['key_shared'] == 'val_shared_1')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
@@ -96,7 +96,7 @@ def test_dict_merge():
 
     ru.dict_merge(dict_1, dict_2, policy='overwrite')
 
-    assert (list(dict_1.keys())  == ['key_orig_1', 'key_orig_2', 'key_shared'])
+    assert (list(dict_1.keys())  == ['key_shared', 'key_orig_1', 'key_orig_2'])
     assert (dict_1['key_shared'] == 'val_shared_2')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
