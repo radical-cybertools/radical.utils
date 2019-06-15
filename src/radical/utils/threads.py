@@ -170,7 +170,7 @@ class Thread(mt.Thread):
             return msg
 
         except queue.Empty:
-            self._ru_log.warn('get msg timed out')
+            self._ru_log.warning('get msg timed out')
             return ''
 
 
@@ -218,7 +218,7 @@ class Thread(mt.Thread):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warn('alive check failed, stop [%s - %s]', alive, term)
+            self._ru_log.warning('alive check failed, stop [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
@@ -496,7 +496,7 @@ class Thread(mt.Thread):
             try:
                 super(Thread, self).join(timeout=timeout)
             except Exception as e:
-                self._ru_log.warn('ignoring %s' % e)
+                self._ru_log.warning('ignoring %s' % e)
 
 
     # --------------------------------------------------------------------------

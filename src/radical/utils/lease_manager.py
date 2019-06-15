@@ -295,7 +295,7 @@ class LeaseManager(object):
         # seconds.
         # Not that we release our lock here, to give other threads the
         # chance to release objects.
-        self._log.warn('lm lease   object: pool is full')
+        self._log.warning('lm lease   object: pool is full')
         timer_start = time.time()
         timer_now   = time.time()
 
