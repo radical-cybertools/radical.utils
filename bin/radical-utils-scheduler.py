@@ -13,22 +13,22 @@ import radical.utils as ru
 
 ROWS      =  1024
 COLS      =  1024
-CORES     =  ROWS*COLS   # number of cores to schedule over (sqrt must be int)
-PPN       =    32        # cores per node, used for alignment
-GPN       =     2        # GPUs per node, never aligned
+CORES     =  ROWS * COLS  # number of cores to schedule over (sqrt must be int)
+PPN       =    32         # cores per node, used for alignment
+GPN       =     2         # GPUs per node, never aligned
 
-ALIGN     =  True        # align small req onto single node
-SCATTER   =  True        # allow scattered allocattions as fallback
+ALIGN     =  True         # align small req onto single node
+SCATTER   =  True         # allow scattered allocattions as fallback
 
-CYCLES    = 10000        # number of cycles 
-CPU_MIN   =     0        # minimal number of cores requested
-CPU_MAX   =    32        # maximal number of cores requested
-GPU_MIN   =     0        # minimal number of GPUs  requested
-GPU_MAX   =     4        # maximal number of GPUs  requested
-REQ_BULK  =     2        # number of requests to handle in bulk
-REL_PROB  =     0.010    # probablility of release per cycle
-REQ_MIN   =     1        # probablility of release per cycle
-REQ_MAX   =     2        # probablility of release per cycle
+CYCLES    = 10000         # number of cycles
+CPU_MIN   =     0         # minimal number of cores requested
+CPU_MAX   =    32         # maximal number of cores requested
+GPU_MIN   =     0         # minimal number of GPUs  requested
+GPU_MAX   =     4         # maximal number of GPUs  requested
+REQ_BULK  =     2         # number of requests to handle in bulk
+REL_PROB  =     0.010     # probablility of release per cycle
+REQ_MIN   =     1         # probablility of release per cycle
+REQ_MAX   =     2         # probablility of release per cycle
 
 
 # ------------------------------------------------------------------------------
@@ -170,14 +170,14 @@ class SchedulerViz(object):
     # ------------------------------------------------------------------------------
     #
     def update_sched(self):
-        
+
         scheduler = self.scheduler
         cycles    = self.cycles
         req_min   = self.req_min
         req_max   = self.req_max
         req_bulk  = self.req_bulk
         rel_prob  = self.rel_prob
-        
+
         try:
             # ----------------------------------------------------------------------
             #
@@ -204,17 +204,17 @@ class SchedulerViz(object):
             #   - the scheduler can't align an allocation (if 'ALIGN' is set)
             #
             # ----------------------------------------------------------------------
-    
+
             running = list()
             done    = list()
-    
+
             total_start   = time.time()
             total_alloc   = 0
             total_dealloc = 0
             total_align   = 0
             total_scatter = 0
-    
-    
+
+
             # for range 1024:
             #   find 1024 chunks of 16  cores
             #   free  512 chunks of  8 or 16 cores (random)
@@ -225,12 +225,12 @@ class SchedulerViz(object):
 
                 if abort_cycles:
                     break
-    
+
                 # we randomly request cores in a certain range
                 requests = list()
                 for _ in range(req_bulk):
                     requests.append(random.randint(req_min,req_max))
-            
+
                 tmp = list()
                 start = time.time()
                 try:
@@ -240,7 +240,7 @@ class SchedulerViz(object):
                     print(e)
                     abort_cycles = True
                 stop = time.time()
-    
+
                 for res in tmp:
                     total_alloc += 1
                     if res[2]:
@@ -248,25 +248,25 @@ class SchedulerViz(object):
                     if res[3]:
                         total_align += 1
                 running += tmp
-    
+
                 if (stop == start):
                     alloc_rate = -1
                 else:
                     alloc_rate = len(requests) / (stop - start)
-    
+
                 if abort_cycles:
                     # don't dealloc, as it screws with statistics
                     dealloc_rate = -1
-    
+
                 else:
-    
+
                     # build a list of release candidates and, well, release them
                     to_release = list()
                     for idx in reversed(list(range(len(running)))):
                         if random.random() < rel_prob:
                             to_release.append(running[idx])
                             del(running[idx])
-    
+
                     start = time.time()
                     try:
                         for res in to_release:
@@ -277,45 +277,45 @@ class SchedulerViz(object):
                         abort_cycles = True
                     stop   = time.time()
                     total_dealloc += len(to_release)
-    
+
                     if (stop == start):
                         dealloc_rate = -1
                     else:
                         dealloc_rate = len(to_release) / (stop - start)
-    
+
                 print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
-                        (cycle, total_alloc, alloc_rate, 
-                                total_dealloc, dealloc_rate, 
+                        (cycle, total_alloc, alloc_rate,
+                                total_dealloc, dealloc_rate,
                                 scheduler._cores.count()))
-    
+
             if abort_cycles:
                 print('cycle aborted')
             else:
                 print('cycles done')
-    
+
         except Exception as e:
             import traceback
             print(traceback.format_exc(sys.exc_info()))
-    
+
         total_stop = time.time()
         stats = scheduler.get_stats()
-    
+
         # continuous stretches of #free/busy cores
         if False:
             print()
             print('\ncores :  free :  busy')
             counts = set(list(stats['free_dist'].keys()) + list(stats['busy_dist'].keys()))
             for count in sorted(counts):
-                print('%5d : %5s : %5s' % (count, 
-                        stats['free_dist'].get(count, ''), 
+                print('%5d : %5s : %5s' % (count,
+                        stats['free_dist'].get(count, ''),
                         stats['busy_dist'].get(count, '')))
-    
+
         # distributions of free cores over nodes
         print()
         print('free : nodes')
         for i in sorted(stats['node_free'].keys()):
             print(' %3d : %5d' % (i, stats['node_free'].get(i, '')))
-    
+
         print()
         print('total cores  : %9d' % stats['total'])
         print('      free   : %9d' % stats['free'])
@@ -326,7 +326,7 @@ class SchedulerViz(object):
         print('      dealloc: %9d' % total_dealloc)
         print('      runtime: %9.1fs'  % (total_stop - total_start))
         print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start)))
-    
+
         if False:
             idx = 0
             with open('cores', 'w') as f:
@@ -340,7 +340,7 @@ class SchedulerViz(object):
                         node += ' '
                     idx += 1
                 f.write(node)
-    
+
         print('\nuse <Esc> in viz-window to quit\n')
 
 
@@ -351,7 +351,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) >= 3:
 
-        if not '/' in __file__:
+        if '/' not in __file__:
             path = '.'
         elif __file__:
             path = os.path.dirname(__file__)
@@ -392,9 +392,9 @@ if __name__ == "__main__":
         rel_prob = REL_PROB
 
 
-    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : cores, 
-                                                'ppn'     : ppn, 
-                                                'align'   : align, 
+    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : cores,
+                                                'ppn'     : ppn,
+                                                'align'   : align,
                                                 'scatter' : scatter})
 
     vs = SchedulerViz(scheduler, cycles, req_min, req_max, req_bulk, rel_prob)
