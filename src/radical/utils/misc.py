@@ -156,7 +156,7 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not is_str(directive):
+        if  not is_string(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
@@ -302,32 +302,66 @@ def round_upper_bound(value):
 
 # ------------------------------------------------------------------------------
 #
-def islist(thing):
+def is_list(data):
     '''
-    return True if a thing is a list thing, False otherwise
+    return True if given data are a `list`, `False` otherwise
     '''
 
-    return isinstance(thing, list)
+    return isinstance(data, list)
 
 
 # ------------------------------------------------------------------------------
 #
-def tolist(thing):
+def as_list(data):
     '''
-    return a non-list thing into a list thing
+    return non-list data into a list.
     '''
 
-    if islist(thing):
-        return thing
-    return [thing]
+    if is_list(data): return data
+    else            : return [data]
 
 
 # ------------------------------------------------------------------------------
 #
-is_list = islist  # FIXME
-to_list = tolist  # FIXME
-def is_str(s):
-    return isinstance(s, str)
+def is_string(data):
+    '''
+    tests if the given data are a `string` type
+    '''
+    return isinstance(data, str)
+
+
+# ------------------------------------------------------------------------------
+#
+def as_string(data):
+    '''
+    convert the given data to a UTF-8 decoded `string`.
+    '''
+    if   is_string(data): return data
+    elif is_bytes(data) : return data.decode('utf-8')
+    else:
+        raise TypeError('cannot convert %s to string' % type(data))
+
+
+# ------------------------------------------------------------------------------
+#
+def is_bytes(data):
+    '''
+    checks if the given data are of types `bytes` or `bytearray`
+    '''
+    return isinstance(data, (bytes, bytearray))
+
+
+# ------------------------------------------------------------------------------
+#
+def as_bytes(data):
+    '''
+    converts data given as `string` into a `bytes` (UTF-8 encoded).
+    '''
+
+    if   is_bytes(data) : return data 
+    elif is_string(data): return bytes(data, 'utf-8') 
+    else:
+        raise TypeError('cannot convert %s to bytes' % type(data))
 
 
 # ------------------------------------------------------------------------------

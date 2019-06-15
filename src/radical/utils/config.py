@@ -122,7 +122,7 @@ __license__   = "MIT"
 import glob
 import os
 
-from .misc       import find_module, is_str
+from .misc       import find_module, is_string
 from .misc       import expand_env as ru_expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
@@ -329,8 +329,8 @@ class Config(DictMixin):
 
         '''
 
-        if is_str(key): elems = key.split('.')
-        else          : elems = key
+        if is_string(key): elems = key.split('.')
+        else             : elems = key
 
         if not elems:
             raise ValueError('empty key on query')

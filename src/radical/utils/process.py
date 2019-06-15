@@ -13,6 +13,7 @@ import threading       as mt
 import multiprocessing as mp
 import setproctitle    as spt
 
+from .misc    import as_bytes, as_string
 from .logger  import Logger
 from .threads import Thread as ru_Thread
 from .        import poll   as ru_poll
@@ -216,7 +217,7 @@ class Process(mp.Process):
 
         if not self._ru_log:
             # if no logger is passed down, log to null (FIXME)
-            self._ru_log = Logger('radical.util.process')
+            self._ru_log = Logger('radical.util.process', level='DEBUG')
             self._ru_log.debug('name: %s' % self._ru_name)
 
 
@@ -232,6 +233,8 @@ class Process(mp.Process):
             # no child, no communication channel
             info = "%s\ncan't communicate w/o child %s -> %s [%s]" \
                     % (msg, os.getpid(), self.pid, self._ru_name)
+          # sys.stderr.write('%s' % info)
+          # sys.stderr.flush()
             raise RuntimeError(info)
 
         # NOTE:  this method should only be called by the watcher thread, which
@@ -240,12 +243,19 @@ class Process(mp.Process):
         # FIXME: check for socket health
 
         if len(msg) > _BUFSIZE:
+          # sys.stderr.write('! %s' % info)
+          # sys.stderr.flush()
             raise ValueError('message is larger than %s: %s' % (_BUFSIZE, msg))
 
         self._ru_log.info('send message: [%s] %s', self._ru_name, msg)
         try:
-            self._ru_endpoint.send(msg)
+          # sys.stderr.write('>')
+          # sys.stderr.flush()
+            self._ru_endpoint.send(as_bytes(msg))
+          # sys.stderr.write('<')
+          # sys.stderr.flush()
         except Exception as e:
+          # sys.stderr.write('! %s' % str(e))
             # this should only happen once the EP is done for - terminate
             self._ru_log.warn('send failed (%s) - terminate', e)
             if self._ru_term is not None:
@@ -276,7 +286,7 @@ class Process(mp.Process):
         try:
             if timeout:
                 self._ru_endpoint.settimeout(timeout)
-            msg = self._ru_endpoint.recv(size)
+            msg = as_string(self._ru_endpoint.recv(size))
             self._ru_log.info('recv message: %s', msg)
             return msg
 
@@ -286,7 +296,8 @@ class Process(mp.Process):
         except Exception as e:
             # this should only happen once the EP is done for - terminate
             self._ru_log.warn('recv failed (%s) - terminate', e)
-            self._ru_term.set()
+            if self._ru_term:
+                self._ru_term.set()
 
 
     # --------------------------------------------------------------------------

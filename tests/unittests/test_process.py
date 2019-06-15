@@ -1,3 +1,4 @@
+#!/usr/bin/env python 
 
 __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2016, RADICAL@Rutgers"
