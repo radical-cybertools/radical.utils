@@ -257,7 +257,7 @@ class Process(mp.Process):
         except Exception as e:
           # sys.stderr.write('! %s' % str(e))
             # this should only happen once the EP is done for - terminate
-            self._ru_log.warn('send failed (%s) - terminate', e)
+            self._ru_log.warning('send failed (%s) - terminate', e)
             if self._ru_term is not None:
                 self._ru_term.set()
 
@@ -291,11 +291,11 @@ class Process(mp.Process):
             return msg
 
         except socket.timeout:
-            self._ru_log.warn('recv timed out')
+            self._ru_log.warning('recv timed out')
 
         except Exception as e:
             # this should only happen once the EP is done for - terminate
-            self._ru_log.warn('recv failed (%s) - terminate', e)
+            self._ru_log.warning('recv failed (%s) - terminate', e)
             if self._ru_term:
                 self._ru_term.set()
 
@@ -400,7 +400,7 @@ class Process(mp.Process):
                 self._ru_log.info('message received: %s' % msg)
 
                 if msg in [None, '']:
-                    self._ru_log.warn('no message, parent closed ep!')
+                    self._ru_log.warning('no message, parent closed ep!')
                     return False
 
                 elif msg.strip() == 'STOP':
@@ -413,7 +413,7 @@ class Process(mp.Process):
 
                 # something happened on the other end, we are about to die
                 # out of solidarity (or panic?).
-                self._ru_log.warn('endpoint disappeard')
+                self._ru_log.warning('endpoint disappeard')
                 return False
 
           # if event & ru_poll.POLLPRI:
@@ -480,7 +480,7 @@ class Process(mp.Process):
         with self._ru_things_lock:
             for tname,thing in self._ru_things.items():
                 if not thing.is_alive():
-                    self._ru_log.warn('%s died')
+                    self._ru_log.warning('%s died')
                     return False
 
         return True
@@ -721,7 +721,7 @@ class Process(mp.Process):
         try:
             self._ru_msg_send('terminating')
         except Exception as e:
-            self._ru_log.warn('term msg error not sent: %s', repr(e))
+            self._ru_log.warning('term msg error not sent: %s', repr(e))
 
         # tear down child watcher
         if self._ru_watcher:
@@ -845,7 +845,7 @@ class Process(mp.Process):
           #     # we threat join errors as non-fatal here - at this point, there
           #     # is not much we can do other than calling `terminate()#join()`
           #     # -- which is exactly what we just did.
-          #     self._ru_log.warn('could not join child process %s', self.pid)
+          #     self._ru_log.warning('could not join child process %s', self.pid)
 
         # meanwhile, all watchables should have stopped, too.  For some of them,
         # `stop()` will have implied `join()` already - but an additional
@@ -1165,11 +1165,11 @@ class Process(mp.Process):
             # this is the parent, and it spawned: check for real
             alive = super(Process, self).is_alive()
             if not alive:
-                self._ru_log.warn('super: alive check failed [%s]', alive)
+                self._ru_log.warning('super: alive check failed [%s]', alive)
 
         if self._ru_term is None:
             # child is not yet started
-            self._ru_log.warn('startup: alive check failed [%s]', alive)
+            self._ru_log.warning('startup: alive check failed [%s]', alive)
             return False
 
         termed = self._ru_term.is_set()
@@ -1202,7 +1202,7 @@ class Process(mp.Process):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warn('alive check: proc invalid - stop [%s - %s]', alive, term)
+            self._ru_log.warning('alive check: proc invalid - stop [%s - %s]', alive, term)
             self.stop()
         else:
             return alive

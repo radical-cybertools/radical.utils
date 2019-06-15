@@ -349,12 +349,12 @@ def raise_on(tag, log=None, msg=None):
             else:
                 val = random.randint(0, 100)
                 if val > rate:
-                    if log:     log.warn('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
-                    elif _verb: print('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
+                    if log: log.warning('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
+                    elif _verb:   print('raise_on ignored   %s [%2d / %2d]' % (tag, val, rate))
                     return
 
-            if log:     log.warn('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
-            elif _verb: print('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
+            if log: log.warning('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
+            elif _verb:   print('raise_on triggered %s [%2d / %2d]' % (tag, val, rate))
 
             # reset counter and raise exception
             raise RuntimeError('raise_on for %s [%s]' % (tag, val))
