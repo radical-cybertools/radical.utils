@@ -5,6 +5,17 @@ __license__   = "MIT"
 
 
 import regex
+import collections
+
+
+# ----------------------------------------------------------------------------
+#
+# comparison helper: convert non-iterables to list of one element
+#
+def _cmp_iterable(other):
+    if not isinstance(other, collections.Iterable):
+        return [other]
+    return other
 
 
 # ----------------------------------------------------------------------------
@@ -146,28 +157,55 @@ class ReSult(object):
 
     # -------------------------------------------------------------------------
     #
-    def __cmp__ (self, other) :
-        """
-        compare to another ReSult or to a tuple.  As they are both iterable, we
-        compare based on the iterable interface
-        """
-        if  isinstance (other, str) :
-            # we consider a single string to be an interable of one element
-            other = [str(other)]
+    # compare to another ReSult or to a tuple.  As they are both iterable, we
+    # compare based on the iterable interface
+    #
+    #
+    def __lt__(self, other):
+        other = _cmp_iterable(other)
+        return self < other
 
-        import collections
-        if  isinstance (other, collections.Iterable) :
 
-            if  len (self) != len (other) :
-                return len (self) - len (other)
+    # -------------------------------------------------------------------------
+    #
+    def __gt__(self, other):
+        other = _cmp_iterable(other)
+        return self > other
 
-            for i, m in enumerate (self) :
-                if m != other[i] :
-                  # print '%s != %s' % (m, other[i])
-                    return len(m) - len(other[i])
-            return 0
 
-        raise TypeError ('expect iterable or string , not %s' % type (other))
+    # -------------------------------------------------------------------------
+    #
+    def __le__(self, other):
+        other = _cmp_iterable(other)
+        return self <= other
+
+
+    # -------------------------------------------------------------------------
+    #
+    def __ge__(self, other):
+        other = _cmp_iterable(other)
+        return self >= other
+
+
+    # -------------------------------------------------------------------------
+    #
+    def __ne__(self, other):
+        other = _cmp_iterable(other)
+        return not self == other
+
+
+    # -------------------------------------------------------------------------
+    #
+    def __eq__(self, other):
+        other = _cmp_iterable(other)
+        if len(self) != len(other):
+            return len(self) - len(other)
+
+        for i, m in enumerate(self):
+            if m != other[i]:
+                print('%s != %s' % (m, other[i]))
+                return m == other[i]
+        return True
 
 
 # -----------------------------------------------------------------------------
