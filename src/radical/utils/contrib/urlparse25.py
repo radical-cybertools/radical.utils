@@ -165,8 +165,8 @@ def urlparse(url, scheme='', allow_fragments=True):
     Return a 6-tuple: (scheme, netloc, path, params, query, fragment).
     Note that we don't break the components up in smaller bits
     (e.g. netloc is a single string) and we don't expand % escapes."""
-    tuple = urlsplit(url, scheme, allow_fragments)
-    scheme, netloc, url, query, fragment = tuple
+    ltuple = urlsplit(url, scheme, allow_fragments)
+    scheme, netloc, url, query, fragment = ltuple
     if scheme in uses_params and ';' in url:
         url, params = _splitparams(url)
     else:
@@ -181,7 +181,7 @@ def _splitparams(url):
             return url, ''
     else:
         i = url.find(';')
-    return url[:i], url[i+1:]
+    return url[:i], url[i + 1:]
 
 
 def _splitnetloc(url, start=0, allow_hash_in_hostname=False):
@@ -208,14 +208,14 @@ def urlsplit(url, scheme='', allow_fragments=True):
     cached = _parse_cache.get(key, None)
     if cached:
         return cached
-    if len(_parse_cache) >= MAX_CACHE_SIZE: # avoid runaway growth
+    if len(_parse_cache) >= MAX_CACHE_SIZE:  # avoid runaway growth
         clear_cache()
     netloc = query = fragment = ''
     i = url.find(':')
     if i > 0:
-        if url[:i] == 'http': # optimize the common case
+        if url[:i] == 'http':  # optimize the common case
             scheme = url[:i].lower()
-            url = url[i+1:]
+            url = url[i + 1:]
             if url[:2] == '//':
                 netloc, url = _splitnetloc(url, 2)
             if allow_fragments and '#' in url:
@@ -229,7 +229,7 @@ def urlsplit(url, scheme='', allow_fragments=True):
             if c not in scheme_chars:
                 break
         else:
-            scheme, url = url[:i].lower(), url[i+1:]
+            scheme, url = url[:i].lower(), url[i + 1:]
     if url[:2] == '//':
         if scheme in uses_hash_in_hostname:
             netloc, url = _splitnetloc(url, 2, True)
@@ -276,13 +276,13 @@ def urljoin(base, url, allow_fragments=True):
         return url
     if not url:
         return base
-    bscheme, bnetloc, bpath, bparams, bquery, bfragment = \
+    bscheme, bnetloc, bpath, bparams, bquery, _ = \
             urlparse(base, '', allow_fragments)
     scheme, netloc, path, params, query, fragment = \
             urlparse(url, bscheme, allow_fragments)
     if scheme != bscheme or scheme not in uses_relative:
         return url
-    #if scheme in uses_netloc:
+    # if scheme in uses_netloc:
     if netloc:
         return urlunparse((scheme, netloc, path,
                                params, query, fragment))
@@ -303,11 +303,10 @@ def urljoin(base, url, allow_fragments=True):
         i = 1
         n = len(segments) - 1
         while i < n:
-            if (segments[i] == '..'
-                and segments[i-1] not in ('', '..')):
-                del segments[i-1:i+1]
+            if (segments[i] == '..' and segments[i - 1] not in ('', '..')):
+                del segments[i - 1 : i + 1]
                 break
-            i = i+1
+            i = i + 1
         else:
             break
     if segments == ['', '..']:
@@ -392,10 +391,10 @@ def test():
         url = words[0]
         parts = urlparse(url)
         print('%-10s : %s' % (url, parts))
-        abs = urljoin(base, url)
+        labs = urljoin(base, url)
         if not base:
-            base = abs
-        wrapped = '<URL:%s>' % abs
+            base = labs
+        wrapped = '<URL:%s>' % labs
         print('%-10s = %s' % (url, wrapped))
         if len(words) == 3 and words[1] == '=':
             if wrapped != words[2]:
