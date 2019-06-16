@@ -55,12 +55,12 @@ def dump (url, mode) :
     Connect to mongodb at the given location, and traverse the data bases
     """
 
-    mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
+    mongo, _, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
     print(dbname)
 
     if  dbname : dbnames = [dbname]
-    else       : dbnames = mongo.database_names ()
+    else       : dbnames = mongo.database_names()
 
     for name in dbnames :
 
@@ -137,16 +137,16 @@ def handle_coll (database, mode, cname, pname) :
                 try :
                     collection.remove (name)
                     print("  removed document %s" % name)
-                except Exception as e:
+                except Exception:
                     pass  # ignore errors
 
         else :
             if (not pname) or (str(name) == str(pname)) :
-                handle_doc (collection, mode, doc)
+                handle_doc (mode, doc)
 
 
 # ------------------------------------------------------------------------------
-def handle_doc (collection, mode, doc) :
+def handle_doc (mode, doc) :
     """
     And, surprise, for a given document, show it according to 'mode'
     """
@@ -196,16 +196,16 @@ if __name__ == '__main__' :
     if  args         : usage ("Too many arguments (%s)" % args)
     if  options.help : usage ()
 
-    mode    = options.mode
+    modes    = options.mode
     dburl   = options.dburl
 
-    if not mode  : mode  = _DEFAULT_MODE
+    if not modes  : modes  = _DEFAULT_MODE
     if not dburl : dburl = _DEFAULT_DBURL
 
-    print("modes   : %s" % mode)
+    print("modes   : %s" % modes)
     print("db url  : %s" % dburl)
 
-    for m in mode.split (',') :
+    for m in modes.split (',') :
 
         if  m not in ['list', 'dump', 'tree', 'remove', 'help'] :
             usage ("Unsupported mode '%s'" % m)
@@ -215,7 +215,7 @@ if __name__ == '__main__' :
         elif m == 'list'   : dump  (dburl, m)
         elif m == 'remove' : dump  (dburl, m)
         elif m == 'help'   : usage (noexit=True)
-        else               : usage ("unknown mode '%s'" % mode)
+        else               : usage ("unknown mode '%s'" % m)
 
 
 # ------------------------------------------------------------------------------

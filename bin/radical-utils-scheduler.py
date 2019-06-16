@@ -37,14 +37,14 @@ class SchedulerViz(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, scheduler, cycles, req_min, req_max, req_bulk, rel_prob):
+    def __init__(self, args):
 
-        self.scheduler = scheduler
-        self.cycles    = cycles
-        self.req_min   = req_min
-        self.req_max   = req_max
-        self.req_bulk  = req_bulk
-        self.rel_prob  = rel_prob
+        self.scheduler = args[0]
+        self.cycles    = args[1]
+        self.req_min   = args[2]
+        self.req_max   = args[3]
+        self.req_bulk  = args[4]
+        self.rel_prob  = args[5]
 
         print(scheduler)
 
@@ -171,37 +171,32 @@ class SchedulerViz(object):
     #
     def update_sched(self):
 
-        scheduler = self.scheduler
-        cycles    = self.cycles
-        req_min   = self.req_min
-        req_max   = self.req_max
-        req_bulk  = self.req_bulk
-        rel_prob  = self.rel_prob
-
         try:
             # ----------------------------------------------------------------------
             #
             # This implementation will first create a number of requests,
-            # specifically 'REQ_BULK' requests, each randomly distributed between
-            # 'REQ_MIN' and 'REQ_MAX'.  Those requests are the scheduled via calls
-            # to 'scheduler.allocate(req)', and the results are stored in
-            # a 'running' list.
+            # specifically 'REQ_BULK' requests, each randomly distributed
+            # between 'REQ_MIN' and 'REQ_MAX'.  Those requests are the
+            # scheduled via calls to 'self.scheduler.allocate(req)', and the
+            # results are stored in a 'running' list.
             #
             # After that requested bulk is allocated, all items in 'running'
-            # (including those allocated in earlier cycles)  are up for release,
-            # with a certain probaility REL_PROB.  For example, for 'REL_PROB
-            # = 0.01',  approximately 1% of the entries will be released, via a call
-            # to 'scheduler.deallocate(res)'.
+            # (including those allocated in earlier self.cycles)  are up for
+            # release, with a certain probaility REL_PROB.  For example, for
+            # 'REL_PROB = 0.01',  approximately 1% of the entries will be
+            # released, via a call to 'self.scheduler.deallocate(res)'.
             #
-            # The above cycle repeats 'CYCLES' times, with a (potentially) ever
-            # increasing 'running' list, The load on the scheduler is thus
-            # continuously increasing as cores remain allocated over cycles, and the
-            # scheduler needs to search harder for free cores
+            # The above cycle repeats 'self.cycles' times, with a (potentially)
+            # ever increasing 'running' list, The load on the self.scheduler is
+            # thus continuously increasing as cores remain allocated over
+            # self.cycles, and the self.scheduler needs to search harder for
+            # free cores
             #
             # This thread finishes when:
-            #   - all cycles are completed
-            #   - the scheduler cannot find anough cores for a request
-            #   - the scheduler can't align an allocation (if 'ALIGN' is set)
+            #   - all self.cycles are completed
+            #   - the self.scheduler cannot find anough cores for a request
+            #   - the self.scheduler can't align an allocation (if 'ALIGN' is
+            #     set)
             #
             # ----------------------------------------------------------------------
 
@@ -219,7 +214,7 @@ class SchedulerViz(object):
             #   find 1024 chunks of 16  cores
             #   free  512 chunks of  8 or 16 cores (random)
             abort_cycles = False
-            for cycle in range(cycles):
+            for cycle in range(self.cycles):
 
                 time.sleep(0.1)
 
@@ -228,14 +223,14 @@ class SchedulerViz(object):
 
                 # we randomly request cores in a certain range
                 requests = list()
-                for _ in range(req_bulk):
-                    requests.append(random.randint(req_min,req_max))
+                for _ in range(self.req_bulk):
+                    requests.append(random.randint(self.req_min,self.req_max))
 
                 tmp = list()
                 start = time.time()
                 try:
                     for req in requests:
-                        tmp.append(scheduler.alloc(req))
+                        tmp.append(self.scheduler.alloc(req))
                 except Exception as e:
                     print(e)
                     abort_cycles = True
@@ -263,14 +258,14 @@ class SchedulerViz(object):
                     # build a list of release candidates and, well, release them
                     to_release = list()
                     for idx in reversed(list(range(len(running)))):
-                        if random.random() < rel_prob:
+                        if random.random() < self.rel_prob:
                             to_release.append(running[idx])
                             del(running[idx])
 
                     start = time.time()
                     try:
                         for res in to_release:
-                            scheduler.dealloc(res)
+                            self.scheduler.dealloc(res)
                             done.append(res)
                     except Exception as e:
                         print(e)
@@ -286,7 +281,7 @@ class SchedulerViz(object):
                 print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
                         (cycle, total_alloc, alloc_rate,
                                 total_dealloc, dealloc_rate,
-                                scheduler._cores.count()))
+                                self.scheduler.get_map.count()))
 
             if abort_cycles:
                 print('cycle aborted')
@@ -298,17 +293,17 @@ class SchedulerViz(object):
             print(traceback.format_exc(sys.exc_info()))
 
         total_stop = time.time()
-        stats = scheduler.get_stats()
+        stats = self.scheduler.get_stats()
 
+        # NOTE: Uncomment to DEBUG
         # continuous stretches of #free/busy cores
-        if False:
-            print()
-            print('\ncores :  free :  busy')
-            counts = set(list(stats['free_dist'].keys()) + list(stats['busy_dist'].keys()))
-            for count in sorted(counts):
-                print('%5d : %5s : %5s' % (count,
-                        stats['free_dist'].get(count, ''),
-                        stats['busy_dist'].get(count, '')))
+        # print()
+        # print('\ncores :  free :  busy')
+        # counts = set(list(stats['free_dist'].keys()) + list(stats['busy_dist'].keys()))
+        # for count in sorted(counts):
+        #     print('%5d : %5s : %5s' % (count,
+        #             stats['free_dist'].get(count, ''),
+        #             stats['busy_dist'].get(count, '')))
 
         # distributions of free cores over nodes
         print()
@@ -327,19 +322,19 @@ class SchedulerViz(object):
         print('      runtime: %9.1fs'  % (total_stop - total_start))
         print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start)))
 
-        if False:
-            idx = 0
-            with open('cores', 'w') as f:
-                node = '%5d : ' % idx
-                for b in scheduler._cores:
-                    if not idx % ppn:
-                        node += '\n'
-                    if b:
-                        node += '#'
-                    else:
-                        node += ' '
-                    idx += 1
-                f.write(node)
+        # NOTE: Uncomment to DEBUG
+        # idx = 0
+        # with open('cores', 'w') as f:
+        #     node = '%5d : ' % idx
+        #     for b in self.scheduler.get_map():
+        #         if not idx % ppn:
+        #             node += '\n'
+        #         if b:
+        #             node += '#'
+        #         else:
+        #             node += ' '
+        #         idx += 1
+        #     f.write(node)
 
         print('\nuse <Esc> in viz-window to quit\n')
 
@@ -347,7 +342,6 @@ class SchedulerViz(object):
 # ------------------------------------------------------------------------------
 #
 if __name__ == "__main__":
-
 
     if len(sys.argv) >= 3:
 
@@ -397,7 +391,8 @@ if __name__ == "__main__":
                                                 'align'   : align,
                                                 'scatter' : scatter})
 
-    vs = SchedulerViz(scheduler, cycles, req_min, req_max, req_bulk, rel_prob)
+    vs_args = [scheduler, cycles, req_min, req_max, req_bulk, rel_prob]
+    vs      = SchedulerViz(vs_args)
     vs.loop()
 
 
