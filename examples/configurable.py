@@ -4,15 +4,15 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-""" 
-And example on using the radical.utils.config tools. 
+"""
+And example on using the radical.utils.config tools.
 
 This example will read config options fomr $HOME/.examples.cfg::
-    
+
     [config]
     casing   = upper
     excluded = sparks,pftools
-    
+
     [sp3.cd]
     exe  = /usr/local/bin/sp3
     args = no,idea
@@ -29,59 +29,59 @@ import radical.utils.config  as ruc
 # a set of pre-defined options
 #
 _config_options = [
-    { 
-    'category'      : 'config',
-    'name'          : 'casing', 
-    'type'          : str, 
-    'default'       : 'default',
-    'valid_options' : ['default', 'lower', 'upper'],
-    'documentation' : "This option determines the casing of example's output",
-    'env_variable'  : 'EXAMPLE_CONFIG_CASING'
+    {
+        'category'      : 'config',
+        'name'          : 'casing',
+        'type'          : str,
+        'default'       : 'default',
+        'valid_options' : ['default', 'lower', 'upper'],
+        'documentation' : "This option determines the casing of example's output",
+        'env_variable'  : 'EXAMPLE_CONFIG_CASING'
     },
-    { 
-    'category'      : 'config',
-    'name'          : 'excluded', 
-    'type'          : list, 
-    'default'       : '',
-    'valid_options' : [],
-    'documentation' : "This option determines set of excluded components",
-    'env_variable'  : ''
+    {
+        'category'      : 'config',
+        'name'          : 'excluded',
+        'type'          : list,
+        'default'       : '',
+        'valid_options' : [],
+        'documentation' : "This option determines set of excluded components",
+        'env_variable'  : ''
     }
 ]
 
 _sp3_options = [
-    { 
-    'category'      : 'sp3.cd',
-    'name'          : 'exe', 
-    'type'          : str, 
-    'default'       : '/usr/bin/sp3',
-    'valid_options' : [],
-    'documentation' : "This option determines set sp3 executable ",
-    'env_variable'  : ''
+    {
+        'category'      : 'sp3.cd',
+        'name'          : 'exe',
+        'type'          : str,
+        'default'       : '/usr/bin/sp3',
+        'valid_options' : [],
+        'documentation' : "This option determines set sp3 executable ",
+        'env_variable'  : ''
     },
-    { 
-    'category'      : 'sp3.cd',
-    'name'          : 'args', 
-    'type'          : list, 
-    'default'       : '',
-    'valid_options' : [],
-    'documentation' : "This option determines set sp3 arguments ",
-    'env_variable'  : ''
+    {
+        'category'      : 'sp3.cd',
+        'name'          : 'args',
+        'type'          : list,
+        'default'       : '',
+        'valid_options' : [],
+        'documentation' : "This option determines set sp3 arguments ",
+        'env_variable'  : ''
     }
 ]
 
 
 # ------------------------------------------------------------------------------
 #
-class FancyEcho (ruc.Configurable): 
-    """ 
-    This example will evaluate the given configuration, and 
+class FancyEcho (ruc.Configurable):
+    """
+    This example will evaluate the given configuration, and
     """
 
-    #-----------------------------------------------------------------
-    # 
+    # --------------------------------------------------------------------------
+    #
     def __init__(self):
-        
+
         # set the configuration options for this object
         ruc.Configurable.__init__ (self, 'examples')
         ruc.Configurable.config_options (self, 'config', _config_options)
@@ -98,13 +98,13 @@ class FancyEcho (ruc.Configurable):
         print("excl: %s" % self._excl)
 
 
-        if  not 'sp3' in self._excl :
+        if 'sp3' not in self._excl :
             print('running sp3')
 
-        if  not 'sparks' in self._excl :
+        if  'sparks' not in self._excl :
             print('running sparks')
 
-        if  not 'pftools' in self._excl :
+        if  'pftools' not in self._excl :
             print('running pftools')
 
         # use sp3 configuration
@@ -113,8 +113,8 @@ class FancyEcho (ruc.Configurable):
         print(self._sp3['args'].get_value ())
 
 
-    #-----------------------------------------------------------------
-    # 
+    # --------------------------------------------------------------------------
+    #
     def echo (self, source) :
 
         target = ""

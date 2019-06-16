@@ -278,7 +278,7 @@ class SchedulerViz(object):
                     else:
                         dealloc_rate = len(to_release) / (stop - start)
 
-                print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
+                print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" %
                         (cycle, total_alloc, alloc_rate,
                                 total_dealloc, dealloc_rate,
                                 self.scheduler.get_map.count()))
@@ -288,7 +288,7 @@ class SchedulerViz(object):
             else:
                 print('cycles done')
 
-        except Exception as e:
+        except Exception:
             import traceback
             print(traceback.format_exc(sys.exc_info()))
 
