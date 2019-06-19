@@ -77,7 +77,7 @@ class BitarrayScheduler(SchedulerBase):
 
         # we check if the allocation is on a single node.  If that is not the
         # case, we search again from the point of allocation, and check again.
-        # We do that until we cycle around the full core list once, reaching 
+        # We do that until we cycle around the full core list once, reaching
         # the original location again
         orig_pos   = loc
         pos        = loc
@@ -137,7 +137,7 @@ class BitarrayScheduler(SchedulerBase):
 
 
         if not loc:
-            # FIXME: assume we first search from pos 100 to 1000, then rewind, 
+            # FIXME: assume we first search from pos 100 to 1000, then rewind,
             #        then search from 0 to 1000, 900 cores being searched twice.
             #        We should add an 'end_pos' parameter to bitarray.search.
             #        But then again, rewind should be rare if cores are on
@@ -250,11 +250,11 @@ class BitarrayScheduler(SchedulerBase):
             node += 1
 
 
-        return {'total'     : self._size, 
+        return {'total'     : self._size,
                 'free'      : self._cores.count(),
                 'busy'      : self._size - self._cores.count(),
-                'free_dist' : free_dict, 
-                'busy_dist' : busy_dict, 
+                'free_dist' : free_dict,
+                'busy_dist' : busy_dict,
                 'node_free' : node_free}
 
 
