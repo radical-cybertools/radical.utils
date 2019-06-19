@@ -15,7 +15,6 @@ import shutil
 
 import subprocess as sp
 
-from distutils.ccompiler import new_compiler
 from setuptools          import setup, Command, find_packages
 
 
