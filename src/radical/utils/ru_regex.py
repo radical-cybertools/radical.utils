@@ -13,7 +13,7 @@ import collections
 # comparison helper: convert non-iterables to list of one element
 #
 def _cmp_iterable(other):
-    if not isinstance(other, collections.Iterable):
+    if not isinstance(other, collections.abc.Iterable):
         return [other]
     return other
 

@@ -15,7 +15,7 @@ import shutil
 
 import subprocess as sp
 
-from setuptools          import setup, Command, find_packages
+from setuptools import setup, Command, find_packages
 
 
 # ------------------------------------------------------------------------------
