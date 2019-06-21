@@ -55,16 +55,15 @@ def test_lockfile_timer():
         with ru.Lockfile(fname) as fd0:
             assert(fd0)
             fd0.write('test 0\n')
-            print fd0._fname
 
             fd1   = None
             start = time.time()
             with pytest.raises(RuntimeError):
-                fd1 = ru.Lockfile(fname, timeout=2)
+                fd1 = ru.Lockfile(fname, timeout=1.1)
 
             stop = time.time()
-            assert(stop - start > 2.0)
-            assert(stop - start < 3.0)
+            assert(stop - start > 1.1)
+            assert(stop - start < 1.2)
 
             if fd1:
                 fd1.close()
