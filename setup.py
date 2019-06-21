@@ -305,6 +305,7 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-gtod',
                             'bin/radical-stack',
+                            'bin/ru.json.sh',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
