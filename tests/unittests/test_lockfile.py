@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import time
 import pytest
 
 import radical.utils as ru
@@ -46,10 +47,40 @@ def test_lockfile():
 
 # ------------------------------------------------------------------------------
 #
+def test_lockfile_timer():
+
+    fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
+
+    try:
+        with ru.Lockfile(fname) as fd0:
+            assert(fd0)
+            fd0.write('test 0\n')
+            print fd0._fname
+
+            fd1   = None
+            start = time.time()
+            with pytest.raises(RuntimeError):
+                fd1 = ru.Lockfile(fname, timeout=2)
+
+            stop = time.time()
+            assert(stop - start > 2.0)
+            assert(stop - start < 3.0)
+
+            if fd1:
+                fd1.close()
+    finally:
+        try:
+            os.unlink(fname)
+        except:
+            pass
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_lockfile()
-
+    test_lockfile_timer()
 
 # ------------------------------------------------------------------------------
 

@@ -49,48 +49,58 @@ class Lockfile(object):
         self._timeout = timeout
         self._fd      = None
 
+        self._open()
+
 
     # --------------------------------------------------------------------------
     #
     def __enter__(self):
 
-        if self._timeout is None:
-            self.open()
-            return self
+        return self
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __exit__(self, foo, bar,  baz):
+
+        if self._fd:
+            return self.close()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _open(self):
+
+        if self._fd:
+            raise RuntimeError('cannot call open twice')
 
         start = time.time()
         while True:
 
             try:
-                self.open()
-                return self
-            except:
+                fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
+                ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+                if not ret:
+                    self._fd = fd
+                    break  # fd should be valid and locked
+
+                else:  # try again
+                    os.close(fd)
+
+            except IOError:
+                # try again
                 pass
+
+            if self._timeout is None:
+                break  # stop trying
 
             now = time.time()
             if now - start > self._timeout:
                 raise RuntimeError('lock timeout for %s' % self._fname)
 
-            time.sleep(0.5)
 
-
-    # --------------------------------------------------------------------------
-    #
-    def open(self):
-
-        try:
-            fd = os.open(self._fname, os.O_RDWR | os.O_CREAT)
-            ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-
-        except IOError:
-            raise RuntimeError('Could not lock %s' % self._fname)
-
-        if not ret == 0:
-            self._fd = fd
-
-        else:
-            os.close(fd)
-            self._fd = None
+            time.sleep(0.1)
 
         if not self._fd:
             raise RuntimeError('failed to lock %s' % self._fname)
@@ -100,8 +110,10 @@ class Lockfile(object):
     #
     def close(self):
 
-        if self._fd:
-            os.close(self._fd)
+        if not self._fd:
+            raise ValueError('lockfile is not open')
+
+        os.close(self._fd)
 
 
     # --------------------------------------------------------------------------
@@ -118,7 +130,6 @@ class Lockfile(object):
     #
     def write(self, data):
 
-        print self._fd
         if not self._fd:
             raise ValueError('lockfile is not open')
 
@@ -140,13 +151,6 @@ class Lockfile(object):
             raise ValueError('lockfile is not open')
 
         return os.lseek(self._fd, pos, how)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __exit__(self, foo, bar,  baz):
-
-        return self.close()
 
 
 # ------------------------------------------------------------------------------
