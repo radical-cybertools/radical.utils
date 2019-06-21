@@ -97,6 +97,7 @@ class Lockfile(object):
 
             now = time.time()
             if now - start > self._timeout:
+                # FIXME: in python 3, this should become a TimeoutError
                 raise RuntimeError('lock timeout for %s' % self._fname)
 
 
