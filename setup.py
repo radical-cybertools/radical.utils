@@ -305,6 +305,7 @@ setup_args = {
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
                             # 'bin/radical-utils-gtod',
+                            'bin/radical-bridge',
                             'bin/radical-stack',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
