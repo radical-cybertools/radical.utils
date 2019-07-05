@@ -6,7 +6,7 @@ __copyright__ = 'Copyright 2013-16, RADICAL Research, Rutgers University'
 __license__   = 'MIT'
 
 
-""" Setup script, only usable via pip. """
+''' Setup script, only usable via pip. '''
 
 import re
 import os
@@ -49,12 +49,12 @@ def sh_callout(cmd):
 #   - The VERSION file is used to provide the runtime version information.
 #
 def get_version(mod_root):
-    """
+    '''
     mod_root
         a VERSION file containes the version strings is created in mod_root,
         during installation.  That file is used at runtime to get the version
         information.
-        """
+        '''
 
     try:
 
@@ -103,10 +103,10 @@ def get_version(mod_root):
 
         # make sure the version files exist for the runtime version inspection
         path = '%s/%s' % (src_root, mod_root)
-        with open(path + "/VERSION", "w") as f:
-            f.write(version + "\n")
+        with open(path + '/VERSION', 'w') as f:
+            f.write(version + '\n')
 
-        sdist_name = "%s-%s.tar.gz" % (name, version)
+        sdist_name = '%s-%s.tar.gz' % (name, version)
         sdist_name = sdist_name.replace('/', '-')
         sdist_name = sdist_name.replace('@', '-')
         sdist_name = sdist_name.replace('#', '-')
@@ -120,15 +120,15 @@ def get_version(mod_root):
           # pip install will untar the sdist in a tmp tree.  In that tmp
           # tree, we won't be able to derive git version tags -- so we pack the
           # formerly derived version as ./VERSION
-            shutil.move("VERSION", "VERSION.bak")            # backup version
-            shutil.copy("%s/VERSION" % path, "VERSION")      # use full version
-            os.system  ("python setup.py sdist")             # build sdist
+            shutil.move('VERSION', 'VERSION.bak')            # backup version
+            shutil.copy('%s/VERSION' % path, 'VERSION')      # use full version
+            os.system  ('python setup.py sdist')             # build sdist
             shutil.copy('dist/%s' % sdist_name,
                         '%s/%s'   % (mod_root, sdist_name))  # copy into tree
-            shutil.move("VERSION.bak", "VERSION")            # restore version
+            shutil.move('VERSION.bak', 'VERSION')            # restore version
 
-        with open(path + "/SDIST", "w") as f:
-            f.write(sdist_name + "\n")
+        with open(path + '/SDIST', 'w') as f:
+            f.write(sdist_name + '\n')
 
         return version_base, version_detail, sdist_name
 
@@ -139,7 +139,7 @@ def get_version(mod_root):
 # ------------------------------------------------------------------------------
 # check python version. we need >= 2.7, <3.x
 if  sys.hexversion < 0x02070000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("%s requires Python 2.x (2.7 or higher)" % name)
+    raise RuntimeError('%s requires Python 2.x (2.7 or higher)' % name)
 
 
 # ------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def read(*rnames):
 # borrowed from the MoinMoin-wiki installer
 #
 def makeDataFiles(prefix, dir):
-    """ Create distutils data_files structure from dir
+    ''' Create distutils data_files structure from dir
 
     distutil will copy all file rooted under dir into prefix, excluding
     dir itself, just like 'ditto src dst' works, and unlike 'cp -r src
@@ -186,7 +186,7 @@ def makeDataFiles(prefix, dir):
         [('prefix', ['file1', 'file2']),
          ('prefix/dir', ['file']),
          ('prefix/dir/subdir', ['file'])]
-    """
+    '''
     # Strip 'dir/' from of path before joining with prefix
     dir = dir.rstrip('/')
     strip = len(dir) + 1
@@ -196,13 +196,13 @@ def makeDataFiles(prefix, dir):
 
 
 def visit((prefix, strip, found), dirname, names):
-    """ Visit directory, create distutil tuple
+    ''' Visit directory, create distutil tuple
 
     Add distutil tuple for each directory using this format:
         (destination, [dirname/file1, dirname/file2, ...])
 
     distutil will copy later file1, file2, ... info destination.
-    """
+    '''
     files = []
     # Iterate over a copy of names, modify names
     for name in names[:]:
@@ -220,7 +220,7 @@ def visit((prefix, strip, found), dirname, names):
 
 
 def isbad(name):
-    """ Whether name should not be installed """
+    ''' Whether name should not be installed '''
     return (name.startswith('.') or
             name.startswith('#') or
             name.endswith('.pickle') or
@@ -228,7 +228,7 @@ def isbad(name):
 
 
 def isgood(name):
-    """ Whether name should be installed """
+    ''' Whether name should be installed '''
     if not isbad(name):
         if  name.endswith('.py')   or \
             name.endswith('.json') or \
@@ -247,7 +247,7 @@ except:
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
                    'print time.time()\n')
-        os.chmod('bin/radical-utils-gtod', 0o755) 
+        os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
@@ -264,12 +264,13 @@ class RunTwine(Command):
 # ------------------------------------------------------------------------------
 #
 if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError("SETUP ERROR: %s requires Python 2.6 or higher" % name)
+    raise RuntimeError('SETUP ERROR: %s requires Python 2.6 or higher' % name)
 
 
-# -------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 setup_args = {
     'name'               : name,
+    'namespace_packages' : ['radical'],
     'version'            : version,
     'description'        : 'Utilities for RADICAL CybertoolsProjects',
   # 'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
@@ -295,7 +296,6 @@ setup_args = {
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
-    'namespace_packages' : ['radical'],
     'packages'           : find_packages('src'),
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
@@ -309,9 +309,9 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['pyzmq', 
+    'install_requires'   : ['pyzmq',
                             'regex',
-                            'future', 
+                            'future',
                             'msgpack',
                             'pymongo',
                             'colorama',
