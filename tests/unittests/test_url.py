@@ -11,6 +11,8 @@ import radical.utils as ru
 #
 def test_url_api():
 
+    # test basic functionality for valid schemas
+
     u1 = ru.Url("ssh://user:pwd@hostname.domain:9999/path")
 
     assert u1.scheme   == "ssh"
@@ -23,6 +25,8 @@ def test_url_api():
 # ------------------------------------------------------------------------------
 #
 def test_url_scheme_issue():
+
+    # test basic functionality for invalid schemas
 
     u1 = ru.Url("unknownscheme://user:pwd@hostname.domain:9999/path")
 
@@ -37,7 +41,9 @@ def test_url_scheme_issue():
 #
 def test_url_issue_49():
 
-    url = ru.Url ("scheme://pass:user@host:123/dir/file?query#fragment")
+    # ensure correct str serialization after setting elements
+
+    url = ru.Url   ("scheme://pass:user@host:123/dir/file?query#fragment")
     url.set_host   ('remote.host.net')
     url.set_scheme ('sftp')
     url.set_path   ('/tmp/data')
@@ -48,9 +54,8 @@ def test_url_issue_49():
 # ------------------------------------------------------------------------------
 #
 def test_url_issue_61():
-    """
-    Test url issue #61
-    """
+
+    # ensure correct query extraction
 
     url = ru.Url ("advert://localhost/?dbtype=sqlite3")
     assert url.query == "dbtype=sqlite3"
@@ -59,17 +64,17 @@ def test_url_issue_61():
 # ------------------------------------------------------------------------------
 #
 def test_url_issue_rs_305():
-    '''
-    This compensates
-
-        >>> import os
-        >>> os.path.normpath('//path//to//dir//')
-        '//path/to/dir'
-
-    to a normalization resulting in
-
-        '/path/to/dir'
-    '''
+    # This compensates
+    #
+    #     >>> import os
+    #     >>> os.path.normpath('//path//to//dir//')
+    #     '//path/to/dir'
+    #
+    # to a normalization resulting in
+    #
+    #     '/path/to/dir'
+    #
+    # as required by the SAGA spec
 
     url1 = ru.Url ("advert://localhost/path/to/file")
     url2 = ru.Url ("advert://localhost//path/to/file")
@@ -79,6 +84,8 @@ def test_url_issue_rs_305():
 # ------------------------------------------------------------------------------
 #
 def test_url_properties():
+
+    # test various properties
 
     url = ru.Url("")
     assert str(url)           == ""
