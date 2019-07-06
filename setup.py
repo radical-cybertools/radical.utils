@@ -192,7 +192,10 @@ if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
 # ------------------------------------------------------------------------------
 #
 df = list()
-df.append(('share/%s/examples/' % name, glob.glob('examples/*')))
+df.append(('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}')))
+df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/*.md')))
+df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/queue/*')))
+df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/pubsub/*')))
 
 
 # ------------------------------------------------------------------------------
