@@ -5,6 +5,12 @@
     https://github.com/radical-cybertools/radical.utils/issues?q=is%3Aissue+is%3Aopen+
 
 
+0.62.0 Hotfix                                                         2019-06-08
+--------------------------------------------------------------------------------
+
+  - improve radical stack inspection
+
+
 0.60.2 Hotfix                                                         2019-05-28
 --------------------------------------------------------------------------------
 
