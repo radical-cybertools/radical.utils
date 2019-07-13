@@ -34,6 +34,8 @@ from .config         import Config, DefaultConfig
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
+from .testing        import TestConfig
+from .testing        import set_test_config, add_test_config, get_test_config
 
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
