@@ -323,6 +323,15 @@ def as_list(data):
 
 # ------------------------------------------------------------------------------
 #
+def is_seq(data):
+    '''
+    tests if the given data is a sequence (but not a string)
+    '''
+    return hasattr(data, '__iter__') and not is_string(data)
+
+
+# ------------------------------------------------------------------------------
+#
 def is_string(data):
     '''
     tests if the given data are a `string` type
@@ -358,8 +367,8 @@ def as_bytes(data):
     converts data given as `string` into a `bytes` (UTF-8 encoded).
     '''
 
-    if   is_bytes(data) : return data 
-    elif is_string(data): return bytes(data, 'utf-8') 
+    if   is_bytes(data) : return data
+    elif is_string(data): return bytes(data, 'utf-8')
     else:
         raise TypeError('cannot convert %s to bytes' % type(data))
 
@@ -394,9 +403,6 @@ def find_module(name):
     if not package:
         return None
 
-    # NOTE: Python 3: package.filename does not exist anymore. Use
-    # .get_filename() instead.
-    # return package.filename
     return package.get_filename()
 
 
@@ -583,10 +589,21 @@ def get_env_ns(key, ns, default=None):
 #
 def expand_env(data, env=None, ignore_missing=True):
     '''
-    expand the given string (`data`) with environment variables.  If `env` is
-    provided, use that env disctionary for expansion instead of `os.environ`.
+    Expand the given data with environment variables from `os.environ`.
+    If `env` is provided, use that dictionary for expansion instead.
 
-    The replacement is performed for the following variable specs
+    `data` can be one of three types:
+
+      - dictionary: `expand_env` is applied to all *values* of the dictionary
+      - sequence  : `expand_env` is applied to all elements of the sequence
+      - string    : `expand_env` is applied to the string itself
+
+
+    The method will alter dictionaries and iterables in place, but will return
+    a copy of scalar strings, as it seems to be custom in Python.  Other data
+    types are silently ignored and not altered.
+
+    The replacement in strings is performed for the following variable specs:
 
         assume  `export BAR=bar`:
 
@@ -607,18 +624,42 @@ def expand_env(data, env=None, ignore_missing=True):
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
     '''
 
+    # no data: None, empty dict / sequence / string
     if not data:
         return data
 
+    # dict type
+    elif isinstance(data, dict):
+
+        for k,v in data.iteritems():
+            data[k] = expand_env(v, env, ignore_missing)
+        return data
+
+    # sequence types: list, set, tuple - but not string
+    elif is_seq(data):
+
+        for idx, elem in enumerate(data):
+            data[idx] = expand_env(elem, env, ignore_missing)
+        return data
+
+    # all other non-string types are left alone
+    elif not is_string(data):
+        return data
+
+    # handle string expansion, which is what we really care about
     if '$' not in data:
         return data
 
-    # convert from `abc.$FOO.def` to `abc${FOO}.def` to s implify parsing
+    # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
+    # one version we need to search for)
     data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
 
+    # fall back to process env if no other expansion dict is specified
     if not env:
         env = os.environ
 
+    # strings are not expanded in place - create a new one to fill.
+    # iterate over the orginial string as long as there is something to expand
     ret = ''
     while data:
 
@@ -638,6 +679,9 @@ def expand_env(data, env=None, ignore_missing=True):
             key  = res[1]
             val  = res[2]
             post = res[3]
+
+            if not ignore_missing and key not in env:
+                raise ValueError('cannot expand $%s' % key)
 
             if pre  is None: pre  = ''
             if val  is None: val  = ''
@@ -701,13 +745,14 @@ def get_size(obj, seen=None, strict=False):
         seen.add(obj_id)
 
     if isinstance(obj, dict):
-        size += sum([get_size(v, seen, strict) for v in list(obj.values())])
-        size += sum([get_size(k, seen, strict) for k in list(obj.keys())])
+        size += sum([get_size(v, seen, strict) for v in obj.values()])
+        size += sum([get_size(k, seen, strict) for k in obj.keys()])
 
     elif hasattr(obj, '__dict__'):
         size += get_size(obj.__dict__, seen, strict)
 
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+    elif hasattr(obj, '__iter__') and \
+        not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_size(i, seen, strict) for i in obj])
 
     return size
