@@ -38,8 +38,8 @@ def test_dict_mixin():
     # --------------------------------------------------------------------------
     t = Test()
 
-    assert (t['val']       == 1       )
-    assert (list(t.keys()) == ['val'] )
+    assert (t['val']      == 1           )
+    assert (set(t.keys()) == set(['val']))
 
     assert ('val'       in t)
     assert ('test1' not in t)
@@ -52,16 +52,16 @@ def test_dict_mixin():
     assert ('test1'     in t)
     assert ('test2'     in t)
 
-    assert (t['val']              == 1       )
-    assert (t['test1']            == 'test'  )
-    assert (t['test2']            == ['test'])
-    assert (list(t.keys()).sort() == ['val', 'test1', 'test2'].sort()), "%s" % str(list(t.keys()))
+    assert (t['val']      == 1       )
+    assert (t['test1']    == 'test'  )
+    assert (t['test2']    == ['test'])
+    assert (set(t.keys()) == set(['val', 'test1', 'test2']))
 
     del t['test1']
 
-    assert (t['val']        == 1       )
-    assert (t['test2']      == ['test'])
-    assert (list(t.keys()).sort() == ['val', 'test2'].sort()), "%s" % str(list(t.keys()))
+    assert (t['val']      == 1       )
+    assert (t['test2']    == ['test'])
+    assert (set(t.keys()) == set(['val', 'test2']))
 
     assert ('val'       in t)
     assert ('test1' not in t)
@@ -88,7 +88,8 @@ def test_dict_merge():
 
     ru.dict_merge(dict_1, dict_2, policy='preserve')
 
-    assert (list(dict_1.keys())  == ['key_shared', 'key_orig_1', 'key_orig_2'])
+    assert (set(dict_1.keys())   == set(['key_shared', 'key_orig_1',
+                                                       'key_orig_2']))
     assert (dict_1['key_shared'] == 'val_shared_1')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
@@ -96,7 +97,8 @@ def test_dict_merge():
 
     ru.dict_merge(dict_1, dict_2, policy='overwrite')
 
-    assert (list(dict_1.keys())  == ['key_shared', 'key_orig_1', 'key_orig_2'])
+    assert (set(dict_1.keys())   == set(['key_shared', 'key_orig_1',
+                                                       'key_orig_2']))
     assert (dict_1['key_shared'] == 'val_shared_2')
     assert (dict_1['key_orig_1'] == 'val_orig_1')
     assert (dict_1['key_orig_2'] == 'val_orig_2')
@@ -116,9 +118,9 @@ def test_dict_stringexpand():
 
     ru.dict_stringexpand(target, source)
 
-    assert (list(target.keys()) == ['workdir', 'resource'])
-    assert (target['workdir']   == '/home/peer_gynt/work/')
-    assert (target['resource']  == 'ssh://localhost/')
+    assert (set(target.keys()) == set(['workdir', 'resource']))
+    assert (target['workdir']  == '/home/peer_gynt/work/')
+    assert (target['resource'] == 'ssh://localhost/')
 
 
 # ------------------------------------------------------------------------------
@@ -128,6 +130,7 @@ if __name__ == "__main__":
     test_dict_mixin()
     test_dict_merge()
     test_dict_stringexpand()
+
 
 # ------------------------------------------------------------------------------
 
