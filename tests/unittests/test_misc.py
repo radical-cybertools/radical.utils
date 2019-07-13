@@ -1,11 +1,13 @@
+#!/usr/bin/env python
 
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
-import time
 import os
+import copy
+import pytest
 
 import radical.utils as ru
 
@@ -68,6 +70,7 @@ def test_sh_callout_async():
 
     pass
 
+#     import t ime
 #     t_0 = time.time()
 #     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
 #
@@ -115,17 +118,66 @@ def test_expand_env():
     else          : tmp = val
     if val is None: val = ''
 
-    assert(ru.expand_env('foo_$BAR.baz'             ) == 'foo_%s.baz' % val)
-    assert(ru.expand_env('foo_${BAR}_baz'           ) == 'foo_%s_baz' % val)
-    assert(ru.expand_env('foo_${BAR:buz}_baz'       ) == 'foo_%s_baz' % tmp)
+    tc = {'foo_$BAR.baz'      :['foo_%s.baz' % val,
+                                'foo_bar.baz',
+                                'foo_.baz'   ],
+          'foo_${BAR}_baz'    :['foo_%s_baz' % val,
+                                'foo_bar_baz',
+                                'foo__baz'   ],
+          'foo_${BAR:buz}_baz':['foo_%s_baz' % tmp,
+                                'foo_bar_baz',
+                                'foo_buz_baz'],
+         }
 
-    assert(ru.expand_env('foo_$BAR.baz'      , noenv) == 'foo_.baz'   )
-    assert(ru.expand_env('foo_${BAR}_baz'    , noenv) == 'foo__baz'   )
-    assert(ru.expand_env('foo_${BAR:buz}_baz', noenv) == 'foo_buz_baz')
+    # test string expansion (and also create list and dict for other tests
+    l = list()
+    d = dict()
+    i = 0
+    for k,v in tc.items():
+        assert(ru.expand_env(k       ) == v[0])
+        assert(ru.expand_env(k,   env) == v[1])
+        assert(ru.expand_env(k, noenv) == v[2])
+        l.append(k)
+        d[i] = k
+        i   += 1
 
-    assert(ru.expand_env('foo_$BAR.baz'      , env  ) == 'foo_bar.baz')
-    assert(ru.expand_env('foo_${BAR}_baz'    , env  ) == 'foo_bar_baz')
-    assert(ru.expand_env('foo_${BAR:buz}_baz', env  ) == 'foo_bar_baz')
+    # test list expansion
+    l0 = copy.deepcopy(l)
+    l1 = copy.deepcopy(l)
+    l2 = copy.deepcopy(l)
+
+    ru.expand_env(l0)
+    ru.expand_env(l1, env)
+    ru.expand_env(l2, noenv)
+
+    for i,v in enumerate(l):
+        assert(l0[i] == tc[v][0])
+        assert(l1[i] == tc[v][1])
+        assert(l2[i] == tc[v][2])
+
+    # test dict expansion
+    d0 = copy.deepcopy(d)
+    d1 = copy.deepcopy(d)
+    d2 = copy.deepcopy(d)
+
+    ru.expand_env(d0)
+    ru.expand_env(d1, env)
+    ru.expand_env(d2, noenv)
+
+    for k,v in d0.items(): assert(v == tc[d[k]][0])
+    for k,v in d1.items(): assert(v == tc[d[k]][1])
+    for k,v in d2.items(): assert(v == tc[d[k]][2])
+
+    # test `ignore_missing` flag
+    env = {'BAR' : 'bar'}
+    src = 'foo$FIZ.baz'
+    tgt = 'foo.baz'
+    assert(ru.expand_env(src, env                     ) == tgt)
+    assert(ru.expand_env(src, env, ignore_missing=True) == tgt)
+
+    with pytest.raises(ValueError):
+        ru.expand_env(src, env, ignore_missing=False)
+
 
 
 # ------------------------------------------------------------------------------
@@ -138,7 +190,6 @@ if __name__ == "__main__":
     test_sh_callout_async()
     test_get_env_ns()
     test_expand_env()
-
 
 
 # ------------------------------------------------------------------------------

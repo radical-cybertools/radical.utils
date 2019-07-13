@@ -191,6 +191,10 @@ class Url (object):
             if trailing_slash and not path.endswith('/'):
                 path += '/'
 
+            # os.path.normpath does not normalize for multiple leading slashes
+            while path.startswith('//'):
+                path = path[1:]
+
         return path
 
 

@@ -631,7 +631,7 @@ def expand_env(data, env=None, ignore_missing=True):
     # dict type
     elif isinstance(data, dict):
 
-        for k,v in data.iteritems():
+        for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)
         return data
 
