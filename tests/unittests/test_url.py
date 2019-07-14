@@ -22,7 +22,7 @@ def test_contrib():
                   ('g/',             'http://a/b/c/g/'     ),
                   ('/g',             'http://a/g'          ),
                   ('//g',            'http://g'            ),
-                  ('?y',             'http://a/b/c/d?y'    ),
+                  ('?y',             'http://a/b/c/?y'     ),  # [1]
                   ('g?y',            'http://a/b/c/g?y'    ),
                   ('g?y/./x',        'http://a/b/c/g?y/./x'),
                   ('.',              'http://a/b/c/'       ),
@@ -40,9 +40,12 @@ def test_contrib():
                   ('g/../h',         'http://a/b/c/h'      ),
                   ('http:g',         'http://a/b/c/g'      ),
                   ('http:',          'http://a/b/c/d'      ),
-                  ('http:?y',        'http://a/b/c/d?y'    ),
+                  ('http:?y',        'http://a/b/c/?y'     ),  # [1]
                   ('http:g?y',       'http://a/b/c/g?y'    ),
                   ('http:g?y/./x',   'http://a/b/c/g?y/./x')]
+
+    # [1] https://bugs.python.org/issue18828 - open since 2013 :-/
+    # This test case *should* result in `http://a/b/c/d?y`
 
 
     base = ''

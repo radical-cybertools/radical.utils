@@ -48,7 +48,7 @@ def test_profiler():
 
         assert(_grep('^[0-9\\.]*,foo,%s,MainThread,,,$'    %       pname ))
         assert(_grep('^[0-9\\.]*,bar,%s,MainThread,baz,,$' %       pname ))
-        assert(_grep('^%(now).7f,buz,%s,MainThread,,,$'    % (now, pname)))
+        assert(_grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname)))
 
     finally:
         try   : os.unlink(fname)
