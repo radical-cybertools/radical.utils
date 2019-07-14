@@ -53,14 +53,14 @@ class _LeaseObject(object):
 
     # --------------------------------------------------------------------------
     #
-    def __exit__(self, *args):
+    def __exit__(self, *args):                                      # noqa W0613
 
         self.lm.release(self)
 
 
     # --------------------------------------------------------------------------
     #
-    def lease(self, *args):
+    def lease(self):
 
         if self.used:
             raise RuntimeError('LeaseObject is already leased: %s' % self)
@@ -71,7 +71,7 @@ class _LeaseObject(object):
 
     # --------------------------------------------------------------------------
     #
-    def release(self, *args):
+    def release(self):
 
         if not self.used:
             raise RuntimeError('LeaseObject is not leased: %s' % self)
@@ -81,7 +81,7 @@ class _LeaseObject(object):
 
 
     # --------------------------------------------------------------------------
-    def is_leased(self, *args):
+    def is_leased(self):
 
         return self.used
 
