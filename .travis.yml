@@ -20,9 +20,9 @@ env:
     - CMD_PEP8="test -z \"$DIFF\" && echo 'nothing to pep8' || $PEP8 $DIFF"
     - CMD_FLAKE8="test -z \"$DIFF\" && echo 'nothing to flake8' || $FLAKE8 $DIFF"
     - CMD_PYLINT="test -z \"$DIFF\" && echo 'nothing to pylint' || $PYLINT $DIFF"
-    - CMD_PEP8_TESTS="PEP8 tests/"
+    - CMD_PEP8_TESTS="$PEP8 tests/"
     - CMD_FLAKE8_TESTS="$FLAKE8 tests/"
-    - CMD_PYLINT_TESTS="pylint tests/"
+    - CMD_PYLINT_TESTS="$PYLINT tests/"
     - COVERAGE=false
   matrix:
     - MAIN_CMD=$CMD_PYTEST COVERAGE=true

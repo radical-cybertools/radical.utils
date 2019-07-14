@@ -14,7 +14,8 @@ import radical.utils as ru
 #
 def test_config():
 
-    path = '%s/data/resource_*.json' % os.path.abspath(os.path.dirname(__file__))
+    base = os.path.abspath(os.path.dirname(__file__))
+    path = '%s/data/resource_*.json' % base
 
     cfg1 = ru.Config(module='radical.utils', path=path)
 
@@ -23,7 +24,7 @@ def test_config():
 
     assert(None  is cfg1.query('yale.grace.no_launch_method'))
     with pytest.raises(KeyError):
-        _ = cfg1['yale']['grace']['no_launch_method']
+        cfg1['yale']['grace']['no_launch_method']
 
     os.environ['FOO'] = 'GSISSH'
 

@@ -4,7 +4,6 @@ __license__   = "MIT"
 
 
 import time
-import sys
 import threading
 import radical.utils as ru
 
@@ -15,29 +14,21 @@ ITER = 10
 
 # ------------------------------------------------------------------------------
 #
-def debug(arg):
-  # print arg
-    pass
-
-
-# ------------------------------------------------------------------------------
-#
-def test_lease_manager() :
+def test_lease_manager():
     """
     Test LeaseManager
     """
 
     # --------------------------------------------------------------------------
-    class Test (object) :
+    class Test(object):
 
-        # ----------------------
-        def __init__ (self) :
+        # ----------------------------------------------------------------------
+        def __init__(self):
 
             self.val = False
 
-
-        # ----------------------
-        def test(self) :
+        # ----------------------------------------------------------------------
+        def test(self):
 
             self.lm = ru.LeaseManager(SIZE)
 
@@ -64,7 +55,6 @@ def test_lease_manager() :
             ow_thread_2.join()
             mon_thread.join()
 
-
         # ----------------------------------------------------------------------
         def iw_thread(self, id, pool):
 
@@ -81,11 +71,9 @@ def test_lease_manager() :
 
                 for lease in leases:
                     self.lm.release(lease)
-                    debug("%s:   <" % name)
 
-
-        # ----------------------
-        def ow_thread(self, id, pool) :
+        # ----------------------------------------------------------------------
+        def ow_thread(self, id, pool):
 
             name = "OWo Thread-%d (%s)" % (id, pool)
 
@@ -101,9 +89,8 @@ def test_lease_manager() :
                 for lease in leases:
                     self.lm.release(lease)
 
-
-        # ----------------------
-        def mon_thread(self, id, pool) :
+        # ----------------------------------------------------------------------
+        def mon_thread(self, id, pool):
 
             name = "Mon Thread-%d (%s)" % (id, pool)
 
@@ -118,10 +105,8 @@ def test_lease_manager() :
 
                 for lease in leases:
                     self.lm.release(lease)
-                    debug("%s:   <" % name)
+        # ----------------------------------------------------------------------
 
-
-    # --------------------------------------------------------------------------
     t = Test()
     t.test()
 
@@ -131,6 +116,7 @@ def test_lease_manager() :
 if __name__ == "__main__":
 
     test_lease_manager()
+
 
 # ------------------------------------------------------------------------------
 
