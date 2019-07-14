@@ -166,7 +166,7 @@ class SchedulerViz(object):
 
             self.gc.change(foreground=blue)
             for passive_chunk in passive:
-                self.window.poly_point(self.gc, X.CoordModeOrigin, passive_chunk)
+                self.window.poly_point(self.gc, X.CoordModeOrigin,passive_chunk)
             print(3)
 
             self.d.flush()
@@ -174,12 +174,12 @@ class SchedulerViz(object):
             time.sleep(0.1)
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def update_sched(self):
 
         try:
-            # ----------------------------------------------------------------------
+            # ------------------------------------------------------------------
             #
             # This implementation will first create a number of requests,
             # specifically 'REQ_BULK' requests, each randomly distributed
@@ -205,7 +205,7 @@ class SchedulerViz(object):
             #   - the self.scheduler can't align an allocation (if 'ALIGN' is
             #     set)
             #
-            # ----------------------------------------------------------------------
+            # ------------------------------------------------------------------
 
             running = list()
             done    = list()
@@ -285,10 +285,10 @@ class SchedulerViz(object):
                     else:
                         dealloc_rate = len(to_release) / (stop - start)
 
-                print("%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" %
-                        (cycle, total_alloc, alloc_rate,
-                                total_dealloc, dealloc_rate,
-                                self.scheduler.get_map.count()))
+                print('%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)'
+                      'free %6d' % (cycle, total_alloc,   alloc_rate,
+                                           total_dealloc, dealloc_rate,
+                                           self.scheduler.get_map.count()))
 
             if abort_cycles:
                 print('cycle aborted')
@@ -306,7 +306,8 @@ class SchedulerViz(object):
         # continuous stretches of #free/busy cores
         # print()
         # print('\ncores :  free :  busy')
-        # counts = set(list(stats['free_dist'].keys()) + list(stats['busy_dist'].keys()))
+        # counts = set(list(stats['free_dist'].keys()) + \
+        #          list(stats['busy_dist'].keys()))
         # for count in sorted(counts):
         #     print('%5d : %5s : %5s' % (count,
         #             stats['free_dist'].get(count, ''),

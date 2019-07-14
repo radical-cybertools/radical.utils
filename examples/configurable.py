@@ -35,7 +35,7 @@ _config_options = [
         'type'          : str,
         'default'       : 'default',
         'valid_options' : ['default', 'lower', 'upper'],
-        'documentation' : "This option determines the casing of example's output",
+        'documentation' : "option determines the casing of example's output",
         'env_variable'  : 'EXAMPLE_CONFIG_CASING'
     },
     {
