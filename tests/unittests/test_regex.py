@@ -36,7 +36,7 @@ def test_re_string():
     if  txt // '(rabbit)':
         assert (False)
 
-    elif  txt // '((?:\s).{12,15}?(\S+))':
+    elif  txt // r'((?:\s).{12,15}?(\S+))':
         assert (True)
 
     else:

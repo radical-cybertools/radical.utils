@@ -179,7 +179,6 @@ def test_expand_env():
         ru.expand_env(src, env, ignore_missing=False)
 
 
-
 # ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
