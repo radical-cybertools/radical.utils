@@ -314,8 +314,8 @@ def raise_on(tag, log=None, msg=None):
     process-local, but is shared amongst threads of that process.
     '''
 
-    global _raise_on_state                              # pylint: disable= W0603
-    global _raise_on_lock                               # pylint: disable= W0603
+    global _raise_on_state                               # pylint: disable=W0603
+    global _raise_on_lock                                # pylint: disable=W0603
 
     with _raise_on_lock:
 
@@ -395,8 +395,8 @@ def attach_pudb(logger=None):
         print('debugger open: telnet %s %d' % (host, port))
 
     try:
-        import pudb                                       # pylint: disable=E401
-        from   pudb.remote import set_trace               # pylint: disable=E401
+        import pudb                                      # pylint: disable=E0401
+        from   pudb.remote import set_trace              # pylint: disable=E0401
 
         pudb.DEFAULT_SIGNAL = signal.SIGALRM
 
@@ -420,7 +420,7 @@ def add_snippet_path(path):
 
     if 'RADICAL_DEBUG' in os.environ:
 
-        global _SNIPPET_PATHS                           # pylint: disable= W0603
+        global _SNIPPET_PATHS                            # pylint: disable=W0603
 
         if path not in _SNIPPET_PATHS:
             _SNIPPET_PATHS.append(path)

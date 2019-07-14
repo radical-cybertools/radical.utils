@@ -61,7 +61,7 @@ scheme_chars              = ('abcdefghijklmnopqrstuvwxyz'
 # ------------------------------------------------------------------------------
 #
 MAX_CACHE_SIZE = 20
-_parse_cache   = {}
+_parse_cache   = dict()
 
 
 # ------------------------------------------------------------------------------
@@ -71,9 +71,8 @@ def clear_cache():
     Clear the parse cache
     '''
 
-    global _parse_cache  # noqa W0603
-    _parse_cache = {}
-
+    global _parse_cache                                  # pylint: disable=W0603
+    _parse_cache = dict()
 
 
 # ------------------------------------------------------------------------------
@@ -153,7 +152,7 @@ class BaseResult(tuple):
 #
 class SplitResult(BaseResult):
 
-    __slots__ = ()
+    __slots__ = list()
 
     # --------------------------------------------------------------------------
     #
@@ -171,7 +170,7 @@ class SplitResult(BaseResult):
 #
 class ParseResult(BaseResult):
 
-    __slots__ = ()
+    __slots__ = list()
 
     # --------------------------------------------------------------------------
     #

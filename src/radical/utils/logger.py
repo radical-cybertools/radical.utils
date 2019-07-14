@@ -95,7 +95,7 @@ _logger_registry = _LoggerRegistry()
 def _after_fork():
 
     _logger_registry.release_all()
-    logging._lock = threading.RLock()
+    logging._lock = threading.RLock()                    # pylint: disable=W0212
 
 
 # ------------------------------------------------------------------------------
@@ -291,7 +291,7 @@ class Logger(object):
             self._logger.setLevel(level)
 
         if warning:
-            self._logger.warn(warning)
+            self._logger.warning(warning)
 
         # if `name` points to module, try to log its version info
         if verbose:
