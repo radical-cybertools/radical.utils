@@ -101,7 +101,7 @@ class DebugHelper(object):
             fd  = open(fb, 'w+')
 
             fd.seek(0,0)
-            ffd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))
+            fd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))
             fd.write('\nSTATIC INFO:\n%s\n\n' % pprint.pformat(self._info))
             fd.write('\nINFO:\n%s\n\n' % pprint.pformat(info))
             fd.flush()
@@ -213,10 +213,10 @@ def print_stacktrace(msg=None, _stack = None):
     out   = '--------------\n'
     out  += 'RADICAL Utils -- Stacktrace [%s] [%s]\n' % (pid, tname)
     out  += '%s\n' % msg
-    out  += os.popen('%s | grep ' %s ' | grep -v grep' % (_ps_cmd, pid)).read()
+    out  += os.popen("%s | grep ' %s ' | grep -v grep" % (_ps_cmd, pid)).read()
 
     if not _stack:
-        _stack = get_stacktrace():
+        _stack = get_stacktrace()
 
     for line in _stack:
         out += line.strip()
