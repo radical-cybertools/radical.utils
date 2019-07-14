@@ -23,7 +23,7 @@ ignore          =
     # blank lines
     W391, E301, E303,
     # multiple statements on one line
-    E701, E704,
+    E701, E702, E704,
     # space before bracket
     C0326,
     # trailing whitespace

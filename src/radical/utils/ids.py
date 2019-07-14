@@ -12,7 +12,7 @@ import socket
 import datetime
 import threading
 
-from .singleton import Simgleton
+from .singleton import Singleton
 from .misc      import dockerized, get_radical_base
 
 TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"

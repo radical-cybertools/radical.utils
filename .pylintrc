@@ -233,16 +233,7 @@ function-naming-style=snake_case
 #function-rgx=
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,
-           j,
-           k,
-           x, 
-           y, 
-           z,
-           e,
-           t,
-           ex,
-           _
+good-names=i, j, k, l, x, y, z, e, t, _
 
 # Include a hint for the correct naming format with invalid-name
 include-naming-hint=no
@@ -297,17 +288,17 @@ expected-line-ending-format=
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
 
 # Number of spaces of indent required inside a hanging  or continued line.
-indent-after-paren=4
+# indent-after-paren=4
 
 # String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
 # tab).
 indent-string='    '
 
 # Maximum number of characters on a single line.
-max-line-length=100
+max-line-length=80
 
 # Maximum number of lines in a module
-max-module-lines=1000
+# max-module-lines=1000
 
 # List of optional constructs for which whitespace checking is disabled. `dict-
 # separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
@@ -318,11 +309,11 @@ no-space-check=trailing-comma,
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
-single-line-class-stmt=no
+single-line-class-stmt=yes
 
 # Allow the body of an if to be on the same line as the test if there is no
 # else.
-single-line-if-stmt=no
+single-line-if-stmt=yes
 
 
 [LOGGING]

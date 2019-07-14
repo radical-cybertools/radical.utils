@@ -1,7 +1,7 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky)"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
+__author__    = 'Radical.Utils Development Team (Andre Merzky)'
+__copyright__ = 'Copyright 2013, RADICAL@Rutgers'
+__license__   = 'MIT'
 
 import re
 import fnmatch
@@ -123,7 +123,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
     # thanks to
     # http://stackoverflow.com/questions/7204805/ \
     #                          python-dictionaries-of-dictionaries-merge
-    """
+    '''
     This merges two dict in place, modifying the original dict in a.
 
     Merge Policies:
@@ -133,21 +133,19 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
                          is None / 0 / ''
         OVERWRITE      : values in a are overwritten by new values from b
 
-    """
+    '''
 
     if  a    is None: return
     if  b    is None: return
     if _path is None: _path = list()
 
     if  not isinstance(a, dict):
-        raise TypeError("*dict*_merge expects dicts, not '%s'" % type(a))
+        raise TypeError('*dict*_merge expects dicts, not %s' % type(a))
 
     if  not isinstance(b, dict):
-        raise TypeError("*dict*_merge expects dicts, not '%s'" % type(b))
-
+        raise TypeError('*dict*_merge expects dicts, not %s' % type(b))
 
     # --------------------------------------------------------------------------
-    #
     def merge_key(a, key_a, b, key_b):
 
         # need to resolve conflict
@@ -174,18 +172,19 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
         else:
             if  policy == PRESERVE:
                 if  logger:
-                    logger.debug("preserving key %s:%s \t(%s)"
-                                % (":".join(_path), key_b, b[key_b]))
+                    logger.debug('preserving key %s:%s \t(%s)'
+                                % (':'.join(_path), key_b, b[key_b]))
 
             elif policy == OVERWRITE:
                 if  logger:
-                    logger.debug("overwriting key %s:%s \t(%s)"
-                                % (":".join(_path), key_b, b[key_b]))
+                    logger.debug('overwriting key %s:%s \t(%s)'
+                                % (':'.join(_path), key_b, b[key_b]))
                 a[key_a] = b[key_b]  # use new value
             else:
                 raise ValueError('Conflict at %s (%s : %s)'
                               % ('.'.join(_path + [str(key_a)]),
                                  a[key_a], b[key_b]))
+    # --------------------------------------------------------------------------
 
     # first a clean merge, i.e. no interpretation of wildcards
     for key in b:
@@ -216,7 +215,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 # ------------------------------------------------------------------------------
 #
 def dict_stringexpand(target, sources=None):
-    """
+    '''
     This expands dict entries (strings only) with keys from a second dict. For
     example, the dicts::
 
@@ -233,7 +232,7 @@ def dict_stringexpand(target, sources=None):
 
     Note that expansion happened twice, for the `resource` tag to be fully
     specified.
-    """
+    '''
 
     assert(isinstance(target, dict))
 
@@ -246,7 +245,7 @@ def dict_stringexpand(target, sources=None):
         sources = list()
 
     if  not isinstance(sources, list):
-        raise TypeError("Need dict as expansion source, not %s" % type(sources))
+        raise TypeError('Need dict as expansion source, not %s' % type(sources))
 
     # target must be first source, to avoid cycles (other sources are likely to
     # have *other* info)
