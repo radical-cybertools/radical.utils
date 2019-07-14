@@ -281,8 +281,8 @@ class PluginManager(object):
     #
     def load(self, ptype, pname):
         '''
-        check if a plugin with given type and name was loaded, if so, instantiate its
-        plugin class and return it.
+        check if a plugin with given type and name was loaded, if so,
+        instantiate its plugin class and return it.
         '''
 
         if ptype not in self._plugins:

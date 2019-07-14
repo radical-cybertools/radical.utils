@@ -275,13 +275,15 @@ class Logger(object):
                                       '%(message)s')
 
         # add a handler for each targets (using the same format)
+        p = path
+        n = name
         for t in targets:
             if   t in ['0', 'null']       : h = logging.NullHandler()
             elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
             elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
-            elif t in ['.']               : h = FSHandler("%s/%s.log" % (path, name))
+            elif t in ['.']               : h = FSHandler("%s/%s.log" % (p, n))
             elif t.startswith('/')        : h = FSHandler(t)
-            else                          : h = FSHandler("%s/%s"     % (path, t))
+            else                          : h = FSHandler("%s/%s"     % (p, t))
 
             h.setFormatter(formatter)
             h.name = self._logger.name

@@ -28,9 +28,9 @@ class ObjectCache(object, metaclass=Singleton):
     counted registry of existing objects.
     '''
 
-    # TODO: we should introduce namespaces -- this is a singleton, but we may want
-    # to use it in several places, thus need to make sure to not use colliding
-    # names...
+    # TODO: we should introduce namespaces -- this is a singleton, but we may
+    #       want to use it in several places, thus need to make sure to not use
+    #       colliding names...
     #
     # FIXME: this class is not thread-safe!
 

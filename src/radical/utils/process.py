@@ -132,7 +132,7 @@ class Process(mp.Process):
     main loop, until:
 
       - an exception occurs (causing the child to fail with an error)
-      - `False` is returned by `work_cb()` (causing the child to finish w/o error)
+      - `False` is returned by `work_cb()` (child finishes w/o error)
     '''
 
     # TODO: We should switch to fork/*exec*, if possible.
@@ -655,13 +655,13 @@ class Process(mp.Process):
 
             # enter the main loop and repeatedly call 'work_cb()'.
             #
-            # If `work_cb()` ever returns `False`, we break out of the loop to call the
-            # finalizers and terminate.
+            # If `work_cb()` ever returns `False`, we break out of the loop to
+            # call the finalizers and terminate.
             #
-            # In each iteration, we also check if the socket is still open -- if it
-            # is closed, we assume the parent to be dead and terminate (break the
-            # loop).  We consider the socket closed if `self._ru_term` was set
-            # by the watcher thread.
+            # In each iteration, we also check if the socket is still open -- if
+            # it is closed, we assume the parent to be dead and terminate (break
+            # the loop).  We consider the socket closed if `self._ru_term` was
+            # set by the watcher thread.
             while not self._ru_term.is_set() and \
                       self._parent_is_alive()    :
 
@@ -774,7 +774,7 @@ class Process(mp.Process):
         self._ru_terminating = True
 
       # if not is_main_thread():
-      #     self._ru_log.info('reroute stop to main thread (%s)' % self._ru_name)
+      #     self._ru_log.info('reroute stop to main thread %s' % self._ru_name)
       #     sys.exit()
 
         self._ru_log.info('parent stops child  %s -> %s [%s]', os.getpid(),
@@ -822,7 +822,7 @@ class Process(mp.Process):
           #     # we threat join errors as non-fatal here - at this point, there
           #     # is not much we can do other than calling `terminate()#join()`
           #     # -- which is exactly what we just did.
-          #     self._ru_log.warning('could not join child process %s', self.pid)
+          #     self._ru_log.warning('could not join child proc %s', self.pid)
 
         # meanwhile, all watchables should have stopped, too.  For some of them,
         # `stop()` will have implied `join()` already - but an additional
@@ -853,8 +853,8 @@ class Process(mp.Process):
       # join via `at_exit`.  Which kind of explains hangs on unterminated
       # children...
       #
-      # FIXME: not that `join()` w/o `stop()` will not call the parent finalizers.
-      #        We should call those in both cases, but only once.
+      # FIXME: not that `join()` w/o `stop()` will not call the parent
+      #        finalizers.  We should call those in both cases, but only once.
       # FIXME: `join()` should probably block by default
 
         if not timeout:
@@ -1208,7 +1208,7 @@ class Process(mp.Process):
             os.kill(self._ru_ppid, 0)
             return True
 
-        except:
+        except OSError:
             return False
 
 

@@ -56,15 +56,19 @@ def test_reporter():
     rep.idle(mode='stop')
     rep.ok('>>done\n')
 
+
+    # pylint: disable=E501
     rep.info('idle test\n')
     rep.info('1234567891         2         3         4         5         6         7         8\n\t')
     rep.info('.0.........0.........0.........0.........0.........0.........0.........0')
+    # pylint: enable=E501
+
     rep.idle(mode='start')
     for i in range(200):
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
         rep.idle(color='ok', c="+")
     rep.idle(mode='stop')
 
@@ -103,7 +107,7 @@ def test_env():
 
 
 
-    for key in ['RADICAL_REPORT', 
+    for key in ['RADICAL_REPORT',
                 'RADICAL_UTILS_REPORT',
                 'RADICAL_UTILS_TEST_REPORT']:
 

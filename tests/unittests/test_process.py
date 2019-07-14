@@ -31,9 +31,9 @@ def test_process_basic():
             time.sleep(0.2)
             return False
 
-    p = P()    ; t1 = time.time()
-    p.start()  ; t2 = time.time()
-    p.join(10) ; t3 = time.time()
+    p = P()   ; t1 = time.time()
+    p.start() ; t2 = time.time()
+    p.join(10); t3 = time.time()
 
     assert(t2 - t1 > 0.0), t2 - t1
     assert(t2 - t1 < 0.2), t2 - t1  # process startup should be quick
@@ -74,13 +74,23 @@ def test_process_autostart():
             assert(self._finalize_common), 'no finalize common'
             assert(self._finalize_parent), 'no finalize parent'
 
-        def ru_initialize_common(self): self._initialize_common = True  # noqa E306
-        def ru_initialize_parent(self): self._initialize_parent = True  # noqa E306
-        def ru_initialize_child (self): self._initialize_child  = True  # noqa E306
+        def ru_initialize_common(self):
+            self._initialize_common = True
 
-        def ru_finalize_common(self)  : self._finalize_common   = True  # noqa E306
-        def ru_finalize_parent(self)  : self._finalize_parent   = True  # noqa E306
-        def ru_finalize_child (self)  : self._finalize_child    = True  # noqa E306
+        def ru_initialize_parent(self):
+            self._initialize_parent = True
+
+        def ru_initialize_child (self):
+            self._initialize_child = True
+
+        def ru_finalize_common(self):
+            self._finalize_common = True
+
+        def ru_finalize_parent(self):
+            self._finalize_parent = True
+
+        def ru_finalize_child (self):
+            self._finalize_child = True
 
         def work_cb(self):
 

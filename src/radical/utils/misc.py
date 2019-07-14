@@ -87,7 +87,7 @@ def mongodb_connect(dburl, default_dburl=None):
     try:
         import pymongo
     except ImportError:
-        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
@@ -278,10 +278,10 @@ def round_to_base(value, base=1):
 #
 def round_upper_bound(value):
     '''
-    This method expects an integer or float value, and will return an integer upper
-    bound suitable for example to define plot ranges.  The upper bound is the
-    smallest value larger than the input value which is a multiple of 1, 2 or
-    5 times the order of magnitude (10**x) of the value.
+    This method expects an integer or float value, and will return an integer
+    upper bound suitable for example to define plot ranges.  The upper bound is
+    the smallest value larger than the input value which is a multiple of 1,
+    2 or 5 times the order of magnitude (10**x) of the value.
     '''
 
     bound = 0
