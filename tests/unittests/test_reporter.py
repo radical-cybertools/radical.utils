@@ -59,8 +59,8 @@ def test_reporter():
 
     # pylint: disable=E501
     rep.info('idle test\n')
-    rep.info('1234567891         2         3         4         5         6         7         8\n\t')
-    rep.info('.0.........0.........0.........0.........0.........0.........0.........0')
+    rep.info('1234567891         2         3         4         5         6         7         8\n\t')  # noqa
+    rep.info('.0.........0.........0.........0.........0.........0.........0.........0')              # noqa
     # pylint: enable=E501
 
     rep.idle(mode='start')
