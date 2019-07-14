@@ -101,6 +101,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     #
     class _PROC(object):
 
+
         # ----------------------------------------------------------------------
         def __init__(self, cmd, stdout, stderr, shell):
 
@@ -163,6 +164,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
 
 
         # ----------------------------------------------------------------------
+        #
         def _watch(self):
 
             poller = select.poll()

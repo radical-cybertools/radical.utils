@@ -11,9 +11,9 @@ import fcntl
 import socket
 import datetime
 import threading
-from . import singleton
 
-from .misc import dockerized, get_radical_base
+from .singleton import Simgleton
+from .misc      import dockerized, get_radical_base
 
 TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
 TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
@@ -23,7 +23,7 @@ TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 
 # ------------------------------------------------------------------------------
 #
-class _IDRegistry(object, metaclass=singleton.Singleton):
+class _IDRegistry(object, metaclass=Singleton):
     """
     This helper class (which is not exposed to any user of radical.utils)
     generates a sequence of continous numbers for each known ID prefix.  It is

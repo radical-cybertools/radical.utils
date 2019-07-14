@@ -103,8 +103,6 @@ class PluginManager(object):
         '''
 
         # import here to avoid circular imports
-        import radical.utils.logger as logger
-
         self._namespace = namespace
         self._log       = Logger('radical.utils')
         self._registry  = _PluginRegistry()  # singleton
@@ -233,7 +231,7 @@ class PluginManager(object):
                     self._log.debug('loading plugin %s' % pfile)
                     self._log.info ('loading plugin %s' % pshort)
 
-                except Exception as e:
+                except Exception:
                     self._log.exception('loading plugin %s failed' % pshort)
 
 

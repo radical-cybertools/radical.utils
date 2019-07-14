@@ -7,9 +7,16 @@ import random
 import pprint
 import _thread
 
-from Xlib import X, display, Xutil
-
 import radical.utils as ru
+
+
+try:
+    # make pylint happy - this is optional code
+    from Xlib import X, display, Xutil
+except:
+    raise RuntimeError('need Xlib module to work')
+
+
 
 ROWS      =  1024
 COLS      =  1024
@@ -319,8 +326,9 @@ class SchedulerViz(object):
         print('      align  : %9d' % total_align)
         print('      scatter: %9d' % total_scatter)
         print('      dealloc: %9d' % total_dealloc)
-        print('      runtime: %9.1fs'  % (total_stop - total_start))
-        print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start)))
+        print('      runtime: %9.1fs'  % (total_stop   - total_start))
+        print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) /
+                                          (total_stop  - total_start)))
 
         # NOTE: Uncomment to DEBUG
         # idx = 0
