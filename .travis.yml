@@ -13,13 +13,15 @@ env:
     - DIFF=`git diff --name-only --diff-filter=b $OLD...$NEW`
     - DIFF=$(echo $DIFF | grep -o -e '\b[^ ]*.py\b')
     - PYTEST="coverage run -m pytest -ra --timeout=600 -vvv --showlocals"
-    - PEP8="pep8 --statistics --max-line-length=80 --format=pylint"
+    - PEP8="pycodestyle --config=.pep8 --statistics --format=pylint"
+    - FLAKE8="flake8    --config=.pep8 --statistics --format=pylint"
+    - PYLINT="pylint    --rcfile=.pylintrc --jobs=0"
     - CMD_PYTEST="$PYTEST tests/"
     - CMD_PEP8="test -z \"$DIFF\" && echo 'nothing to pep8' || $PEP8 $DIFF"
-    - CMD_FLAKE8="test -z \"$DIFF\" && echo 'nothing to flake8' || flake8 $DIFF"
-    - CMD_PYLINT="test -z \"$DIFF\" && echo 'nothing to pylint' || pylint $DIFF"
+    - CMD_FLAKE8="test -z \"$DIFF\" && echo 'nothing to flake8' || $FLAKE8 $DIFF"
+    - CMD_PYLINT="test -z \"$DIFF\" && echo 'nothing to pylint' || $PYLINT $DIFF"
     - CMD_PEP8_TESTS="PEP8 tests/"
-    - CMD_FLAKE8_TESTS="flake8 tests/"
+    - CMD_FLAKE8_TESTS="$FLAKE8 tests/"
     - CMD_PYLINT_TESTS="pylint tests/"
     - COVERAGE=false
   matrix:
@@ -49,7 +51,7 @@ install:
   - pip install coverage
   - pip install flake8
   - pip install flake8-per-file-ignores
-  - pip install pep8
+  - pip install pycodestyle
   - pip install pylint
   - pip install codecov
   - pip install pytest

@@ -1,5 +1,5 @@
 
-[flake8]
+[pycodestyle]
 exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin,.eggs
 max-complexity  = 10
 max-line-length = 80
@@ -10,8 +10,6 @@ ignore          =
     E221, E222,E251,
     # multiple spaces after/after keyword
     E271, E272,
-    # line too long
-    E501,
     # whitespace before/after ...
     E201, E203, E202, E231, E241, E211, E116, E127,
     # same indent
