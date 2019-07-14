@@ -309,8 +309,6 @@ class Thread(mt.Thread):
         self._ru_local.is_parent   = False  # set in start()
         self._ru_local.is_child    = True   # set in run()
 
-        self.run()
-
       # _main_thread = main_thread()
         try:
             # we consider the invocation of the child initializers to be part of
