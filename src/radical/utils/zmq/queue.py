@@ -15,6 +15,8 @@ from ..misc   import get_hostip
 from ..logger import Logger
 
 
+# FIXME: the log bulk method is frequently called and slow
+
 # --------------------------------------------------------------------------
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
@@ -48,18 +50,18 @@ def log_bulk(log, bulk, token):
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
 #
-# FIXME: how does that behave wrt. tomeouts?  We probably should include
+# FIXME: how does that behave wrt. timeouts?  We probably should include
 #        an explicit timeout parameter.
 #
 # kudos: https://gist.github.com/minrk/5258909
 #
-def _uninterruptible(f, *args, **kwargs):
+def _no_intr(f, *args, **kwargs):
     cnt = 0
     while True:
         cnt += 1
         try:
             return f(*args, **kwargs)
-        except zmq.ContextTerminated as e:
+        except zmq.ContextTerminated:
             return None
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
@@ -98,7 +100,7 @@ def _uninterruptible(f, *args, **kwargs):
 #
 #   qsize
 #   empty
-#   full 
+#   full
 #   put(msg, block, timeout)
 #   put_nowait
 #   get(block, timeout)
@@ -120,11 +122,11 @@ class Queue(Bridge):
         This Queue type sets up an zmq channel of this kind:
 
             input \            / output
-                   -- bridge -- 
+                   -- bridge --
             input /            \ output
 
         ie. any number of inputs can 'zmq.push()' to a bridge (which
-        'zmq.pull()'s), and any number of outputs can 'zmq.request()' 
+        'zmq.pull()'s), and any number of outputs can 'zmq.request()'
         messages from the bridge (which 'zmq.response()'s).
 
         The bridge is the entity which 'bind()'s network interfaces, both input
@@ -180,7 +182,7 @@ class Queue(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _initialize_bridge(self):
 
         self._log.info('start bridge %s', self._uid)
@@ -222,16 +224,16 @@ class Queue(Bridge):
         self._poll_out.register(self._out, zmq.POLLIN)
 
         # the bridge runs in a daemon thread, so that the main process will not
-        # wait for it.  But, give Python's thread performance (or lack thereof),
-        # this means that the user of this class should create a separate
-        # process instance to host the bridge thread.
+        # wait for it.  But, given Python's thread performance (or lack
+        # thereof), this means that the user of this class should create
+        # a separate process instance to host the bridge thread.
         self._bridge_thread = mt.Thread(target=self._bridge_work)
         self._bridge_thread.daemon = True
         self._bridge_thread.start()
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def wait(self, timeout=None):
         '''
         join would negate the daemon thread settings, in that it stops us from
@@ -254,7 +256,7 @@ class Queue(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _bridge_work(self):
 
         # TODO: *always* pull for messages and buffer them.  Serve requests from
@@ -273,13 +275,13 @@ class Queue(Bridge):
                 active = False
 
                 # check for incoming messages, and buffer them
-                ev_in = dict(_uninterruptible(self._poll_in.poll, timeout=0))
+                ev_in = dict(_no_intr(self._poll_in.poll, timeout=0))
 
                 if self._in in ev_in:
 
                     active = True
-                    data   = _uninterruptible(self._in.recv)
-                    msgs   = msgpack.unpackb(data) 
+                    data   = _no_intr(self._in.recv)
+                    msgs   = msgpack.unpackb(data)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
@@ -291,7 +293,7 @@ class Queue(Bridge):
                 # checking for receivers
                 if buf:
                     # check if somebody wants our messages
-                    ev_out = dict(_uninterruptible(self._poll_out.poll,
+                    ev_out = dict(_no_intr(self._poll_out.poll,
                                                    timeout=0))
 
                     if self._out in ev_out:
@@ -299,10 +301,10 @@ class Queue(Bridge):
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         active = True
-                        req    = _uninterruptible(self._out.recv)
+                        _      = _no_intr(self._out.recv)
                         bulk   = buf[:self._bulk_size]
-                        data   = msgpack.packb(bulk) 
-                        _uninterruptible(self._out.send, data)
+                        data   = msgpack.packb(bulk)
+                        _no_intr(self._out.send, data)
 
                         log_bulk(self._log, bulk, '<> %s' % (self._channel))
 
@@ -367,8 +369,8 @@ class Putter(object):
     def put(self, msg):
 
         log_bulk(self._log, msg, '-> %s' % self._channel)
-        data = msgpack.packb(msg) 
-        _uninterruptible(self._q.send, data)
+        data = msgpack.packb(msg)
+        _no_intr(self._q.send, data)
 
 
 # ------------------------------------------------------------------------------
@@ -382,7 +384,7 @@ class Getter(object):
         self._channel   = channel
         self._url       = url
 
-        self._uid       = generate_id('%s.get.%s' % (self._channel, 
+        self._uid       = generate_id('%s.get.%s' % (self._channel,
                                                     '%(counter)04d'), ID_CUSTOM)
         self._log       = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
@@ -421,14 +423,16 @@ class Getter(object):
 
         if not self._requested:
             req = 'Request %s' % os.getpid()
-            _uninterruptible(self._q.send, req)
+            _no_intr(self._q.send, req)
             self._requested = True
-            log_bulk(self._log, req, '>> %s [%-5s]' % (self._channel, self._requested))
+            log_bulk(self._log, req, '>> %s [%-5s]'
+                                   % (self._channel, self._requested))
 
-        data = _uninterruptible(self._q.recv)
-        msg  = msgpack.unpackb(data) 
+        data = _no_intr(self._q.recv)
+        msg  = msgpack.unpackb(data)
         self._requested = False
-        log_bulk(self._log, msg, '-- %s [%-5s]' % (self._channel, self._requested))
+        log_bulk(self._log, msg, '-- %s [%-5s]'
+                               % (self._channel, self._requested))
 
         return msg
 
@@ -442,19 +446,22 @@ class Getter(object):
             if not self._requested:
                 # we can only send the request once per recieval
                 req = 'request %s' % os.getpid()
-                _uninterruptible(self._q.send, req)
+                _no_intr(self._q.send, req)
                 self._requested = True
-                log_bulk(self._log, req, '-> %s [%-5s]' % (self._channel, self._requested))
+                log_bulk(self._log, req, '-> %s [%-5s]'
+                                         % (self._channel, self._requested))
 
-            if _uninterruptible(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
-                data = _uninterruptible(self._q.recv)
-                msg  = msgpack.unpackb(data) 
+            if _no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
+                data = _no_intr(self._q.recv)
+                msg  = msgpack.unpackb(data)
                 self._requested = False
-                log_bulk(self._log, msg, '<- %s [%-5s]' % (self._channel, self._requested))
+                log_bulk(self._log, msg, '<- %s [%-5s]'
+                                         % (self._channel, self._requested))
                 return msg
 
             else:
-                log_bulk(self._log, None, '-- %s [%-5s]' % (self._channel, self._requested))
+                log_bulk(self._log, None, '-- %s [%-5s]'
+                                          % (self._channel, self._requested))
                 return None
 
 

@@ -230,6 +230,7 @@ class TypeChecker(Checker):
 Checker._registered.append((isclass, TypeChecker))
 nothing = NoneType
 
+
 # ------------------------------------------------------------------------------
 #
 class StrChecker(Checker):
@@ -312,7 +313,6 @@ class TupleOfChecker(Checker):
 
 def tuple_of(*args):
     return TupleOfChecker(*args).check
-
 
 
 # ------------------------------------------------------------------------------

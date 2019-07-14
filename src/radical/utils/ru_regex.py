@@ -240,23 +240,23 @@ class ReString(str):
         # the '//' operator is overloaded to match against a regular
         # expression. The result is a `ReSult` instance, which allows simple
         # access to the matches
-        with txt // '(\s.u)(?P<x>.*?j\S+)' as res:
+        with txt // r'(\\s.u)(?P<x>.*?j\\S+)' as res:
             if res: print 'Matched!'               # boolean check
-            print 'res     : '%s' ' % res          # list of results
-            print 'res[0]  : '%s' ' % res[0]       # index by number ...
-            print 'res[1]  : '%s' ' % res[1]       # ... for all matches
-            print 'res['x']: '%s' ' % res['x']     # index by match name
-            print 'res.x   : '%s' ' % res.x        # ...   as properties
+            print 'res     : '%%s' ' %% res          # list of results
+            print 'res[0]  : '%%s' ' %% res[0]       # index by number ...
+            print 'res[1]  : '%%s' ' %% res[1]       # ... for all matches
+            print 'res['x']: '%%s' ' %% res['x']     # index by match name
+            print 'res.x   : '%%s' ' %% res.x        # ...   as properties
             for i, r in enumerate(res):
-                print 'res %d   : '%s' ' % (i, r)  # matches as iterable
+                print 'res %%d   : '%%s' ' %% (i, r)  # matches as iterable
 
             assert(len(res) == 2)                  # number of matches
             assert(res == [' qu', 'ick brown fox jumps'])  # compare to list
 
-        if txt // '(rabbit)':                      # simple use in if / elif
+        if txt // r'(rabbit)':                      # simple use in if / elif
             res = txt.get()                        # get ReSult of last match
 
-        elif txt // '((?:\s).{12,15}?(\S+))':      # full Python regex slang
+        elif txt // r'((?:\\s).{12,15}?(\\S+))':      # full Python regex slang
             res = txt.get()
 
         else:

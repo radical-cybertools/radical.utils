@@ -342,7 +342,7 @@ class Process(mp.Process):
               #         break
 
 
-        except Exception as e:
+        except Exception:
             # mayday... mayday...
             self._ru_log.exception('watcher failed')
 

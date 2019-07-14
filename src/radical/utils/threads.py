@@ -6,14 +6,12 @@ __license__   = "MIT"
 
 import os
 import sys
-import time
 import signal
+import ctypes
 import _thread
-import traceback
 
 import queue        as queue
 import threading    as mt
-import setproctitle as spt
 
 from .logger  import Logger
 
@@ -115,17 +113,6 @@ class Thread(mt.Thread):
         if target:
             # we don't support `arguments`, yet
             self.work_cb = target
-
-        # when cprofile is requested but not available,
-        # we complain, but continue unprofiled
-        self._ru_cprofile = False
-        if self._ru_name in os.environ.get('RADICAL_CPROFILE', '').split(':'):
-            try:
-                self._ru_log.error('enable cprofile for %s', self._ru_local.name)
-                import cprofile
-                self._ru_cprofile = True
-            except:
-                self._ru_log.error('cannot import cprofile - disable')
 
         # base class initialization
         super(Thread, self).__init__(name=self._ru_local.name)
@@ -308,6 +295,9 @@ class Thread(mt.Thread):
         threads -- which is an explicit purpose of this implementation.
         '''
 
+        # FIXME: ensure that this is not overloaded
+        # TODO:  how?
+
         # set local data
         self._ru_local.name = self._ru_name + '.thread'
         self._ru_log.debug('child name: %s' % self._ru_local.name)
@@ -319,27 +309,9 @@ class Thread(mt.Thread):
         self._ru_local.is_parent   = False  # set in start()
         self._ru_local.is_child    = True   # set in run()
 
-        # if no profiling is wanted, we just run the workload and exit
-        if not self._ru_cprofile:
-            self._run()
-
-        # otherwise we run under the profiler, obviously
-        else:
-            import cprofile
-            cprofiler = cprofile.Profile()
-            cprofiler.runcall(self._run)
-            cprofiler.dump_stats('%s.cprof' % (self._ru_local.name))
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _run(self):
-
-        # FIXME: ensure that this is not overloaded
-        # TODO:  how?
+        self._run()
 
       # _main_thread = main_thread()
-
         try:
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
@@ -780,7 +752,6 @@ def gettid():
     (Hi MacOS).
     """
     try:
-        import ctypes
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
         return int(libc.syscall(SYS_gettid))

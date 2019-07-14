@@ -3,7 +3,6 @@ import os
 import csv
 import time
 
-from   .misc    import name2env        as ru_name2env
 from   .misc    import get_env_ns      as ru_get_env_ns
 from   .misc    import get_hostname    as ru_get_hostname
 from   .misc    import get_hostip      as ru_get_hostip
@@ -568,7 +567,6 @@ def combine_profiles(profs):
 
 
     unsynced = set()
-    last     = None
     # now that we can align clocks for all hosts, apply that correction to all
     # profiles
     for pname, prof in profs.items():
