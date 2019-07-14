@@ -121,9 +121,9 @@ class Queue(Bridge):
         '''
         This Queue type sets up an zmq channel of this kind:
 
-            input \            / output
-                   -- bridge --
-            input /            \ output
+            input \\              // output
+                     == bridge ==
+            input //              \\ output
 
         ie. any number of inputs can 'zmq.push()' to a bridge (which
         'zmq.pull()'s), and any number of outputs can 'zmq.request()'
@@ -301,12 +301,13 @@ class Queue(Bridge):
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         active = True
-                        _      = _no_intr(self._out.recv)
+                        req    = _no_intr(self._out.recv)
                         bulk   = buf[:self._bulk_size]
                         data   = msgpack.packb(bulk)
                         _no_intr(self._out.send, data)
 
-                        log_bulk(self._log, bulk, '<> %s' % (self._channel))
+                        log_bulk(self._log, bulk, '<> %s [%s]'
+                                                % (self._channel, req))
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
