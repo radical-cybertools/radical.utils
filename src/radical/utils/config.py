@@ -259,26 +259,21 @@ class Config(DictMixin):
         self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
 
         if expand:
-            self.expand_env(env)
+            ru_expand_env(self._cfg, env=env)
 
 
     # --------------------------------------------------------------------------
     #
-    def expand_env(self, env):
+    def merge(self, cfg, expand=True, env=None):
+        '''
+        merge the given config into the existing config settings, overwriting
+        any values which already existed
+        '''
 
-        # expand environment
-        def _expand_env(d):
-            if isinstance(d, dict):
-                for k,v in d.items():
-                    d[k] = _expand_env(v)
-            elif isinstance(d, list):
-                for i,v in enumerate(d):
-                    d[i] = _expand_env(v)
-            elif isinstance(d, str):
-                d = ru_expand_env(d, env)
-            return d
+        self._cfg = dict_merge(self._cfg, cfg, policy='overwrite')
 
-        _expand_env(self._cfg)
+        if expand:
+            ru_expand_env(self._cfg, env=env)
 
 
     # --------------------------------------------------------------------------
@@ -375,6 +370,21 @@ class DefaultConfig(Config, metaclass=Singleton):
                }
 
         super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+
+
+# ------------------------------------------------------------------------------
+#
+class Configurable(object):
+    '''
+    a simple base class which loads a configuration on __init__.
+    '''
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, module, path=None, name=None, cfg=None,
+                       expand=True, env=None):
+
+        self._cfg = Config(module, path, name, cfg, expand, env)
 
 
 # ------------------------------------------------------------------------------
