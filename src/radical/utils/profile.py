@@ -67,7 +67,7 @@ class Profiler(object):
 
     Strings MUST NOT contain commas.  Otherwise they are encouraged to be formed
     as `[a-z][0-9a-z_.]*'. `msg` are free-form, but the inhibition of comma
-    holds.  We propose to limit the sum of strings to about 256 characters - 
+    holds.  We propose to limit the sum of strings to about 256 characters -
     this will guarantee atomic writes on most OS's, w/o additional locking
     overheads.  Less than 100 charcters makes the profiles almost
     human-readable.
@@ -152,7 +152,7 @@ class Profiler(object):
         self.close()
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     @property
     def enabled(self):
@@ -235,8 +235,8 @@ class Profiler(object):
 
         # retrieve absolute timestamp from an external source
         #
-        # We first try to contact a network time service for a timestamp, if that
-        # fails we use the current system time.
+        # We first try to contact a network time service for a timestamp, if
+        # that fails we use the current system time.
         try:
             import ntplib
 
@@ -329,91 +329,85 @@ def read_profiles(profiles, sid=None, efilter=None):
               #     print
               #     print row
 
-                try:
+                # skip header
+                if row[TIME].startswith('#'):
+                    skipped += 1
+                    continue
 
-                    # skip header
-                    if row[TIME].startswith('#'):
-                        skipped += 1
-                        continue
+                # make room in the row for entity type etc.
+                row.extend([None] * (PROF_KEY_MAX - len(row)))
 
-                    # make room in the row for entity type etc.
-                    row.extend([None] * (PROF_KEY_MAX - len(row)))
+                row[TIME] = float(row[TIME])
 
-                    row[TIME] = float(row[TIME])
+                # we derive entity type from the uid -- but funnel
+                # some cases into 'session' as a catch-all type
+                uid = row[UID]
+                if uid:
+                    row[ENTITY] = uid.split('.',1)[0]
+                else:
+                    row[ENTITY] = 'session'
+                    row[UID]    = sid
 
-                    # we derive entity type from the uid -- but funnel
-                    # some cases into 'session' as a catch-all type
-                    uid = row[UID]
-                    if uid:
-                        row[ENTITY] = uid.split('.',1)[0]
-                    else:
-                        row[ENTITY] = 'session'
-                        row[UID]    = sid
+                # we should have no unset (ie. None) fields left - otherwise
+                # the profile was likely not correctly closed.
+                if None in row:
+                    if legacy:
+                        comp, tid = row[1].split(':', 1)
+                        new_row = [None] * PROF_KEY_MAX
+                        new_row[TIME        ] = row[0]
+                        new_row[EVENT       ] = row[4]
+                        new_row[COMP        ] = comp
+                        new_row[TID         ] = tid
+                        new_row[UID         ] = row[2]
+                        new_row[STATE       ] = row[3]
+                        new_row[MSG         ] = row[5]
 
-                    # we should have no unset (ie. None) fields left - otherwise
-                    # the profile was likely not correctly closed.
-                    if None in row:
-                        if legacy:
-                            comp, tid = row[1].split(':', 1)
-                            new_row = [None] * PROF_KEY_MAX
-                            new_row[TIME        ] = row[0]
-                            new_row[EVENT       ] = row[4]
-                            new_row[COMP        ] = comp
-                            new_row[TID         ] = tid
-                            new_row[UID         ] = row[2]
-                            new_row[STATE       ] = row[3]
-                            new_row[MSG         ] = row[5]
+                        uid = new_row[UID]
+                        if uid:
+                            new_row[ENTITY] = uid.split('.',1)[0]
+                        else:
+                            new_row[ENTITY] = 'session'
+                            new_row[UID]    = sid
 
-                            uid = new_row[UID]
-                            if uid:
-                                new_row[ENTITY] = uid.split('.',1)[0]
-                            else:
-                                new_row[ENTITY] = 'session'
-                                new_row[UID]    = sid
+                        row = new_row
 
-                            row = new_row
+                if None in row:
+                    print('row invalid [%s]: %s' % (prof, raw))
+                    continue
+                  # raise ValueError('row invalid [%s]: %s' % (prof, row))
 
-                    if None in row:
-                        print('row invalid [%s]: %s' % (prof, raw))
-                        continue
-                      # raise ValueError('row invalid [%s]: %s' % (prof, row))
-
-                    # apply the filter.  We do that after adding the entity
-                    # field above, as the filter might also apply to that.
-                    skip = False
-                    for field, pats in efilter.items():
-                        for pattern in pats:
-                            if pattern in row[field]:
-                                skip = True
-                                continue
-                        if skip:
+                # apply the filter.  We do that after adding the entity
+                # field above, as the filter might also apply to that.
+                skip = False
+                for field, pats in efilter.items():
+                    for pattern in pats:
+                        if pattern in row[field]:
+                            skip = True
                             continue
+                    if skip:
+                        continue
 
-                    # fix rp issue 1117 (see FIXME above)
-                    if row[TIME] == 1.0 and last:
-                        row[TIME] = last[TIME]
+                # fix rp issue 1117 (see FIXME above)
+                if row[TIME] == 1.0 and last:
+                    row[TIME] = last[TIME]
 
-                    if not skip:
-                        ret[prof].append(row)
+                if not skip:
+                    ret[prof].append(row)
 
-                    last = row
+                last = row
 
-                  # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
-                  # if 'bootstrap_1' in row:
-                  #     print row
-                  #     print
-                  #     print 'TIME    : %s' % row[TIME  ]
-                  #     print 'EVENT   : %s' % row[EVENT ]
-                  #     print 'COMP    : %s' % row[COMP  ]
-                  #     print 'TID     : %s' % row[TID   ]
-                  #     print 'UID     : %s' % row[UID   ]
-                  #     print 'STATE   : %s' % row[STATE ]
-                  #     print 'ENTITY  : %s' % row[ENTITY]
-                  #     print 'MSG     : %s' % row[MSG   ]
-
-
-                except Exception as e:
-                    raise
+              # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
+              # if 'bootstrap_1' in row:
+              #     print row
+              #     print
+              #     print 'TIME    : %s' % row[TIME  ]
+              #     print 'EVENT   : %s' % row[EVENT ]
+              #     print 'COMP    : %s' % row[COMP  ]
+              #     print 'TID     : %s' % row[TID   ]
+              #     print 'UID     : %s' % row[UID   ]
+              #     print 'STATE   : %s' % row[STATE ]
+              #     print 'ENTITY  : %s' % row[ENTITY]
+              #     print 'MSG     : %s' % row[MSG   ]
 
     return ret
 
@@ -488,8 +482,8 @@ def combine_profiles(profs):
 
         # if we have only sync_rel(s), then find the offset by the corresponding
         # sync_rel in the other profiles, and determine the offset to use.  Use
-        # the first sync_rel that results in an offset, and only complain if none
-        # is found.
+        # the first sync_rel that results in an offset, and only complain if
+        # none is found.
         offset       = None
         offset_event = None
         if syncs[pname]['abs']:
@@ -498,14 +492,18 @@ def combine_profiles(profs):
         else:
             for sync_rel in syncs[pname]['rel']:
                 for _pname in syncs:
+
                     if _pname == pname:
                         continue
+
                     for _sync_rel in syncs[_pname]['rel']:
                         if _sync_rel[MSG] == sync_rel[MSG]:
-                            offset       = _sync_rel[TIME] - sync_rel[TIME]
-                            offset_event = syncs[_pname]['abs'][0]
+                            offset        = _sync_rel[TIME] - sync_rel[TIME]
+                            offset_event  = syncs[_pname]['abs'][0]
+
                     if offset:
                         break
+
                 if offset:
                     break
 
@@ -560,10 +558,10 @@ def combine_profiles(profs):
 
                 # we allow for *some* amount of inconsistency before warning
                 if diff > NTP_DIFF_WARN_LIMIT:
-                    print('conflicting time sync for %-45s (%15s): ' \
-                        % (pname.split('/')[-1], host_id) \
-                        + '%10.2f - %10.2f = %5.2f' \
-                        % (t_off,t_host[host_id], diff))
+                    print('conflicting time sync for %-45s (%15s): '
+                          '%10.2f - %10.2f = %5.2f'
+                        % (pname.split('/')[-1], host_id, t_off,
+                           t_host[host_id], diff))
                     continue
 
             t_host[host_id] = t_off
@@ -603,8 +601,6 @@ def combine_profiles(profs):
         # correct profile timestamps
         for row in prof:
 
-            t_orig = row[TIME]
-
             row[TIME] -= t_min
             row[TIME] -= t_off
 
@@ -612,8 +608,6 @@ def combine_profiles(profs):
             # count closing entries
             if row[EVENT] == 'END':
                 c_end += 1
-
-            last = row
 
         # add profile to global one
         p_glob += prof
@@ -660,7 +654,6 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
 
         uid   = event[UID  ]
         state = event[STATE]
-        time  = event[TIME ]
         name  = event[EVENT]
 
         # we derive entity_type from the uid -- but funnel
@@ -684,7 +677,7 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
             assert(uid),   'cannot advance w/o uid'
 
             # this is a state transition event
-            event[EVENT] = 'state'  
+            event[EVENT] = 'state'
 
             skip = False
             if state in state_final and state != state_canceled:

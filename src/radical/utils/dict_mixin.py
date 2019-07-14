@@ -41,7 +41,7 @@ class DictMixin:
         raise NotImplementedError
 
     def __delitem__(self, key):
-        raise NotImplementedError    
+        raise NotImplementedError
 
     def keys(self):
         raise NotImplementedError
@@ -64,7 +64,7 @@ class DictMixin:
     # third level uses second level instead of first
     #
     def __contains__(self, key):
-        return self.has_key(key)
+        return self.has_key(key)                                    # noqa: W601
 
     def iteritems(self):
         for k in self:
@@ -120,7 +120,7 @@ class DictMixin:
 # ------------------------------------------------------------------------------
 #
 def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
-    # thanks to 
+    # thanks to
     # http://stackoverflow.com/questions/7204805/ \
     #                          python-dictionaries-of-dictionaries-merge
     """
@@ -128,8 +128,8 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
     Merge Policies:
         None (default) : raise an exception on conflicts
-        PRESERVE       : original value in a are preserved, new values 
-                         from b are only added where the original value 
+        PRESERVE       : original value in a are preserved, new values
+                         from b are only added where the original value
                          is None / 0 / ''
         OVERWRITE      : values in a are overwritten by new values from b
 
@@ -152,10 +152,10 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
         # need to resolve conflict
         if  isinstance(a[key_a], dict) and isinstance(b[key_b], dict):
-            dict_merge(a[key_a], b[key_b], 
-                       policy    = policy, 
-                       wildcards = wildcards, 
-                       logger    = logger, 
+            dict_merge(a[key_a], b[key_b],
+                       policy    = policy,
+                       wildcards = wildcards,
+                       logger    = logger,
                        _path     = _path + [str(key_a)])
 
 
@@ -174,7 +174,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
         else:
             if  policy == PRESERVE:
                 if  logger:
-                    logger.debug("preserving key %s:%s \t(%s)" 
+                    logger.debug("preserving key %s:%s \t(%s)"
                                 % (":".join(_path), key_b, b[key_b]))
 
             elif policy == OVERWRITE:
@@ -220,7 +220,7 @@ def dict_stringexpand(target, sources=None):
     This expands dict entries (strings only) with keys from a second dict. For
     example, the dicts::
 
-        target  = {'workdir'  : '/home/%(user)s/', 
+        target  = {'workdir'  : '/home/%(user)s/',
                    'resource' : '%(resource)s'}
         sources = {'user'     : 'peer_gynt',
                    'protocol' : 'ssh',
@@ -228,7 +228,7 @@ def dict_stringexpand(target, sources=None):
                    'resource' : '%(protocol)s://%(host)s/'}
 
     would result in::
-        target = {'workdir'  : '/home/peer_gynt/', 
+        target = {'workdir'  : '/home/peer_gynt/',
                   'resource' : 'ssh://localhost'}
 
     Note that expansion happened twice, for the `resource` tag to be fully
@@ -237,7 +237,7 @@ def dict_stringexpand(target, sources=None):
 
     assert(isinstance(target, dict))
 
-    # expand from self, and all given dicts, but only use 
+    # expand from self, and all given dicts, but only use
     # first-level primitive types (string, int, float)
     if  sources:
         if  isinstance(sources, dict):
@@ -271,13 +271,13 @@ def dict_stringexpand(target, sources=None):
 #
 def _generic_stringexpand(target, source):
 
-    if  isinstance(target, str): 
+    if  isinstance(target, str):
         return _string_stringexpand(target, source)
 
-    elif  isinstance(target, list): 
+    elif  isinstance(target, list):
         return _list_stringexpand(target, source)
 
-    elif  isinstance(target, dict): 
+    elif  isinstance(target, dict):
         return _dict_stringexpand(target, source)
 
     else:

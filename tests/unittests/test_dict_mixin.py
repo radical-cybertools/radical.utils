@@ -38,7 +38,7 @@ def test_dict_mixin():
     # --------------------------------------------------------------------------
     t = Test()
 
-    assert (t['val']      == 1           )
+    assert (t['val']      == 1)
     assert (set(t.keys()) == set(['val']))
 
     assert ('val'       in t)
