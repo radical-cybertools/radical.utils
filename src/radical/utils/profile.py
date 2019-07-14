@@ -200,28 +200,28 @@ class Profiler(object):
     #
     # FIXME: reorder args to reflect tupleorder (breaks API)
     #
-    def prof(self, event, uid=None, state=None, msg=None, timestamp=None,
-             comp=None, tid=None):
+    def prof(self, event, uid=None, state=None, msg=None, ts=None, comp=None,
+                   tid=None):
 
         if not self._enabled: return
         if not self._handle : return
 
-        if timestamp is None: timestamp = self.timestamp()
-        if comp      is None: comp      = self._name
-        if tid       is None: tid       = ru_get_thread_name()
-        if uid       is None: uid       = ''
-        if state     is None: state     = ''
-        if msg       is None: msg       = ''
+        if ts    is None: ts    = self.timestamp()
+        if comp  is None: comp  = self._name
+        if tid   is None: tid   = ru_get_thread_name()
+        if uid   is None: uid   = ''
+        if state is None: state = ''
+        if msg   is None: msg   = ''
 
         # if uid is a list, then recursively call self.prof for each uid given
         if isinstance(uid, list):
             for _uid in uid:
                 self.prof(event=event, uid=_uid, state=state, msg=msg,
-                          timestamp=timestamp, comp=comp, tid=tid)
+                          ts=ts, comp=comp, tid=tid)
             return
 
         data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
-                % (timestamp, event, comp, tid, uid, state, msg)
+                % (ts, event, comp, tid, uid, state, msg)
         self._handle.write(data)
 
 
@@ -237,7 +237,7 @@ class Profiler(object):
         # We first try to contact a network time service for a timestamp, if
         # that fails we use the current system time.
         try:
-            import ntplib
+            import ntplib                                 # pylint disable=E0401
 
             ntphost = os.environ.get('RADICAL_UTILS_NTPHOST', '0.pool.ntp.org')
 
@@ -309,7 +309,7 @@ def read_profiles(profiles, sid=None, efilter=None):
         efilter = dict()
 
     ret     = dict()
-    last    = None
+    last    = list()
     skipped = 0
 
     for prof in profiles:

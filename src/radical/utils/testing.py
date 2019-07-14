@@ -37,7 +37,7 @@ def set_test_config(ns, cfg_name=None, cfg_section=None):
     this method again.
     '''
 
-    global _test_config
+    global _test_config                                   # pylint disable=W0603
     _test_config = TestConfig(ns, cfg_name, cfg_section)
 
 

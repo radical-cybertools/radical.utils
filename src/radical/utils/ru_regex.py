@@ -161,7 +161,6 @@ class ReSult(object):
         '''
         second part of the context manager interface
         '''
-
         pass
 
 

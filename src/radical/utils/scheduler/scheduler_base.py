@@ -15,8 +15,8 @@ class SchedulerBase(object):
 
     # --------------------------------------------------------------------------
     #
-    def alloc(self, request):
-        """ 
+    def alloc(self, req):
+        """
         allocate a slice of the available resources to satisfy the request, and
         return that allocation.
 
@@ -31,7 +31,7 @@ class SchedulerBase(object):
 
     # --------------------------------------------------------------------------
     #
-    def dealloc(self, allocation):
+    def dealloc(self, res):
         """
         deallocate a given allocation to return its resources to the pool of
         resources available for new allocations.

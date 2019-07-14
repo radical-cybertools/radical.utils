@@ -3,6 +3,7 @@ __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
+import math
 
 from .scheduler_base import SchedulerBase
 
@@ -13,7 +14,9 @@ class BitarrayScheduler(SchedulerBase):
 
     try:
         from bitarray import bitarray as _ba
-    except:
+
+    except Exception:
+        # fake with a do-nothing implementation so that initialization works
         class _ba(object):
             def __init__(self, i):
                 pass
@@ -45,7 +48,6 @@ class BitarrayScheduler(SchedulerBase):
     #
     def get_layout(self):
 
-        import math
         return {'cores' : self._size,
                 'rows'  : math.sqrt(self._size),
                 'cols'  : math.sqrt(self._size)}

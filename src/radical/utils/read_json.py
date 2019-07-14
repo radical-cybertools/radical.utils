@@ -1,7 +1,7 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky)"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
+__author__    = 'Radical.Utils Development Team (Andre Merzky)'
+__copyright__ = 'Copyright 2013, RADICAL@Rutgers'
+__license__   = 'MIT'
 
 
 import re
@@ -12,122 +12,123 @@ import json
 #
 def read_json(fname):
     '''
-    Comments in the form of
-        # rest of line
-    are stripped from json before parsing
+    Comments line in the form of
 
-    use like this::
+        # some json data or text
+
+    are stripped from json before parsing:
 
         import pprint
-        pprint.pprint (read_json (sys.argv[1]))
-
+        pprint.pprint(read_json("my_file.json"))
     '''
 
-    with open (fname) as f:
-
-        content = ''
-
-        # weed out comments
-        for line in f.readlines () :
-            content += re.sub (r'^\s*#.*', '', line)
+    with open(fname) as f:
 
         try:
-            return json.loads(content)
+            return parse_json(f.read())
 
         except ValueError as e:
-            raise ValueError('error parsing %s: %s' % (fname, e.message))
+            raise ValueError('error parsing %s: %s' % (fname, e))
 
 
 # ------------------------------------------------------------------------------
 #
-def read_json_str (filename) :
-    """
+def read_json_str(filename):
+    '''
     same as read_json, but converts unicode strings to simple strings.
     This could trivially done with YAML, but that introduces a compile
     dependency -- so we convert manually...
-    """
+    '''
 
-    return _unicode_to_strings (read_json (filename))
+    return _unicode_to_strings(read_json(filename))
 
 
 # ------------------------------------------------------------------------------
 #
-def write_json (data,  filename) :
-    """
+def write_json(data, filename):
+    '''
     thin wrapper around python's json write, for consistency of interface
 
-    """
+    '''
 
+    # --------------------------------------------------------------------------
     # thanks to
     # http://stackoverflow.com/questions/956867/#13105359
-    def _byteify(input):
-        if isinstance(input, dict):
-            return {_byteify(key):_byteify(value) for key,value in input.items()}
-        elif isinstance(input, list):
-            return [_byteify(element) for element in input]
-        elif isinstance(input, str):
-            return input.encode('utf-8')
+    def _bytes(_data):
+
+        if isinstance(_data, dict):
+            return {_bytes(key): _bytes(value) for key,value in _data.items()}
+
+        elif isinstance(_data, list):
+            return [_bytes(element) for element in _data]
+
+        elif isinstance(_data, str):
+            return _data.encode('utf-8')
+
         else:
-            return input
+            return _data
+    # --------------------------------------------------------------------------
 
-
-    with open (filename, 'w') as f :
-        json.dump (_byteify(data), f, sort_keys=True, indent=4, ensure_ascii=False)
-        f.write ("\n")
+    with open(filename, 'w') as f:
+        json.dump(_bytes(data), f, sort_keys=True, indent=4, ensure_ascii=False)
+        f.write('\n')
 
 
 # ------------------------------------------------------------------------------
 #
-def parse_json (json_str, filter_comments=True) :
-    """
-    Comments in the form of
-        # rest of line
+def parse_json(json_str, filter_comments=True):
+    '''
+    Comment lines in the form of
+
+        # some json data or text
+
     are stripped from json before parsing
-    """
+    '''
 
-    if not filter_comments :
-        return json.loads (json_str)
+    if not filter_comments:
+        return json.loads(json_str)
 
-    else :
+    else:
         content = ''
-        for line in json_str.split ('\n') :
-            content += re.sub (r'^\s*#', '', line)
+        for line in json_str.split('\n'):
+            content += re.sub(r'^\s*#', '', line)
             content += '\n'
 
-        return json.loads (content)
+        return json.loads(content)
 
 
 # ------------------------------------------------------------------------------
 #
-def parse_json_str (json_str) :
-    """
+def parse_json_str(json_str):
+    '''
     same as parse_json, but converts unicode strings to simple strings
-    """
+    '''
 
-    return _unicode_to_strings (parse_json (json_str))
+    return _unicode_to_strings(parse_json(json_str))
 
 
 # ------------------------------------------------------------------------------
 #
-def _unicode_to_strings (unicode_data) :
+def _unicode_to_strings(unicode_data):
 
-    if isinstance (unicode_data, dict) :
-        ret = dict ()
-        for key, value in unicode_data.items() :
-            ret[_unicode_to_strings(key)] = _unicode_to_strings(value) 
+    if isinstance(unicode_data, dict):
+        ret = dict()
+        for key, value in unicode_data.items():
+            ret[_unicode_to_strings(key)] = _unicode_to_strings(value)
         return ret
 
-    elif isinstance (unicode_data, list) :
-        ret = list ()
-        for element in unicode_data :
-            ret.append (_unicode_to_strings (element))
+    elif isinstance(unicode_data, list):
+        ret = list()
+        for element in unicode_data:
+            ret.append(_unicode_to_strings(element))
         return ret
 
-    elif isinstance (unicode_data, str) :
-        return unicode_data.encode ('utf-8')
+    elif isinstance(unicode_data, str):
+        return unicode_data.encode('utf-8')
 
     else:
         return unicode_data
 
 
 # ------------------------------------------------------------------------------
+

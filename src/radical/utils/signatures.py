@@ -201,22 +201,23 @@ def type_name(v):
 #
 class Checker(object):
 
+    registered = list()  # a list of registered descendant class factories
+
     def __init__(self, reference):
         self.reference = reference
         self.spectype  = reference
 
+
     def check(self, value):  # abstract
         pass
 
-    _registered = []  # a list of registered descendant class factories
 
     @staticmethod
     def create(value):  # static factory method
-        for f, t in Checker._registered:
+
+        for f, t in Checker.registered:
             if f(value):
                 return t(value)
-        else:
-            return None
 
 
 # ------------------------------------------------------------------------------
@@ -227,7 +228,7 @@ class TypeChecker(Checker):
         return isinstance(value, self.reference)
 
 
-Checker._registered.append((isclass, TypeChecker))
+Checker.registered.append((isclass, TypeChecker))
 nothing = NoneType
 
 
@@ -241,7 +242,7 @@ class StrChecker(Checker):
                'instance'     in value_base_names
 
 
-Checker._registered.append((lambda x: isinstance(x, str), StrChecker))
+Checker.registered.append((lambda x: isinstance(x, str), StrChecker))
 
 
 # ------------------------------------------------------------------------------
@@ -256,7 +257,7 @@ class TupleChecker(Checker):
         return reduce(lambda r, c: r or c.check(value), self.reference, False)
 
 
-Checker._registered.append((lambda x: isinstance(x, tuple) and not
+Checker.registered.append((lambda x: isinstance(x, tuple) and not
                      [y for y in x if Checker.create(y) is None],
                      TupleChecker))
 
@@ -276,7 +277,7 @@ class CallableChecker(Checker):
 # be registered last, after all the more specific cases have been registered
 
 
-Checker._registered.append((callable, CallableChecker))
+Checker.registered.append((callable, CallableChecker))
 
 
 def anything(*args):

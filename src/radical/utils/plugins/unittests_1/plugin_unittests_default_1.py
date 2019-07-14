@@ -4,7 +4,7 @@ __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
 __license__   = 'MIT'
 
 import radical.utils  as ru
-import does_not_exist as nope                                        # noqa F401
+import does_not_exist as nope                      # pylint: disable=F0401,W0611
 
 
 # ------------------------------------------------------------------------------
@@ -36,20 +36,21 @@ class PLUGIN_CLASS(object, metaclass=ru.Singleton):
 
         PLUGIN_CLASS._created = True
 
+        self._args = None
+
 
     # --------------------------------------------------------------------------
     #
-    def init(self, arg1, arg2):
+    def init(self, *args):
 
-        self._arg1 = arg1
-        self._arg2 = arg2
+        self._args = args
 
 
     # --------------------------------------------------------------------------
     #
     def run(self):
 
-        return(self._arg2, self._arg1)
+        return self._args
 
 
 # ------------------------------------------------------------------------------

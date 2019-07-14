@@ -168,6 +168,7 @@ class Process(mp.Process):
         self._ru_initialized = False          # set to signal bootstrap success
         self._ru_terminating = False          # set to signal active termination
         self._ru_watcher     = None           # watcher thread
+        self._ru_poller      = None           # select.Poll wrapper
         self._ru_things_lock = mt.Lock()      # lock for the above
         self._ru_things      = dict()         # registry of threads created in
                                               # (parent or child) process
@@ -468,7 +469,7 @@ class Process(mp.Process):
     def _ru_watch_things(self):
 
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.items():
+            for _,thing in self._ru_things.items():
                 if not thing.is_alive():
                     self._ru_log.warning('%s died')
                     return False
@@ -478,7 +479,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def start(self, spawn=True, timeout=None):
+    def start(self, spawn=True, timeout=None):            # pylint disable=W0221
         '''
         Overload the `mp.Process.start()` method, and block (with timeout) until
         the child signals to be alive via a message over our socket pair.  Also
@@ -1122,7 +1123,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def is_alive(self, strict=True):
+    def is_alive(self, strict=True):                      # pylint disable=W0221
         '''
         Check if the child process is still alive, and also ensure that
         termination is not yet initiated.  If `strict` is set (default), then

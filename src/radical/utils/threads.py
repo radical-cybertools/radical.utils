@@ -112,7 +112,7 @@ class Thread(mt.Thread):
 
         if target:
             # we don't support `arguments`, yet
-            self.work_cb = target
+            self.work_cb = target                        # pylint: disable=E0202
 
         # base class initialization
         super(Thread, self).__init__(name=self._ru_local.name)
@@ -163,7 +163,7 @@ class Thread(mt.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def is_alive(self, strict=True):
+    def is_alive(self, strict=True):                     # pylint: disable=W0221
         '''
         Since our threads are daemon threads we don't need to wait for them to
         actually die, but consider it sufficient to have the terminationm signal
@@ -205,7 +205,7 @@ class Thread(mt.Thread):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warning('alive check failed, stop [%s - %s]', alive, term)
+            self._ru_log.warning('alive check failed [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
@@ -213,7 +213,7 @@ class Thread(mt.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def start(self, spawn=True, timeout=None):
+    def start(self, spawn=True, timeout=None):           # pylint: disable=W0221
         '''
         Overload the `mt.Thread.start()` method, and block (with timeout) until
         the child signals to be alive via a message over our queue.  Also
@@ -694,7 +694,7 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, obj=None):
+    def __init__(self):
 
         self._lock = mt.RLock()
 
@@ -703,7 +703,7 @@ class RLock(object):
     #
     def acquire(self):
 
-        self._lock.acquire()
+        self._lock.acquire()                             # pylint: disable=E0202
 
 
     # --------------------------------------------------------------------------
@@ -720,8 +720,8 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __enter__(self)                        : self.acquire()
-    def __exit__ (self, type, value, traceback): self.release()
+    def __enter__(self)         : self.acquire()
+    def __exit__ (self, _, _, _): self.release()
 
 
 # ------------------------------------------------------------------------------
@@ -753,7 +753,7 @@ def gettid():
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
         return int(libc.syscall(SYS_gettid))
-    except:
+    except Exception:
         return None
 
 
@@ -766,7 +766,7 @@ def is_main_thread(t=None):
     else:
         t = this_thread()
 
-    return isinstance(t, mt._MainThread)
+    return isinstance(t, mt._MainThread)                 # pylint: disable=W0212
 
 
 # ------------------------------------------------------------------------------
@@ -790,7 +790,7 @@ def main_thread():
     '''
 
     for t in mt.enumerate():
-        if isinstance(t, mt._MainThread):
+        if isinstance(t, mt._MainThread):                # pylint: disable=W0212
             return t
 
     assert(False), 'main thread not found'
@@ -841,22 +841,22 @@ def cancel_main_thread(signame=None, once=False):
     finalization.
     """
 
-    global _signal_lock
-    global _signal_sent
+    global _signal_lock                                  # pylint: disable=W0603
+    global _signal_sent                                  # pylint: disable=W0603
 
-    if signame: signal = get_signal_by_name(signame)
-    else      : signal = None
+    if signame: signum = get_signal_by_name(signame)
+    else      : signum = None
 
     with _signal_lock:
 
         if once:
-            if signal in _signal_sent:
+            if signum in _signal_sent:
                 # don't signal again
                 return
 
-        if signal:
+        if signum:
             # send the given signal to the process to which this thread belongs
-            os.kill(os.getpid(), signal)
+            os.kill(os.getpid(), signum)
         else:
             # this sends a SIGINT, resulting in a KeyboardInterrupt.
             # NOTE: see http://bugs.python.org/issue23395 for problems on using
@@ -868,7 +868,7 @@ def cancel_main_thread(signame=None, once=False):
                 pass
 
         # record the signal sending
-        _signal_sent[signal] = True
+        _signal_sent[signum] = True
 
     # the sub thread will at this point also exit.
     if not is_main_thread():
@@ -1063,7 +1063,6 @@ def raise_in_thread(e=None, tname=None, tident=None):
     else:
         # otherwise we inject the exception into the main thread's async
         # exception scheduler
-        import ctypes
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tident),
                                                    ctypes.py_object(e))
 

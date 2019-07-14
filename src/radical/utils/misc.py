@@ -416,7 +416,7 @@ def get_hostname():
     Look up the hostname
     '''
 
-    global _hostname
+    global _hostname                                     # pylint: disable=W0603
     if not _hostname:
 
         if socket.gethostname().find('.') >= 0:
@@ -438,7 +438,7 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     '''
 
-    global _hostip
+    global _hostip                                       # pylint: disable=W0603
     if _hostip:
         return _hostip
 
@@ -470,17 +470,17 @@ def get_hostip(req=None, logger=None):
                   'sit0'     # ?
                  ]
 
-    all  = netifaces.interfaces()
-    rest = [iface for iface in all
-                   if iface not in req and
-                      iface not in white_list and
-                      iface not in black_list]
+    ifaces = netifaces.interfaces()
+    rest   = [iface for iface in ifaces
+                     if iface not in req        and
+                        iface not in white_list and
+                        iface not in black_list]
 
     preflist = req + white_list + rest
 
     for iface in preflist:
 
-        if iface not in all:
+        if iface not in ifaces:
             if logger:
                 logger.debug('check iface %s: does not exist', iface)
             continue
