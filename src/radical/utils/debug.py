@@ -183,7 +183,7 @@ def print_stacktraces(signum=None, sigframe=None):
             f.write('%s\n' % out)
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 def get_stacktraces():
 
@@ -192,7 +192,8 @@ def get_stacktraces():
         id2name[th.ident] = th.name
 
     ret = dict()
-    for tid, stack in list(sys._current_frames().items()):          # noqa W0212
+    stacklist = list(sys._current_frames().items())      # pylint: disable=W0212
+    for tid, stack in stacklist:
 
         name = id2name.get(tid, 'noname')
         ret[tid, name] = traceback.extract_stack(stack)
@@ -200,7 +201,7 @@ def get_stacktraces():
     return ret
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 def print_stacktrace(msg=None, _stack = None):
 
@@ -227,14 +228,14 @@ def print_stacktrace(msg=None, _stack = None):
     sys.stdout.write(out)
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 def print_exception_trace(msg=None):
 
     print_stacktrace(msg=msg, _stack=traceback.format_exc().split('\n'))
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 def get_stacktrace():
 
@@ -313,8 +314,8 @@ def raise_on(tag, log=None, msg=None):
     process-local, but is shared amongst threads of that process.
     '''
 
-    global _raise_on_state                                          # noqa W0603
-    global _raise_on_lock                                           # noqa W0603
+    global _raise_on_state                              # pylint: disable= W0603
+    global _raise_on_lock                               # pylint: disable= W0603
 
     with _raise_on_lock:
 
@@ -394,8 +395,8 @@ def attach_pudb(logger=None):
         print('debugger open: telnet %s %d' % (host, port))
 
     try:
-        import pudb
-        from   pudb.remote import set_trace
+        import pudb                                       # pylint: disable=E401
+        from   pudb.remote import set_trace               # pylint: disable=E401
 
         pudb.DEFAULT_SIGNAL = signal.SIGALRM
 
@@ -419,7 +420,7 @@ def add_snippet_path(path):
 
     if 'RADICAL_DEBUG' in os.environ:
 
-        global _SNIPPET_PATHS                                       # noqa W0603
+        global _SNIPPET_PATHS                           # pylint: disable= W0603
 
         if path not in _SNIPPET_PATHS:
             _SNIPPET_PATHS.append(path)
