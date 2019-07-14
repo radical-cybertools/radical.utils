@@ -91,7 +91,7 @@ def parse_json(json_str, filter_comments=True):
     else:
         content = ''
         for line in json_str.split('\n'):
-            content += re.sub(r'^\s*#', '', line)
+            content += re.sub(r'^\s*#.*$', '', line)
             content += '\n'
 
         return json.loads(content)

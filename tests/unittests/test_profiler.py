@@ -39,7 +39,7 @@ def test_profiler():
 
         prof.prof('foo')
         prof.prof('bar', uid='baz')
-        prof.prof('buz', timestamp=now)
+        prof.prof('buz', ts=now)
 
         assert(os.path.isfile(fname))
 
