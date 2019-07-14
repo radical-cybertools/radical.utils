@@ -11,9 +11,9 @@ import radical.utils as ru
 # ------------------------------------------------------------------------------
 #
 def test_re_string():
-    """
+    '''
     Test regex matching
-    """
+    '''
 
     txt   = ru.ReString ("The quick brown fox jumps over the lazy dog")
     tgt_l = [' qu', 'ick brown fox jumps']

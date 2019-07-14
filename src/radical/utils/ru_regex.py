@@ -340,41 +340,4 @@ def _example_re_string():
 
 
 # ------------------------------------------------------------------------------
-#
-def _test_re_string():
-
-    txt   = ReString('The quick brown fox jumps over the lazy dog')
-    tgt_l = [' qu', 'ick brown fox jumps']
-    tgt_d = {'x'  : 'ick brown fox jumps'}
-
-    with txt // r'(\s.u)(?P<x>.*?j\S+)' as res:
-        print(res)
-        assert(res)
-        assert(len(res) == len(tgt_l))
-        assert(res      == tgt_l), '%s != %s' % (str(res), str(tgt_l))
-        assert(res[0]   == tgt_l[0])
-        assert(res[1]   == tgt_l[1])
-        assert(res['x'] == tgt_d['x'])
-        assert(res.x    == tgt_d['x'])
-        for i, r in enumerate(res):
-            assert(r == tgt_l[i])
-
-    if txt // '(rabbit)':
-        assert(False)
-
-    elif txt // r'((?:\s).{12,15}?(\S+))':     # full Python regex slang
-        assert(True)
-
-    else:
-        assert(False)
-
-
-# ------------------------------------------------------------------------------
-
-if __name__ == '__main__':
-    _example_re_string()
-    _test_re_string()
-
-
-# ------------------------------------------------------------------------------
 
