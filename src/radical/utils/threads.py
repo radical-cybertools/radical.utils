@@ -694,7 +694,7 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name):
+    def __init__(self, name=None):
 
         self._lock = mt.RLock()
         self._name = name
