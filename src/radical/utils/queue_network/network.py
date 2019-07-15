@@ -61,11 +61,11 @@ enacted state transitions.
 
 # ------------------------------------------------------------------------------
 #
-class network (object):
+class Network(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, state_model=None, network_description=None):
+    def __init__(self, state_model=None, network_description=None):
         '''
         span the network according to state model and network description
         '''
@@ -81,7 +81,7 @@ class network (object):
 
     # --------------------------------------------------------------------------
     #
-    def feed (self, entities):
+    def feed(self, entities):
         '''
         feed entities into the network
         '''
@@ -90,14 +90,14 @@ class network (object):
             entities = [entities]
 
         for entity in entities:
-            assert (entity.state == self._state_model['initial'])
+            assert(entity.state == self._state_model['initial'])
 
-        self.feeder_queue.push (entities)
+        self.feeder_queue.push(entities)
 
 
     # --------------------------------------------------------------------------
     #
-    def subscribe (self, states, callback):
+    def subscribe(self, states, callback):
         '''
         subscribe for callback notifications for state transitions *into* the
         specified states.  If callbacks return 'False' or 'None', they are
