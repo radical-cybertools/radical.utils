@@ -14,7 +14,7 @@ from ..misc   import get_hostip
 from ..logger import Logger
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
@@ -40,7 +40,7 @@ def log_bulk(log, bulk, token):
             log.debug("%s: ?", str(token))
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
@@ -56,8 +56,10 @@ def _uninterruptible(f, *args, **kwargs):
         cnt += 1
         try:
             return f(*args, **kwargs)
-        except zmq.ContextTerminated as e:
+
+        except zmq.ContextTerminated:
             return None
+
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
                 if cnt > 10:
@@ -210,7 +212,8 @@ class PubSub(Bridge):
                     # if any incoming socket signals a message, get the
                     # message on the subscriber channel, and forward it
                     # to the publishing channel, no questions asked.
-                    msg = _uninterruptible(self._in.recv_multipart, flags=zmq.NOBLOCK)
+                    msg = _uninterruptible(self._in.recv_multipart,
+                                                              flags=zmq.NOBLOCK)
                     _uninterruptible(self._out.send_multipart, msg)
                     log_bulk(self._log, msg, '>> %s' % self.channel)
 
