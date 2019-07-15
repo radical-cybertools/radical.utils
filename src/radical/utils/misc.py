@@ -713,7 +713,7 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__
+    rpath = radical.__path__._path
 
     if isinstance(rpath, list):
         rpath = rpath[0]

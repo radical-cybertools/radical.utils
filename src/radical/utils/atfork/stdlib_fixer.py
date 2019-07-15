@@ -67,7 +67,7 @@ def fix_logging_module():
       #     warnings.warn('logging module already imported before fixup.')
         pass
 
-  # import logging
+    import logging
     if logging.getLogger().handlers:
         # We could register each lock with atfork for these handlers but if
         # these exist, other loggers or not yet added handlers could as well.
