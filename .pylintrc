@@ -138,6 +138,7 @@ disable=not-context-manager,
         unused-import,                            # FIXME
         no-member,                                # FIXME
         global-statement,
+        try-except-raise
 
 
 
