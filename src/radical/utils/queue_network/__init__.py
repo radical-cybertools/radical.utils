@@ -8,9 +8,9 @@ __license__   = "GPL"
 # this is work in progress and should not be used
 # pylint: disable=import-error
 
-from node    import Node
-from queue   import Queue
-from network import Network
+from .node    import Node
+from .queue   import Queue
+from .network import Network
 
 
 # ------------------------------------------------------------------------------
