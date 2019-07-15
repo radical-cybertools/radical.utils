@@ -511,7 +511,6 @@ def takes(*args, **kwargs):
             def signature_check(*pargs, **pkwargs):
 
                 # append the default parameters
-
                 if  method_defaults is not None and len(method_defaults) > 0 \
                     and len(method_args) - len(method_defaults) <= \
                                                   len(pargs) < len(method_args):
@@ -530,6 +529,7 @@ def takes(*args, **kwargs):
 
                     if  not checker.check(pkwargs.get(kwname, None)):
                       # print 'checker.spectype %s' % checker.spectype
+                        # pylint: disable=W0631
                         excpt = create_type_exception(method, pargs[0], i,
                                                       arg, checker.spectype,
                                                       kwname)
