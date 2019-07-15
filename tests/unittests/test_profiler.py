@@ -13,9 +13,9 @@ import radical.utils as ru
 
 # create a virgin env
 old_env = copy.deepcopy(os.environ)
-for key in list(os.environ.keys()):
-    if key.startswith('RADICAL_'):
-        del(os.environ[key])
+for _key in list(os.environ.keys()):
+    if _key.startswith('RADICAL_'):
+        del(os.environ[_key])
 
 
 # ------------------------------------------------------------------------------
@@ -88,9 +88,9 @@ def test_env():
 
         finally:
             try   : del(os.environ[key])
-            except: pass                                 # pylint: disable=E0722
+            except: pass
             try   : os.unlink(fname)
-            except: pass                                 # pylint: disable=E0722
+            except: pass
 
 
     # --------------------------------------------------------------------------
