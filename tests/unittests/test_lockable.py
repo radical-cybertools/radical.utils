@@ -29,21 +29,21 @@ def test_lockable():
         # ----------------------------------------------------------------------
         def test(self):
 
-            t.lock()          # lock before spawning thread
+            self.lock()       # lock before spawning thread
             thread_1 = mt.Thread(target=self.test_1)
             thread_1.start()  # thread will run until lock check
             time.sleep(0.1)   # enough time to trigger lock violation
             self.val = False  # set a bogus value
-            t.unlock()        # only now thread can set True
+            self.unlock()     # only now thread can set True
             thread_1.join()   # make sure the value was set
             assert(self.val)  # make sure the value was set correctly
 
-            t.lock()          # lock before spawning thread
+            self.lock()       # lock before spawning thread
             thread_2 = mt.Thread(target=self.test_2)
             thread_2.start()  # thread will run until lock check
             time.sleep(0.1)   # enough time to trigger lock violation
             self.val = False  # set a bogus value
-            t.unlock()        # only now thread can set True
+            self.unlock()     # only now thread can set True
             thread_2.join()   # make sure the value was set
             assert(self.val)  # make sure the value was set correctly
 

@@ -6,18 +6,23 @@ __license__   = "MIT"
 
 
 import os
+import copy
 import time
 
 import radical.utils as ru
 
-os.environ['RADICAL_UTILS_PROFILE'] = 'True'
+# create a virgin env
+old_env = copy.deepcopy(os.environ)
+for key in list(os.environ.keys()):
+    if key.startswith('RADICAL_'):
+        del(os.environ[key])
 
 
 # ------------------------------------------------------------------------------
 #
 def _cmd(cmd):
 
-    out, err, ret = ru.sh_callout(cmd)
+    _, _, ret = ru.sh_callout(cmd)
 
     return not bool(ret)
 
@@ -29,12 +34,12 @@ def test_profiler():
     create and check profile timestamps
     '''
 
-
     pname = 'ru.%d'        % os.getpid()
     fname = '/tmp/%s.prof' % pname
     now   = time.time()
 
     try:
+        os.environ['RADICAL_PROFILE'] = 'True'
         prof = ru.Profiler(name=pname, ns='radical.utils', path='/tmp/')
 
         prof.prof('foo')
@@ -51,6 +56,8 @@ def test_profiler():
         assert(_grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname)))
 
     finally:
+        try   : del(os.environ('RADICAL_PROFILE')
+        except: pass
         try   : os.unlink(fname)
         except: pass
 
@@ -66,16 +73,24 @@ def test_env():
     #
     def _assert_profiler(key, val, res):
 
-        pname = 'ru.%d'        % os.getpid()
-        fname = '/tmp/%s.prof' % pname
-        prof  = ru.Profiler(name=pname, ns='radical.utils.test', path='/tmp/')
-        prof.prof('foo')
+        try:
+            os.environ[key] = val
 
-        assert(res == os.path.isfile(fname))
-        assert(res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s' % (pname, fname)))
+            pname = 'ru.%d'        % os.getpid()
+            fname = '/tmp/%s.prof' % pname
+            prof  = ru.Profiler(name=pname, ns='radical.utils.test',
+                                path='/tmp/')
+            prof.prof('foo')
 
-        try   : os.unlink(fname)
-        except: pass
+            assert(res == os.path.isfile(fname))
+            assert(res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s'
+                              % (pname, fname)))
+
+        finally:
+            try   : del(os.environ(key))
+            except: pass
+            try   : os.unlink(fname)
+            except: pass
 
 
     # --------------------------------------------------------------------------

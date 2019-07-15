@@ -10,6 +10,10 @@ from functools import reduce
 
 
 # ------------------------------------------------------------------------------
+# This file (ab)uses a number of python features which are disliked by pylint
+# pylint: disable=W0231,E1120,W1505,W0613
+
+# ------------------------------------------------------------------------------
 #
 # Method call parameters/return value type checking decorators.
 # (c) 2006-2007, Dmitry Dvoinikov <dmitry@targeted.org>
@@ -155,15 +159,15 @@ from functools import reduce
 #
 # ------------------------------------------------------------------------------
 
-__all__ = [ 'takes',    'returns',   'optional', 'nothing',
-            'anything', 'list_of',   'tuple_of', 'dict_of',
-            'by_regex', 'with_attr', 'one_of',   'set_of' ]
+__all__ = ['takes',    'returns',   'optional', 'nothing',
+           'anything', 'list_of',   'tuple_of', 'dict_of',
+           'by_regex', 'with_attr', 'one_of',   'set_of' ]
 
 no_check        = True  # set this to True to turn all checks off
 no_return_check = True   # set this to True to turn return value cchecks off
 
 if 'RADICAL_DEBUG_SIG' in os.environ:
-    no_check    = False  # set this to True to turn all checks off
+    no_check = False  # set this to True to turn all checks off
 
 # ------------------------------------------------------------------------------
 
@@ -184,7 +188,7 @@ def base_names(C):
     Returns list of base class names for a given class
     '''
 
-    return [ x.__name__ for x in C.__mro__ ]
+    return [x.__name__ for x in C.__mro__]
 
 
 # ------------------------------------------------------------------------------
@@ -534,7 +538,7 @@ def takes(*args, **kwargs):
                 try:
                     return method(*pargs, **pkwargs)
 
-                except:
+                except Exception:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
                     raise et(ei).with_traceback(tb.tb_next)
@@ -572,7 +576,7 @@ def returns(sometype):
 
                 try:
                     result = method(*args, **kwargs)
-                except:
+                except Exception:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
                     raise et(ei).with_traceback(tb.tb_next)

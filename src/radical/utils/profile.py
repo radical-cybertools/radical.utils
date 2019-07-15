@@ -237,7 +237,7 @@ class Profiler(object):
         # We first try to contact a network time service for a timestamp, if
         # that fails we use the current system time.
         try:
-            import ntplib                                 # pylint disable=E0401
+            import ntplib                                # pylint: disable=E0401
 
             ntphost = os.environ.get('RADICAL_UTILS_NTPHOST', '0.pool.ntp.org')
 

@@ -5,9 +5,7 @@ __license__   = "MIT"
 
 
 import sys
-import string
 import linecache
-
 
 _trace_external  = False
 _trace_namespace = 'radical'
@@ -63,7 +61,7 @@ def _tracer(frame, event, _):
             filename = filename[:-1]
 
         line = linecache.getline(filename, lineno)
-        idx  = string.index(filename, _trace_namespace)
+        idx  = filename.index(_trace_namespace)
 
         if idx >= 0:
 

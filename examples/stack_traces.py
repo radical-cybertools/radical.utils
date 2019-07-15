@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import os
+import pprint
+
 # ------------------------------------------------------------------------------
 #
 # This example demonstrates various utilities to inspect, print, trigger stack
@@ -20,23 +23,22 @@ def raise_something():
 
 # ------------------------------------------------------------------------------
 # print current stack trace
-def inner_1(arg_1, arg_2):                               # pylint: desable=W0613
+def inner_1(arg_1, arg_2):                               # pylint: disable=W0613
 
     ru.print_stacktrace()
 
 
 # ------------------------------------------------------------------------------
 # get currenet stack trace as list (to store to disk or print or whatever)
-def inner_2(arg_1, arg_2):                               # pylint: desable=W0613
+def inner_2(arg_1, arg_2):                               # pylint: disable=W0613
 
     st = ru.get_stacktrace()
-    import pprint
     pprint.pprint(st)
 
 
 # ------------------------------------------------------------------------------
 # print an exception trace, pointint to the origin of an exception
-def inner_3(arg_1, arg_2):                               # pylint: desable=W0613
+def inner_3(arg_1, arg_2):                               # pylint: disable=W0613
 
     try:
         raise_something()
@@ -46,16 +48,15 @@ def inner_3(arg_1, arg_2):                               # pylint: desable=W0613
 
 # ------------------------------------------------------------------------------
 # print the name of the calling class and method
-def inner_4(arg_1, arg_2):                               # pylint: desable=W0613
+def inner_4(arg_1, arg_2):                               # pylint: disable=W0613
 
     print(ru.get_caller_name())
 
 
 # ------------------------------------------------------------------------------
 # trigger exception for integration testing etc.
-def inner_5(arg_1, arg_2):                               # pylint: desable=W0613
+def inner_5(arg_1, arg_2):                               # pylint: disable=W0613
 
-    import os
     os.environ['RU_RAISE_ON_TEST'] = '3'
 
     for i in range(10):
@@ -64,7 +65,6 @@ def inner_5(arg_1, arg_2):                               # pylint: desable=W0613
 
     print()
 
-    import os
     os.environ['RU_RAISE_ON_RAND'] = 'RANDOM_10'
 
     for i in range(100):

@@ -26,6 +26,7 @@ def test_lease_manager():
         def __init__(self):
 
             self.val = False
+            self.lm  = None
 
         # ----------------------------------------------------------------------
         def test(self):
@@ -33,16 +34,15 @@ def test_lease_manager():
             self.lm = ru.LeaseManager(SIZE)
 
             iw_thread_1 = threading.Thread(target=self.iw_thread,
-                                           kwargs={'id': 1, 'pool': 'pool1'})
+                                           kwargs={'uid': 1, 'pool': 'pool1'})
             iw_thread_2 = threading.Thread(target=self.iw_thread,
-                                           kwargs={'id': 2, 'pool': 'pool2'})
+                                           kwargs={'uid': 2, 'pool': 'pool2'})
             ow_thread_1 = threading.Thread(target=self.ow_thread,
-                                           kwargs={'id': 1, 'pool': 'pool1'})
+                                           kwargs={'uid': 1, 'pool': 'pool1'})
             ow_thread_2 = threading.Thread(target=self.ow_thread,
-                                           kwargs={'id': 2, 'pool': 'pool2'})
-            mon_thread = threading.Thread(target=self.mon_thread,
-                                           kwargs={'id': 1, 'pool': 'pool1'})
-
+                                           kwargs={'uid': 2, 'pool': 'pool2'})
+            mon_thread  = threading.Thread(target=self.mon_thread,
+                                           kwargs={'uid': 1, 'pool': 'pool1'})
             iw_thread_1.start()
             iw_thread_2.start()
             ow_thread_1.start()
@@ -56,13 +56,13 @@ def test_lease_manager():
             mon_thread.join()
 
         # ----------------------------------------------------------------------
-        def iw_thread(self, id, pool):
+        def iw_thread(self, uid, pool):
 
-            name = "IWo Thread-%d (%s)" % (id, pool)
+            name = "IWo Thread-%d (%s)" % (uid, pool)
 
             for _ in range(ITER):
                 leases = list()
-                for i in range(MAX):
+                for _ in range(MAX):
                     lease = self.lm.lease(pool, dict)
                     lease.obj['name'] = name
                     leases.append(lease)
@@ -73,13 +73,13 @@ def test_lease_manager():
                     self.lm.release(lease)
 
         # ----------------------------------------------------------------------
-        def ow_thread(self, id, pool):
+        def ow_thread(self, uid, pool):
 
-            name = "OWo Thread-%d (%s)" % (id, pool)
+            name = "OWo Thread-%d (%s)" % (uid, pool)
 
             for _ in range(ITER):
                 leases = list()
-                for i in range(MAX):
+                for _ in range(MAX):
                     lease = self.lm.lease(pool, dict)
                     lease.obj['name'] = name
                     leases.append(lease)
@@ -90,13 +90,13 @@ def test_lease_manager():
                     self.lm.release(lease)
 
         # ----------------------------------------------------------------------
-        def mon_thread(self, id, pool):
+        def mon_thread(self, uid, pool):
 
-            name = "Mon Thread-%d (%s)" % (id, pool)
+            name = "Mon Thread-%d (%s)" % (uid, pool)
 
             for _ in range(ITER):
                 leases = list()
-                for i in range(MAX):
+                for _ in range(MAX):
                     lease = self.lm.lease(pool, dict)
                     lease.obj['name'] = name
                     leases.append(lease)

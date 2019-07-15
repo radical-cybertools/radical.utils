@@ -13,7 +13,7 @@ from .scheduler_base import SchedulerBase
 class BitarrayScheduler(SchedulerBase):
 
     try:
-        from bitarray import bitarray as _ba
+        from bitarray import bitarray as _ba             # pylint: disable=E0401
 
     except Exception:
         # fake with a do-nothing implementation so that initialization works

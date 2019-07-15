@@ -24,7 +24,7 @@ def test_config():
 
     assert(None  is cfg1.query('yale.grace.no_launch_method'))
     with pytest.raises(KeyError):
-        cfg1['yale']['grace']['no_launch_method']
+        _ = cfg1['yale']['grace']['no_launch_method']
 
     os.environ['FOO'] = 'GSISSH'
 

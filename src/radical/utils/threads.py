@@ -651,7 +651,7 @@ class Thread(mt.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def work_cb(self):
+    def work_cb(self):                                   # pylint: disable=E0202
         '''
         This method MUST be overloaded.  It represents the workload of the
         thread, and will be called over and over again.
@@ -903,8 +903,8 @@ def set_cancellation_handler():
 
     # check if any handler exists
     old_handler = signal.getsignal(signal.SIGUSR2)
-    if  old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
-        old_handler != _sigusr2_handler:
+    if old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
+       old_handler != _sigusr2_handler:                 # pylint:  disable=W0143
         raise RuntimeError('handler for SIGUSR2 is already present')
 
     try:

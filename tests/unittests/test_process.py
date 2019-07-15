@@ -23,13 +23,16 @@ def test_process_basic():
     start a 'sleep 0.2', and expect this to finish within 0.x seconds
     '''
 
+    # --------------------------------------------------------------------------
     class P(ru.Process):
+
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
 
         def work_cb(self):
             time.sleep(0.2)
             return False
+    # --------------------------------------------------------------------------
 
     p = P()   ; t1 = time.time()
     p.start() ; t2 = time.time()
@@ -48,18 +51,20 @@ def test_process_autostart():
     start the child process on __init__()
     '''
 
+    # --------------------------------------------------------------------------
     class P(ru.Process):
+
         def __init__(self):
 
-            self._initalize_common = False
-            self._initalize_parent = False
-            self._initalize_child  = False
+            self._initialize_common = False
+            self._initialize_parent = False
+            self._initialize_child  = False
 
-            self._finalize_common  = False
-            self._finalize_parent  = False
-            self._finalize_child   = False
+            self._finalize_common   = False
+            self._finalize_parent   = False
+            self._finalize_child    = False
 
-            self._work_done        = False
+            self._work_done         = False
 
             ru.Process.__init__(self, 'ru.test')
 
@@ -100,8 +105,9 @@ def test_process_autostart():
             self._work_done = True
 
             return False  # only run once
+    # --------------------------------------------------------------------------
 
-    p = P()  # noqa E841
+    _ = P()
 
 
 # ------------------------------------------------------------------------------
@@ -114,7 +120,7 @@ def test_process_init_fail():
     class P(ru.Process):
 
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
 
         def ru_initialize_child(self):
             raise RuntimeError('oops init')
@@ -145,8 +151,10 @@ def test_process_final_fail():
 
     class P(ru.Process):
 
+        # pylint: disable=W0201
+
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
 
         def ru_initialize_child(self):
             self.i = 0
@@ -185,6 +193,8 @@ def test_process_parent_fail():
     '''
 
     class Parent(ru.Process):
+
+        # pylint: disable=W0201
 
         def __init__(self):
             ru.Process.__init__(self, name='ru.test')

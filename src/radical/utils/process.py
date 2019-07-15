@@ -479,7 +479,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def start(self, spawn=True, timeout=None):            # pylint disable=W0221
+    def start(self, spawn=True, timeout=None):           # pylint: disable=W0221
         '''
         Overload the `mp.Process.start()` method, and block (with timeout) until
         the child signals to be alive via a message over our socket pair.  Also
@@ -1123,7 +1123,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def is_alive(self, strict=True):                      # pylint disable=W0221
+    def is_alive(self, strict=True):                     # pylint: disable=W0221
         '''
         Check if the child process is still alive, and also ensure that
         termination is not yet initiated.  If `strict` is set (default), then

@@ -108,8 +108,6 @@ def test_get_env_ns():
 #
 def test_expand_env():
 
-    import os
-
     noenv = {'FOO' : 'foo'}
     env   = {'BAR' : 'bar'}
 

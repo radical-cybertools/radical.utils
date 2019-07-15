@@ -22,20 +22,20 @@ def test_object_cache():
     Test object cache
     """
 
-    global _state
+    global _state                                        # pylint: disable=W0603
 
     # --------------------------------------------------------------------------
     class _Test(object):
 
         def __init__(self):
 
-            global _state
+            global _state                                # pylint: disable=W0603
             _state += 1
 
 
         def __del__(self):
 
-            global _state
+            global _state                                # pylint: disable=W0603
             _state -= 1
 
     # --------------------------------------------------------------------------
