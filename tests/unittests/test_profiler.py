@@ -57,9 +57,9 @@ def test_profiler():
 
     finally:
         try   : del(os.environ['RADICAL_PROFILE'])
-        except: pass                                     # pylint: disable=E0722
+        except: pass                                     # pylint disable=E0722
         try   : os.unlink(fname)
-        except: pass                                     # pylint: disable=E0722
+        except: pass                                     # pylint disable=E0722
 
 
 # ------------------------------------------------------------------------------
