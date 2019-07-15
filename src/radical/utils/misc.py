@@ -403,7 +403,7 @@ def find_module(name):
     if not package:
         return None
 
-    return package.get_filename()
+    return os.path.dirname(package.get_filename())
 
 
 # ------------------------------------------------------------------------------
