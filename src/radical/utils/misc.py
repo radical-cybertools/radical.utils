@@ -713,7 +713,7 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__._path
+    rpath = radical.__path__._path                       # pylint: disable=W0212
 
     if isinstance(rpath, list):
         rpath = rpath[0]
