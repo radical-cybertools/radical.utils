@@ -11,7 +11,7 @@ from functools import reduce
 
 # ------------------------------------------------------------------------------
 # This file (ab)uses a number of python features which are disliked by pylint
-# pylint: disable=W0231,E1120,W1505,W0613
+# pylint: disable=E1120,W1505,W0613
 
 # ------------------------------------------------------------------------------
 #
