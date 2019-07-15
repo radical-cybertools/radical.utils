@@ -469,7 +469,7 @@ def combine_profiles(profs):
         syncs[pname] = {'rel' : sync_rel,
                         'abs' : sync_abs}
 
-  # for pname, prof in profs.iteritems():
+  # for pname, prof in profs.items():
   #     if prof:
   #         print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
 

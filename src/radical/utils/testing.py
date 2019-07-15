@@ -124,7 +124,7 @@ class TestConfig(dict):
 
         cfg = self._load_config(ns, cfg_name, cfg_section)
 
-        for k,v in cfg.iteritems():
+        for k,v in cfg.items():
             self._cfg[k] = v
 
         dict.__init__(self, self._cfg)

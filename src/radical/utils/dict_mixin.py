@@ -66,7 +66,7 @@ class DictMixin:
     def __contains__(self, key):
         return self.has_key(key)                                    # noqa: W601
 
-    def iteritems(self):
+    def items(self):
         for k in self:
             yield(k, self[k])
 
