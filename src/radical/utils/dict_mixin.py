@@ -85,9 +85,6 @@ class DictMixin:
     def values(self):
         return list(self.values())
 
-    def items(self):
-        return list(self.items())
-
     def clear(self):
         for key in list(self.keys()):
             del self[key]
