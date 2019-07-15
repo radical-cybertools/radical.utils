@@ -103,8 +103,8 @@ class LeaseManager(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, max_pool_size=MAX_POOL_SIZE, max_pool_wait=MAX_POOL_WAIT,
-                       max_obj_age=MAX_OBJ_AGE):
+    def __init__(self, max_pool_size=None, max_pool_wait=None,
+                       max_obj_age=None):
         '''
         Make sure the object dict is initialized, exactly once.
         '''
@@ -113,9 +113,14 @@ class LeaseManager(object):
 
         self._log.debug('lm new manager')
         self._pools = dict()
+
         self._max_pool_size = max_pool_size
         self._max_pool_wait = max_pool_wait
         self._max_obj_age   = max_obj_age
+
+        if self._max_pool_size is None: self._max_pool_size = MAX_POOL_SIZE
+        if self._max_pool_wait is None: self._max_pool_wait = MAX_POOL_WAIT
+        if self._max_obj_age   is None: self._max_obj_age   = MAX_OBJ_AGE
 
 
     # --------------------------------------------------------------------------
