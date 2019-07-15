@@ -32,7 +32,9 @@ ignore          =
     # Line break after binary operator
     W504,
     # variable names
-    E741
+    E741,
+    # superfluous per-file ignore (empty __init__.py)
+    X100
 
 
 [flake8]

@@ -56,10 +56,10 @@ def test_profiler():
         assert(_grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname)))
 
     finally:
-        try   : del(os.environ('RADICAL_PROFILE')
-        except: pass
+        try   : del(os.environ['RADICAL_PROFILE'])
+        except: pass                                     # pylint: disable=E0722
         try   : os.unlink(fname)
-        except: pass
+        except: pass                                     # pylint: disable=E0722
 
 
 # ------------------------------------------------------------------------------
@@ -87,10 +87,10 @@ def test_env():
                               % (pname, fname)))
 
         finally:
-            try   : del(os.environ(key))
-            except: pass
+            try   : del(os.environ[key])
+            except: pass                                 # pylint: disable=E0722
             try   : os.unlink(fname)
-            except: pass
+            except: pass                                 # pylint: disable=E0722
 
 
     # --------------------------------------------------------------------------
