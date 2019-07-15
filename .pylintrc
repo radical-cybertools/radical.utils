@@ -133,9 +133,12 @@ disable=not-context-manager,
         bare-except,
         unnecessary-pass,
         c-extension-no-member,
-        unbalanced-tuple-unpacking,
-        super-init-not-called,
-        unused-import
+        unbalanced-tuple-unpacking,               # FIXME
+        super-init-not-called,                    # FIXME
+        unused-import,                            # FIXME
+        no-member,                                # FIXME
+        global-statement,
+
 
 
 # Enable the message, report, category or checker with the given id(s). You can

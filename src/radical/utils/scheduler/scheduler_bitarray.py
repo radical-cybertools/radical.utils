@@ -15,7 +15,7 @@ class BitarrayScheduler(SchedulerBase):
     try:
         from bitarray import bitarray as _ba             # pylint: disable=E0401
 
-    except Exception:
+    except:
         # fake with a do-nothing implementation so that initialization works
         class _ba(object):
             def __init__(self, i):

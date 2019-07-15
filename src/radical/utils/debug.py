@@ -113,7 +113,7 @@ class DebugHelper(object):
                 new = os.stat(fb)
                 time.sleep(0.1)
 
-        except Exception:
+        except:
             # we don't care (much)...
             pass
 

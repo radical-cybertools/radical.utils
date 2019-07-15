@@ -231,7 +231,7 @@ class PluginManager(object):
                     self._log.debug('loading plugin %s' % pfile)
                     self._log.info ('loading plugin %s' % pshort)
 
-                except Exception:
+                except:
                     self._log.exception('loading plugin %s failed' % pshort)
 
 

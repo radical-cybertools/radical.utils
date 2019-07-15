@@ -71,7 +71,7 @@ def pid_watcher(pid=None, tgt=None, timeout=0.1, sig=None, uid=None):
           # sys.stderr.flush()
             os.kill(tgt, sig)
 
-        except Exception:
+        except:
           # sys.stderr.write('--- watcher for %s failed: %s\n' % (pid, e))
           # sys.stderr.flush()
             pass
@@ -343,7 +343,7 @@ class Process(mp.Process):
               #         break
 
 
-        except Exception:
+        except:
             # mayday... mayday...
             self._ru_log.exception('watcher failed')
 

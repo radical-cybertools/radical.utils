@@ -249,7 +249,7 @@ class Profiler(object):
             ts_sys = (t_one + t_two) / 2.0
             return [ts_sys, ts_ntp, 'ntp']
 
-        except Exception:
+        except:
             pass
 
         # on any errors, we fall back to system time

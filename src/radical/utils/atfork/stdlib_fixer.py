@@ -15,8 +15,10 @@
 # Licensed to the PSF under a Contributor Agreement.
 #
 # Author: Gregory P. Smith <greg@krypto.org>
+#
+# pylint: disable=protected-access
 
-"""
+'''
 This module provides code to setup appropriate atfork() calls within the
 Python standard library in order to make it safe for use in programs that
 mix fork() and threads.
@@ -37,7 +39,7 @@ In 2.4.5 the following additional stdlib modules use locks:
   cookielib
   mimetools
   _strptime
-"""
+'''
 
 import os
 import sys
@@ -52,7 +54,6 @@ class Error(Exception):
 
 def fix_logging_module():
 
-    import os
     if 'RADICAL_UTILS_NOATFORK' in os.environ:
         return
 
@@ -66,7 +67,7 @@ def fix_logging_module():
       #     warnings.warn('logging module already imported before fixup.')
         pass
 
-    import logging
+  # import logging
     if logging.getLogger().handlers:
         # We could register each lock with atfork for these handlers but if
         # these exist, other loggers or not yet added handlers could as well.

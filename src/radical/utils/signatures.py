@@ -538,7 +538,7 @@ def takes(*args, **kwargs):
                 try:
                     return method(*pargs, **pkwargs)
 
-                except Exception:
+                except:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
                     raise et(ei).with_traceback(tb.tb_next)
@@ -576,7 +576,7 @@ def returns(sometype):
 
                 try:
                     result = method(*args, **kwargs)
-                except Exception:
+                except:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
                     raise et(ei).with_traceback(tb.tb_next)

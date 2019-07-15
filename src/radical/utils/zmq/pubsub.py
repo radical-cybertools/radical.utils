@@ -116,7 +116,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _initialize_bridge(self):
 
         self._log.info('start bridge %s', self._uid)
@@ -164,7 +164,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def wait(self, timeout=None):
         '''
         join negates the daemon thread settings, in that it stops us from
@@ -187,7 +187,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _bridge_work(self):
 
         # we could use a zmq proxy - but we rather code it directly to have
@@ -231,7 +231,7 @@ class PubSub(Bridge):
                     # keep this bridge alive
                     self.heartbeat()
 
-        except Exception:
+        except:
             self._log.exception('bridge failed')
 
 
@@ -280,7 +280,7 @@ class Publisher(object):
         assert(isinstance(msg,dict)), 'invalide message type'
 
         topic = topic.replace(' ', '_')
-        data  = msgpack.packb(msg) 
+        data  = msgpack.packb(msg)
 
         log_bulk(self._log, msg, '-> %s' % self.channel)
 
@@ -343,7 +343,7 @@ class Subscriber(object):
         # FIXME: add timeout to allow for graceful termination
 
         topic, data = _uninterruptible(self._q.recv_multipart)
-        msg         = msgpack.unpackb(data) 
+        msg         = msgpack.unpackb(data)
 
         log_bulk(self._log, msg, '<- %s' % self.channel)
 

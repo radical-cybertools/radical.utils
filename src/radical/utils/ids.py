@@ -212,7 +212,7 @@ def _generate_id(template, prefix, namespace=None):
 
     try:
         user = getpass.getuser()
-    except Exception:
+    except:
         user = 'nobody'
 
     info = dict()

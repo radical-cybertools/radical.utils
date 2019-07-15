@@ -113,7 +113,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception:
+            except:
                 pass
 
     return mongo, db, dbname, cname, pname

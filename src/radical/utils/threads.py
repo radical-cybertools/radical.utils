@@ -262,7 +262,7 @@ class Thread(mt.Thread):
             # assumptions about successful child startup.
             self._ru_initialize()
 
-        except Exception:
+        except:
             self._ru_log.exception('%s init failed', self._ru_local.name)
             self.stop()
             raise
@@ -753,7 +753,7 @@ def gettid():
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
         return int(libc.syscall(SYS_gettid))
-    except Exception:
+    except:
         return None
 
 
