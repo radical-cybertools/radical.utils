@@ -131,13 +131,18 @@ disable=not-context-manager,
         R,
         relative-import,
         bare-except,
-        unnecessary-pass
+        unnecessary-pass,
+        c-extension-no-member,
+        unbalanced-tuple-unpacking,
+        super-init-not-called,
+        unused-import
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-# enable=c-extension-no-member
+enable=
 
 
 [REPORTS]
@@ -378,7 +383,7 @@ ignore-mixin-members=yes
 # some branches might not be evaluated, which results in partial inference. In
 # that case, it might be useful to still emit no-member and other checks for
 # the rest of the inferred objects.
-ignore-on-opaque-inference=yes
+ignore-on-opaque-inference=no
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
