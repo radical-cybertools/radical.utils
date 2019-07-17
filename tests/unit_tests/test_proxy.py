@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
@@ -70,8 +71,8 @@ def test_command_channel():
 #
 def test_integration():
 
-    p1_url   =  'ssh://two.radical-project.org/'
-    p2_url   =  'ssh://one.radical-project.org/'
+    p1_url   =  'ssh://one.radical-project.org/'
+    p2_url   =  'ssh://two.radical-project.org/'
     t1_url   =  'ssh://titan-ext1.ccs.ornl.gov/'
     rush_url = 'rush://titan-ext1.ccs.ornl.gov/'
 
@@ -81,11 +82,20 @@ def test_integration():
     p1.is_alive()
     p1.kill()
     p1.restart()
-    print p1.url
+    cmd1 = p1.cmd('hostname')
+    assert(cmd1.result() == 'one')
+    assert(p1.url        == ps_url)
+    assert(p1.public_key)
+    assert(p1.private_key)
 
     # chain proxies
-    p2 = p1.chain(p2_url)
-    assert(p1 == p2.proxy)
+    p2   = p1.chain(p2_url)
+    cmd2 = p2.cmd('hostname')
+    assert(cmd2.result() == 'two')
+    assert(p2.url        == p2_url)
+    assert(p2.proxy      == p1)
+    assert(p2.public_key)
+    assert(p2.private_key)
 
     # create a tunnel over a proxy
     t1 = p2.tunnel(t1_url, socks5=False)

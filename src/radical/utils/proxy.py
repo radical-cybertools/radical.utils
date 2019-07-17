@@ -51,30 +51,39 @@ from .which import which
 #
 #     * create a proxy
 #       p1 = ru.Proxy(proxy_url=None)
-#       p1.is_alive()
-#       p1.kill()
-#       p1.restart()
-#       p1.is_alive()
 #       p1.url
-#
-#     * chain proxies
-#       p2 = p1.chain(proxy_url)
-#       p1 = p2.proxy
+#       p1.close()
 #
 #     * create a tunnel over a (direct or chained) proxy
 #       t1 = p2.tunnel(service_url, socks5=False)
-#       t1.is_alive()
-#       t1.kill()
-#       t1.restart()
-#       t1.is_alive()
 #       t1.socks5
 #       t1.url
-#       p2 = t1.proxy
+#       t1.proxy == p2
 #
-#     * create a command endpoint over a tunnel creates thus
-#       (zmq protocol, persistent service EP, async)
-#       rush = ru.Sh(p.tunnel('rush://targethost/'))
-#       print rush.ps()
+#     * a proxy always has a SYNC command endpoinnt attached
+#       print p2.cmd('hostname')
+#       --> remote.host.net
+#
+#     * create an ASYNC command endpoint over a private tunnel
+#       This internally runs a persistent service EP on the target machine and
+#       sets up a ZMQ communication channel to it.  It is configurable if the
+#       command EP is private to the session or can be shared among multiple
+#       sessions.
+#       rush = p.rush(policy=SHARED)
+#       print rush.uid, rush.url, rush.cmd('hostname')
+#       --> proxy.01.rush.00 rush://localhost:1111 remote.host.net
+#
+#     * connect second client to same command endpoint
+#       rush2 = p.rush(rush.url, policy=SHARED)
+#       print rush2.uid, rush2.url, rush2.cmd('hostname')
+#       --> proxy.01.rush.01 rush://localhost:2222 remote.host.net
+#
+#     * use a proxy to hop to another host, resulting in a new proxy with full
+#       set of capabilities ("chaining proxies")
+#       p2 = p1.hop(proxy2_url)
+#       p1 = p2.proxy
+#
+# 
 #
 # ------------------------------------------------------------------------------
 #
@@ -83,6 +92,13 @@ from .which import which
 # - Proxy:  a authenticated and authorized tcp connection to a remote host
 #           (proxy host).  That connection can be used to tunnel one or more
 #           protocol channels.
+#
+#           Proxies can be used to 
+#
+#             * run commands on the remote host
+#             * establish additional tunnel connections to the remote host
+#               without new authentication
+#
 #           Proxies can be chained, in that connections to some remote hosts
 #           may consist of multiple hops over intermediary hosts.  A chained
 #           proxy transparently acts as a connection to the last target host,
@@ -92,7 +108,7 @@ from .which import which
 # - Tunnel: a channel with a specific protocol which is tunneled over a proxy
 #           connection.  Establishing a tunnel will open an ephermeal port on
 #           the *local* machine which is transparently forwarded over a proxy
-#           or proxy chain to a specified port on the target host.
+#           or proxy chain connection to a specified port on the target host.
 #           A Tunnel instance can only be created from a Proxy, buy calling
 #           Proxy.tunnel().  Multiple tunnels can be created over the same
 #           proxy connection.
@@ -100,6 +116,28 @@ from .which import which
 # ------------------------------------------------------------------------------
 
 
+# ------------------------------------------------------------------------------
+#
+class Tunnel(object):
+
+    def __init__(self, url, proxy):
+        pass
+
+    @property
+    def port(self): pass
+
+    @property
+    def url(self): pass
+
+    @property
+    def socks5(self): pass
+
+    @property
+    def proxy(self): pass
+
+
+# ------------------------------------------------------------------------------
+#
 class Proxy(object):
     '''
     We frequently face the problem that a network connection cannot be directly
@@ -132,7 +170,7 @@ class Proxy(object):
     `name` is expected to be a unique identifyer.  The proxy is expected to live
     until it is explicitly closed.
 
-    If not proxy is given, the methods in this class are NOOPs - it can thus
+    If no proxy is given, the methods in this class are NOOPs - it can thus
     transparently be used for proxied and direct connections.
 
 
@@ -151,7 +189,7 @@ class Proxy(object):
 
       * gsissh support
       * support different auth mechanisms (user/key, public key, encrypted key,
-        ssh agent, myproxy, etc - see SAGA security contexts)
+        ssh agent, myproxy, KeyFobs, TFA, etc - see SAGA security contexts)
 
 
     Usage:
@@ -159,9 +197,10 @@ class Proxy(object):
 
         # connect to `http://www.google.com/` (port 80), SOCKS enabled client
         proxy = ru.Proxy(timeout=300)
-        client.connect(proxy.url(socks=True, 'http://www.google.com/'))
-        print proxy.url(socks=True, 'http://www.google.com/')
+        tgt_url = proxy.url(socks=True, 'http://www.google.com/')
+        print tgt_url
           --> http://localhost:10000/
+        client.connect(tgt_url)
 
         # connect to `mongodb://www.mlab.com:12017/rp`, client is *not* able to
         # use SOCKS
@@ -265,9 +304,10 @@ class Proxy(object):
 
         self._proxy_stat = '%s/%s.stat' % (self._proxy_base, self._proxy_id)
 
+
+        # FIXME: this should be moved to a method
         fd = None 
         try:
-
             # open the file or create it, then lock it, then read from begin of
             # file.  We expect a string and two integers(host, port, and pid of
             # an existing proxy).  If those are found, we close the file (which
@@ -327,7 +367,13 @@ class Proxy(object):
                         +     '-o StrictHostKeyChecking=no ' \
                         +     '-fND %d -p %s %s' \
                         % (self._proxy_port, url_port, url_host)
+
                     try: 
+                        # FIXME: use ru.sh_callout_async
+                        # TODO:  add pid inspection to ru.sh_callout_async and
+                        #        remove netstat search (we might still want to
+                        #        use netstat to confirm that the tunnel port got
+                        #        in fact opened though)
                         sp.check_call(cmd, shell=True)
 
                         # find the pid
@@ -360,7 +406,6 @@ class Proxy(object):
                 os.write(fd, "%s %d %d\n" % (self._proxy_host,
                                              self._proxy_port,
                                              self._proxy_pid))
-
         finally:
 
             # release the lock
@@ -369,7 +414,7 @@ class Proxy(object):
 
 
         # Now that we have a proxy, we can configure the tunnel command for
-        # later use on `url(socks=False)`
+        # later use on `tunnel(socks=False)`
         #
         # Check for the availablity of various utilities which help to tunnel
         # ssh over a SOCKS proxy.  See documentation and code comments in
@@ -384,11 +429,15 @@ class Proxy(object):
                              % {'proxy_port': self._proxy_port}
                 break
 
+        # make sure we have *some* command
+        if not tunnel_proxy:
+            raise RuntimeError('could not find tunnel proxy command')
+
         # FIXME: support gsissh
         # FIXME: support interactive passwd / passkey
         self._tunnel_cmd = 'ssh -o ExitOnForwardFailure=yes' \
                          +    ' -o StrictHostKeyChecking=no' \
-                         +    ' -NfL %(loc_port)d:%(url_host)s:%(url_port)d' \
+                         +    ' -L %(loc_port)d:%(url_host)s:%(url_port)d' \
                          +    ' %(proxy_host)s'
 
         # if we have tunnel proxy support, it becomes part of the tunnel command
@@ -454,7 +503,7 @@ class Proxy(object):
 
     # --------------------------------------------------------------------------
     #
-    def url(self, url, socks=True):
+    def tunnel(self, url, socks=True):
         '''
         This method accepts an URL to which the callee wants to connect, using
         the proxy we own / interface to.  The call with translate the given URL

@@ -162,8 +162,10 @@ class Cmd(object):
     #
     @property
     def sh(self) : return self._sh
+
     @property
     def uid(self): return self._uid
+
     @property
     def cmd(self): return self._cmd
 
@@ -225,6 +227,9 @@ class Cmd(object):
         if not os.path.isdir(self._pwd):
             raise ValueError('invalid command uid %s' % self._uid)
 
+        assert(os.path.isfile(self._cmd_path))
+        assert(os.path.isfile(self._pid_path))
+
         with open(self._cmd_path, 'r') as fin:
             self._cmd = str(fin.read().strip())
 
@@ -259,6 +264,7 @@ class Cmd(object):
 
         with open(self._sh_path, 'w') as fout:
             fout.write(textwrap.dedent(script))
+
         with open(self._cmd_path, 'w') as fout:
             fout.write('%s\n' % self._cmd)
 
@@ -283,12 +289,13 @@ class Cmd(object):
         # wait until we see the process, as otherwise the shell may close to
         # quickly for the command to spawn -- calling `is_alive()` is *not*
         # sufficient for that!
-        # Well, even that is not enough actually, we need to wait until the
-        # process is daemonized.  There is no way to check for this via the mp
-        # API, so we just sleep...  ARGHH!
+        # NOTE:  Well, even that is not enough actually, we need to wait until
+        #        the process is daemonized.  There is no way to check for this
+        #        via the mp API, so we ignore that part
+        # FIXME: should we check for a change in the process' parent ID for
+        #        daemon confirmation?
         assert(self.uid == self._sh._q.get())
         self._state = self.RUNNING
-        time.sleep(0.1)
 
 
 # ------------------------------------------------------------------------------
@@ -323,7 +330,6 @@ class SH(object):
         # class, but that creates an overheadd we want to avoid: keeping the
         # queue on the `Shell` is thus an resource usage optimizaiton.
         self._q    = mp.Queue()
-        self._lock = mt.Lock()
 
         # make sure the state root dir exists
         if not os.path.isdir(self._root):
@@ -350,10 +356,9 @@ class SH(object):
     #
     def run(self, cmd):
 
-        with self._lock:
-            ret = Cmd(self, cmd)
-            self._cmds[ret.uid] = ret
-            return ret
+        _cmd = Cmd(self, cmd)
+        self._cmds[_cmd.uid] = _cmd
+        return _cmd
 
 
     # --------------------------------------------------------------------------
