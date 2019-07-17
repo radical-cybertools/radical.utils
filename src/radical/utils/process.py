@@ -71,7 +71,7 @@ def pid_watcher(pid=None, tgt=None, timeout=0.1, sig=None, uid=None):
           # sys.stderr.flush()
             os.kill(tgt, sig)
 
-        except Exception as e:
+        except:
           # sys.stderr.write('--- watcher for %s failed: %s\n' % (pid, e))
           # sys.stderr.flush()
             pass
@@ -127,11 +127,12 @@ class Process(mp.Process):
     Along the same lines, the parent and child finalizers are executed in the
     `stop()` method, prompting similar considerations for the `timeout` value.
 
-    Any class which derives from this Process class *must* overload the 'work_cb()`
-    method.  That method is repeatedly called by the child process' main loop,
-    until:
+    Any class which derives from this Process class *must* overload the
+    'work_cb()` method.  That method is repeatedly called by the child process'
+    main loop, until:
+
       - an exception occurs (causing the child to fail with an error)
-      - `False` is returned by `work_cb()` (causing the child to finish w/o error)
+      - `False` is returned by `work_cb()` (child finishes w/o error)
     '''
 
     # TODO: We should switch to fork/*exec*, if possible.
@@ -167,22 +168,12 @@ class Process(mp.Process):
         self._ru_initialized = False          # set to signal bootstrap success
         self._ru_terminating = False          # set to signal active termination
         self._ru_watcher     = None           # watcher thread
+        self._ru_poller      = None           # select.Poll wrapper
         self._ru_things_lock = mt.Lock()      # lock for the above
         self._ru_things      = dict()         # registry of threads created in
                                               # (parent or child) process
 
         # FIXME: assert that start() was called for some / most methods
-
-        # when cprofile is requested but not available,
-        # we complain, but continue unprofiled
-        self._ru_cprofile = False
-        if self._ru_name in os.environ.get('RADICAL_CPROFILE', '').split(':'):
-            try:
-                self._ru_log.error('enable cprofile for %s', self._ru_name)
-                import cprofile
-                self._ru_cprofile = True
-            except:
-                self._ru_log.error('cannot import cprofile - disable')
 
         # base class initialization
         super(Process, self).__init__(name=self._ru_name)
@@ -352,7 +343,7 @@ class Process(mp.Process):
               #         break
 
 
-        except Exception as e:
+        except:
             # mayday... mayday...
             self._ru_log.exception('watcher failed')
 
@@ -478,7 +469,7 @@ class Process(mp.Process):
     def _ru_watch_things(self):
 
         with self._ru_things_lock:
-            for tname,thing in self._ru_things.items():
+            for _,thing in self._ru_things.items():
                 if not thing.is_alive():
                     self._ru_log.warning('%s died')
                     return False
@@ -488,7 +479,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def start(self, spawn=True, timeout=None):
+    def start(self, spawn=True, timeout=None):           # pylint: disable=W0221
         '''
         Overload the `mp.Process.start()` method, and block (with timeout) until
         the child signals to be alive via a message over our socket pair.  Also
@@ -522,7 +513,7 @@ class Process(mp.Process):
       #     *** 5,12 ****
       #           assert self._popen is None, 'cannot start a process twice'
       #           assert self._parent_pid == os.getpid(), \\
-      #                  'can only start a process object created by current process'
+      #                  'can only start a process created by current process'
       #     -     assert not _current_process._daemonic, \\
       #     -            'daemonic processes are not allowed to have children'
       #           _cleanup()
@@ -574,7 +565,7 @@ class Process(mp.Process):
                 elif msg != _ALIVE_MSG:
                     # attempt to read remainder of message and barf
                     msg += self._ru_msg_recv()
-                    raise RuntimeError('%s got unexpected message (%s) [%s]' % 
+                    raise RuntimeError('%s got unexpected message (%s) [%s]' %
                                        (self._ru_name, msg, timeout))
 
 
@@ -610,10 +601,10 @@ class Process(mp.Process):
         exit.  Note that the child will also terminate once `work_cb()` returns
         `False`.
 
-        The implementation of `work_cb()` needs to make sure that this process is
-        not spinning idly -- if there is nothing to do in `work_cb()` at any point
-        in time, the routine should at least sleep for a fraction of a second or
-        something.
+        The implementation of `work_cb()` needs to make sure that this process
+        is not spinning idly -- if there is nothing to do in `work_cb()` at any
+        point in time, the routine should at least sleep for a fraction of
+        a second or something.
 
         Child finalizers are only guaranteed to get called on `self.stop()` --
         a hard kill via `self.terminate()` may or may not be able to trigger to
@@ -624,22 +615,6 @@ class Process(mp.Process):
         or orphaned processes -- which is an explicit purpose of this
         implementation.
         '''
-
-        # if no profiling is wanted, we just run the workload and exit
-        if not self._ru_cprofile:
-            self._run()
-
-        # otherwise we run under the profiler, obviously
-        else:
-            import cprofile
-            cprofiler = cprofile.Profile()
-            cprofiler.runcall(self._run)
-            cprofiler.dump_stats('%s.cprof' % (self._ru_name))
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _run(self):
 
         # FIXME: ensure that this is not overloaded
 
@@ -666,7 +641,8 @@ class Process(mp.Process):
             except BaseException as e:
                 self._ru_log.exception('abort: %s', repr(e))
                 self._ru_msg_send('error: %s' % repr(e))
-              # sys.stderr.write('initialization error in %s: %s\n' % (self._ru_name, repr(e)))
+              # sys.stderr.write('initialization error in %s: %s\n'
+              #                 % (self._ru_name, repr(e)))
               # sys.stderr.flush()
                 if self._ru_term is not None:
                     self._ru_term.set()
@@ -679,13 +655,13 @@ class Process(mp.Process):
 
             # enter the main loop and repeatedly call 'work_cb()'.
             #
-            # If `work_cb()` ever returns `False`, we break out of the loop to call the
-            # finalizers and terminate.
+            # If `work_cb()` ever returns `False`, we break out of the loop to
+            # call the finalizers and terminate.
             #
-            # In each iteration, we also check if the socket is still open -- if it
-            # is closed, we assume the parent to be dead and terminate (break the
-            # loop).  We consider the socket closed if `self._ru_term` was set
-            # by the watcher thread.
+            # In each iteration, we also check if the socket is still open -- if
+            # it is closed, we assume the parent to be dead and terminate (break
+            # the loop).  We consider the socket closed if `self._ru_term` was
+            # set by the watcher thread.
             while not self._ru_term.is_set() and \
                       self._parent_is_alive()    :
 
@@ -798,7 +774,7 @@ class Process(mp.Process):
         self._ru_terminating = True
 
       # if not is_main_thread():
-      #     self._ru_log.info('reroute stop to main thread (%s)' % self._ru_name)
+      #     self._ru_log.info('reroute stop to main thread %s' % self._ru_name)
       #     sys.exit()
 
         self._ru_log.info('parent stops child  %s -> %s [%s]', os.getpid(),
@@ -836,7 +812,8 @@ class Process(mp.Process):
 
             # make sure child is gone
             if super(Process, self).is_alive():
-                self._ru_log.warn('failed to stop child - terminate: %s -> %s [%s]', os.getpid(), self.pid, self._ru_name)
+                self._ru_log.warn('failed to stop child - term: %s -> %s [%s]',
+                                  os.getpid(), self.pid, self._ru_name)
                 self.terminate()  # hard kill
                 super(Process, self).join(timeout)
 
@@ -845,7 +822,7 @@ class Process(mp.Process):
           #     # we threat join errors as non-fatal here - at this point, there
           #     # is not much we can do other than calling `terminate()#join()`
           #     # -- which is exactly what we just did.
-          #     self._ru_log.warning('could not join child process %s', self.pid)
+          #     self._ru_log.warning('could not join child proc %s', self.pid)
 
         # meanwhile, all watchables should have stopped, too.  For some of them,
         # `stop()` will have implied `join()` already - but an additional
@@ -876,8 +853,8 @@ class Process(mp.Process):
       # join via `at_exit`.  Which kind of explains hangs on unterminated
       # children...
       #
-      # FIXME: not that `join()` w/o `stop()` will not call the parent finalizers.
-      #        We should call those in both cases, but only once.
+      # FIXME: not that `join()` w/o `stop()` will not call the parent
+      #        finalizers.  We should call those in both cases, but only once.
       # FIXME: `join()` should probably block by default
 
         if not timeout:
@@ -917,7 +894,7 @@ class Process(mp.Process):
 
             self._ru_initialized = True
 
-        except Exception as e:
+        except Exception:
             self._ru_log.exception('initialization error')
             raise
 
@@ -1126,14 +1103,14 @@ class Process(mp.Process):
         This has several implications:
 
           * `work_cb()` needs to enforce any call rate limits on its own!
-          * in order to terminate the child, `work_cb()` needs to either raise an
-            exception, or call `sys.exit()` (which actually also raises an
+          * in order to terminate the child, `work_cb()` needs to either raise
+            an exception, or call `sys.exit()` (which actually also raises an
             exception).
 
-        Before the first invocation, `self.ru_initialize_child()` will be called.
-        After the last invocation, `self.ru_finalize_child()` will be called, if
-        possible.  The latter will not always be possible if the child is
-        terminated by a signal, such as when the parent process calls
+        Before the first invocation, `self.ru_initialize_child()` will be
+        called.  After the last invocation, `self.ru_finalize_child()` will be
+        called, if possible.  The latter will not always be possible if the
+        child is terminated by a signal, such as when the parent process calls
         `child.terminate()` -- `child.stop()` should be used instead.
 
         The overloaded method MUST return `True` or `False` -- the child will
@@ -1146,7 +1123,7 @@ class Process(mp.Process):
 
     # --------------------------------------------------------------------------
     #
-    def is_alive(self, strict=True):
+    def is_alive(self, strict=True):                     # pylint: disable=W0221
         '''
         Check if the child process is still alive, and also ensure that
         termination is not yet initiated.  If `strict` is set (default), then
@@ -1202,7 +1179,7 @@ class Process(mp.Process):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warning('alive check: proc invalid - stop [%s - %s]', alive, term)
+            self._ru_log.warning('alive check: stop [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
@@ -1231,7 +1208,7 @@ class Process(mp.Process):
             os.kill(self._ru_ppid, 0)
             return True
 
-        except:
+        except OSError:
             return False
 
 

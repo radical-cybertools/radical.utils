@@ -10,7 +10,7 @@ import radical.utils as ru
 #
 def _cmd(cmd):
 
-    out, err, ret = ru.sh_callout(cmd)
+    _, _, ret = ru.sh_callout(cmd)
 
     if ret == 0:
         return True
@@ -44,27 +44,31 @@ def test_reporter():
 
     rep.info('test idler:')
     rep.idle(mode='start')
-    for i in range(3):
+    for _ in range(3):
         rep.idle()
         time.sleep(0.3)
     rep.idle(color='ok', c='.')
     rep.idle(color='error', c='.')
-    for i in range(3):
+    for _ in range(3):
         rep.idle()
         time.sleep(0.1)
 
     rep.idle(mode='stop')
     rep.ok('>>done\n')
 
+
+    # pylint disable=E0501
     rep.info('idle test\n')
-    rep.info('1234567891         2         3         4         5         6         7         8\n\t')
-    rep.info('.0.........0.........0.........0.........0.........0.........0.........0')
+    rep.info('1234567891         2         3         4         5         6         7         8\n\t')  # noqa
+    rep.info('.0.........0.........0.........0.........0.........0.........0.........0')              # noqa
+    # pylint enable=E0501
+
     rep.idle(mode='start')
-    for i in range(200):
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
-        rep.idle();  time.sleep(0.01)
+    for _ in range(200):
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
+        rep.idle() ; time.sleep(0.01)
         rep.idle(color='ok', c="+")
     rep.idle(mode='stop')
 
@@ -103,7 +107,7 @@ def test_env():
 
 
 
-    for key in ['RADICAL_REPORT', 
+    for key in ['RADICAL_REPORT',
                 'RADICAL_UTILS_REPORT',
                 'RADICAL_UTILS_TEST_REPORT']:
 
@@ -117,10 +121,10 @@ def test_env():
 
         os.environ['RADICAL_UTILS_REPORT_TGT'] = fname
 
-        os.environ[key] = '';       _assert_reporter(pname, fname)
-        os.environ[key] = '0';      _assert_reporter(pname, None)
-        os.environ[key] = '1';      _assert_reporter(pname, fname)
-        os.environ[key] = 'True';   _assert_reporter(pname, fname)
+        os.environ[key] = ''     ;  _assert_reporter(pname, fname)
+        os.environ[key] = '0'    ;  _assert_reporter(pname, None)
+        os.environ[key] = '1'    ;  _assert_reporter(pname, fname)
+        os.environ[key] = 'True' ;  _assert_reporter(pname, fname)
         os.environ[key] = 'False';  _assert_reporter(pname, fname)
 
 

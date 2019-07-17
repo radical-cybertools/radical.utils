@@ -1,14 +1,14 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky)"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
+__author__    = 'Radical.Utils Development Team (Andre Merzky)'
+__copyright__ = 'Copyright 2013, RADICAL@Rutgers'
+__license__   = 'MIT'
 
 
 import time
-from . import lockable
 import threading
 
-from .logger import Logger
+from .lockable import Lockable
+from .logger   import Logger
 
 # default settings for lease manager
 MAX_POOL_SIZE = 15       # unlimited
@@ -53,17 +53,17 @@ class _LeaseObject(object):
 
     # --------------------------------------------------------------------------
     #
-    def __exit__(self, *args):
+    def __exit__(self, *args):                                      # noqa W0613
 
         self.lm.release(self)
 
 
     # --------------------------------------------------------------------------
     #
-    def lease(self, *args):
+    def lease(self):
 
-        if  self.used:
-            raise RuntimeError("LeaseObject is already leased: %s" % self)
+        if self.used:
+            raise RuntimeError('LeaseObject is already leased: %s' % self)
 
         self.used     = True
         self.t_leased = time.time()
@@ -71,60 +71,64 @@ class _LeaseObject(object):
 
     # --------------------------------------------------------------------------
     #
-    def release(self, *args):
+    def release(self):
 
-        if  not self.used:
-            raise RuntimeError("LeaseObject is not leased: %s" % self)
+        if not self.used:
+            raise RuntimeError('LeaseObject is not leased: %s' % self)
 
         self.used       = False
         self.t_released = time.time()
 
 
     # --------------------------------------------------------------------------
-    def is_leased(self, *args):
+    def is_leased(self):
 
         return self.used
 
 
 # ------------------------------------------------------------------------------
 #
-@lockable.Lockable
+@Lockable
 class LeaseManager(object):
-
-    """ 
+    '''
     This is a lease manager -- it creates resource instances on demand and hands
     out leases to them.  If for a given ID no object instance exists, one is
     created, locked and a lease is returned.  If for an ID an object instance
     exists and is not leased, it is locked and returned.  If one or more
     instances exist but all are in use already (leased), a new instance is
-    created (up to MAX_POOL_SIZE -- can be overwritten in the lease call).
+    created (up to MAX_POOL_SIZE which can be overwritten in the lease call).
     If that limit is reached, no objects are returned, and instead the lease
     call blocks until one of the existing objects gets released.
-    """
+    '''
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, max_pool_size=MAX_POOL_SIZE, max_pool_wait=MAX_POOL_WAIT,
-                       max_obj_age=MAX_OBJ_AGE):
-        """
+    def __init__(self, max_pool_size=None, max_pool_wait=None,
+                       max_obj_age=None):
+        '''
         Make sure the object dict is initialized, exactly once.
-        """
+        '''
 
         self._log = Logger('radical.utils')
 
         self._log.debug('lm new manager')
         self._pools = dict()
+
         self._max_pool_size = max_pool_size
-        self._max_pool_wait = max_pool_wait 
+        self._max_pool_wait = max_pool_wait
         self._max_obj_age   = max_obj_age
+
+        if self._max_pool_size is None: self._max_pool_size = MAX_POOL_SIZE
+        if self._max_pool_wait is None: self._max_pool_wait = MAX_POOL_WAIT
+        if self._max_obj_age   is None: self._max_obj_age   = MAX_OBJ_AGE
 
 
     # --------------------------------------------------------------------------
     #
     def _initialize_pool(self, pool_id):
-        """
+        '''
         set up a new pool, but do not create any instances, yet.
-        """
+        '''
 
         with self:
 
@@ -144,18 +148,18 @@ class LeaseManager(object):
     # --------------------------------------------------------------------------
     #
     def _create_object(self, pool_id, creator, args):
-        """
+        '''
         a new instance is needed -- create one, unless max_pool_size is reached.
         If that is the case, return `None`, otherwise return the created object
         (which is locked before return).
-        """
+        '''
 
         with self:
 
             self._log.debug('lm create  object for %s' % pool_id)
 
             if  pool_id not in self._pools:
-                raise RuntimeError("internal error: no pool for '%s'!" % pool_id)
+                raise RuntimeError('internal error: no pool for %s' % pool_id)
 
             pool = self._pools[pool_id]
 
@@ -177,26 +181,25 @@ class LeaseManager(object):
             except Exception as e:
                 # this exception needs to fall through -- we can't wait
                 # for object creation problems to fix themself over time...
-                self._log.exception("Could not create lease object: %s", e)
+                self._log.exception('Could not create lease object: %s', e)
                 raise
 
             return obj
 
 
-
     # --------------------------------------------------------------------------
     #
     def _remove_object(self, pool_id, obj):
-        """
+        '''
         a new instance is needed -- create one, unless max_pool_size is reached.
         If that is the case, return `None`, otherwise return the created object
         (which is locked before return).
-        """
+        '''
 
         with self:
 
             if  pool_id not in self._pools:
-                raise RuntimeError("internal error: no pool for %s!" % pool_id)
+                raise RuntimeError('internal error: no pool for %s' % pool_id)
 
             pool = self._pools[pool_id]
 
@@ -207,21 +210,19 @@ class LeaseManager(object):
                 pool['objects'].remove(obj)
 
             except Exception as e:
-                self._log.exception("Could not remove lease object: %s", e)
+                self._log.exception('Could not remove lease object: %s', e)
 
             return obj
 
 
-
     # --------------------------------------------------------------------------
     #
-    def lease(self, pool_id, creator, args=[]):
-        """
-
+    def lease(self, pool_id, creator, args=None):
+        '''
         For a given object identified, attempt to retrieve an existing object
         from the pool.  If such a free (released) object is found, lock and
         refturn it.  If such objects exist but all are in use, create a new one
-        up to max_pool_size (default: 10).  
+        up to max_pool_size (default: 10).
         used, block untill it is freed.  If that object does not exist, create
         it and proceed per above.
         return the object thusly created.
@@ -238,12 +239,12 @@ class LeaseManager(object):
                                 return Logger(name)
 
                             ret = lease_manager.lease(name, creator)
-        """
+        '''
 
         pool_id = str(pool_id)
 
-        if  not isinstance(args, list):
-            args = [args]
+        if   not args                  : args = []
+        elif not isinstance(args, list): args = [args]
 
         with self:
 
@@ -251,7 +252,7 @@ class LeaseManager(object):
             pool = self._initialize_pool(pool_id)
 
             # find an unlocked object instance in the pool
-            # NOTE: we iterate over a copy of the list, as an eventual object 
+            # NOTE: we iterate over a copy of the list, as an eventual object
             # removeal would screw up the index...
             for obj in pool['objects'][:]:
 
@@ -269,7 +270,7 @@ class LeaseManager(object):
                     obj.lease()
                     return obj
 
-            # no unlocked object found -- create a new one 
+            # no unlocked object found -- create a new one
             obj = self._create_object(pool_id, creator, args)
 
             # FIXME: we could try_catch the above error, and then check if the
@@ -350,23 +351,23 @@ class LeaseManager(object):
                         return obj
 
 
-                # none free, none created - or we lost the rase for handling the 
+                # none free, none created - or we lost the rase for handling the
                 # event.  Wait again.
                 timer_now = time.time()
 
 
         # at this point we give up: we can't create a new object, can't find
         # a free one, and we are running out of wait time...
-        raise LookupError("stop waiting on object lease")
+        raise LookupError('stop waiting on object lease')
 
 
     # --------------------------------------------------------------------------
     #
     def release(self, instance, delete=False):
-        """
+        '''
         the given object is not needed right now -- unlock it so that somebody
         else can lease it.  This will not delete the object,
-        """
+        '''
 
         with self:
 
@@ -381,14 +382,14 @@ class LeaseManager(object):
                     obj.release()
 
                     if  delete:
-                        # remove the object from the pool (decreasing its 
-                        # ref counter and thus making it eligible for 
-                        # garbage collection).  
+                        # remove the object from the pool (decreasing its
+                        # ref counter and thus making it eligible for
+                        # garbage collection).
                         self._pools [pool_id]['objects'].remove(obj)
                         self._pools [pool_id]['freed'] = None
 
                     else:
-                        # mark the object as freed for lease.  
+                        # mark the object as freed for lease.
                         self._pools [pool_id]['freed'] = obj
 
                     # notify waiting threads about the lease or creation
@@ -396,11 +397,11 @@ class LeaseManager(object):
                     self._pools [pool_id]['event'].set()
 
                     # object has been released
-                    return 
+                    return
 
             # FIXME: log warning
             # for now we ignore double-frees
-            # raise RuntimeError("cannot release object -- not managed")
+            # raise RuntimeError('cannot release object -- not managed')
 
 
 # ------------------------------------------------------------------------------

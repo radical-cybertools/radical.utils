@@ -96,9 +96,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     #       python applications.
     assert(False), 'this is broken for python apps'
 
-
     # --------------------------------------------------------------------------
-    #
     class _PROC(object):
 
         # ----------------------------------------------------------------------
@@ -135,7 +133,6 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             self.rc = None  # return code
 
 
-
         @property
         def stdout(self):
             if not self._out_c:
@@ -160,7 +157,6 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             if not self._err_f:
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
-
 
         # ----------------------------------------------------------------------
         def _watch(self):
@@ -216,7 +212,6 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                     if self._err_q: self._err_q.join()     # ensure reads
 
                     return  # finishes thread
-
     # --------------------------------------------------------------------------
 
     return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)

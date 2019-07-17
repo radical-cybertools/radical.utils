@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2016, RADICAL@Rutgers"
@@ -23,22 +23,25 @@ def test_process_basic():
     start a 'sleep 0.2', and expect this to finish within 0.x seconds
     '''
 
+    # --------------------------------------------------------------------------
     class P(ru.Process):
+
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
 
         def work_cb(self):
             time.sleep(0.2)
             return False
+    # --------------------------------------------------------------------------
 
-    p = P()    ; t1 = time.time()
-    p.start()  ; t2 = time.time()
-    p.join(10) ; t3 = time.time()
+    p = P()   ; t1 = time.time()
+    p.start() ; t2 = time.time()
+    p.join(10); t3 = time.time()
 
-    assert(t2-t1 > 0.0), t2-t1
-    assert(t2-t1 < 0.2), t2-t1  # process startup should be quick
-    assert(t3-t1 > 0.2), t3-t1  # expect exactly one work iteration
-    assert(t3-t2 < 0.5), t3-t2
+    assert(t2 - t1 > 0.0), t2 - t1
+    assert(t2 - t1 < 0.2), t2 - t1  # process startup should be quick
+    assert(t3 - t1 > 0.2), t3 - t1  # expect exactly one work iteration
+    assert(t3 - t2 < 0.5), t3 - t2
 
 
 # ------------------------------------------------------------------------------
@@ -48,18 +51,20 @@ def test_process_autostart():
     start the child process on __init__()
     '''
 
+    # --------------------------------------------------------------------------
     class P(ru.Process):
+
         def __init__(self):
 
-            self._initalize_common = False
-            self._initalize_parent = False
-            self._initalize_child  = False
+            self._initialize_common = False
+            self._initialize_parent = False
+            self._initialize_child  = False
 
-            self._finalize_common  = False
-            self._finalize_parent  = False
-            self._finalize_child   = False
+            self._finalize_common   = False
+            self._finalize_parent   = False
+            self._finalize_child    = False
 
-            self._work_done        = False
+            self._work_done         = False
 
             ru.Process.__init__(self, 'ru.test')
 
@@ -74,21 +79,35 @@ def test_process_autostart():
             assert(self._finalize_common), 'no finalize common'
             assert(self._finalize_parent), 'no finalize parent'
 
-        def ru_initialize_common(self): self._initialize_common = True
-        def ru_initialize_parent(self): self._initialize_parent = True
-        def ru_initialize_child (self): self._initialize_child  = True
+        def ru_initialize_common(self):
+            self._initialize_common = True
 
-        def ru_finalize_common(self)  : self._finalize_common   = True
-        def ru_finalize_parent(self)  : self._finalize_parent   = True
-        def ru_finalize_child (self)  : self._finalize_child    = True
+        def ru_initialize_parent(self):
+            self._initialize_parent = True
+
+        def ru_initialize_child (self):
+            self._initialize_child = True
+
+        def ru_finalize_common(self):
+            self._finalize_common = True
+
+        def ru_finalize_parent(self):
+            self._finalize_parent = True
+
+        def ru_finalize_child (self):
+            self._finalize_child = True
 
         def work_cb(self):
+
             assert(self._initialize_common), 'no initialize common'
             assert(self._initialize_child),  'no initialize child'
-            self._work_done = True
-            return False  # only run once
 
-    p = P()
+            self._work_done = True
+
+            return False  # only run once
+    # --------------------------------------------------------------------------
+
+    _ = P()                                                          # noqa F841
 
 
 # ------------------------------------------------------------------------------
@@ -99,10 +118,13 @@ def test_process_init_fail():
     '''
 
     class P(ru.Process):
+
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
+
         def ru_initialize_child(self):
             raise RuntimeError('oops init')
+
         def work_cb(self):
             time.sleep(0.1)
             return True
@@ -110,8 +132,10 @@ def test_process_init_fail():
     try:
         p = P()
         p.start()
+
     except RuntimeError as e:
         assert('oops init' in str(e)), str(e)
+
     else:
         assert(False), 'missing exception'
 
@@ -126,16 +150,22 @@ def test_process_final_fail():
     '''
 
     class P(ru.Process):
+
+        # pylint: disable=W0201
+
         def __init__(self):
-            return ru.Process.__init__(self, 'ru.test')
+            ru.Process.__init__(self, 'ru.test')
+
         def ru_initialize_child(self):
             self.i = 0
+
         def work_cb(self):
             self.i += 1
             if self.i == 5:
                 time.sleep(0.1)
                 return False
             return True
+
         def ru_finalize_child(self):
             raise RuntimeError('oops final')
 
@@ -143,9 +173,11 @@ def test_process_final_fail():
         p = P()
         p.start()
         p.stop()
+
     except Exception as e:
         print('excepted: %s' % e)
         assert('oops final' in str(e)), str(e)
+
     else:
         pass
       # assert(False), 'missing exception'  # FIXME
@@ -161,6 +193,8 @@ def test_process_parent_fail():
     '''
 
     class Parent(ru.Process):
+
+        # pylint: disable=W0201
 
         def __init__(self):
             ru.Process.__init__(self, name='ru.test')
@@ -192,8 +226,10 @@ def test_process_parent_fail():
 
     p = Parent()
     p.start()
+
     with open('/tmp/c_pid.%d' % os.getuid(), 'r') as f:
         c_pid = int(f.read().strip())
+
     os.unlink('/tmp/c_pid.%d' % os.getuid())
     os.kill(c_pid, 9)
 
@@ -201,8 +237,10 @@ def test_process_parent_fail():
     time.sleep(1.01)
     try:
         os.kill(p.pid, 0)
-    except OSError as e:
+
+    except OSError:
         pass  # child is gone
+
     else:
         pass
       # assert(False), 'child not gone'  # FIXME
@@ -219,14 +257,9 @@ if __name__ == "__main__":
     test_process_autostart()
     for i in range(N):
         test_process_final_fail()
-        print('.', end=' ')
         test_process_init_fail()
-        print('.', end=' ')
         test_process_parent_fail()
-        print('.', end=' ')
         test_process_basic()
-        print('.', end=' ')
-        print(i)
 
     sys.exit()
 

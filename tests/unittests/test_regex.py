@@ -11,9 +11,9 @@ import radical.utils as ru
 # ------------------------------------------------------------------------------
 #
 def test_re_string():
-    """
+    '''
     Test regex matching
-    """
+    '''
 
     txt   = ru.ReString ("The quick brown fox jumps over the lazy dog")
     tgt_l = [' qu', 'ick brown fox jumps']
@@ -36,7 +36,7 @@ def test_re_string():
     if  txt // '(rabbit)':
         assert (False)
 
-    elif  txt // '((?:\s).{12,15}?(\S+))':
+    elif  txt // r'((?:\s).{12,15}?(\S+))':
         assert (True)
 
     else:

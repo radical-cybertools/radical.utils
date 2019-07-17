@@ -37,7 +37,7 @@ def test_poll():
 
             events = poller.poll(1.0)
 
-            for fd,event in events:
+            for _,event in events:
 
                 if event & ru.POLLIN:
                     msg = sp[0].recv(200)

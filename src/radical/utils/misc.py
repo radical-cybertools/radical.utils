@@ -87,7 +87,7 @@ def mongodb_connect(dburl, default_dburl=None):
     try:
         import pymongo
     except ImportError:
-        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
@@ -113,7 +113,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception:
+            except:
                 pass
 
     return mongo, db, dbname, cname, pname
@@ -162,7 +162,7 @@ def parse_file_staging_directives(directives):
 
         rs = ReString(directive)
 
-        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
+        if  rs // r'^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
             res = rs.get()
             ret.append([res['one'], res['two'], res['op']])
 
@@ -278,10 +278,10 @@ def round_to_base(value, base=1):
 #
 def round_upper_bound(value):
     '''
-    This method expects an integer or float value, and will return an integer upper
-    bound suitable for example to define plot ranges.  The upper bound is the
-    smallest value larger than the input value which is a multiple of 1, 2 or
-    5 times the order of magnitude (10**x) of the value.
+    This method expects an integer or float value, and will return an integer
+    upper bound suitable for example to define plot ranges.  The upper bound is
+    the smallest value larger than the input value which is a multiple of 1,
+    2 or 5 times the order of magnitude (10**x) of the value.
     '''
 
     bound = 0
@@ -319,6 +319,15 @@ def as_list(data):
 
     if is_list(data): return data
     else            : return [data]
+
+
+# ------------------------------------------------------------------------------
+#
+def is_seq(data):
+    '''
+    tests if the given data is a sequence (but not a string)
+    '''
+    return hasattr(data, '__iter__') and not is_string(data)
 
 
 # ------------------------------------------------------------------------------
@@ -394,10 +403,7 @@ def find_module(name):
     if not package:
         return None
 
-    # NOTE: Python 3: package.filename does not exist anymore. Use
-    # .get_filename() instead.
-    # return package.filename
-    return package.get_filename()
+    return os.path.dirname(package.get_filename())
 
 
 # ------------------------------------------------------------------------------
@@ -410,7 +416,7 @@ def get_hostname():
     Look up the hostname
     '''
 
-    global _hostname
+    global _hostname                                     # pylint: disable=W0603
     if not _hostname:
 
         if socket.gethostname().find('.') >= 0:
@@ -432,7 +438,7 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     '''
 
-    global _hostip
+    global _hostip                                       # pylint: disable=W0603
     if _hostip:
         return _hostip
 
@@ -464,17 +470,17 @@ def get_hostip(req=None, logger=None):
                   'sit0'     # ?
                  ]
 
-    all  = netifaces.interfaces()
-    rest = [iface for iface in all
-                   if iface not in req and
-                      iface not in white_list and
-                      iface not in black_list]
+    ifaces = netifaces.interfaces()
+    rest   = [iface for iface in ifaces
+                     if iface not in req        and
+                        iface not in white_list and
+                        iface not in black_list]
 
     preflist = req + white_list + rest
 
     for iface in preflist:
 
-        if iface not in all:
+        if iface not in ifaces:
             if logger:
                 logger.debug('check iface %s: does not exist', iface)
             continue
@@ -586,8 +592,7 @@ def expand_env(data, env=None, ignore_missing=True):
     Expand the given data with environment variables from `os.environ`.
     If `env` is provided, use that dictionary for expansion instead.
 
-    The replacement is performed for the following variable specs
-    `data` can be one of three types:
+    The replacement is performed for the following variable specs:
 
       - dictionary: `expand_env` is applied to all *values* of the dictionary
       - sequence  : `expand_env` is applied to all elements of the sequence
@@ -598,7 +603,7 @@ def expand_env(data, env=None, ignore_missing=True):
     a copy of scalar strings, as it seems to be custom in Python.  Other data
     types are silently ignored and not altered.
 
-    The replacement in strings is performed for the following variable specs
+    The replacement in strings is performed for the following variable specs:
 
         assume  `export BAR=bar`:
 
@@ -626,12 +631,12 @@ def expand_env(data, env=None, ignore_missing=True):
     # dict type
     elif isinstance(data, dict):
 
-        for k,v in data.iteritems():
+        for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)
         return data
 
-    # sequence types: list, set, ...
-    elif hasattr(data, '__iter__'):
+    # sequence types: list, set, tuple - but not string
+    elif is_seq(data):
 
         print('expand iterable %s' % data)
 
@@ -640,7 +645,7 @@ def expand_env(data, env=None, ignore_missing=True):
         return data
 
     # all other non-string types are left alone
-    elif not isinstance(data, basestring):
+    elif not is_string(data):
         return data
 
     # handle string expansion, which is what we really care about
@@ -710,7 +715,7 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__
+    rpath = radical.__path__._path                       # pylint: disable=W0212
 
     if isinstance(rpath, list):
         rpath = rpath[0]
@@ -742,13 +747,14 @@ def get_size(obj, seen=None, strict=False):
         seen.add(obj_id)
 
     if isinstance(obj, dict):
-        size += sum([get_size(v, seen, strict) for v in list(obj.values())])
-        size += sum([get_size(k, seen, strict) for k in list(obj.keys())])
+        size += sum([get_size(v, seen, strict) for v in obj.values()])
+        size += sum([get_size(k, seen, strict) for k in obj.keys()])
 
     elif hasattr(obj, '__dict__'):
         size += get_size(obj.__dict__, seen, strict)
 
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+    elif hasattr(obj, '__iter__') and \
+        not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_size(i, seen, strict) for i in obj])
 
     return size

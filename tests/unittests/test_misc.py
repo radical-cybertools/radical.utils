@@ -108,8 +108,6 @@ def test_get_env_ns():
 #
 def test_expand_env():
 
-    import os
-
     noenv = {'FOO' : 'foo'}
     env   = {'BAR' : 'bar'}
 
@@ -133,7 +131,7 @@ def test_expand_env():
     l = list()
     d = dict()
     i = 0
-    for k,v in tc.iteritems():
+    for k,v in tc.items():
         assert(ru.expand_env(k       ) == v[0])
         assert(ru.expand_env(k,   env) == v[1])
         assert(ru.expand_env(k, noenv) == v[2])
@@ -164,9 +162,9 @@ def test_expand_env():
     ru.expand_env(d1, env)
     ru.expand_env(d2, noenv)
 
-    for k,v in d0.iteritems(): assert(v == tc[d[k]][0])
-    for k,v in d1.iteritems(): assert(v == tc[d[k]][1])
-    for k,v in d2.iteritems(): assert(v == tc[d[k]][2])
+    for k,v in d0.items(): assert(v == tc[d[k]][0])
+    for k,v in d1.items(): assert(v == tc[d[k]][1])
+    for k,v in d2.items(): assert(v == tc[d[k]][2])
 
     # test `ignore_missing` flag
     env = {'BAR' : 'bar'}
@@ -177,7 +175,6 @@ def test_expand_env():
 
     with pytest.raises(ValueError):
         ru.expand_env(src, env, ignore_missing=False)
-
 
 
 # ------------------------------------------------------------------------------

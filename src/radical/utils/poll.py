@@ -56,23 +56,28 @@ if _use_pypoll:
 
         def __init__(self, logger=None):
 
-          # self._log  = logger
+            self._log  = logger
             self._poll = select.poll()
+
 
         def close(self):
             self._poll = None
+
 
         def register(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.register(fd, eventmask)
 
+
         def modify(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.modify(fd, eventmask)
 
+
         def unregister(self, fd):
             assert(self._poll)
             return self._poll.unregister(fd)
+
 
         def poll(self, timeout=None):
             assert(self._poll)
@@ -124,7 +129,7 @@ else:
         #
         def __init__(self, logger=None):
 
-          # self._log        = logger
+            self._log        = logger
             self._lock       = mt.RLock()
             self._registered = {POLLIN  : list(),
                                 POLLOUT : list(),
@@ -181,7 +186,7 @@ else:
 
             with self._lock:
                 assert(self._exists(fd))
-                self._register(fd, eventmask)
+                self.register(fd, eventmask)
 
 
         # ----------------------------------------------------------------------
@@ -199,7 +204,7 @@ else:
 
                 for e in _POLLTYPES:
                     if fd in self._registered[e]:
-                        self._registered.remove[e](fd)
+                        self._registered[e].remove(fd)
 
 
         # ----------------------------------------------------------------------
@@ -253,7 +258,7 @@ else:
                         try:
                             fd.read(0)
                             fd.write(b'')
-                        except:
+                        except Exception:
                             hup = True
 
                     # socket
@@ -261,7 +266,7 @@ else:
                         try:
                             fd.recv(0)
                             fd.send(b'')
-                        except:
+                        except Exception:
                             hup = True
 
                     # we can't handle errors on other types
