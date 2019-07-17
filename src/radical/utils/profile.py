@@ -67,7 +67,7 @@ class Profiler(object):
 
     Strings MUST NOT contain commas.  Otherwise they are encouraged to be formed
     as `[a-z][0-9a-z_.]*'. `msg` are free-form, but the inhibition of comma
-    holds.  We propose to limit the sum of strings to about 256 characters - 
+    holds.  We propose to limit the sum of strings to about 256 characters -
     this will guarantee atomic writes on most OS's, w/o additional locking
     overheads.  Less than 100 charcters makes the profiles almost
     human-readable.
@@ -149,7 +149,8 @@ class Profiler(object):
     #
     def __del__(self):
 
-        self.close()
+      # self.close()
+        pass
 
 
     # ------------------------------------------------------------------------------
@@ -170,14 +171,18 @@ class Profiler(object):
     #
     def close(self):
 
-        if not self._enabled:
-            return
+        try:
+            if not self._enabled:
+                return
 
-        if self._enabled and self._handle:
-            self.prof("END")
-            self.flush(verbose=False)
-            self._handle.close()
-            self._handle = None
+            if self._enabled and self._handle:
+                self.prof("END")
+                self.flush(verbose=False)
+                self._handle.close()
+                self._handle = None
+
+        except:
+            pass
 
 
     # --------------------------------------------------------------------------
@@ -684,7 +689,7 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
             assert(uid),   'cannot advance w/o uid'
 
             # this is a state transition event
-            event[EVENT] = 'state'  
+            event[EVENT] = 'state'
 
             skip = False
             if state in state_final and state != state_canceled:

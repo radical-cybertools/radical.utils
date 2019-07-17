@@ -2,7 +2,7 @@
 
 __author__    = 'RADICAL Team'
 __email__     = 'radical@rutgers.edu'
-__copyright__ = 'Copyright 2013-16, RADICAL Research, Rutgers University'
+__copyright__ = 'Copyright 2013-19, RADICAL Research, Rutgers University'
 __license__   = 'MIT'
 
 
@@ -11,6 +11,7 @@ __license__   = 'MIT'
 import re
 import os
 import sys
+import glob
 import shutil
 
 import subprocess as sp
@@ -162,113 +163,36 @@ def read(*rnames):
 
 # ------------------------------------------------------------------------------
 #
-# borrowed from the MoinMoin-wiki installer
-#
-def makeDataFiles(prefix, dir):
-    ''' Create distutils data_files structure from dir
-
-    distutil will copy all file rooted under dir into prefix, excluding
-    dir itself, just like 'ditto src dst' works, and unlike 'cp -r src
-    dst, which copy src into dst'.
-
-    Typical usage:
-        # install the contents of 'wiki' under sys.prefix+'share/moin'
-        data_files = makeDataFiles('share/moin', 'wiki')
-
-    For this directory structure:
-        root
-            file1
-            file2
-            dir
-                file
-                subdir
-                    file
-
-    makeDataFiles('prefix', 'root')  will create this distutil
-    data_files structure:
-        [('prefix', ['file1', 'file2']),
-         ('prefix/dir', ['file']),
-         ('prefix/dir/subdir', ['file'])]
-    '''
-    # Strip 'dir/' from of path before joining with prefix
-    dir = dir.rstrip('/')
-    strip = len(dir) + 1
-    found = []
-
-    # NOTE Python 3: os.path.walk -> os.walk
-    os.walk(dir, visit, (prefix, strip, found))
-    return found
-
-
-def visit(data, dirname, names):
-    ''' Visit directory, create distutil tuple
-
-    Add distutil tuple for each directory using this format:
-        (destination, [dirname/file1, dirname/file2, ...])
-
-    distutil will copy later file1, file2, ... info destination.
-    '''
-    (prefix, strip, found) = data
-    files = []
-    # Iterate over a copy of names, modify names
-    for name in names[:]:
-        path = os.path.join(dirname, name)
-        # Ignore directories -  we will visit later
-        if os.path.isdir(path):
-            # Remove directories we don't want to visit later
-            if isbad(name):
-                names.remove(name)
-            continue
-        elif isgood(name):
-            files.append(path)
-    destination = os.path.join(prefix, dirname[strip:])
-    found.append((destination, files))
-
-
-def isbad(name):
-    ''' Whether name should not be installed '''
-    return (name.startswith('.') or
-            name.startswith('#') or
-            name.endswith('.pickle') or
-            name == 'CVS')
-
-
-def isgood(name):
-    ''' Whether name should be installed '''
-    if not isbad(name):
-        if  name.endswith('.py')   or \
-            name.endswith('.json') or \
-            name.endswith('.tar'):
-            return True
-    return False
-
-
 # FIXME: pip3 bug: binaries files cannot be installed into bin.
 # compile gtod
-# try:
-#     compiler = new_compiler(verbose=1)
-#     objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-#     exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-# except:
-#     with open('bin/radical-utils-gtod', 'w') as fout:
-#         fout.write('#!/usr/bin/env python\n'
-#                    'import time\n'
-#                    'print time.time()\n')
-#         os.chmod('bin/radical-utils-gtod', 0o755)
+try:
+    compiler = new_compiler(verbose=1)
+    objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+    exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+except:
+    with open('bin/radical-utils-gtod', 'w') as fout:
+        fout.write('#!/usr/bin/env python\n'
+                   'import time\n'
+                   'print time.time()\n')
+        os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
 #
-class RunTwine(Command):
-    user_options = []
-    def initialize_options (self) : pass
-    def finalize_options   (self) : pass
-    def run (self) :
-        out,  err, ret = sh_callout('python setup.py sdist upload -r pypi')
-        raise SystemExit(ret)
+if  sys.hexversion < 0x03050000:
+    raise RuntimeError('ERROR: %s requires Python 3.5 or newer' % name)
 
 
 # ------------------------------------------------------------------------------
+#
+df = [('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}'  )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/*.md'    )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/queue/*' )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/pubsub/*'))]
+
+
+# ------------------------------------------------------------------------------
+#
 setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
@@ -304,12 +228,12 @@ setup_args = {
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
-                            # 'bin/radical-utils-gtod',
+                          # 'bin/radical-utils-gtod',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
-                                 'VERSION', 'SDIST', sdist_name]},
+                                 'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
     'install_requires'   : ['wheel',
                             'pyzmq',
@@ -321,11 +245,17 @@ setup_args = {
                             'netifaces',
                             'setproctitle',
                            ],
-    'tests_require'      : ['pytest', 'coverage', 'flake8', 'pudb', 'pylint'],
+    'tests_require'      : ['pytest',
+                            'pylint',
+                            'flake8',
+                            'coverage',
+                            'mock==2.0.0.',
+                            'pudb',
+                           ],
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
-    'data_files'         : makeDataFiles('share/%s/examples/' % name, 'examples'),
-    'cmdclass'           : {'upload': RunTwine},
+    'data_files'         : df,
+    'cmdclass'           : {},
 }
 
 

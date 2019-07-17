@@ -116,7 +116,7 @@ class Thread(mt.Thread):
             # we don't support `arguments`, yet
             self.work_cb = target
 
-        # when cprofile is requested but not available, 
+        # when cprofile is requested but not available,
         # we complain, but continue unprofiled
         self._ru_cprofile = False
         if self._ru_name in os.environ.get('RADICAL_CPROFILE', '').split(':'):
@@ -153,7 +153,7 @@ class Thread(mt.Thread):
         '''
         receive a message from self._ru_endpoint.
 
-        This call is non-blocking: if no message is available, return an empty 
+        This call is non-blocking: if no message is available, return an empty
         string.
         '''
 
@@ -187,7 +187,7 @@ class Thread(mt.Thread):
         requates via `strict=False`.
         '''
 
-        alive  = super(Thread, self).is_alive() 
+        alive  = super(Thread, self).is_alive()
         termed = self._ru_term.is_set()
 
         if strict:
@@ -253,7 +253,7 @@ class Thread(mt.Thread):
         self._ru_local.is_child  = False
 
         # from now on we need to invoke `self.stop()` for clean termination.
-        try: 
+        try:
 
             if self._ru_local.spawned:
                 # we expect an alive message message from the child, within
@@ -305,7 +305,7 @@ class Thread(mt.Thread):
 
         The child thread will automatically terminate (incl. finalizer calls)
         when the parent thread dies. It is thus not possible to create orphaned
-        threads -- which is an explicit purpose of this implementation.  
+        threads -- which is an explicit purpose of this implementation.
         '''
 
         # set local data
@@ -361,7 +361,7 @@ class Thread(mt.Thread):
                 self._ru_log.info('send alive')
                 self._ru_msg_send(_ALIVE_MSG)
 
-            # enter the main loop and repeatedly call 'work_cb()'.  
+            # enter the main loop and repeatedly call 'work_cb()'.
             #
             # If `work_cb()` ever returns `False`, we break out of the loop to
             # call the finalizers and terminate.
@@ -383,8 +383,8 @@ class Thread(mt.Thread):
 
         except BaseException as e:
 
-            # This is a very global except, also catches 
-            # sys.exit(), keyboard interrupts, etc.  
+            # This is a very global except, also catches
+            # sys.exit(), keyboard interrupts, etc.
             # Ignore pylint and PEP-8, we want it this way!
             self._ru_log.exception('abort: %s', repr(e))
             self._ru_msg_send(repr(e))
@@ -417,7 +417,7 @@ class Thread(mt.Thread):
               wanted.
         '''
 
-        # FIXME: This method should reduce to 
+        # FIXME: This method should reduce to
         #           self.terminate(timeout)
         #           self.join(timeout)
         #        ie., we should move some parts to `terminate()`.
@@ -472,7 +472,7 @@ class Thread(mt.Thread):
       # we can't really raise the exception above, as that would break symmetry
       # with the Process class -- see documentation there.
       #
-      # FIXME: not that `join()` w/o `stop()` will not call the parent 
+      # FIXME: not that `join()` w/o `stop()` will not call the parent
       #        finalizers.  We should call those in both cases, but only once.
 
         if not hasattr(self._ru_local, 'name'):
@@ -595,7 +595,7 @@ class Thread(mt.Thread):
     #
     def _ru_finalize(self):
         '''
-        Call common and parent/child initializers.  
+        Call common and parent/child initializers.
 
         Note that finalizers are called in inverse order of initializers.
         '''
@@ -750,7 +750,7 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __enter__(self)                        : self.acquire() 
+    def __enter__(self)                        : self.acquire()
     def __exit__ (self, type, value, traceback): self.release()
 
 
@@ -857,7 +857,7 @@ def cancel_main_thread(signame=None, once=False):
     from the main thread.
 
     When being called *from* the main thread, no interrupt will be generated,
-    but sys.exit() will still be called.  This can be excepted in the code via 
+    but sys.exit() will still be called.  This can be excepted in the code via
     `except SystemExit`.
 
     Another way to avoid the SIGINT problem is to send a different signal to the
@@ -913,7 +913,7 @@ def cancel_main_thread(signame=None, once=False):
 # exception, which can be caught by any interested library or application.
 #
 # RU claims ownership of `SIGUSR2` -- it will complain if any other signal
-# handler is installed for that signal.  
+# handler is installed for that signal.
 #
 # This method can safely be called multiple times.  This method can be called
 # from threads, but it will have no effect then (Python allows signal handlers
@@ -1021,13 +1021,13 @@ class SignalRaised(SystemExit):
 #
 def raise_in_thread(e=None, tname=None, tident=None):
     """
-    This method uses an internal Python function to inject an exception 'e' 
+    This method uses an internal Python function to inject an exception 'e'
     into any given thread.  That thread can be specified by its name ('tname')
     or thread id ('tid').  If not specified, the exception is sent to the
     MainThread.
 
     The target thread will receive the exception with some delay.  More
-    specifically, it needs to call up to 100 op codes before the exception 
+    specifically, it needs to call up to 100 op codes before the exception
     is evaluated and raised.  The thread interruption can thus be delayed
     significantly, like when the thread sleeps.
 
@@ -1036,7 +1036,7 @@ def raise_in_thread(e=None, tname=None, tident=None):
 
     NOTE: this is not reliable: the exception is not raised immediately, but is
           *scheduled* for raising at some point, ie. in general after about 100
-          opcodes (`sys.getcheckinterval()`).  Depending on when exactly the 
+          opcodes (`sys.getcheckinterval()`).  Depending on when exactly the
           exception is finally raised, the interpreter might silently swallow
           it, if that happens in a generic try/except clause.  Those exist in
           the Python core, even if discouraged by some PEP or the other.
@@ -1086,13 +1086,13 @@ def raise_in_thread(e=None, tname=None, tident=None):
 
     self_thread = mt.current_thread()
     if self_thread.ident == tident:
-        # if we are in the target thread, we simply raise the exception.  
+        # if we are in the target thread, we simply raise the exception.
         # This specifically also applies to the main thread.
         # Alas, we don't have a decent message to use...
         raise e('raise_in_thread')
 
     else:
-        # otherwise we inject the exception into the main thread's async 
+        # otherwise we inject the exception into the main thread's async
         # exception scheduler
         import ctypes
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tident),
