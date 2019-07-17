@@ -329,6 +329,9 @@ class Logger(object):
         self._level   = level
         self._targets = targets
 
+        # backward compatibility
+        self._logger.warn = self._logger.warning
+
 
     # --------------------------------------------------------------------------
     #
