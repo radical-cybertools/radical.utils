@@ -10,7 +10,7 @@ import datetime
 import itertools
 import netifaces
 
-from .         import url       as ruu
+from .url      import Url
 from .ru_regex import ReString
 
 
@@ -26,10 +26,10 @@ def split_dburl(dburl, default_dburl=None):
     # if the given URL does not contain schema nor host, the default URL is used
     # as base, and the given URL string is appended to the path element.
 
-    url = ruu.Url(dburl)
+    url = Url(dburl)
 
     if not url.schema and not url.host:
-        url      = ruu.Url(default_dburl)
+        url      = Url(default_dburl)
         url.path = dburl
 
     # NOTE: add other data base schemes here...

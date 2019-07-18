@@ -56,9 +56,11 @@ from .misc           import *
 from .algorithms     import *
 from .profile        import *
 from .proxy          import *
-from .which          import which
+from .sh             import *
+from .which          import which, which_of
 from .tracer         import trace, untrace
 from .get_version    import get_version
+
 
 # import decorators
 from .timing         import timed_method, epoch, dt_epoch

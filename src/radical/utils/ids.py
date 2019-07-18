@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
 
+import re
 import os
 import time
 import uuid
@@ -11,9 +12,9 @@ import fcntl
 import socket
 import datetime
 import threading
-import singleton
 
-from .misc import dockerized, get_radical_base
+from .misc      import dockerized, get_radical_base
+from .singleton import Singleton
 
 TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
 TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
@@ -31,7 +32,7 @@ class _IDRegistry(object):
     thread safe construction).
     """
 
-    __metaclass__ = singleton.Singleton
+    __metaclass__ = Singleton
 
 
     # --------------------------------------------------------------------------
@@ -99,7 +100,7 @@ ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
+def generate_id(prefix, mode=ID_SIMPLE, namespace=None, base=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -185,18 +186,13 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
     else: raise ValueError("unsupported mode '%s'", mode)
 
-    return _generate_id(template, prefix, namespace)
-
-
-# ------------------------------------------------------------------------------
-#
-def _generate_id(template, prefix, namespace=None):
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
 
-    import getpass
+    if not base:
+        base = _BASE
 
     state_dir = _BASE
     if namespace:
@@ -213,6 +209,7 @@ def _generate_id(template, prefix, namespace=None):
     days    = int(seconds / (60 * 60 * 24))
 
     try:
+        import getpass
         user = getpass.getuser()
     except Exception:
         user = 'nobody'
@@ -231,33 +228,30 @@ def _generate_id(template, prefix, namespace=None):
     info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
     info['pid'         ] = os.getpid()
 
-    # the following ones are time consuming, and only done when needed
-    if '%(host)' in template: info['host'] = socket.gethostname()  # localhost
-    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # plain uuid
+    # hostname query and proper uuid are time consuming, only done when needed
+    if '%(host)' in template: info['host'] = socket.gethostname()
+    if '%(uuid)' in template: info['uuid'] = uuid.uuid1()
 
     # FIXME: os.open should be scoped in a `with` clause, or in
     #        a `try/except/finally` clause
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days),
-                                          os.O_RDWR | os.O_CREAT)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, days)
+        fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET )
-        data = os.read(fd, 256)
-        if not data: data = 0
-        info['day_counter'] = int(data)
+        info['day_counter'] = int(os.read(fd, 256) or 0)
         os.lseek(fd, 0, os.SEEK_SET )
         os.write(fd, "%d\n" % (info['day_counter'] + 1))
         os.close(fd)
 
     if '%(item_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, prefix),
-                                          os.O_RDWR | os.O_CREAT)
+        tmp   = re.sub('\.?%\(.*?\).*?[sdf]', '', prefix)
+        fname = "%s/ru_%s_%s.cnt" % (state_dir, user, tmp)
+        fd    = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
-        data = os.read(fd, 256)
-        if not data: data = 0
-        info['item_counter'] = int(data)
+        info['item_counter'] = int(os.read(fd, 256) or 0)
         os.lseek(fd, 0, os.SEEK_SET)
         os.write(fd, "%d\n" % (info['item_counter'] + 1))
         os.close(fd)
@@ -268,15 +262,7 @@ def _generate_id(template, prefix, namespace=None):
     ret = template % info
 
     if '%(' in ret:
-      # import pprint
-      # pprint.pprint(info)
-      # print template
-      # print ret
         raise ValueError('unknown pattern in template (%s)' % template)
-
-    if 'client_notify' in ret and 'get' in ret:
-        from .debug import print_stacktrace
-        print_stacktrace(ret)
 
     return ret
 
