@@ -18,8 +18,7 @@
 #     immediately terminate itself if an incorrect secret is provided.  That
 #     secret will never live on the disk (but can be spotted via `/proc`.
 #
-# TODO: A  better security measures will be needed for production use:
-#       use named pipe in `$TMP` and apply unix FS auth mechanisms.
+# TODO: consult someone
 #
 #
 # Implementation
@@ -34,8 +33,8 @@
 #     - /bin/sh as sh, bash, dash
 #   - check if a nc_sh_service is already active on this host (for this user,
 #     from the originating host).  If so, check if the nc shell is still alive.
-#     If so, don't start a new shell, but reconnect to it, and return the EP.
-#     FIXME: can that lead to duplicated connections?
+#     If so, reconnect to it, and return the EP.
+#     FIXME: session uses syn I/O, only one client can access at any time
 #   - check if secure shell wrapper script exists in $RUSH_HOME
 #     (sec_shell_wrapper.sh).  Create it if not.
 #   - create a unique named fifo in $RUSH_HOME (fifo_$$)
@@ -49,25 +48,29 @@
 # and managed shell endpoint.  This can be used to further bootstrap the Python
 # and ZMQ layer for async command execution.
 #
-# FIXME: we should also check if that ZMQ layer already exists andis running,
-#        because we can skip most of the above in that case and then return
-#        the ZMQ endpoint.
+# FIXME: check if that ZMQ layer already exists and is running, because we can
+#        skip most of the above in that case and then return the ZMQ endpoint.
 #
-# FIXME: Do we need to lock against concurrent incarnations of this script?
+# FIXME: lock against concurrent incarnations of this script?
 #
 
 SECRET="$1"
-ORIGIN="$2"
+RUSH_ID="$2"  # unique ID for
+RUSH_H="$3"   # overwrites $RUSH_HOME
+RUSH_T="$3"   # overwrites $RUSH_TMP
+
+test -z "$RUSH_H" || RUSH_HOME="$RUSH_H"
+test -z "$RUSH_T" || RUSH_TMP="$RUSH_T"
 
 
 # ------------------------------------------------------------------------------
 #
 # make sure we have all env settings we need
 #
-test -z "$UID"       && UID=$(id -u)
+test -z "$USER"      && USER=$(id -u)
 test -z "$TMP"       && TMP="/tmp/"
+test -z "$RUSH_HOME" && RUSH_HOME="$HOME/ru.sh.$USER/"
 test -z "$RUSH_TMP"  && RUSH_TMP="$TMP/.radical/ru.sh/"
-test -z "$RUSH_HOME" && RUSH_HOME="$HOME/ru.sh.$UID/"
 
 mkdir -p "$RUSH_TMP"
 mkdir -p "$RUSH_HOME"
@@ -126,7 +129,7 @@ used=$(netstat -lnt | awk '{print $4}' | awk -F : '{printf " %s ", $2}')
 
 # create a fifo to put the shell behind
 mkdir -p "$RUSH_HOME"
-FIFO="$RUSH_HOME/ru_${UID}_$$.fifo"
+FIFO="$RUSH_HOME/ru_${USER}_$$.fifo"
 rm -f $FIFO; mkfifo $FIFO
 
 # loop over the portrange (excl. used ports) until we find a usable one
