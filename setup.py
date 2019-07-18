@@ -167,7 +167,6 @@ try:
 except Exception as e:
     print 'gtod compile failed: %s' % repr(e)
     with open('bin/radical-utils-gtod', 'w') as fout:
-      # fout.write('#!/bin/sh\n\ndate "+%s.%N"\n\n')
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
                    'print time.time()\n')
