@@ -162,9 +162,10 @@ def read(*rnames):
 # compile gtod
 try:
     compiler = new_compiler(verbose=1)
-    objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-    exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-except:
+    objs     = compiler.compile(sources=['src/radical/utils/gtod.c'])
+    exe      = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+except Exception as e:
+    print 'gtod compile failed: %s' % repr(e)
     with open('bin/radical-utils-gtod', 'w') as fout:
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
