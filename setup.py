@@ -169,7 +169,7 @@ except:
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
                    'print time.time()\n')
-        os.chmod('bin/radical-utils-gtod', 0o755)
+    os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
