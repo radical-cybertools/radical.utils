@@ -59,14 +59,18 @@ def test_lockfile_timer():
             fd1   = None
             start = time.time()
             with pytest.raises(RuntimeError):
-                fd1 = ru.Lockfile(fname, timeout=1.1)
+                fd1 = ru.Lockfile(fname)
+                fd1.acquire(timeout=1.1)
 
             stop = time.time()
             assert(stop - start > 1.1)
             assert(stop - start < 1.2)
 
             if fd1:
-                fd1.close()
+                try:
+                    fd1.release()
+                except:
+                    pass
     finally:
         try:
             os.unlink(fname)

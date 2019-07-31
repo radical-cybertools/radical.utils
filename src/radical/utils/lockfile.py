@@ -43,33 +43,30 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, fname, timeout=None):
+    def __init__(self, fname):
 
         self._fname   = fname
-        self._timeout = timeout
         self._fd      = None
-
-        self._open()
 
 
     # --------------------------------------------------------------------------
     #
     def __enter__(self):
 
+        self.acquire()
         return self
 
 
     # --------------------------------------------------------------------------
     #
-    def __exit__(self, foo, bar,  baz):
+    def __exit__(self, foo, bar, baz):
 
-        if self._fd:
-            return self.close()
+        return self.release()
 
 
     # --------------------------------------------------------------------------
     #
-    def _open(self):
+    def acquire(self, timeout=None):
 
         if self._fd:
             raise RuntimeError('cannot call open twice')
@@ -92,16 +89,16 @@ class Lockfile(object):
                 # try again
                 pass
 
-            if self._timeout is None:
+            if timeout is None:
                 break  # stop trying
 
             now = time.time()
-            if now - start > self._timeout:
+            if now - start > timeout:
                 # FIXME: in python 3, this should become a TimeoutError
                 raise RuntimeError('lock timeout for %s' % self._fname)
 
-
             time.sleep(0.1)
+
 
         if not self._fd:
             raise RuntimeError('failed to lock %s' % self._fname)
@@ -109,7 +106,7 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
-    def close(self):
+    def release(self):
 
         if not self._fd:
             raise ValueError('lockfile is not open')
