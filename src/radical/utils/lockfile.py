@@ -1,8 +1,9 @@
 
-
 import os
 import time
 import fcntl
+
+import threading as mt
 
 
 # ------------------------------------------------------------------------------
@@ -45,8 +46,9 @@ class Lockfile(object):
     #
     def __init__(self, fname):
 
-        self._fname   = fname
-        self._fd      = None
+        self._fname = fname
+        self._fd    = None
+        self._tlock = mt.Lock()
 
 
     # --------------------------------------------------------------------------
@@ -68,50 +70,54 @@ class Lockfile(object):
     #
     def acquire(self, timeout=None):
 
-        if self._fd:
-            raise RuntimeError('cannot call open twice')
+        with self._tlock:
 
-        start = time.time()
-        while True:
+            if self._fd:
+                raise RuntimeError('cannot call open twice')
 
-            try:
-                fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
-                ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            start = time.time()
+            while True:
 
-                if not ret:
-                    self._fd = fd
-                    break  # fd should be valid and locked
+                try:
+                    fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
+                    ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
-                else:  # try again
-                    os.close(fd)
+                    if not ret:
+                        self._fd = fd
+                        break  # fd should be valid and locked
 
-            except IOError:
-                # try again
-                pass
+                    else:  # try again
+                        os.close(fd)
 
-            if timeout is None:
-                break  # stop trying
+                except IOError:
+                    # try again
+                    pass
 
-            now = time.time()
-            if now - start > timeout:
-                # FIXME: in python 3, this should become a TimeoutError
-                raise RuntimeError('lock timeout for %s' % self._fname)
+                if timeout is None:
+                    break  # stop trying
 
-            time.sleep(0.1)
+                now = time.time()
+                if now - start > timeout:
+                    # FIXME: in python 3, this should become a TimeoutError
+                    raise RuntimeError('lock timeout for %s' % self._fname)
+
+                time.sleep(0.1)
 
 
-        if not self._fd:
-            raise RuntimeError('failed to lock %s' % self._fname)
+            if not self._fd:
+                raise RuntimeError('failed to lock %s' % self._fname)
 
 
     # --------------------------------------------------------------------------
     #
     def release(self):
 
-        if not self._fd:
-            raise ValueError('lockfile is not open')
+        with self._tlock:
+            if not self._fd:
+                raise ValueError('lockfile is not open')
 
-        os.close(self._fd)
+            os.close(self._fd)
+            self._fd = None
 
 
     # --------------------------------------------------------------------------
