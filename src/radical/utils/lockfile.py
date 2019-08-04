@@ -110,6 +110,18 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
+    def locked(self):
+
+        with self._tlock:
+
+            if self._fd:
+                return True
+
+            return False
+
+
+    # --------------------------------------------------------------------------
+    #
     def release(self):
 
         with self._tlock:

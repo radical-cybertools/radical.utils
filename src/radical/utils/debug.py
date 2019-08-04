@@ -225,6 +225,7 @@ def print_exception_trace(msg=None):
     out += "--------------\n"
 
     sys.stdout.write(out)
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -293,7 +294,7 @@ def raise_on(tag, log=None, msg=None):
     """
     The purpose of this method is to artificially trigger error conditions for
     testing purposes, for example when handling the n'th unit, getting the n'th
-    heartbeat signal, etc.  
+    heartbeat signal, etc.
 
     The tag parameter is interpreted as follows: on the `n`'th invocation of
     this method with any given `tag`, an exception is raised, and the counter
