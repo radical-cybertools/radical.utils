@@ -71,6 +71,17 @@ def test_lockfile_timer():
                     fd1.release()
                 except:
                     pass
+
+        start = time.time()
+        fd1 = ru.Lockfile(fname)
+        fd1.acquire(timeout=1.1)
+
+        stop = time.time()
+        assert(stop - start >= 0.0)
+        assert(stop - start <= 0.1)
+
+        fd1.release()
+
     finally:
         try:
             os.unlink(fname)
