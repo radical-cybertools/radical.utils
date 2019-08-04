@@ -70,17 +70,24 @@ class Lockfile(object):
     #
     def acquire(self, timeout=None):
 
+        print 'flock acquire'
+
         with self._tlock:
 
+            print 'check: %s' % self._fd
             if self._fd:
+                print 'twice?: %s' % self._fd
                 raise RuntimeError('cannot call open twice')
 
             start = time.time()
             while True:
 
+                print 'try: %s' % self._fd
                 try:
                     fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
+                    print 'fd : %s' % fd
                     ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    print 'ret: %s' % ret
 
                     if not ret:
                         self._fd = fd
@@ -89,15 +96,20 @@ class Lockfile(object):
                     else:  # try again
                         os.close(fd)
 
-                except IOError:
+                except IOError as e:
+                    print 'nope io: %s: %s' % (self._fd, e)
+                    if fd:
+                        os.close(fd)
                     # try again
                     pass
 
                 if timeout is None:
+                    print 'nope to: %s' % self._fd
                     break  # stop trying
 
                 now = time.time()
                 if now - start > timeout:
+                    print 'to: %s' % self._fd
                     # FIXME: in python 3, this should become a TimeoutError
                     raise RuntimeError('lock timeout for %s' % self._fname)
 
@@ -124,12 +136,15 @@ class Lockfile(object):
     #
     def release(self):
 
+        print 'flock release'
         with self._tlock:
             if not self._fd:
                 raise ValueError('lockfile is not open')
 
+            fcntl.flock(self._fd, fcntl.LOCK_UN)
             os.close(self._fd)
             self._fd = None
+        print 'flock released'
 
 
     # --------------------------------------------------------------------------
