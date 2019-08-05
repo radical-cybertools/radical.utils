@@ -70,54 +70,46 @@ class Lockfile(object):
     #
     def acquire(self, timeout=None):
 
-        print 'flock acquire'
-
         with self._tlock:
 
-            print 'check: %s' % self._fd
             if self._fd:
-                print 'twice?: %s' % self._fd
                 raise RuntimeError('cannot call open twice')
 
             start = time.time()
             while True:
 
-                print 'try: %s' % self._fd
                 try:
-                    fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
-                    print 'fd : %s' % fd
+                    fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT, 0o600)
                     ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    print 'ret: %s' % ret
 
                     if not ret:
+                        # fd is be valid and locked
                         self._fd = fd
-                        break  # fd should be valid and locked
+                        return True
 
-                    else:  # try again
-                        os.close(fd)
+                    else:
+                        # try again
+                        if fd:
+                            os.close(fd)
+                        continue
 
-                except IOError as e:
-                    print 'nope io: %s: %s' % (self._fd, e)
+                except IOError:
+                    # try again
                     if fd:
                         os.close(fd)
-                    # try again
-                    pass
+                    continue
 
                 if timeout is None:
-                    print 'nope to: %s' % self._fd
-                    break  # stop trying
+                    continue  # never stop trying
 
                 now = time.time()
                 if now - start > timeout:
-                    print 'to: %s' % self._fd
-                    # FIXME: in python 3, this should become a TimeoutError
-                    raise RuntimeError('lock timeout for %s' % self._fname)
+                    # timed out
+                    return False
 
                 time.sleep(0.1)
 
-
-            if not self._fd:
-                raise RuntimeError('failed to lock %s' % self._fname)
+            assert(False), 'should never get here'
 
 
     # --------------------------------------------------------------------------
@@ -136,7 +128,6 @@ class Lockfile(object):
     #
     def release(self):
 
-        print 'flock release'
         with self._tlock:
             if not self._fd:
                 raise ValueError('lockfile is not open')
@@ -144,7 +135,6 @@ class Lockfile(object):
             fcntl.flock(self._fd, fcntl.LOCK_UN)
             os.close(self._fd)
             self._fd = None
-        print 'flock released'
 
 
     # --------------------------------------------------------------------------
@@ -182,6 +172,14 @@ class Lockfile(object):
             raise ValueError('lockfile is not open')
 
         return os.lseek(self._fd, pos, how)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def remove(self):
+
+        try:    os.unlink(self._fname)
+        except: pass
 
 
 # ------------------------------------------------------------------------------
