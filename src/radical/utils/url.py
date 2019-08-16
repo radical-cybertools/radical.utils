@@ -5,6 +5,7 @@ __license__   = "MIT"
 
 
 import os
+import socket
 
 import contrib.urlparse25 as urlparse
 import signatures         as rus
@@ -46,11 +47,11 @@ class Url (object):
 
     # --------------------------------------------------------------------------
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   rus.optional ((basestring, 'Url')))
     @rus.returns (rus.nothing)
     def __init__(self, url_in=''):
-        """ 
+        """
         __init__(url_in='')
 
         Create a new Url object from a string or another Url object.
@@ -81,7 +82,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns (basestring)
     def __unicode__(self):
-        """ 
+        """
         __unicode__()
 
         Unicode representation.
@@ -92,11 +93,11 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     ##
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   ('Url', dict))
     @rus.returns ('Url')
     def __deepcopy__(self, memo):
-        """ 
+        """
         __deepcopy__(self, memo)
 
         Deep copy of a Url
@@ -120,14 +121,14 @@ class Url (object):
     # --------------------------------------------------------------------------
     #
     ##
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   rus.optional(basestring),
                   rus.optional(basestring),
                   rus.optional(basestring),
                   rus.optional((basestring, int)))
     @rus.returns (basestring)
     def _make_netloc (self, username, password, hostname, port):
-        """ 
+        """
         _make_netloc(self, username, password, hostname, port)
 
         Private helper function to generate netloc string.
@@ -153,10 +154,10 @@ class Url (object):
         self._renew_url (netloc=newloc)
 
 
-    def _renew_url (self, scheme='', netloc='', path='', 
+    def _renew_url (self, scheme='', netloc='', path='',
                           params='', query='',  fragment='', force_path=False) :
 
-        # always normalize the path.  
+        # always normalize the path.
         path = self.normpath(path)
 
         if  force_path :
@@ -179,7 +180,7 @@ class Url (object):
 
         if  path :
 
-            # Alas, os.path.normpath removes trailing slashes, 
+            # Alas, os.path.normpath removes trailing slashes,
             # so we re-add them.
             if len(path) > 1 and path.endswith('/'):
                 trailing_slash=True
@@ -202,11 +203,11 @@ class Url (object):
     #
     # Scheme property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_scheme(self, scheme):
-        """ 
+        """
         set_scheme(scheme)
 
         Set the URL 'scheme' component.
@@ -237,11 +238,11 @@ class Url (object):
     #
     # Host property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_host(self, hostname):
-        """ 
+        """
         set_host(hostname)
 
         Set the 'hostname' component.
@@ -255,7 +256,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
     def get_host(self):
-        """ 
+        """
         get_host()
 
         Return the URL 'hostname' component.
@@ -270,11 +271,11 @@ class Url (object):
     #
     # Port property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring, int))
     @rus.returns (rus.nothing)
     def set_port(self, port):
-        """ 
+        """
         set_port(port)
 
         Set the URL 'port' component.
@@ -288,7 +289,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, int))
     def get_port(self):
-        """ 
+        """
         get_port()
 
         Return the URL 'port' component.
@@ -306,11 +307,11 @@ class Url (object):
     #
     # Username property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_username(self, username):
-        """ 
+        """
         set_username(username)
 
         Set the URL 'username' component.
@@ -323,7 +324,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
     def get_username(self):
-        """ 
+        """
         get_username()
 
         Return the URL 'username' component.
@@ -338,11 +339,11 @@ class Url (object):
     #
     # Password property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_password(self, password):
-        """ 
+        """
         set_password(password)
 
         Set the URL 'password' component.
@@ -355,7 +356,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
     def get_password(self):
-        """ 
+        """
         get_password()
 
         Return the URL 'username' component.
@@ -370,11 +371,11 @@ class Url (object):
     #
     # Fragment property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_fragment(self, fragment):
-        """ 
+        """
         set_fragment(fragment)
 
         Set the URL 'fragment' component.
@@ -387,7 +388,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
     def get_fragment(self):
-        """ 
+        """
         get_fragment()
 
         Return the URL 'fragment' component.
@@ -402,11 +403,11 @@ class Url (object):
     #
     # Path property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_path(self, path):
-        """ 
+        """
         set_path(path)
 
         Set the URL 'path' component.
@@ -419,7 +420,7 @@ class Url (object):
     @rus.takes   ('Url')
     @rus.returns ((rus.nothing, basestring))
     def get_path(self):
-        """ 
+        """
         get_path()
 
         Return the URL 'path' component.
@@ -440,11 +441,11 @@ class Url (object):
     #
     # Query property
     #
-    @rus.takes   ('Url', 
+    @rus.takes   ('Url',
                   (rus.nothing, basestring))
     @rus.returns (rus.nothing)
     def set_query(self, query):
-        """ 
+        """
         set_query(query)
 
         Set the URL 'query' component.
@@ -471,9 +472,34 @@ class Url (object):
 
     query = property(get_query, set_query)
     """ The query component.  """
-   
+
+
+    # --------------------------------------------------------------------------
+    #
+    # Utility methods
+    #
+    def is_local(self):
+        '''
+        Returns True if the given urls applies to localhost
+        '''
+
+        host = self.host
+
+        if  not host:
+            return True
+
+        elif host == 'localhost':
+            return True
+
+        else:
+            sockhost = socket.gethostname()
+            while sockhost:
+                if host == sockhost:
+                    return True
+                sockhost = '.'.join(sockhost.split('.')[1:])
+
+        return False
+
 
 # --------------------------------------------------------------------
-#
-
 
