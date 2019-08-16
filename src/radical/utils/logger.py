@@ -41,7 +41,7 @@ import colorama
 import logging
 
 
-from   .atfork  import *
+from   .atfork  import atfork
 from   .misc    import get_env_ns       as ru_get_env_ns
 from   .misc    import import_module    as ru_import_module
 from   .config  import DefaultConfig
@@ -53,7 +53,7 @@ ERROR    = logging.ERROR
 WARNING  = logging.WARNING
 WARN     = logging.WARNING
 INFO     = logging.INFO
-DEBUG    = logging.DEBUG   
+DEBUG    = logging.DEBUG
 OFF      = -1
 
 
@@ -97,7 +97,7 @@ _logger_registry = _LoggerRegistry()
 def _after_fork():
 
     _logger_registry.release_all()
-    logging._lock = threading.RLock()
+    logging._lock = threading.RLock()                                     # noqa
 
 
 # ------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ class FSHandler(logging.FileHandler):
 #
 class Logger(object):
 
-    def __init__(self, name, ns=None, path=None, targets=None, level=None, 
+    def __init__(self, name, ns=None, path=None, targets=None, level=None,
                  verbose=False):
 
         ru_def = DefaultConfig()
@@ -303,18 +303,18 @@ class Logger(object):
 
                 mod = ru_import_module(name)
                 if hasattr(mod, 'version_detail'):
-                    self._logger.info("%-20s version: %s", 
+                    self._logger.info("%-20s version: %s",
                                       name, getattr(mod, 'version_detail'))
 
                 elif hasattr(mod, 'version'):
-                    self._logger.info("%-20s version: %s", 
+                    self._logger.info("%-20s version: %s",
                                       name, getattr(mod, 'version'))
             except:
                 pass
 
             # also log pid and tid
             try:
-                self._logger.info("%-20s pid/tid: %s/%s", '', os.getpid(), 
+                self._logger.info("%-20s pid/tid: %s/%s", '', os.getpid(),
                             threading.current_thread().name)
             except:
                 pass
