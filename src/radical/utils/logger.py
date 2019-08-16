@@ -97,7 +97,7 @@ _logger_registry = _LoggerRegistry()
 def _after_fork():
 
     _logger_registry.release_all()
-    logging._lock = threading.RLock()                                     # noqa
+    logging._lock = threading.RLock()         # pylint: disable=protected-access
 
 
 # ------------------------------------------------------------------------------
