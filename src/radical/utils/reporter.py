@@ -138,7 +138,7 @@ class Reporter(object):
         self._line_len = int(ru_get_env_ns('report_llen', ns, default=80))
 
 
-        if not path: 
+        if not path:
             path = os.getcwd()
 
         if not targets:
@@ -158,6 +158,11 @@ class Reporter(object):
             except:
                 # dir exists
                 pass
+
+        self._prog_tgt = None
+        self._prog_cnt = 0
+        self._prog_pos = 0
+        self._prog_off = 0
 
         self._pos      = 0
         self._settings = {'title'    : {'color'   : self.TITLE,
@@ -426,14 +431,50 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def progress(self, msg=''):
+    def progress_tgt(self, tgt=None):
+
+        front = '%d: ' % tgt
+
+        self._prog_len = self._line_len - len(front)
+        self._prog_tgt = tgt
+        self._prog_cnt = 0
+        self._prog_pos = 0
+
+        self._format(front, self._settings['progress'])
+
+
+    # --------------------------------------------------------------------------
+    #
+    def progress_done(self):
+
+        self._prog_tgt = None
+        self._prog_cnt = 0
+        self._prog_pos = 0
+        self._format('\n', self._settings['progress'])
+
+
+    # --------------------------------------------------------------------------
+    #
+    def progress(self, msg=None):
 
         if not self._enabled:
             return
 
-        if not msg:
-            msg = '.'
-        self._format(msg, self._settings['progress'])
+        if self._prog_tgt:
+            self._prog_cnt += 1
+
+            val  = int(self._prog_cnt * self._prog_len / self._prog_tgt)
+
+            while val > self._prog_pos:
+                self._prog_pos += 1
+                self._format('#', self._settings['progress'])
+
+        else:
+
+            if not msg:
+                msg = '.'
+
+            self._format(msg, self._settings['progress'])
 
 
     # --------------------------------------------------------------------------
