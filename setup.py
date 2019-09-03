@@ -205,6 +205,7 @@ setup_args = {
     'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
     'license'            : 'MIT',
     'keywords'           : 'radical utils',
+    'python_requires'    : '>=3.5',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
