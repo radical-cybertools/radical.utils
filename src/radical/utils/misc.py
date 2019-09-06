@@ -715,7 +715,14 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__._path                       # pylint: disable=W0212
+    path = radical.__path__
+    if isinstance(path, list):
+        path = path[0]
+
+    if isinstance(path, str):
+        rpath = path
+    else:
+        rpath = path._path                               # pylint: disable=W0212
 
     if isinstance(rpath, list):
         rpath = rpath[0]
@@ -723,7 +730,6 @@ def stack():
     for mpath in glob.glob('%s/*' % rpath):
 
         if os.path.isdir(mpath):
-
             mname = 'radical.%s' % os.path.basename(mpath)
             try:    ret['radical'][mname] = import_module(mname).version_detail
             except: ret['radical'][mname] = '?'
