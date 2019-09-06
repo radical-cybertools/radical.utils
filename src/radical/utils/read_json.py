@@ -39,7 +39,7 @@ def read_json_str(filename):
     strings.
     '''
 
-    return _to_strings(read_json(filename))
+    return to_string(read_json(filename))
 
 
 # ------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ def write_json(data, filename):
 
 
     with open(filename, 'w') as f:
-        json.dump(_to_bytes(data), f, sort_keys=True, indent=4, ensure_ascii=False)
+        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
         f.write('\n')
 
 
@@ -86,18 +86,18 @@ def parse_json_str(json_str):
     same as parse_json, but converts unicode strings to simple strings
     '''
 
-    return _to_strings(parse_json(json_str))
+    return to_string(parse_json(json_str))
 
 
 # ------------------------------------------------------------------------------
 #
-def _to_strings(data):
+def to_string(data):
 
     if isinstance(data, dict):
-        return {_to_strings(k): _to_strings(v) for k,v in data.items()}
+        return {to_string(k): to_string(v) for k,v in data.items()}
 
     elif isinstance(data, list):
-        return [_to_strings(e) for e in data]
+        return [to_string(e) for e in data]
 
     elif isinstance(data, bytes):
         return bytes.decode(data, 'utf-8')
@@ -109,13 +109,13 @@ def _to_strings(data):
 # ------------------------------------------------------------------------------
 # thanks to
 # http://stackoverflow.com/questions/956867/#13105359
-def _to_bytes(data):
+def to_byte(data):
 
     if isinstance(data, dict):
-        return {_to_bytes(k): _to_bytes(v) for k,v in data.items()}
+        return {to_byte(k): to_byte(v) for k,v in data.items()}
 
     elif isinstance(data, list):
-        return [_to_bytes(e) for e in data]
+        return [to_byte(e) for e in data]
 
     elif isinstance(data, str):
         return str.encode(data, 'utf-8')
