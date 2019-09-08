@@ -268,8 +268,7 @@ def remove_common_prefix(data, extend=0):
 #   # operations.  For example, the same setup for 128k tasks results in 25
 #   # failed scheduling attempts (0.01%).
 #   #
-#   scheduled = list()
-#   failed    = list()
+#   failed = list()
 #   def schedule(n):
 #       if n in [61, 62, 63, 65]    or \
 #          n in list(range(22, 42)) or \
@@ -281,13 +280,15 @@ def remove_common_prefix(data, extend=0):
 #           return False  # schedule failed
 #
 #   tasks = list(range(128 * 1024))
-#   tasks = lazy_bisect(tasks, schedule)
+#   good, bad = lazy_bisect(tasks, schedule)
 #
 #   assert(len(failed) == 25))
-#   for task in tasks:
+#   for task in good:
+#       assert(schedule(task) is True)
+#       task not in bad
+#   for task in bad:
 #       assert(schedule(task) is False)
-#   for task in scheduled:
-#       task not in tasks
+#       task not in good
 #   # --------------------------------------------------------------------------
 
 
@@ -306,6 +307,9 @@ def lazy_bisect(data, check, ratio=0.5):
     Note that this is only a bisect if `ratio` is set at `0.5` - otherwise the
     search will back off through the list faster (1.0 >= ratio > 0.5) or slower
     (0.5 > ratio >= 0.0) than bisect.
+
+    The method returns two lists, a list with elements of data which were
+    checked `good`, and a list of elements checked as `bad`.
     '''
 
     if ratio > 1.0: ratio = 1.0
@@ -465,7 +469,8 @@ def lazy_bisect(data, check, ratio=0.5):
   #     if  x        not in data                     : print '?%d' % x
 
     # return list of all bad elements
-    return check_bad
+    assert(len(data) == len(check_good) + len(check_bad))
+    return check_good, check_bad
 
 
 # ------------------------------------------------------------------------------
