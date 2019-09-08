@@ -214,12 +214,12 @@ def remove_common_prefix(data, extend=0):
 
 # ------------------------------------------------------------------------------
 #
-# Assume we want to schedule a set of tasks over a set of reosurces.  To
+# Assume we want to schedule a set of tasks over a set of resources.  To
 # maximize utilization, we want to place the largest tasks first and fill the
 # gap with small tasks, thus we sort the list of tasks by size and schedule
 # beginning with the largest.
 #
-# For large number of tasks this can become expensive, specfically once the set
+# For large number of tasks this can become expensive, specifically once the set
 # of resources is near exhaustion: we need to search through the whole task list
 # before being able to, possibly, place some small tasks.
 #
@@ -228,10 +228,10 @@ def remove_common_prefix(data, extend=0):
 # follows:
 #
 #       1  attempt to schedule the largest task (n)
-#       2  if sucess
+#       2  if success
 #       3      schedule the next smaller task (n = n - 1)
 #       4      if success
-#       5          go to (2)
+#       5          goto (2)
 #       7  bisect distance to smallest task: l = bisect(m, 0)
 #       8  schedule task l
 #       9  if success   # task l is small enough
@@ -246,7 +246,7 @@ def remove_common_prefix(data, extend=0):
 # large, set n = l, and begin from scratch.
 #
 # The implementation below contains some further optimizations.  Specifically,
-# we remeber the schedule results of all bisections, so that we don't schedule
+# we remember the schedule results of all bisections, so that we don't schedule
 # or test those tasks twice.  Further, we assume that scheduling a task may
 # alter the result for all further schedule attempts (apart from tasks we know
 # are too large).
@@ -417,7 +417,7 @@ def lazy_bisect(data, check, ratio=0.5):
                 idx = int(m.ceil(last_bad / 2))
 
             # make sure we make progress: if space is too small for bisect, then
-            # incread last_good or decrease last_bad
+            # increase last_good or decrease last_bad
             if idx == last_good: idx = last_good + 1
             if idx == last_bad : idx = last_bad  - 1
 
