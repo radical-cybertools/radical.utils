@@ -414,7 +414,6 @@ def read_profiles(profiles, sid=None, efilter=None):
                   #     print 'ENTITY  : %s' % row[ENTITY]
                   #     print 'MSG     : %s' % row[MSG   ]
 
-
             except:
                 print 'skip remainder of %s' % prof
                 continue

@@ -6,7 +6,6 @@
     https://github.com/radical-cybertools/radical.utils/ \
             issues?q=is%3Aissue+is%3Aopen+
 
-
 0.90.3 Hotfix                                                         2019-09-06
 --------------------------------------------------------------------------------
 
@@ -25,6 +24,21 @@
   - Move to Python-3
 
 
+0.72.0 Release                                                        2019-09-11
+--------------------------------------------------------------------------------
+
+  - change lockfile API to sync mt.Lock
+  - add lockfile support
+  - add sh json parser for bootstrappers
+  - fix ns guessing, radical.base
+  - make sure that heartbeat termination is logged
+  - move rec_makedir from rp
+  - fix #171
+  - resilience against incomplete prof eevents
+  - return default local IP if host is not connected
+  - gtod deployment fix
+
+      
 0.70.1 Hotfix                                                         2019-08-19
 --------------------------------------------------------------------------------
 
