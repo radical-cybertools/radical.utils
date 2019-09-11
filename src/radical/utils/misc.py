@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import time
+import errno
 import socket
 import pkgutil
 import datetime
@@ -784,9 +785,14 @@ def get_radical_base(module=None):
 
     The optional `module` parameter will result in the respective subdir name to
     be appended.  The resulting dir is created (if it does not exist), and the
-    name is returned.
+    name is returned.  Any `.` (dot) characters in `module` are replaced by
+    slashes.  Leading `radical/` element is removed.
     '''
 
+    if module:
+        module = module.replace('.', '/')
+        if module.startswith('radical/'):
+            module = module[8:]
 
     base = os.environ.get("RADICAL_BASE_DIR")
 
@@ -802,10 +808,27 @@ def get_radical_base(module=None):
     if module: base += '/.radical/%s/' % module
     else     : base += '/.radical/'
 
-    if not os.path.isdir(base):
-        os.makedirs(base)
+    rec_makedir(base)
 
     return base
+
+
+# ------------------------------------------------------------------------------
+#
+def rec_makedir(target):
+    '''
+    recursive makedir which ignores errors if dir already exists
+    '''
+
+    try:
+        os.makedirs(target)
+
+    except OSError as e:
+        # ignore failure on existing directory
+        if e.errno == errno.EEXIST and os.path.isdir(os.path.dirname(target)):
+            pass
+        else:
+            raise
 
 
 # ------------------------------------------------------------------------------
