@@ -67,7 +67,7 @@ class Profiler(object):
 
     Strings MUST NOT contain commas.  Otherwise they are encouraged to be formed
     as `[a-z][0-9a-z_.]*'. `msg` are free-form, but the inhibition of comma
-    holds.  We propose to limit the sum of strings to about 256 characters - 
+    holds.  We propose to limit the sum of strings to about 256 characters -
     this will guarantee atomic writes on most OS's, w/o additional locking
     overheads.  Less than 100 charcters makes the profiles almost
     human-readable.
@@ -315,21 +315,20 @@ def read_profiles(profiles, sid=None, efilter=None):
 
     for prof in profiles:
 
-        with open(prof, 'r') as csvfile:
+        with open(prof, 'rb') as csvfile:
 
             ret[prof] = list()
             reader    = csv.reader(csvfile)
 
-            for raw in reader:
+            try:
+                for raw in reader:
 
-                # we keep the raw data around for error checks
-                row = list(raw)
+                    # we keep the raw data around for error checks
+                    row = list(raw)
 
-              # if 'bootstrap_1' in row:
-              #     print
-              #     print row
-
-                try:
+                  # if 'bootstrap_1' in row:
+                  #     print
+                  #     print row
 
                     # skip header
                     if row[TIME].startswith('#'):
@@ -383,9 +382,9 @@ def read_profiles(profiles, sid=None, efilter=None):
                     skip = False
                     for field, pats in efilter.iteritems():
                         for pattern in pats:
-                            if pattern in row[field]:
+                            if row[field] in pattern:
                                 skip = True
-                                continue
+                                break
                         if skip:
                             continue
 
@@ -411,9 +410,9 @@ def read_profiles(profiles, sid=None, efilter=None):
                   #     print 'ENTITY  : %s' % row[ENTITY]
                   #     print 'MSG     : %s' % row[MSG   ]
 
-
-                except Exception as e:
-                    raise
+            except:
+                print 'skip remainder of %s' % prof
+                continue
 
     return ret
 
@@ -684,7 +683,7 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
             assert(uid),   'cannot advance w/o uid'
 
             # this is a state transition event
-            event[EVENT] = 'state'  
+            event[EVENT] = 'state'
 
             skip = False
             if state in state_final and state != state_canceled:

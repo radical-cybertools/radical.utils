@@ -169,7 +169,7 @@ except:
         fout.write('#!/usr/bin/env python\n'
                    'import time\n'
                    'print time.time()\n')
-        os.chmod('bin/radical-utils-gtod', 0o755)
+    os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------
@@ -237,6 +237,7 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-gtod',
                             'bin/radical-stack',
+                            'bin/ru.json.sh',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
