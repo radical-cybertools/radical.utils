@@ -224,9 +224,9 @@ def all_pairs(iterable, n):
 #
 def cluster_list(iterable, n):
     '''
-    s -> [ s0,  s1,    s2,    ... sn-1  ], 
-         [ sn,  sn+1,  sn+2,  ... s2n-1 ], 
-         [ s2n, s2n+1, s2n+2, ... s3n-1 ], 
+    s -> [ s0,  s1,    s2,    ... sn-1  ],
+         [ sn,  sn+1,  sn+2,  ... s2n-1 ],
+         [ s2n, s2n+1, s2n+2, ... s3n-1 ],
          ...
     '''
 
@@ -409,7 +409,7 @@ def get_hostip(req=None, logger=None):
     # Then this list is traversed, we check if the interface exists and has an
     # IP address.  The first match is used.
 
-    if req: 
+    if req:
         if not isinstance(req, list):
             req = [req]
     else:
@@ -503,9 +503,9 @@ def name2env(name):
 #
 def get_env_ns(key, ns, default=None):
     '''
-    get an environment setting within a namespace.  For example. 
+    get an environment setting within a namespace.  For example.
 
-        get_env_ns('verbose', 'radical.pilot.umgr'), 
+        get_env_ns('verbose', 'radical.pilot.umgr'),
 
     will return the value of the first found env variable from the following
     sequence:
@@ -549,7 +549,7 @@ def expand_env(data, env=None, ignore_missing=True):
     Expand the given data with environment variables from `os.environ`.
     If `env` is provided, use that dictionary for expansion instead.
 
-    `data` can be one of three types: 
+    `data` can be one of three types:
 
       - dictionary: `expand_env` is applied to all *values* of the dictionary
       - sequence  : `expand_env` is applied to all elements of the sequence
@@ -560,7 +560,7 @@ def expand_env(data, env=None, ignore_missing=True):
     a copy of scalar strings, as it seems to be custom in Python.  Other data
     types are silently ignored and not altered.
 
-    The replacement in strings is performed for the following variable specs 
+    The replacement in strings is performed for the following variable specs
 
         assume  `export BAR=bar`:
 
@@ -665,7 +665,7 @@ def stack():
     ret = {'sys'     : {'python'     : sys.version.split()[0],
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
                         'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
-                                       os.environ.get('CONDA_DEFAULT_ENV','')}, 
+                                       os.environ.get('CONDA_DEFAULT_ENV','')},
            'radical' : dict()
           }
 
@@ -676,7 +676,6 @@ def stack():
         rpath = rpath[0]
 
     for mpath in glob.glob('%s/*' % rpath):
-        print mpath
 
         if os.path.isdir(mpath):
 
