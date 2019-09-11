@@ -734,9 +734,14 @@ def get_radical_base(module=None):
 
     The optional `module` parameter will result in the respective subdir name to
     be appended.  The resulting dir is created (if it does not exist), and the
-    name is returned.
+    name is returned.  Any `.` (dot) characters in `module` are replaced by
+    slashes.  Leading `radical/` element is removed.
     '''
 
+    if module:
+        module = module.replace('.', '/')
+        if module.startswith('radical/'):
+            module = module[8:]
 
     base = os.environ.get("RADICAL_BASE_DIR")
 
