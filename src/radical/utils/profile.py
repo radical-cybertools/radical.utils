@@ -330,91 +330,85 @@ def read_profiles(profiles, sid=None, efilter=None):
                   #     print
                   #     print row
 
-                    try:
+                    # skip header
+                    if row[TIME].startswith('#'):
+                        skipped += 1
+                        continue
 
-                        # skip header
-                        if row[TIME].startswith('#'):
-                            skipped += 1
+                    # make room in the row for entity type etc.
+                    row.extend([None] * (PROF_KEY_MAX - len(row)))
+
+                    row[TIME] = float(row[TIME])
+
+                    # we derive entity type from the uid -- but funnel
+                    # some cases into 'session' as a catch-all type
+                    uid = row[UID]
+                    if uid:
+                        row[ENTITY] = uid.split('.',1)[0]
+                    else:
+                        row[ENTITY] = 'session'
+                        row[UID]    = sid
+
+                    # we should have no unset (ie. None) fields left - otherwise
+                    # the profile was likely not correctly closed.
+                    if None in row:
+                        if legacy:
+                            comp, tid = row[1].split(':', 1)
+                            new_row = [None] * PROF_KEY_MAX
+                            new_row[TIME        ] = row[0]
+                            new_row[EVENT       ] = row[4]
+                            new_row[COMP        ] = comp
+                            new_row[TID         ] = tid
+                            new_row[UID         ] = row[2]
+                            new_row[STATE       ] = row[3]
+                            new_row[MSG         ] = row[5]
+
+                            uid = new_row[UID]
+                            if uid:
+                                new_row[ENTITY] = uid.split('.',1)[0]
+                            else:
+                                new_row[ENTITY] = 'session'
+                                new_row[UID]    = sid
+
+                            row = new_row
+
+                    if None in row:
+                        print 'row invalid [%s]: %s' % (prof, raw)
+                        continue
+                      # raise ValueError('row invalid [%s]: %s' % (prof, row))
+
+                    # apply the filter.  We do that after adding the entity
+                    # field above, as the filter might also apply to that.
+                    skip = False
+                    for field, pats in efilter.iteritems():
+                        for pattern in pats:
+                            if row[field] in pattern:
+                                skip = True
+                                break
+                        if skip:
                             continue
 
-                        # make room in the row for entity type etc.
-                        row.extend([None] * (PROF_KEY_MAX - len(row)))
+                    # fix rp issue 1117 (see FIXME above)
+                    if row[TIME] == 1.0 and last:
+                        row[TIME] = last[TIME]
 
-                        row[TIME] = float(row[TIME])
+                    if not skip:
+                        ret[prof].append(row)
 
-                        # we derive entity type from the uid -- but funnel
-                        # some cases into 'session' as a catch-all type
-                        uid = row[UID]
-                        if uid:
-                            row[ENTITY] = uid.split('.',1)[0]
-                        else:
-                            row[ENTITY] = 'session'
-                            row[UID]    = sid
+                    last = row
 
-                        # we should have no unset (ie. None) fields left - otherwise
-                        # the profile was likely not correctly closed.
-                        if None in row:
-                            if legacy:
-                                comp, tid = row[1].split(':', 1)
-                                new_row = [None] * PROF_KEY_MAX
-                                new_row[TIME        ] = row[0]
-                                new_row[EVENT       ] = row[4]
-                                new_row[COMP        ] = comp
-                                new_row[TID         ] = tid
-                                new_row[UID         ] = row[2]
-                                new_row[STATE       ] = row[3]
-                                new_row[MSG         ] = row[5]
-
-                                uid = new_row[UID]
-                                if uid:
-                                    new_row[ENTITY] = uid.split('.',1)[0]
-                                else:
-                                    new_row[ENTITY] = 'session'
-                                    new_row[UID]    = sid
-
-                                row = new_row
-
-                        if None in row:
-                            print 'row invalid [%s]: %s' % (prof, raw)
-                            continue
-                          # raise ValueError('row invalid [%s]: %s' % (prof, row))
-
-                        # apply the filter.  We do that after adding the entity
-                        # field above, as the filter might also apply to that.
-                        skip = False
-                        for field, pats in efilter.iteritems():
-                            for pattern in pats:
-                                if row[field] in pattern:
-                                    skip = True
-                                    break
-                            if skip:
-                                continue
-
-                        # fix rp issue 1117 (see FIXME above)
-                        if row[TIME] == 1.0 and last:
-                            row[TIME] = last[TIME]
-
-                        if not skip:
-                            ret[prof].append(row)
-
-                        last = row
-
-                      # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
-                      # if 'bootstrap_1' in row:
-                      #     print row
-                      #     print
-                      #     print 'TIME    : %s' % row[TIME  ]
-                      #     print 'EVENT   : %s' % row[EVENT ]
-                      #     print 'COMP    : %s' % row[COMP  ]
-                      #     print 'TID     : %s' % row[TID   ]
-                      #     print 'UID     : %s' % row[UID   ]
-                      #     print 'STATE   : %s' % row[STATE ]
-                      #     print 'ENTITY  : %s' % row[ENTITY]
-                      #     print 'MSG     : %s' % row[MSG   ]
-
-
-                    except Exception as e:
-                        raise
+                  # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
+                  # if 'bootstrap_1' in row:
+                  #     print row
+                  #     print
+                  #     print 'TIME    : %s' % row[TIME  ]
+                  #     print 'EVENT   : %s' % row[EVENT ]
+                  #     print 'COMP    : %s' % row[COMP  ]
+                  #     print 'TID     : %s' % row[TID   ]
+                  #     print 'UID     : %s' % row[UID   ]
+                  #     print 'STATE   : %s' % row[STATE ]
+                  #     print 'ENTITY  : %s' % row[ENTITY]
+                  #     print 'MSG     : %s' % row[MSG   ]
 
             except:
                 print 'skip remainder of %s' % prof
