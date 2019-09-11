@@ -46,9 +46,10 @@ class Heartbeat(object):
 
             if time.time() - self._last > self._timeout:
 
-                os.kill(self._pid, signal.SIGTERM)
                 sys.stderr.write('Heartbeat timeout: %s\n' % self._uid)
                 sys.stderr.flush()
+
+                os.kill(self._pid, signal.SIGTERM)
 
 
     # --------------------------------------------------------------------------

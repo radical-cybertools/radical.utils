@@ -466,7 +466,7 @@ def get_hostip(req=None, logger=None):
             _hostip = ip
             return ip
 
-    raise RuntimeError('could not determine ip on %s' % preflist)
+    return '127.0.0.1'
 
 
 # ------------------------------------------------------------------------------
@@ -676,7 +676,6 @@ def stack():
         rpath = rpath[0]
 
     for mpath in glob.glob('%s/*' % rpath):
-        print mpath
 
         if os.path.isdir(mpath):
 
