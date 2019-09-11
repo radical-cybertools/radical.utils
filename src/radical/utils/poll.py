@@ -181,7 +181,7 @@ else:
 
             with self._lock:
                 assert(self._exists(fd))
-                self._register(fd, eventmask)
+                self.register(fd, eventmask)
 
 
         # ----------------------------------------------------------------------
@@ -199,7 +199,7 @@ else:
 
                 for e in _POLLTYPES:
                     if fd in self._registered[e]:
-                        self._registered.remove[e](fd)
+                        self._registered[e].remove(fd)
 
 
         # ----------------------------------------------------------------------
