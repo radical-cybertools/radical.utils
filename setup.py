@@ -238,6 +238,7 @@ setup_args = {
                             'bin/radical-utils-gtod',
                             'bin/radical-stack',
                             'bin/ru.sh.py',
+                            'bin/ru.json.sh',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
