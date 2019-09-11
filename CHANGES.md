@@ -7,7 +7,7 @@
             issues?q=is%3Aissue+is%3Aopen+
 
   -
-0.71.0 Release                                                        2019-09-11
+0.72.0 Release                                                        2019-09-11
 --------------------------------------------------------------------------------
 
   - change lockfile API to sync mt.Lock
