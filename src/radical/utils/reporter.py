@@ -138,7 +138,7 @@ class Reporter(object):
         self._line_len = int(ru_get_env_ns('report_llen', ns, default=80))
 
 
-        if not path: 
+        if not path:
             path = os.getcwd()
 
         if not targets:
@@ -353,19 +353,13 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def title(self, title=''):
+    def title(self, title):
 
         if not self._enabled:
             return
 
-        if not title:
-            title = self._title
-
-        if title:
-            fmt   = " %%-%ds\n" % (self._line_len - 1)
-            title = fmt % title
-
-        self._format(title, self._settings['title'])
+        fmt = " %%-%ds\n" % (self._line_len - 1)
+        self._format(fmt % title, self._settings['title'])
 
 
     # --------------------------------------------------------------------------
