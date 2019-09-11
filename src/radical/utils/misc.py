@@ -592,7 +592,7 @@ def expand_env(data, env=None, ignore_missing=True):
     Expand the given data with environment variables from `os.environ`.
     If `env` is provided, use that dictionary for expansion instead.
 
-    The replacement is performed for the following variable specs:
+    `data` can be one of three types:
 
       - dictionary: `expand_env` is applied to all *values* of the dictionary
       - sequence  : `expand_env` is applied to all elements of the sequence

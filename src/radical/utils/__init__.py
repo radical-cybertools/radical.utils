@@ -25,6 +25,7 @@ from .url            import Url
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
 from .dict_mixin     import PRESERVE, OVERWRITE
 from .lockable       import Lockable
+from .lockfile       import Lockfile
 from .registry       import Registry, READONLY, READWRITE
 from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
