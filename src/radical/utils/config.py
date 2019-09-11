@@ -365,8 +365,7 @@ class DefaultConfig(Config):
 
         pwd = os.getcwd()
 
-        cfg = {'ns'         : '${RADICAL_DEFAULT_NS:radical}',
-               'log_lvl'    : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
+        cfg = {'log_lvl'    : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
                'log_tgt'    : '${RADICAL_DEFAULT_LOG_TGT:.}',
                'log_dir'    : '${RADICAL_DEFAULT_LOG_DIR:%s}'          % pwd,
                'report'     : '${RADICAL_DEFAULT_REPORT:TRUE}',
