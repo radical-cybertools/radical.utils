@@ -5,10 +5,11 @@ __license__   = 'MIT'
 
 
 import os
-import imp
 import sys
 import glob
 import pprint
+
+from importlib  import util as imp
 
 from .singleton import Singleton
 from .logger    import Logger
@@ -186,7 +187,10 @@ class PluginManager(object):
                     __import__(pmodname)
 
                     # now load the plugin proper
-                    plugin = imp.load_source(modname, pfile)
+                    spec   = imp.spec_from_file_location(modname, pfile)
+                    plugin = imp.module_from_spec(spec)
+                    spec.loader.exec_module(plugin)
+#
 
                     # get plugin details from description
                     ptype  = plugin.PLUGIN_DESCRIPTION.get('type',        None)
@@ -231,7 +235,7 @@ class PluginManager(object):
                     self._log.debug('loading plugin %s' % pfile)
                     self._log.info ('loading plugin %s' % pshort)
 
-                except:
+                except Exception as e:
                     self._log.exception('loading plugin %s failed' % pshort)
 
 
