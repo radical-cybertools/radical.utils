@@ -95,7 +95,7 @@ _logger_registry = _LoggerRegistry()
 def _after_fork():
 
     _logger_registry.release_all()
-    logging._lock = threading.RLock()                    # pylint: disable=W0212
+    logging._lock = threading.RLock()         # pylint: disable=protected-access
 
 
 # ------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ class Logger(object):
             path = ru_def['log_dir']
 
         if not ns:
-            ns = ru_def.get('ns', name)
+            ns = name
 
         if not targets:
             targets = ru_get_env_ns('log_tgt', ns)

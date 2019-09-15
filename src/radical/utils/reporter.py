@@ -353,7 +353,7 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def title(self, title=''):
+    def title(self, title):
 
         if not self._enabled:
             return
@@ -361,11 +361,11 @@ class Reporter(object):
         if not title:
             title = self._name
 
-        if title:
-            fmt   = " %%-%ds\n" % (self._line_len - 1)
-            title = fmt % title
+        if not title:
+            return
 
-        self._format(title, self._settings['title'])
+        fmt = " %%-%ds\n" % (self._line_len - 1)
+        self._format(fmt % title, self._settings['title'])
 
 
     # --------------------------------------------------------------------------
