@@ -9,8 +9,6 @@ import inspect
 import threading
 import traceback
 
-from .threads import gettid
-
 
 # ------------------------------------------------------------------------------
 #
@@ -383,6 +381,9 @@ def raise_on(tag, log=None, msg=None):
 # ------------------------------------------------------------------------------
 #
 def attach_pudb(logger=None):
+
+    # need to move here to avoid circular import
+    from .threads import gettid
 
     host = '127.0.0.1'
   # host = gethostip()

@@ -1090,7 +1090,7 @@ class Process(mp.Process):
         `stop()` or process child termination, in the child process.
         '''
 
-        self._ru_log.debug('ru_finalize_child (NOOP)')
+        self._ru_log.debug('ru_finalize_child (p:NOOP)')
 
 
     # --------------------------------------------------------------------------

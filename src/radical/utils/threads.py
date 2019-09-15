@@ -646,7 +646,7 @@ class Thread(mt.Thread):
         `stop()` or thread child termination, in the child thread.
         '''
 
-        self._ru_log.debug('ru_finalize_child (NOOP)')
+        self._ru_log.debug('ru_finalize_child (t:NOOP)')
 
 
     # --------------------------------------------------------------------------
