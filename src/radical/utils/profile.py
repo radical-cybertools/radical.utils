@@ -302,7 +302,7 @@ def read_profiles(profiles, sid=None, efilter=None):
 
 
   # import resource
-  # print 'max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024))
+  # print('max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024)))
 
     # FIXME: we correct one pesky profile entry, which is exactly 1.000 in an
     #        otherwise ntp-aligned profile - see [1].  In this case we use the
@@ -331,8 +331,8 @@ def read_profiles(profiles, sid=None, efilter=None):
                     row = list(raw)
 
                   # if 'bootstrap_1' in row:
-                  #     print
-                  #     print row
+                  #     print()
+                  #     print(row)
 
                     # skip header
                     if row[TIME].startswith('#'):
@@ -377,7 +377,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                             row = new_row
 
                     if None in row:
-                        print 'row invalid [%s]: %s' % (prof, raw)
+                        print('row invalid [%s]: %s' % (prof, raw))
                         continue
                       # raise ValueError('row invalid [%s]: %s' % (prof, row))
 
@@ -401,21 +401,21 @@ def read_profiles(profiles, sid=None, efilter=None):
 
                     last = row
 
-                  # print ' --- %-30s -- %-30s ' % (row[STATE], row[MSG])
+                  # print(' --- %-30s -- %-30s ' % (row[STATE], row[MSG]))
                   # if 'bootstrap_1' in row:
-                  #     print row
-                  #     print
-                  #     print 'TIME    : %s' % row[TIME  ]
-                  #     print 'EVENT   : %s' % row[EVENT ]
-                  #     print 'COMP    : %s' % row[COMP  ]
-                  #     print 'TID     : %s' % row[TID   ]
-                  #     print 'UID     : %s' % row[UID   ]
-                  #     print 'STATE   : %s' % row[STATE ]
-                  #     print 'ENTITY  : %s' % row[ENTITY]
-                  #     print 'MSG     : %s' % row[MSG   ]
+                  #     print(row)
+                  #     print()
+                  #     print('TIME    : %s' % row[TIME  ])
+                  #     print('EVENT   : %s' % row[EVENT ])
+                  #     print('COMP    : %s' % row[COMP  ])
+                  #     print('TID     : %s' % row[TID   ])
+                  #     print('UID     : %s' % row[UID   ])
+                  #     print('STATE   : %s' % row[STATE ])
+                  #     print('ENTITY  : %s' % row[ENTITY])
+                  #     print('MSG     : %s' % row[MSG   ])
 
             except:
-                print 'skip remainder of %s' % prof
+                print('skip remainder of %s' % prof)
                 continue
 
     return ret
@@ -481,12 +481,12 @@ def combine_profiles(profs):
 
   # for pname, prof in profs.items():
   #     if prof:
-  #         print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
+  #         print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
 
     for pname, prof in profs.items():
 
         if not len(prof):
-          # print 'empty        %s' % pname
+          # print('empty        %s' % pname)
             continue
 
         # if we have only sync_rel(s), then find the offset by the corresponding
@@ -520,14 +520,14 @@ def combine_profiles(profs):
             print('no rel sync  %s' % pname)
             continue
 
-      # print 'sync profile %-100s : %20.3fs' % (pname, offset)
+      # print('sync profile %-100s : %20.3fs' % (pname, offset))
         for event in prof:
             event[TIME] += offset
 
         # if we have an offset event, we append it to the profile.  This
         # basically transplants an sync_abs event into a sync_rel profile
         if offset_event:
-          # print 'transplant sync_abs to %s: %s' % (pname, offset_event)
+          # print('transplant sync_abs to %s: %s' % (pname, offset_event))
             prof.append(offset_event)
             syncs[pname]['abs'].append(offset_event)
 
@@ -539,7 +539,7 @@ def combine_profiles(profs):
 
             if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
                 # https://github.com/radical-cybertools/radical.analytics/issues/20
-              # print 'unsynced profile %s [%s]' % (pname, sync_abs)
+              # print('unsynced profile %s [%s]' % (pname, sync_abs))
                 continue
 
             t_prof = sync_abs[TIME]
@@ -551,7 +551,7 @@ def combine_profiles(profs):
             else    : t_min = t_prof
 
             if t_mode == 'sys':
-              # print 'sys synced profile (%s)' % t_mode
+              # print('sys synced profile (%s)' % t_mode)
                 continue
 
             # determine the correction for the given host
@@ -582,7 +582,7 @@ def combine_profiles(profs):
     for pname, prof in profs.items():
 
         if not len(prof):
-          # print 'empty prof: %s' % pname
+          # print('empty prof: %s' % pname)
             continue
 
         if not syncs[pname]['abs']:
@@ -591,10 +591,10 @@ def combine_profiles(profs):
 
         sync_abs = syncs[pname]['abs'][0]
 
-      # print MSG
-      # print sync_abs
-      # print sync_abs[MSG]
-      # print sync_abs[MSG].split(':')
+      # print(MSG)
+      # print(sync_abs)
+      # print(sync_abs[MSG])
+      # print(sync_abs[MSG].split(':'))
         host, ip, _, _, _ = sync_abs[MSG].split(':')
         host_id = '%s:%s' % (host, ip)
         if host_id in t_host:
@@ -612,7 +612,7 @@ def combine_profiles(profs):
             row[TIME] -= t_min
             row[TIME] -= t_off
 
-          # print row[EVENT],
+          # print(row[EVENT],)
             # count closing entries
             if row[EVENT] == 'END':
                 c_end += 1
@@ -621,19 +621,19 @@ def combine_profiles(profs):
         p_glob += prof
 
       # if prof:
-      #     print 'check        %-100s: %s' % (pname, prof[0][TIME:EVENT])
+      #     print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
 
         # Check for proper closure of profiling files
         if c_end == 0:
             print('WARNING: profile "%s" not correctly closed.' % pname)
       # elif c_end > 1:
-      #     print 'WARNING: profile "%s" closed %d times.' % (pname, c_end)
+      #     print('WARNING: profile "%s" closed %d times.' % (pname, c_end))
 
     # sort by time and return
     p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
 
-  # print 'check        %-100s: %s' % ('t_min', p_glob[0][TIME])
-  # print 'check        %-100s: %s' % ('t_max', p_glob[-1][TIME])
+  # print('check        %-100s: %s' % ('t_min', p_glob[0][TIME]))
+  # print('check        %-100s: %s' % ('t_max', p_glob[-1][TIME]))
     return p_glob, accuracy
 
 
