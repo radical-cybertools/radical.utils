@@ -13,27 +13,24 @@ class Heartbeat(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, uid, timeout, frequency=1):
+    def __init__(self, uid, timeout, interval=1, log=None):
         '''
         This is a simple hearteat monitor: after construction, it needs to be
-        called in ingtervals shorter than the given `timeout` value.  A thread
-        will be created which checks if heartbeats arrive timeely - if not, the
+        called in intervals shorter than the given `timeout` value.  A thread
+        will be created which checks if heartbeats arrive timely - if not, the
         current process is killed via `os.kill()`.
-
-        If no timeout is given, all class methods are noops.
         '''
 
-        self._uid     = uid
-        self._timeout = timeout
-        self._freq    = frequency
-        self._last    = time.time()
-        self._cnt     = 0
-        self._pid     = os.getpid()
+        self._uid      = uid
+        self._log      = log
+        self._timeout  = timeout
+        self._interval = interval
+        self._last     = time.time()
+        self._pid      = os.getpid()
 
-        if self._timeout:
-            self._watcher = mt.Thread(target=self._watch)
-            self._watcher.daemon = True
-            self._watcher.start()
+        self._watcher  = mt.Thread(target=self._watch)
+        self._watcher.daemon = True
+        self._watcher.start()
 
 
     # --------------------------------------------------------------------------
@@ -42,12 +39,14 @@ class Heartbeat(object):
 
         while True:
 
-            time.sleep(self._freq)
+            time.sleep(self._interval)
+            now = time.time()
 
-            if time.time() - self._last > self._timeout:
+            if now - self._last > self._timeout:
 
-                sys.stderr.write('Heartbeat timeout: %s\n' % self._uid)
-                sys.stderr.flush()
+                if self._log:
+                    self._log.warn('heartbeat %s: %.1f - %.1f > %1.f: timeout',
+                                       self._uid, now, self._last, self._timout)
 
                 os.kill(self._pid, signal.SIGTERM)
 
@@ -56,14 +55,14 @@ class Heartbeat(object):
     #
     def beat(self, timestamp=None):
 
-        if not self._timeout:
-            return
-
         if not timestamp:
             timestamp = time.time()
 
+        if self._log:
+            self._log.debug('heartbeat %s: %.1f %.1f', self._uid, self._last,
+                                                                      timestamp)
+
         self._last = timestamp
-        self._cnt += 1
 
 
 # ------------------------------------------------------------------------------
