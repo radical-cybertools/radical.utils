@@ -25,7 +25,7 @@ class Heartbeat(object):
         self._log      = log
         self._timeout  = timeout
         self._interval = interval
-        self._last     = time.time()
+        self._tstamps  = dict()
         self._pid      = os.getpid()
 
         self._watcher  = mt.Thread(target=self._watch)
@@ -42,27 +42,38 @@ class Heartbeat(object):
             time.sleep(self._interval)
             now = time.time()
 
-            if now - self._last > self._timeout:
+            # avoid iteration over changing dict
+            uids = list(self._tstamps.keys())
+            for uid in uids:
 
-                if self._log:
-                    self._log.warn('heartbeat %s: %.1f - %.1f > %1.f: timeout',
-                                       self._uid, now, self._last, self._timout)
+                # use `get()` in case python dict population is not atomic
+                last = self._tstamps.get(uid)
+                if not last:
+                    continue
 
-                os.kill(self._pid, signal.SIGTERM)
+                if now - last > self._timeout:
+
+                    if self._log:
+                        self._log.warn('hb %s[%s]: %.1f - %.1f > %1.f: timeout',
+                                       self._uid, uid, now, last, self._timout)
+
+                    os.kill(self._pid, signal.SIGTERM)
 
 
     # --------------------------------------------------------------------------
     #
-    def beat(self, timestamp=None):
+    def beat(self, uid=None, timestamp=None):
 
         if not timestamp:
             timestamp = time.time()
 
-        if self._log:
-            self._log.debug('heartbeat %s: %.1f %.1f', self._uid, self._last,
-                                                                      timestamp)
+        if not uid:
+            uid = 'default'
 
-        self._last = timestamp
+        if self._log:
+            self._log.debug('hb %s[%s]: %.1f %.1f', self._uid, uid, self._last,
+                                                                      timestamp)
+        self._tstamps[uid] = timestamp
 
 
 # ------------------------------------------------------------------------------
