@@ -1,6 +1,5 @@
 
 import os
-import sys
 import time
 import signal
 
@@ -15,10 +14,10 @@ class Heartbeat(object):
     #
     def __init__(self, uid, timeout, interval=1, log=None):
         '''
-        This is a simple hearteat monitor: after construction, it needs to be
-        called in intervals shorter than the given `timeout` value.  A thread
-        will be created which checks if heartbeats arrive timely - if not, the
-        current process is killed via `os.kill()`.
+        This is a simple hearteat monitor: after construction, it's `beat()`
+        method needs to be called in intervals shorter than the given `timeout`
+        value.  A thread will be created which checks if heartbeats arrive
+        timely - if not, the current process is killed via `os.kill()`.
         '''
 
         self._uid      = uid
