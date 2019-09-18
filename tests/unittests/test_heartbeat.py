@@ -22,27 +22,48 @@ import radical.utils   as ru
 #
 def test_hb_default():
     '''
-    spawn a process with HB and expect it to live for 3 seconds.  If it dies
-    before, it will return a non-zero exit code.  If it stays alive longer than
-    6 seconds, we consider this an error
+    spawn a process with HB and expect it to live for `tout` seconds.  If it
+    dies before, it will return a non-zero exit code.  If it stays alive longer
+    than 6 seconds, we consider this an error.
     '''
+
+    dur  = 3.0
+    ival = 0.1
+    tout = 0.3
+
+    # --------------------------------------------------------------------------
+    def get_counter():
+        cnt = 0
+
+        def count(test=False):
+            nonlocal cnt
+            if not test:
+                cnt += 1
+            return cnt
+        return count
 
     # --------------------------------------------------------------------------
     def proc():
 
-        hb = ru.Heartbeat('test', timeout=0.1, interval=0.01)
+        cb = get_counter()
+
+        def term():
+
+            now = time.time()
+            assert(now >= t0 + dur), '%.1f > %.1f + %.1f' % (now, t0, dur)
+
+            cnt_tgt = dur / ival
+            cnt_chk = cb(test=True)
+            assert(cnt_tgt * 0.8 < cnt_chk < cnt_tgt * 1.2), [cnt_tgt, cnt_chk]
+
+        hb = ru.Heartbeat('foo', timeout=tout, interval=ival, cb=cb, term=term)
         t0 = time.time()
 
-        try:
-            while time.time() < t0 + 3:
-                hb.beat()
-                time.sleep(0.05)
-            while True:
-                time.sleep(1)
+        while time.time() < t0 + dur:
+            hb.beat()
 
-        finally:
-            if time.time() > t0 + 3.2:
-                sys.exit(-1)
+        while True:
+            time.sleep(0.1)
     # --------------------------------------------------------------------------
 
     p = None
@@ -68,7 +89,7 @@ def test_hb_default():
 #
 def test_hb_uid():
     '''
-    same as above, but use two different uid for heartbeats, and let only one
+    Use two different uids for heartbeats, and let only one
     time out.
     '''
 
