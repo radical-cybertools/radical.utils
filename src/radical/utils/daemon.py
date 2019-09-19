@@ -6,6 +6,8 @@ import atexit
 import signal
 import multiprocessing as mp
 
+from .testing import sys_exit
+
 # from
 # http://stackoverflow.com/questions/1417631/python-code-to-daemonize-a-process
 
@@ -76,11 +78,11 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
             queue.put(f2_pid)
 
             # exit from second parent
-            sys.exit(0)
+            sys_exit(0)
 
-    except OSError as e:
+    except OSError:
         queue.put(None)  # unblock parent
-        sys.exit(1)
+        sys_exit(1)
 
     # redirect standard file descriptors
     sys.stdout.flush()
@@ -102,7 +104,7 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
     main()
 
     # work is done
-    sys.exit(0)
+    sys_exit(0)
 
 
 # ------------------------------------------------------------------------------

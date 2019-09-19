@@ -24,7 +24,6 @@ def test_daemon_class():
     start a damon which sleeps for 2 seconds
     '''
 
-
     # --------------------------------------------------------------------------
     class P(ru.Daemon):
 
@@ -38,7 +37,7 @@ def test_daemon_class():
     p = P()
     p.start()
     assert(p.pid)
-    assert(os.kill(p.pid, 0) == None)  # process should exist
+    assert(os.kill(p.pid, 0) is None)  # process should exist
 
     time.sleep(3)
     with pytest.raises(OSError):
@@ -57,12 +56,12 @@ def test_daemonize():
     '''
 
     def main():
-         time.sleep(2.0)
+        time.sleep(2.0)
 
     pid = ru.daemonize(main=main)
 
     assert(pid)
-    assert(os.kill(int(pid), 0) == None)  # process should exist
+    assert(os.kill(int(pid), 0) is None)  # process should exist
 
     time.sleep(3)
     with pytest.raises(OSError):
