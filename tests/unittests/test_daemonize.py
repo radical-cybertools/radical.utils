@@ -10,7 +10,6 @@ Unit tests for `ru.Dameon()` and `ru.daemonize()`
 '''
 
 import os
-import sys
 import time
 import pytest
 
@@ -28,7 +27,7 @@ def test_daemon_class():
     class P(ru.Daemon):
 
         def __init__(self):
-            ru.Daemon.__init__(self)
+            ru.Daemon.__init__(self, stdin=None, stdout=None, stderr=None)
 
         def run(self):
             time.sleep(2.0)
@@ -76,7 +75,7 @@ def test_daemonize():
 # run tests if called directly
 if __name__ == "__main__":
 
-    test_daemonize()
+  # test_daemonize()
     test_daemon_class()
 
 

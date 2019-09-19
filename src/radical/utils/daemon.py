@@ -1,8 +1,7 @@
 
-import sys
+import io
 import os
-import time
-import atexit
+import sys
 import signal
 import multiprocessing as mp
 
@@ -89,16 +88,25 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
     sys.stderr.flush()
 
     if stdin:
-        si = open(stdin, 'r')
-        os.dup2(si.fileno(), sys.stdin.fileno())
+        try:
+            si = open(stdin, 'r')
+            os.dup2(si.fileno(), sys.stdin.fileno())
+        except io.UnsupportedOperation:
+            sys.stdin = open(stdin, 'r')
 
     if stdout:
-        so = open(stdout, 'a+')
-        os.dup2(so.fileno(), sys.stdout.fileno())
+        try:
+            so = open(stdout, 'a+')
+            os.dup2(so.fileno(), sys.stdout.fileno())
+        except io.UnsupportedOperation:
+            sys.stdout = open(stdout, 'a+')
 
     if stderr:
-        se = open(stderr, 'a+')
-        os.dup2(se.fileno(), sys.stderr.fileno())
+        try:
+            se = open(stderr, 'a+')
+            os.dup2(se.fileno(), sys.stderr.fileno())
+        except io.UnsupportedOperation:
+            sys.stderr = open(stderr, 'a+')
 
     # we are successfully daemonized - run the workload
     main()
