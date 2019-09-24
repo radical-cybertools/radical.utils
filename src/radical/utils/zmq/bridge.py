@@ -1,9 +1,44 @@
 
+import zmq
 import copy
+import errno
 
 from ..logger    import Logger
 from ..profile   import Profiler
 from ..heartbeat import Heartbeat
+
+
+_MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
+
+
+# --------------------------------------------------------------------------
+#
+# zmq will (rightly) barf at interrupted system calls.  We are able to rerun
+# those calls.
+#
+# FIXME: how does that behave wrt. timeouts?  We probably should include
+#        an explicit timeout parameter.
+#
+# kudos: https://gist.github.com/minrk/5258909
+#
+def no_intr(f, *args, **kwargs):
+
+    cnt = 0
+    while True:
+        try:
+            return f(*args, **kwargs)
+
+        except zmq.ContextTerminated:
+            return None    # connect closed or otherwise became unusable
+
+        except zmq.ZMQError as e:
+            if e.errno == errno.EINTR:
+                if cnt > _MAX_RETRY:
+                    raise  # interrupted too often - forward exception
+                continue   # interrupted, try again
+            raise          # some other error condition, raise it
+        finally:
+            cnt += 1
 
 
 # ------------------------------------------------------------------------------
@@ -63,7 +98,7 @@ class Bridge(object):
         from .pubsub import PubSub
         from .queue  import Queue
 
-        _btypemap = {'pubsub' : PubSub, 
+        _btypemap = {'pubsub' : PubSub,
                      'queue'  : Queue}
         # ----------------------------------------------------------------------
 

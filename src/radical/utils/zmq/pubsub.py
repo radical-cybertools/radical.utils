@@ -6,7 +6,7 @@ import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge
+from .bridge  import Bridge, no_intr
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
@@ -18,7 +18,6 @@ from ..logger import Logger
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
-_MAX_RETRY       =     3  # max number of ZMQ snd/rcv retries on interrupts
 
 
 def log_bulk(log, bulk, token):
@@ -39,36 +38,6 @@ def log_bulk(log, bulk, token):
         for e in bulk:
           # log.debug("%s: %s", str(token), unicode(e)[0:32])
             log.debug("%s: ?", str(token))
-
-
-# ------------------------------------------------------------------------------
-#
-# zmq will (rightly) barf at interrupted system calls.  We are able to rerun
-# those calls.
-#
-# FIXME: how does that behave wrt. timeouts?  We probably should include
-#        an explicit timeout parameter.
-#
-# kudos: https://gist.github.com/minrk/5258909
-#
-def _uninterruptible(f, *args, **kwargs):
-
-    cnt = 0
-    while True:
-        try:
-            return f(*args, **kwargs)
-
-        except zmq.ContextTerminated:
-            return None    # connect closed or otherwise became unusable
-
-        except zmq.ZMQError as e:
-            if e.errno == errno.EINTR:
-                if cnt > _MAX_RETRY:
-                    raise  # interrupted too often - forward exception
-                continue   # interrupted, try again
-            raise          # some other error condition, raise it
-        finally:
-            cnt += 1
 
 
 # ------------------------------------------------------------------------------
@@ -205,7 +174,7 @@ class PubSub(Bridge):
             while True:
 
                 # timeout in ms
-                _socks = dict(_uninterruptible(self._poll.poll, timeout=1000))
+                _socks = dict(no_intr(self._poll.poll, timeout=1000))
                 active = False
 
                 if self._out in _socks:
@@ -214,8 +183,8 @@ class PubSub(Bridge):
                     # the publisher channels, so the bridge subscribes
                     # for the respective message topic.
                     with self._lock:
-                        msg = _uninterruptible(self._out.recv_multipart)
-                        _uninterruptible(self._in.send_multipart, msg)
+                        msg = no_intr(self._out.recv_multipart)
+                        no_intr(self._in.send_multipart, msg)
 
                     log_bulk(self._log, msg, '<< %s' % self.channel)
 
@@ -228,9 +197,9 @@ class PubSub(Bridge):
                     # to the subscriber channels, no questions asked.
                     # TODO: check topic filtering
                     with self._lock:
-                        msg = _uninterruptible(self._in.recv_multipart,
+                        msg = no_intr(self._in.recv_multipart,
                                                flags=zmq.NOBLOCK)
-                        _uninterruptible(self._out.send_multipart, msg)
+                        no_intr(self._out.send_multipart, msg)
 
                     log_bulk(self._log, msg, '>> %s' % self.channel)
 
@@ -296,7 +265,7 @@ class Publisher(object):
 
         msg = [topic, data]
         with self._lock:
-            _uninterruptible(self._q.send_multipart, msg)
+            no_intr(self._q.send_multipart, msg)
 
 
 # ------------------------------------------------------------------------------
@@ -345,7 +314,7 @@ class Subscriber(object):
 
         log_bulk(self._log, topic, '~~ %s' % self.channel)
         with self._lock:
-            _uninterruptible(self._q.setsockopt, zmq.SUBSCRIBE, topic)
+            no_intr(self._q.setsockopt, zmq.SUBSCRIBE, topic)
 
 
     # --------------------------------------------------------------------------
@@ -355,7 +324,7 @@ class Subscriber(object):
         # FIXME: add timeout to allow for graceful termination
 
         with self._lock:
-            topic, data = _uninterruptible(self._q.recv_multipart)
+            topic, data = no_intr(self._q.recv_multipart)
 
         msg = msgpack.unpackb(data)
 
@@ -368,10 +337,10 @@ class Subscriber(object):
     #
     def get_nowait(self, timeout=None):  # timeout in ms
 
-        if _uninterruptible(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
+        if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                topic, data = _uninterruptible(self._q.recv_multipart,
+                topic, data = no_intr(self._q.recv_multipart,
                                                               flags=zmq.NOBLOCK)
             msg = msgpack.unpackb(data)
 
@@ -385,4 +354,3 @@ class Subscriber(object):
 
 # ------------------------------------------------------------------------------
 
-??`??`ZZ??`??`:qa!

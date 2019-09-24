@@ -2,12 +2,11 @@
 import os
 import zmq
 import time
-import errno
 import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge
+from .bridge  import Bridge, no_intr
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
@@ -43,35 +42,6 @@ def log_bulk(log, bulk, token):
             log.debug("%s: ?", str(token))
             log.debug("%s: %s", token, str(e)[0:32])
             log.debug("%s: %s", token, str(e)[0:32])
-
-
-# --------------------------------------------------------------------------
-#
-# zmq will (rightly) barf at interrupted system calls.  We are able to rerun
-# those calls.
-#
-# FIXME: how does that behave wrt. timeouts?  We probably should include
-#        an explicit timeout parameter.
-#
-# kudos: https://gist.github.com/minrk/5258909
-#
-def _no_intr(f, *args, **kwargs):
-    cnt = 0
-    while True:
-        cnt += 1
-        try:
-            return f(*args, **kwargs)
-        except zmq.ContextTerminated:
-            return None
-        except zmq.ZMQError as e:
-            if e.errno == errno.EINTR:
-                if cnt > 10:
-                    raise
-                # interrupted, try again
-                continue
-            else:
-                # real error, raise it
-                raise
 
 
 # ------------------------------------------------------------------------------
@@ -276,12 +246,12 @@ class Queue(Bridge):
                 active = False
 
                 # check for incoming messages, and buffer them
-                ev_in = dict(_no_intr(self._poll_in.poll, timeout=0))
+                ev_in = dict(no_intr(self._poll_in.poll, timeout=0))
 
                 if self._in in ev_in:
 
                     with self._lock:
-                        data = _no_intr(self._in.recv)
+                        data = no_intr(self._in.recv)
 
                     msgs = msgpack.unpackb(data)
 
@@ -297,7 +267,7 @@ class Queue(Bridge):
                 # checking for receivers
                 if buf:
                     # check if somebody wants our messages
-                    ev_out = dict(_no_intr(self._poll_out.poll,
+                    ev_out = dict(no_intr(self._poll_out.poll,
                                                    timeout=0))
 
                     if self._out in ev_out:
@@ -305,11 +275,11 @@ class Queue(Bridge):
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         with self._lock:
-                            req = _no_intr(self._out.recv)
+                            req = no_intr(self._out.recv)
                         bulk = buf[:self._bulk_size]
                         data = msgpack.packb(bulk)
 
-                        _no_intr(self._out.send, data)
+                        no_intr(self._out.send, data)
 
                         log_bulk(self._log, bulk, '<> %s [%s]'
                                                 % (self._channel, req))
@@ -382,7 +352,7 @@ class Putter(object):
         data = msgpack.packb(msg)
 
         with self._lock:
-            _no_intr(self._q.send, data)
+            no_intr(self._q.send, data)
 
 
 # ------------------------------------------------------------------------------
@@ -437,14 +407,14 @@ class Getter(object):
             req = 'Request %s' % os.getpid()
 
             with self._lock:
-                _no_intr(self._q.send, req)
+                no_intr(self._q.send, req)
 
             self._requested = True
             log_bulk(self._log, req, '>> %s [%-5s]'
                                    % (self._channel, self._requested))
 
         with self._lock:
-            data = _no_intr(self._q.recv)
+            data = no_intr(self._q.recv)
 
         msg = msgpack.unpackb(data)
         self._requested = False
@@ -465,16 +435,16 @@ class Getter(object):
                 # we can only send the request once per recieval
                 req = 'request %s' % os.getpid()
                 with self._lock:
-                    _no_intr(self._q.send, req)
+                    no_intr(self._q.send, req)
 
                 self._requested = True
                 log_bulk(self._log, req, '-> %s [%-5s]'
                                          % (self._channel, self._requested))
 
-            if _no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
+            if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
                 with self._lock:
-                    data = _no_intr(self._q.recv)
+                    data = no_intr(self._q.recv)
 
                 msg = msgpack.unpackb(data)
                 self._requested = False
