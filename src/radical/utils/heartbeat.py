@@ -47,6 +47,12 @@ class Heartbeat(object):
 
     # --------------------------------------------------------------------------
     #
+    @property
+    def uid(self):
+        return self._uid
+
+    # --------------------------------------------------------------------------
+    #
     def _watch(self):
 
         while True:
@@ -64,16 +70,20 @@ class Heartbeat(object):
                 # use `get()` in case python dict population is not atomic
                 last = self._tstamps.get(uid)
                 if not last:
+                    self._log.warn('hb %s[%s]: initial hb missing', self._uid, uid)
                     continue
 
                 if now - last > self._timeout:
 
                     if self._log:
                         self._log.warn('hb %s[%s]: %.1f - %.1f > %1.f: timeout',
-                                       self._uid, uid, now, last, self._timout)
+                                       self._uid, uid, now, last, self._timeout)
 
                     if  self._term:
                         self._term()
+
+                    from .logger import _logger_registry
+                    _logger_registry.close_all()
 
                     os.kill(self._pid, signal.SIGTERM)
 
@@ -88,8 +98,10 @@ class Heartbeat(object):
         if not uid:
             uid = 'default'
 
+        last = self._tstamps.get(uid, 0.0)
+
         if self._log:
-            self._log.debug('hb %s[%s]: %.1f %.1f', self._uid, uid, self._last,
+            self._log.debug('hb %s[%s]: %.1f %.1f', self._uid, uid, last,
                                                                       timestamp)
         self._tstamps[uid] = timestamp
 

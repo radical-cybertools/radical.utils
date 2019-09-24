@@ -1,7 +1,6 @@
 
 import zmq
 import time
-import errno
 import msgpack
 
 import threading as mt

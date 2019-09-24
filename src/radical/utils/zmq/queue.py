@@ -6,7 +6,7 @@ import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge, no_intr
+from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url

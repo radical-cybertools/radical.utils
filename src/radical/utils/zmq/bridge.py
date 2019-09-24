@@ -86,13 +86,13 @@ class Bridge(object):
         self._channel = self._cfg['name']
         self._uid     = self._cfg['uid']
 
-        self._log     = Logger(name=self._uid)
+        self._log     = Logger(name=self._uid, ns='radical.utils')
         self._prof    = Profiler(name=self._uid)
 
-        timeout       = self._cfg.get('timeout', 0)
-        frequency     = timeout / 10
+        timeout       = self._cfg.get('timeout', 1)
+        interval      = timeout / 10.0
         self._hb      = Heartbeat(uid=self._uid, timeout=timeout,
-                                  frequency=frequency)
+                                  interval=interval, log=self._log)
         self._hb.beat()
 
 
