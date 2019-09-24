@@ -6,7 +6,7 @@ import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge, no_intr
+from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
@@ -18,26 +18,6 @@ from ..logger import Logger
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
-
-
-def log_bulk(log, bulk, token):
-
-    if hasattr(bulk, 'read'):
-        bulk = msgpack.unpack(bulk)
-
-    if not isinstance(bulk, list):
-        bulk = [bulk]
-
-    if 'arg' in bulk[0]:
-        bulk = [e['arg'] for e in bulk]
-
-    if 'uid' in bulk[0]:
-        for e in bulk:
-            log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
-    else:
-        for e in bulk:
-          # log.debug("%s: %s", str(token), unicode(e)[0:32])
-            log.debug("%s: ?", str(token))
 
 
 # ------------------------------------------------------------------------------
@@ -354,3 +334,4 @@ class Subscriber(object):
 
 # ------------------------------------------------------------------------------
 
+??`??`ZZ??`??`:qa!

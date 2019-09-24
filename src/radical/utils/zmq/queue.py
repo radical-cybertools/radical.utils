@@ -22,28 +22,6 @@ _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 
 
-def log_bulk(log, bulk, token):
-
-    if not bulk:
-      # log.debug("%s: None", token)
-        return
-
-    if not isinstance(bulk, list):
-        bulk = [bulk]
-
-    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
-        bulk = [e['arg'] for e in bulk]
-
-    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
-        for e in bulk:
-            log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
-    else:
-        for e in bulk:
-            log.debug("%s: ?", str(token))
-            log.debug("%s: %s", token, str(e)[0:32])
-            log.debug("%s: %s", token, str(e)[0:32])
-
-
 # ------------------------------------------------------------------------------
 #
 # Communication between components is done via queues.  Queues are

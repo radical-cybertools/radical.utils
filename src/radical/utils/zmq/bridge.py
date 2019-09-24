@@ -2,6 +2,7 @@
 import zmq
 import copy
 import errno
+import msgpack
 
 from ..logger    import Logger
 from ..profile   import Profiler
@@ -39,6 +40,32 @@ def no_intr(f, *args, **kwargs):
             raise          # some other error condition, raise it
         finally:
             cnt += 1
+
+
+# ------------------------------------------------------------------------------
+#
+def log_bulk(log, bulk, token):
+
+    if not bulk:
+      # log.debug("%s: None", token)
+        return
+
+    if hasattr(bulk, 'read'):
+        bulk = msgpack.unpack(bulk)
+
+    if not isinstance(bulk, list):
+        bulk = [bulk]
+
+    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
+        bulk = [e['arg'] for e in bulk]
+
+    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
+        for e in bulk:
+            log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
+    else:
+        for e in bulk:
+            log.debug("%s: ?", str(token))
+            log.debug("%s: %s", token, str(e)[0:32])
 
 
 # ------------------------------------------------------------------------------
@@ -91,10 +118,10 @@ class Bridge(object):
     def create(cfg):
 
         # ----------------------------------------------------------------------
-        # NOTE:  I'd rather have this as class data than as stack data, but
-        #        python stumbles over circular imports at that point :/
-        #        Another option though is to discover and dynamically load
-        #        components.
+        # NOTE: I'd rather have this as class data than as stack data, but
+        #       python stumbles over circular imports at that point :/
+        #       Another option though is to discover and dynamically load
+        #       components.
         from .pubsub import PubSub
         from .queue  import Queue
 
