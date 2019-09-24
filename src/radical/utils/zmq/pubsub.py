@@ -18,6 +18,7 @@ from ..logger import Logger
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
+_MAX_RETRY       =     3  # max number of ZMQ snd/rcv retries on interrupts
 
 
 def log_bulk(log, bulk, token):
@@ -45,30 +46,29 @@ def log_bulk(log, bulk, token):
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
 #
-# FIXME: how does that behave wrt. tomeouts?  We probably should include
+# FIXME: how does that behave wrt. timeouts?  We probably should include
 #        an explicit timeout parameter.
 #
 # kudos: https://gist.github.com/minrk/5258909
 #
 def _uninterruptible(f, *args, **kwargs):
+
     cnt = 0
     while True:
-        cnt += 1
         try:
             return f(*args, **kwargs)
 
         except zmq.ContextTerminated:
-            return None
+            return None    # connect closed or otherwise became unusable
 
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
-                if cnt > 10:
-                    raise
-                # interrupted, try again
-                continue
-            else:
-                # real error, raise it
-                raise
+                if cnt > _MAX_RETRY:
+                    raise  # interrupted too often - forward exception
+                continue   # interrupted, try again
+            raise          # some other error condition, raise it
+        finally:
+            cnt += 1
 
 
 # ------------------------------------------------------------------------------
@@ -124,6 +124,7 @@ class PubSub(Bridge):
         self._log.info('start bridge %s', self._uid)
 
         self._url        = 'tcp://*:*'
+        self._lock       = mt.Lock()
 
         self._ctx        = zmq.Context()  # rely on GC for destruction
         self._in         = self._ctx.socket(zmq.XSUB)
@@ -207,26 +208,31 @@ class PubSub(Bridge):
                 _socks = dict(_uninterruptible(self._poll.poll, timeout=1000))
                 active = False
 
+                if self._out in _socks:
+                    # if any subscriber socket signals a message, it's
+                    # likely a topic subscription.  We forward that to
+                    # the publisher channels, so the bridge subscribes
+                    # for the respective message topic.
+                    with self._lock:
+                        msg = _uninterruptible(self._out.recv_multipart)
+                        _uninterruptible(self._in.send_multipart, msg)
+
+                    log_bulk(self._log, msg, '<< %s' % self.channel)
+
+                    active = True
+
                 if self._in in _socks:
 
                     # if any incoming socket signals a message, get the
                     # message on the subscriber channel, and forward it
-                    # to the publishing channel, no questions asked.
-                    msg = _uninterruptible(self._in.recv_multipart,
-                                                              flags=zmq.NOBLOCK)
-                    _uninterruptible(self._out.send_multipart, msg)
+                    # to the subscriber channels, no questions asked.
+                    # TODO: check topic filtering
+                    with self._lock:
+                        msg = _uninterruptible(self._in.recv_multipart,
+                                               flags=zmq.NOBLOCK)
+                        _uninterruptible(self._out.send_multipart, msg)
+
                     log_bulk(self._log, msg, '>> %s' % self.channel)
-
-                    active = True
-
-                if self._out in _socks:
-                    # if any outgoing socket signals a message, it's
-                    # likely a topic subscription.  We forward that on
-                    # the incoming channels to subscribe for the
-                    # respective messages.
-                    msg = _uninterruptible(self._out.recv_multipart)
-                    _uninterruptible(self._in.send_multipart, msg)
-                    log_bulk(self._log, msg, '<< %s' % self.channel)
 
                     active = True
 
@@ -248,6 +254,7 @@ class Publisher(object):
 
         self._channel  = channel
         self._url      = url
+        self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.pub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
@@ -288,7 +295,8 @@ class Publisher(object):
         log_bulk(self._log, msg, '-> %s' % self.channel)
 
         msg = [topic, data]
-        _uninterruptible(self._q.send_multipart, msg)
+        with self._lock:
+            _uninterruptible(self._q.send_multipart, msg)
 
 
 # ------------------------------------------------------------------------------
@@ -336,7 +344,8 @@ class Subscriber(object):
         topic = topic.replace(' ', '_')
 
         log_bulk(self._log, topic, '~~ %s' % self.channel)
-        _uninterruptible(self._q.setsockopt, zmq.SUBSCRIBE, topic)
+        with self._lock:
+            _uninterruptible(self._q.setsockopt, zmq.SUBSCRIBE, topic)
 
 
     # --------------------------------------------------------------------------
@@ -345,8 +354,10 @@ class Subscriber(object):
 
         # FIXME: add timeout to allow for graceful termination
 
-        topic, data = _uninterruptible(self._q.recv_multipart)
-        msg         = msgpack.unpackb(data)
+        with self._lock:
+            topic, data = _uninterruptible(self._q.recv_multipart)
+
+        msg = msgpack.unpackb(data)
 
         log_bulk(self._log, msg, '<- %s' % self.channel)
 
@@ -359,22 +370,9 @@ class Subscriber(object):
 
         if _uninterruptible(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
-            data  = _uninterruptible(self._q.recv_multipart, flags=zmq.NOBLOCK)
-            topic = None
-
-            # we run into an intermitant failure mode where the topic element of
-            # the multipart message is duplicated, but only when a *previous*
-            # receive got interrupted.  We correct this here
-            # FIXME: understand *why* this happens
-            if isinstance(data, list):
-                if len(data) == 2:
-                    topic, data = data[0], data[1]
-                elif len(data) == 3 and data[0] == data[1]:
-                    topic, data = data[1], data[2]
-
-            if not topic or not data:
-                return [None, None]
-
+            with self._lock:
+                topic, data = _uninterruptible(self._q.recv_multipart,
+                                                              flags=zmq.NOBLOCK)
             msg = msgpack.unpackb(data)
 
             log_bulk(self._log, msg, '<- %s' % self.channel)
@@ -387,3 +385,4 @@ class Subscriber(object):
 
 # ------------------------------------------------------------------------------
 
+??`??`ZZ??`??`:qa!

@@ -188,6 +188,7 @@ class Queue(Bridge):
         self._log.info('start bridge %s', self._uid)
 
         self._url        = 'tcp://*:*'
+        self._lock       = mt.Lock()
 
         self._ctx        = zmq.Context()  # rely on GC for destruction
         self._in         = self._ctx.socket(zmq.PULL)
@@ -279,15 +280,18 @@ class Queue(Bridge):
 
                 if self._in in ev_in:
 
-                    active = True
-                    data   = _no_intr(self._in.recv)
-                    msgs   = msgpack.unpackb(data)
+                    with self._lock:
+                        data = _no_intr(self._in.recv)
+
+                    msgs = msgpack.unpackb(data)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
 
                     log_bulk(self._log, msgs, '>< %s [%d]'
                                               % (self._channel, len(buf)))
+
+                    active = True
 
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
@@ -300,10 +304,11 @@ class Queue(Bridge):
 
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
-                        active = True
-                        req    = _no_intr(self._out.recv)
-                        bulk   = buf[:self._bulk_size]
-                        data   = msgpack.packb(bulk)
+                        with self._lock:
+                            req = _no_intr(self._out.recv)
+                        bulk = buf[:self._bulk_size]
+                        data = msgpack.packb(bulk)
+
                         _no_intr(self._out.send, data)
 
                         log_bulk(self._log, bulk, '<> %s [%s]'
@@ -312,12 +317,15 @@ class Queue(Bridge):
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
+                        active = True
+
                 if active:
                     # keep this bridge alive
                     self.heartbeat()
 
                 else:
                     # let CPU sleep a bit when there is nothing to do
+                    # FIXME: why not use poll timeout?
                     time.sleep(0.01)
 
         except  Exception:
@@ -334,6 +342,7 @@ class Putter(object):
 
         self._channel  = channel
         self._url      = url
+        self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.put.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
@@ -371,7 +380,9 @@ class Putter(object):
 
         log_bulk(self._log, msg, '-> %s' % self._channel)
         data = msgpack.packb(msg)
-        _no_intr(self._q.send, data)
+
+        with self._lock:
+            _no_intr(self._q.send, data)
 
 
 # ------------------------------------------------------------------------------
@@ -384,13 +395,13 @@ class Getter(object):
 
         self._channel   = channel
         self._url       = url
+        self._lock      = mt.Lock()
 
         self._uid       = generate_id('%s.get.%s' % (self._channel,
                                                     '%(counter)04d'), ID_CUSTOM)
         self._log       = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
-        self._lock      = mt.RLock()
         self._requested = False          # send/recv sync
 
         self._ctx       = zmq.Context()  # rely on GC for destruction
@@ -424,13 +435,18 @@ class Getter(object):
 
         if not self._requested:
             req = 'Request %s' % os.getpid()
-            _no_intr(self._q.send, req)
+
+            with self._lock:
+                _no_intr(self._q.send, req)
+
             self._requested = True
             log_bulk(self._log, req, '>> %s [%-5s]'
                                    % (self._channel, self._requested))
 
-        data = _no_intr(self._q.recv)
-        msg  = msgpack.unpackb(data)
+        with self._lock:
+            data = _no_intr(self._q.recv)
+
+        msg = msgpack.unpackb(data)
         self._requested = False
         log_bulk(self._log, msg, '-- %s [%-5s]'
                                % (self._channel, self._requested))
@@ -445,16 +461,22 @@ class Getter(object):
         with self._lock:  # need to protect self._requested
 
             if not self._requested:
+
                 # we can only send the request once per recieval
                 req = 'request %s' % os.getpid()
-                _no_intr(self._q.send, req)
+                with self._lock:
+                    _no_intr(self._q.send, req)
+
                 self._requested = True
                 log_bulk(self._log, req, '-> %s [%-5s]'
                                          % (self._channel, self._requested))
 
             if _no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
-                data = _no_intr(self._q.recv)
-                msg  = msgpack.unpackb(data)
+
+                with self._lock:
+                    data = _no_intr(self._q.recv)
+
+                msg = msgpack.unpackb(data)
                 self._requested = False
                 log_bulk(self._log, msg, '<- %s [%-5s]'
                                          % (self._channel, self._requested))
