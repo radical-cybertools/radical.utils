@@ -608,18 +608,21 @@ def expand_env(data, env=None, ignore_missing=True):
 
         assume  `export BAR=bar`:
 
+            $BAR      : $BAR           -> bar
             $BAR      : foo_$BAR_baz   -> foo_bar_baz
             ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
             $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
 
         assume `unset BAR`, `ignore_missing=True`
 
+            $BAR      : $BAR           -> None
             $BAR      : foo_$BAR_baz   -> foo__baz
             ${BAR}    : foo_${BAR}_baz -> foo__baz
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
 
         assume `unset BAR`, `ignore_missing=False`
 
+            $BAR      : $BAR           -> ValueError('cannot expand $BAR')
             $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
@@ -689,6 +692,12 @@ def expand_env(data, env=None, ignore_missing=True):
             if post is None: post = ''
 
             val = env.get(key, val)
+
+            if key and not pre and not post and not val:
+                # we had something to expand, and that expansion is all there is
+                # in the key, and the expand failed - then the result it not an
+                # empty string but None
+                return None
 
             ret += pre
             ret += val

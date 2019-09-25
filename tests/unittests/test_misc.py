@@ -116,15 +116,18 @@ def test_expand_env():
     else          : tmp = val
     if val is None: val = ''
 
-    tc = {'foo_$BAR.baz'      :['foo_%s.baz' % val,
-                                'foo_bar.baz',
-                                'foo_.baz'   ],
-          'foo_${BAR}_baz'    :['foo_%s_baz' % val,
-                                'foo_bar_baz',
-                                'foo__baz'   ],
-          'foo_${BAR:buz}_baz':['foo_%s_baz' % tmp,
-                                'foo_bar_baz',
-                                'foo_buz_baz'],
+    tc = {'$BAR'              : [None if not val else val,
+                                 'bar',
+                                 None],
+          'foo_$BAR.baz'      : ['foo_%s.baz' % val,
+                                 'foo_bar.baz',
+                                 'foo_.baz'   ],
+          'foo_${BAR}_baz'    : ['foo_%s_baz' % val,
+                                 'foo_bar_baz',
+                                 'foo__baz'   ],
+          'foo_${BAR:buz}_baz': ['foo_%s_baz' % tmp,
+                                 'foo_bar_baz',
+                                 'foo_buz_baz'],
          }
 
     # test string expansion (and also create list and dict for other tests
