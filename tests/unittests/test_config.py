@@ -17,7 +17,7 @@ def test_config():
     base = os.path.abspath(os.path.dirname(__file__))
     path = '%s/data/resource_*.json' % base
 
-    cfg1 = ru.Config(module='radical.utils', path=path)
+    cfg1 = ru.Config(cfg=path)
 
     assert('bar' == cfg1.query('yale.grace.agent_launch_method'))
     assert('bar' == cfg1['yale']['grace']['agent_launch_method'])
@@ -28,15 +28,15 @@ def test_config():
 
     os.environ['FOO'] = 'GSISSH'
 
-    cfg2 = ru.Config(module='radical.utils', path=path)
+    cfg2 = ru.Config(cfg=path)
     assert('GSISSH' == cfg2.query('yale.grace.agent_launch_method'))
     assert(None     is cfg2.query('yale.grace.no_launch_method'))
 
-    cfg3 = ru.Config(module='radical.utils', path=path, expand=False)
+    cfg3 = ru.Config(cfg=path, expand=False)
     assert('${FOO:bar}' == cfg3.query('yale.grace.agent_launch_method'))
 
     env  = {'FOO' : 'baz'}
-    cfg4 = ru.Config(module='radical.utils', path=path, env=env)
+    cfg4 = ru.Config(cfg=path, env=env)
     assert('baz' == cfg4.query('yale.grace.agent_launch_method'))
 
 

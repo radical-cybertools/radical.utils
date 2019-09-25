@@ -153,68 +153,88 @@ class Config(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module, path=None, name=None, cfg=None,
-                       expand=True, env=None):
+    def __init__(self, module=None, name=None, cfg=None, app_cfg=None,
+                 expand=True, env=None):
         '''
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
         module:  used to determine the module's config file location
-        path:    full path to a config file (leading module name elements are
-                 strippeed)
-        name:    the path is here determined by module name and config name
-        cfg:     runtime config settings to be merged into the default config
-        expand:  enable / disable environment var expansion.  When disabled, the
-                 consumer should expand manually upon use of config entries.
+                 - default: `radical.utils`
+        name:    name of config to be loaded from module's config path
+        cfg:     specify a specific configuration to be used
+                 - if string: config to be loaded from module's config path
+                 - if dict  : config to be merged into the default config
+                 - default  : `default`
+        expand:  enable / disable environment var expansion
+                 - default: True
         env:     environment dictionary to be used for expansion
-                 defaults to `os.environ`
+                 - default: `os.environ`
+
+        The naming of config files follows this rule:
+
+          `<name>_<cfg>.json`
+
+        For example, if the following is used in a system python installation:
+
+            ru.Config(module='radical.pilot', name='session', cfg='minimal')
+
+        it would attempt to load (depending on system details):
+
+            /usr/lib/python3/site-packages/radical/pilot/\
+                                                   config/session_mininmal.json
         '''
 
-        modpath = find_module(module)
-        if not modpath:
-            raise ValueError("Cannot find module %s" % module)
+        # if a name has dot limited elements and no module is given, iterpret
+        # the first part as module
+        # radical.pilot.session -> [radical.pilot, session]
+        if not module and name and '.' in name:
+            elems  = name.split('.')
+            module = '.'.join(elems[:-1])
+            name   = elems[-1]
 
-        home    = os.environ.get('HOME', '/tmp')
-        home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
-        sys_dir = "%s/configs" % (modpath)
-        usr_dir = "%s/.%s"     % (home, module.replace('.', '/'))
-
-        if path and name:
-            raise ValueError("'path' and 'name' parameters are exclusive")
+        # do the same if module is given but not the name
+        if not name and module and '.' in module:
+            elems  = module.split('.')
+            module = '.'.join(elems[:-1])
+            name   = elems[-1]
 
         # if a name starts with a module prefix, strip that prefix
         if name and name.startswith('%s.' % module):
             name = name[len(module) + 1:]
 
-        # if a path starts with a module prefix, strip that prefix
-        if path and path.startswith('%s/' % module.replace('.', '/')):
-            path = path[len(module) + 1:]
-
-        if not path and not name:
-            # Default to `name='*.json'`
-            name = '*.json'
-
         if not cfg:
-            cfg = dict()
+            # by default, load all matching configs into separate subsections
+            cfg = '*'
 
+        if not app_cfg:
+            # just use config files
+            app_cfg = dict()
 
-        if path: path = path
-        else   : path = name.replace('.', '/')
-
-        if '*' in path: starred = True
-        else          : starred = False
-
-        if starred and path.count('*') > 1:
-            raise ValueError('only one wildcard allowed in config path')
-
-        if path.startswith('/'):
-            sys_fspec = path
+        if cfg.startswith('/'):
+            sys_fspec = cfg
             usr_fspec = None
-        else:
-            sys_fspec = '%s/%s' % (sys_dir, path)
-            usr_fspec = '%s/%s' % (usr_dir, path)
 
-        app_cfg = cfg
+        else:
+            if not module or not name:
+                raise ValueError('insufficient parameters for config loading')
+
+            modpath = find_module(module)
+            if not modpath:
+                raise ValueError("Cannot find module %s" % module)
+
+            home    = os.environ.get('HOME', '/tmp')
+            home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
+            sys_dir = "%s/configs"     % (modpath)
+            usr_dir = "%s/.%s/configs" % (home, module.replace('.', '/'))
+            fname   = '%s_%s.json'     % (name.replace('.', '/'), cfg)
+
+            sys_fspec = '%s/%s' % (sys_dir, fname)
+            usr_fspec = '%s/%s' % (usr_dir, fname)
+
+        if '*' in cfg: starred = True
+        else         : starred = False
+
         sys_cfg = dict()
         usr_cfg = dict()
 
@@ -237,24 +257,23 @@ class Config(DictMixin):
             # underneath it.
             if sys_fspec:
 
-                prefix_len  = sys_fspec.find('*')
-                postfix_len = len(sys_fspec) - prefix_len - 1
+                postfix_len = len('.json')                      # ' .json'
+                prefix_len  = len(sys_fspec) - postfix_len - 1  # '*.json'
 
                 for sys_fname in glob.glob(sys_fspec):
 
-                    if postfix_len: base = sys_fname[prefix_len:-postfix_len]
-                    else          : base = sys_fname[prefix_len:]
-
+                    base = sys_fname[prefix_len:-postfix_len]
                     scfg = read_json(sys_fname)
                     sys_cfg[base] = scfg
 
 
             if usr_fspec:
 
-                prefix_len  = usr_fspec.find('*')
-                postfix_len = len(usr_fspec) - prefix_len - 1
+                postfix_len = len('.json')                      # ' .json'
+                prefix_len  = len(usr_fspec) - postfix_len - 1  # '*.json'
 
                 for usr_fname in glob.glob(usr_fspec):
+
                     base = usr_fname[prefix_len:-postfix_len]
                     ucfg = read_json(usr_fname)
                     usr_cfg[base] = ucfg
@@ -375,7 +394,7 @@ class DefaultConfig(Config, metaclass=Singleton):
                'profile_dir': '${RADICAL_DEFAULT_PROFILE_DIR:%s}'      % pwd,
                }
 
-        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+        super(DefaultConfig, self).__init__(module='radical.utils', app_cfg=cfg)
 
 
 # ------------------------------------------------------------------------------
