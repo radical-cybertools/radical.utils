@@ -133,7 +133,7 @@ from .singleton  import Singleton
 
 # ------------------------------------------------------------------------------
 #
-class Config(munch.AutoMunch):
+class Config(munch.Munch):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -185,6 +185,9 @@ class Config(munch.AutoMunch):
             /usr/lib/python3/site-packages/radical/pilot/\
                                                    config/session_mininmal.json
         '''
+
+        self._expand = expand
+        self._env    = env
 
         # if a name has dot limited elements and no module is given, iterpret
         # the first part as module
@@ -303,6 +306,22 @@ class Config(munch.AutoMunch):
 
         if cfg_dict:
             self.update(to_config(cfg_dict))
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __getattr__(self, k):
+        return self.get(k, None)
+
+    def __setattr__(self, k, v):
+
+        if self._expand:
+            ru_expand_env(v, env=self._env)
+
+        if isinstance(v, dict):
+            self[k] = Config(app_cfg=v, expand=False)
+        else:
+            self[k] = v
 
 
     # --------------------------------------------------------------------------
