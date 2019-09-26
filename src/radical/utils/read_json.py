@@ -44,14 +44,19 @@ def read_json_str(filename):
 
 # ------------------------------------------------------------------------------
 #
-def write_json(data, filename):
+def write_json(data, fname):
     '''
     thin wrapper around python's json write, for consistency of interface
 
     '''
 
+    if isinstance(fname, dict) and isinstance(data, str):
+        # be generous
+        tmp   = data
+        data  = fname
+        fname = tmp
 
-    with open(filename, 'w') as f:
+    with open(fname, 'w') as f:
         json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
         f.write('\n')
 

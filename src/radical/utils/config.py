@@ -119,8 +119,9 @@ __license__   = "MIT"
 #
 # ------------------------------------------------------------------------------
 
-import glob
 import os
+import glob
+import munch
 
 from .misc       import find_module, is_string
 from .misc       import expand_env as ru_expand_env
@@ -132,7 +133,7 @@ from .singleton  import Singleton
 
 # ------------------------------------------------------------------------------
 #
-class Config(DictMixin):
+class Config(munch.AutoMunch):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -146,9 +147,9 @@ class Config(DictMixin):
     # identify as dictionary
     # FIXME: why is this not inherited from DictMixin?
     # FIXME: we also want to identify as ru.Config!
-    @property
-    def __class__(self):
-        return dict
+  # @property
+  # def __class__(self):
+  #     return dict
 
 
     # --------------------------------------------------------------------------
@@ -212,13 +213,15 @@ class Config(DictMixin):
             app_cfg = dict()
 
         if cfg.startswith('/'):
+
+            # load config from abs path
             sys_fspec = cfg
             usr_fspec = None
 
-        else:
-            if not module or not name:
-                raise ValueError('insufficient parameters for config loading')
 
+        elif module and name:
+
+            # construct cfg file paths
             modpath = find_module(module)
             if not modpath:
                 raise ValueError("Cannot find module %s" % module)
@@ -231,6 +234,11 @@ class Config(DictMixin):
 
             sys_fspec = '%s/%s' % (sys_dir, fname)
             usr_fspec = '%s/%s' % (usr_dir, fname)
+
+        else:
+            # we can't load a config file - just use the app config
+            sys_fspec = None
+            usr_fspec = None
 
         if '*' in cfg: starred = True
         else         : starred = False
@@ -279,13 +287,22 @@ class Config(DictMixin):
                     usr_cfg[base] = ucfg
 
         # merge sys, app, and user cfg before expansion
-        self._cfg = dict()
-        self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
+        cfg_dict = dict()
+        cfg_dict = dict_merge(cfg_dict, sys_cfg, policy='overwrite')
+        cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
+        cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
         if expand:
-            ru_expand_env(self._cfg, env=env)
+            ru_expand_env(cfg_dict, env=env)
+
+        def to_config(data):
+            for k,v in data.items():
+                if isinstance(v, dict):
+                    data[k] = Config(app_cfg=v, expand=expand, env=env)
+            return data
+
+        if cfg_dict:
+            self.update(to_config(cfg_dict))
 
 
     # --------------------------------------------------------------------------
@@ -304,36 +321,16 @@ class Config(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __repr__(self):
-
-        import pprint
-        return pprint.pformat(self._cfg)
-
-
-    # --------------------------------------------------------------------------
-    #
     def as_dict(self):
 
-        return self._cfg
+        return self.to_dict()
 
 
     # --------------------------------------------------------------------------
     #
-    # first level definitions should be implemented for the dict mixin
-    #
-    def __getitem__(self, key):
-        if key not in self._cfg:
-            raise KeyError('no such key [%s]' % key)
-        return self._cfg[key]
+    def write(self, fname):
 
-    def __setitem__(self, key, value):
-        self._cfg[key] = value
-
-    def __delitem__(self, key):
-        del(self._cfg[key])
-
-    def keys(self):
-        return list(self._cfg.keys())
+        ru.json_write(self._cfg, fname)
 
 
     # --------------------------------------------------------------------------
@@ -347,8 +344,8 @@ class Config(DictMixin):
         this method behaves like:
 
             config['some']['path']['to'].get('key', default='foo')
-
         '''
+        # TODO: overload `get()`?
 
         if is_string(key): elems = key.split('.')
         else             : elems = key
@@ -356,7 +353,7 @@ class Config(DictMixin):
         if not elems:
             raise ValueError('empty key on query')
 
-        pos  = self._cfg
+        pos  = self
         path = list()
         for elem in elems:
 

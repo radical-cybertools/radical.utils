@@ -19,7 +19,7 @@ def test_config():
 
     cfg1 = ru.Config(cfg=path)
 
-    assert('bar' == cfg1.query('yale.grace.agent_launch_method'))
+    assert('bar' == cfg1.yale.query('grace.agent_launch_method'))
     assert('bar' == cfg1['yale']['grace']['agent_launch_method'])
 
     assert(None  is cfg1.query('yale.grace.no_launch_method'))

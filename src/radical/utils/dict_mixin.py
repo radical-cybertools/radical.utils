@@ -24,12 +24,6 @@ class DictMixin:
     dictionary.
     '''
 
-  # # identify as dictionary
-  # @property
-  # def __class__(self):
-  #     return dict
-
-
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented by the sub-class
