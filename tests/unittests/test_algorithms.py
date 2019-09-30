@@ -22,6 +22,10 @@ def test_lazy_bisect():
             return False
     # --------------------------------------------------------------------------
 
+    good, bad = ru.lazy_bisect(list(), schedule)
+    assert(not good)
+    assert(not bad)
+
     tasks = list(range(128 * 1024))
     good, bad = ru.lazy_bisect(tasks, schedule)
 
