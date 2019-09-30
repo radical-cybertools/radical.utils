@@ -30,11 +30,12 @@ from .lockfile       import Lockfile
 from .registry       import Registry, READONLY, READWRITE
 from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
-from .daemonize      import Daemon
+from .daemon         import Daemon, daemonize
 from .config         import Config, DefaultConfig
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
+from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
 

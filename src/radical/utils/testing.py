@@ -5,9 +5,52 @@ __license__   = 'MIT'
 
 
 import os
+import sys
 
 from .misc       import import_module
 from .read_json  import read_json
+
+
+# ------------------------------------------------------------------------------
+#
+# when running under `pytest`, `sys.exit()` will trigger a test error, even if
+# it is an expected call.  Mocking or monkeypatching `sys.exit()` removes the
+# error, but will alter semantics so that the test becomes meaningless.  We thus
+# switch to `pytest.exit()` if running under pytest.
+#
+# It is not easy to determine if we are running under pytest.  We thus assume
+# that we are the only instance checking for that, and that the `pytest` module
+# is imported somewhere in the interpreter before `ru` is imported.
+_pytest_active = False
+
+# check if pytest is loaded
+for m in sys.modules:
+    if 'pytest' in str(m):
+        _pytest_active = True
+        break
+
+# check if we can import pytest
+if _pytest_active:
+    try:
+        import pytest
+    except ImportError:
+        _pytest_active = False
+
+
+def sys_exit(ret):
+    '''
+    call `pytest.exit(ret)` when running under pytest, `sys.exit(ret) otherwise
+    '''
+
+    global _pytest_active
+
+    if _pytest_active:
+        pytest.exit(ret)
+
+    else:
+        sys.exit(ret)
+
+    assert(False)
 
 
 # ------------------------------------------------------------------------------
