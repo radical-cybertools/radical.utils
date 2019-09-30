@@ -312,6 +312,9 @@ def lazy_bisect(data, check, ratio=0.5):
     checked `good`, and a list of elements checked as `bad`.
     '''
 
+    if not data:
+        return [], []
+
     if ratio > 1.0: ratio = 1.0
     if ratio < 0.0: ratio = 0.0
 
