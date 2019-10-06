@@ -7,6 +7,8 @@ __license__   = 'MIT'
 import re
 import json
 
+from .misc import as_string
+
 
 # ------------------------------------------------------------------------------
 #
@@ -39,7 +41,7 @@ def read_json_str(filename):
     strings.
     '''
 
-    return to_string(read_json(filename))
+    return as_string(read_json(filename))
 
 
 # ------------------------------------------------------------------------------
@@ -91,42 +93,7 @@ def parse_json_str(json_str):
     same as parse_json, but converts unicode strings to simple strings
     '''
 
-    return to_string(parse_json(json_str))
-
-
-# ------------------------------------------------------------------------------
-#
-def to_string(data):
-
-    if isinstance(data, dict):
-        return {to_string(k): to_string(v) for k,v in data.items()}
-
-    elif isinstance(data, list):
-        return [to_string(e) for e in data]
-
-    elif isinstance(data, bytes):
-        return bytes.decode(data, 'utf-8')
-
-    else:
-        return data
-
-
-# ------------------------------------------------------------------------------
-# thanks to
-# http://stackoverflow.com/questions/956867/#13105359
-def to_byte(data):
-
-    if isinstance(data, dict):
-        return {to_byte(k): to_byte(v) for k,v in data.items()}
-
-    elif isinstance(data, list):
-        return [to_byte(e) for e in data]
-
-    elif isinstance(data, str):
-        return str.encode(data, 'utf-8')
-
-    else:
-        return data
+    return as_string(parse_json(json_str))
 
 
 # ------------------------------------------------------------------------------

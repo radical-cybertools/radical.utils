@@ -1,12 +1,14 @@
 
 import zmq
 import copy
+import time
 import errno
 import msgpack
 
+import threading as mt
+
 from ..logger    import Logger
 from ..profile   import Profiler
-from ..heartbeat import Heartbeat
 
 
 _MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
@@ -81,35 +83,40 @@ class Bridge(object):
     #
     def __init__(self, cfg):
 
-        self._cfg     = copy.deepcopy(cfg)
+        self._cfg     = cfg
+        self._channel = self._cfg.channel
+        self._uid     = self._cfg.uid
+        self._log     = Logger(name=self._uid, ns='radical.utils',
+                               level='DEBUG', path=self._cfg.session_pwd)
+        self._prof    = Profiler(name=self._uid, path=self._cfg.session_pwd)
 
-        self._channel = self._cfg['name']
-        self._uid     = self._cfg['uid']
+        self._log.debug('bridge %s init', self._uid)
 
-        self._log     = Logger(name=self._uid, ns='radical.utils')
-        self._prof    = Profiler(name=self._uid)
+        self._bridge_initialize()
 
-        timeout       = self._cfg.get('timeout', 1)
-        interval      = timeout / 10.0
-        self._hb      = Heartbeat(uid=self._uid, timeout=timeout,
-                                  interval=interval, log=self._log)
-        self._hb.beat()
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def channel(self):
+        return self._channel
 
 
     # --------------------------------------------------------------------------
     #
     def start(self):
-        pass
 
+        self._log.info('start bridge %s', self._uid)
 
-    # --------------------------------------------------------------------------
-    #
-    def heartbeat(self):
-        '''
-        this *must* be called by deriving classes
-        '''
+        # the bridge runs in a daemon thread, so that the main process will not
+        # wait for it.  But, give Python's thread performance (or lack thereof),
+        # this means that the user of this class should create a separate
+        # process instance to host the bridge thread.
+        self._term          = mt.Event()
+        self._bridge_thread = mt.Thread(target=self._bridge_work)
+        self._bridge_thread.start()
 
-        self._hb.beat()
+        self._log.info('started bridge %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -117,7 +124,6 @@ class Bridge(object):
     @staticmethod
     def create(cfg):
 
-        # ----------------------------------------------------------------------
         # NOTE: I'd rather have this as class data than as stack data, but
         #       python stumbles over circular imports at that point :/
         #       Another option though is to discover and dynamically load
@@ -127,7 +133,6 @@ class Bridge(object):
 
         _btypemap = {'pubsub' : PubSub,
                      'queue'  : Queue}
-        # ----------------------------------------------------------------------
 
         kind = cfg['kind']
 
@@ -138,6 +143,46 @@ class Bridge(object):
         bridge = btype(cfg)
 
         return bridge
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self, timeout=None):
+
+        self._term.set()
+
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def alive(self):
+        return self._bridge_thread.is_alive()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def wait(self, timeout=None):
+        '''
+        join negates the daemon thread settings, in that it stops us from
+        killing the parent process w/o hanging it.  So we do a slow pull on the
+        thread state.
+        '''
+
+        self._log.info('wait bridge %s', self._uid)
+
+        start = time.time()
+
+        while True:
+
+            if not self.alive:
+
+                return True
+
+            if  timeout is not None and \
+                timeout < time.time() - start:
+                return False
+
+            time.sleep(0.1)
 
 
 # ------------------------------------------------------------------------------

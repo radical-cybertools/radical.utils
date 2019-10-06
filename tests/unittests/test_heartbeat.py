@@ -47,7 +47,7 @@ def test_hb_default():
 
         cb = get_counter()
 
-        def term():
+        def term_cb(uid):
 
             now = time.time()
             assert(now >= t0 + dur), '%.1f > %.1f + %.1f' % (now, t0, dur)
@@ -56,7 +56,8 @@ def test_hb_default():
             cnt_chk = cb(test=True)
             assert(cnt_tgt * 0.8 < cnt_chk < cnt_tgt * 1.2), [cnt_tgt, cnt_chk]
 
-        hb = ru.Heartbeat('foo', timeout=tout, interval=ival, cb=cb, term=term)
+        hb = ru.Heartbeat('foo', timeout=tout, interval=ival,
+                                 cb=cb, term_cb=term_cb)
         t0 = time.time()
 
         while time.time() < t0 + dur:

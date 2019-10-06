@@ -2,9 +2,11 @@
 import io
 import os
 import sys
+import queue
 import signal
 import multiprocessing as mp
 
+from .misc    import as_list
 from .testing import sys_exit
 
 # from
@@ -15,7 +17,8 @@ from .testing import sys_exit
 
 # ------------------------------------------------------------------------------
 #
-def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
+def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
+              timeout=None):
     '''
     Create a damon process and run the given method in it.   For that, do the
     UNIX double-fork magic, see Stevens' "Advanced Programming in the UNIX
@@ -27,10 +30,11 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
     and read / written in their respective capabilities.
     '''
 
-    assert(callable(main))
+    if main:
+        assert(callable(main))
 
-    pid   = None
-    queue = mp.Queue()
+    pid  = None
+    q    = mp.Queue()
 
     # first fork
     try:
@@ -41,12 +45,12 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
             # TODO: timeout
             if timeout:
                 try:
-                    pid = queue.get(timeout=timeout)
-                except Queue.Empty:
-                    raise TimeoutError('daemon startup timed out')
+                    pid = q.get(timeout=timeout)
+                except queue.Empty:
+                    raise RuntimeError('daemon startup timed out')
 
             else:
-                pid = queue.get()
+                pid = q.get()
 
             if not pid:
                 raise RuntimeError('daemon startup failed')
@@ -74,13 +78,13 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
 
         if  f2_pid > 0:
             # communicate pid to first parent
-            queue.put(f2_pid)
+            q.put(f2_pid)
 
             # exit from second parent
             sys_exit(0)
 
     except OSError:
-        queue.put(None)  # unblock parent
+        q.put(None)  # unblock parent
         sys_exit(1)
 
     # redirect standard file descriptors
@@ -108,11 +112,15 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
         except io.UnsupportedOperation:
             sys.stderr = open(stderr, 'a+')
 
-    # we are successfully daemonized - run the workload
-    main()
+    if main:
+        # we are successfully daemonized - run the workload and exit
+        if args is None: main()
+        else           : main(*args)
+        sys_exit(0)
 
-    # work is done
-    sys_exit(0)
+    else:
+        # just return - the callinng code will now continue daemonized
+        return
 
 
 # ------------------------------------------------------------------------------
@@ -129,7 +137,8 @@ class Daemon(object):
     def __init__(self, stdin='/dev/null',
                        stdout='/dev/null',
                        stderr='/dev/null',
-                       target=None):
+                       target=None,
+                       args=None):
 
         if target:
             assert(callable(target))
@@ -138,8 +147,8 @@ class Daemon(object):
         self.stdout  = stdout
         self.stderr  = stderr
         self.pid     = None
-        self.queue   = mp.Queue()
         self.target  = target
+        self.args    = args
 
 
     # --------------------------------------------------------------------------
@@ -147,9 +156,9 @@ class Daemon(object):
     def start(self):
 
         # start the daemon, and in the demon process, run the workload
-        self.pid = daemonize(main=self.run, stdin=self.stdin,
-                                            stdout=self.stdout,
-                                            stderr=self.stderr)
+        self.pid = daemonize(main=self.run, args=self.args, stdin=self.stdin,
+                                                            stdout=self.stdout,
+                                                            stderr=self.stderr)
         return self.pid
 
 
@@ -196,11 +205,7 @@ class Daemon(object):
         daemon process has been created by start() or restart().
         '''
 
-        if self.target:
-            self.target()
-
-        else:
-            raise NotImplementedError("daemon workload undefined")
+        self.target(*self.args)
 
 
 # ------------------------------------------------------------------------------

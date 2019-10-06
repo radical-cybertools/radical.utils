@@ -108,26 +108,27 @@ def test_get_env_ns():
 #
 def test_expand_env():
 
-    noenv = {'FOO' : 'foo'}
+    noenv = {'BIZ' : 'biz'}
     env   = {'BAR' : 'bar'}
 
-    val = os.environ.get('BAR')
-    if val is None: tmp = 'buz'
-    else          : tmp = val
-    if val is None: val = ''
+    os.environ['BAR'] = 'bar'
+    os.environ['BIZ'] = 'biz'
 
-    tc = {'$BAR'              : [None if not val else val,
-                                 'bar',
-                                 None],
-          'foo_$BAR.baz'      : ['foo_%s.baz' % val,
-                                 'foo_bar.baz',
-                                 'foo_.baz'   ],
-          'foo_${BAR}_baz'    : ['foo_%s_baz' % val,
-                                 'foo_bar_baz',
-                                 'foo__baz'   ],
-          'foo_${BAR:buz}_baz': ['foo_%s_baz' % tmp,
-                                 'foo_bar_baz',
-                                 'foo_buz_baz'],
+    bar = os.environ.get('BAR')
+    biz = os.environ.get('BIZ')
+
+    tc = {'${BAR}'             : [bar,                  # os.environ
+                                  'bar',                # env
+                                  None],                # noenv
+          'foo_${BAR}_baz'     : ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo__baz'   ],
+          'foo_${BAR:buz}_baz' : ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo_buz_baz'],
+          'foo_${BAR:$BIZ}_baz': ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo_%s_baz' % biz],
          }
 
     # test string expansion (and also create list and dict for other tests
@@ -171,7 +172,7 @@ def test_expand_env():
 
     # test `ignore_missing` flag
     env = {'BAR' : 'bar'}
-    src = 'foo$FIZ.baz'
+    src = 'foo${FIZ}.baz'
     tgt = 'foo.baz'
     assert(ru.expand_env(src, env                     ) == tgt)
     assert(ru.expand_env(src, env, ignore_missing=True) == tgt)

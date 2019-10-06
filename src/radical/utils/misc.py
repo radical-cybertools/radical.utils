@@ -343,13 +343,18 @@ def is_string(data):
 # ------------------------------------------------------------------------------
 #
 def as_string(data):
-    '''
-    convert the given data to a UTF-8 decoded `string`.
-    '''
-    if   is_string(data): return data
-    elif is_bytes(data) : return data.decode('utf-8')
+
+    if isinstance(data, dict):
+        return {as_string(k): as_string(v) for k,v in data.items()}
+
+    elif isinstance(data, list):
+        return [as_string(e) for e in data]
+
+    elif isinstance(data, bytes):
+        return bytes.decode(data, 'utf-8')
+
     else:
-        raise TypeError('cannot convert %s to string' % type(data))
+        return data
 
 
 # ------------------------------------------------------------------------------
@@ -362,16 +367,21 @@ def is_bytes(data):
 
 
 # ------------------------------------------------------------------------------
-#
+# thanks to
+# http://stackoverflow.com/questions/956867/#13105359
 def as_bytes(data):
-    '''
-    converts data given as `string` into a `bytes` (UTF-8 encoded).
-    '''
 
-    if   is_bytes(data) : return data
-    elif is_string(data): return bytes(data, 'utf-8')
+    if isinstance(data, dict):
+        return {as_bytes(k): as_bytes(v) for k,v in data.items()}
+
+    elif isinstance(data, list):
+        return [as_bytes(e) for e in data]
+
+    elif isinstance(data, str):
+        return str.encode(data, 'utf-8')
+
     else:
-        raise TypeError('cannot convert %s to bytes' % type(data))
+        return data
 
 
 # ------------------------------------------------------------------------------
@@ -606,26 +616,23 @@ def expand_env(data, env=None, ignore_missing=True):
 
     The replacement in strings is performed for the following variable specs:
 
-        assume  `export BAR=bar`:
+        assume  `export BAR=bar BIZ=biz`:
 
-            $BAR      : $BAR           -> bar
-            $BAR      : foo_$BAR_baz   -> foo_bar_baz
-            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo_bar_baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_bar_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=True`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=True`
 
-            $BAR      : $BAR           -> None
-            $BAR      : foo_$BAR_baz   -> foo__baz
-            ${BAR}    : foo_${BAR}_baz -> foo__baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo__baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=False`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=False`
 
-            $BAR      : $BAR           -> ValueError('cannot expand $BAR')
-            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
-            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> ValueError('cannot expand $BAR')
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
     '''
 
     # no data: None, empty dict / sequence / string
@@ -653,10 +660,6 @@ def expand_env(data, env=None, ignore_missing=True):
     # handle string expansion, which is what we really care about
     if '$' not in data:
         return data
-
-    # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
-    # one version we need to search for)
-    data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
 
     # fall back to process env if no other expansion dict is specified
     if not env:
@@ -690,6 +693,11 @@ def expand_env(data, env=None, ignore_missing=True):
             if pre  is None: pre  = ''
             if val  is None: val  = ''
             if post is None: post = ''
+
+            # support env expansion of val, as in
+            #   LOGDIR : "${RCT_LOGDIR:$PWD}"
+            if val.startswith('$'):
+                val = env.get(val[1:], '')
 
             val = env.get(key, val)
 

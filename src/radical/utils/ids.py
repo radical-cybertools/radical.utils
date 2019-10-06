@@ -97,7 +97,7 @@ ID_UUID    = 'uiud'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
+def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -139,16 +139,15 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
     and can thus span multiple applications.
 
-    'namespace' argument can be specified to a value such that unique IDs are
-    created local to that namespace, . For example, you can create a session
-    and use the session ID as a namespace for all the IDs of the objects of that
-    execution.
+    'ns' argument can be specified to a value such that unique IDs are created
+    local to that namespace, . For example, you can create a session and use the
+    session ID as a namespace for all the IDs of the objects of that execution.
 
     Example::
 
         sid  = generate_id('re.session', ID_PRIVATE)
-        uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
-        uid2 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
+        uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, ns=sid)
+        uid2 = generate_id('task.%(item_counter)04d', ID_CUSTOM, ns=sid)
         ...
 
 
@@ -183,12 +182,12 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
     else: raise ValueError("unsupported mode '%s'", mode)
 
-    return _generate_id(template, prefix, namespace)
+    return _generate_id(template, prefix, ns)
 
 
 # ------------------------------------------------------------------------------
 #
-def _generate_id(template, prefix, namespace=None):
+def _generate_id(template, prefix, ns=None):
 
     # FIXME: several of the vars below are constants, and many of them are
     # rarely used in IDs.  They should be created only once per module instance,
@@ -197,8 +196,8 @@ def _generate_id(template, prefix, namespace=None):
     import getpass
 
     state_dir = _BASE
-    if namespace:
-        state_dir += '/%s' % namespace
+    if ns:
+        state_dir += '/%s' % ns
 
     try:
         os.makedirs(state_dir)

@@ -52,13 +52,11 @@ class _PluginRegistry(dict, metaclass=Singleton):
 #
 class PluginManager(object):
     '''
-    The RADICAL plugin management and loading utility.
+    The PluginManager manages plugins of specific types: the manager can search
+    for installed plugins, list and describe plugins found, load plugins, and
+    instantiate the plugin for further use.
 
-    The plugin manager allows to manage plugins of a specific types.  For those
-    types, the manager can search for installed plugins, list and describe
-    plugins found, load plugins, and instantiate the plugin for further use.
-
-    Example::
+    Example:
 
         # try to load the 'echo' plugin from the 'radical' namespace
         plugin_type = 'echo'
