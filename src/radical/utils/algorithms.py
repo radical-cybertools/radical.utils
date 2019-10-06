@@ -312,6 +312,9 @@ def lazy_bisect(data, check, ratio=0.5):
     checked `good`, and a list of elements checked as `bad`.
     '''
 
+    if not data:
+        return [], []
+
     if ratio > 1.0: ratio = 1.0
     if ratio < 0.0: ratio = 0.0
 
@@ -320,36 +323,36 @@ def lazy_bisect(data, check, ratio=0.5):
     check_good = list()  # found good
     check_bad  = list()  # found bad
 
-  # # --------------------------------------------------------------------------
-  # def state_hay():
-  #     hay = ''
-  #     for i,x in enumerate(data):
-  #         if not i % 10       : hay += '|'
-  #         if check(x) is True : hay += '#'
-  #         else                : hay += '.'
-  #     if not hay.endswith('|'):
-  #         hay += '|'
-  #     print '           %s' % hay
-  # # --------------------------------------------------------------------------
-  #
-  # # --------------------------------------------------------------------------
-  # def state_needle(msg=''):
-  #     needle = ''
-  #     for i,x in enumerate(data):
-  #         if not i % 10       : needle += '|'
-  #         if   x in check_good: needle += '#'
-  #         elif x in check_bad : needle += '.'
-  #         else                : needle += ' '
-  #     if not needle.endswith('|'):
-  #         needle += '|'
-  #     g = last_good
-  #     b = last_bad
-  #     if g is None: g = '?'
-  #     if b is None: b = '?'
-  #     print ' %3s - %3s %s %s' % (g, b, needle, msg)
-  # # --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    def state_hay():
+        hay = ''
+        for i,x in enumerate(data):
+            if not i % 10       : hay += '|'
+            if check(x) is True : hay += '#'
+            else                : hay += '.'
+        if not hay.endswith('|'):
+            hay += '|'
+        print '           %s' % hay
+    # --------------------------------------------------------------------------
 
-  # state_hay()
+    # --------------------------------------------------------------------------
+    def state_needle(msg=''):
+        needle = ''
+        for i,x in enumerate(data):
+            if not i % 10       : needle += '|'
+            if   x in check_good: needle += '#'
+            elif x in check_bad : needle += '.'
+            else                : needle += ' '
+        if not needle.endswith('|'):
+            needle += '|'
+        g = last_good
+        b = last_bad
+        if g is None: g = '?'
+        if b is None: b = '?'
+        print ' %3s - %3s %s %s' % (g, b, needle, msg)
+    # --------------------------------------------------------------------------
+
+    state_hay()
     while True:
 
         # if we don't know anything, yet, check the first element
@@ -362,7 +365,7 @@ def lazy_bisect(data, check, ratio=0.5):
             if ret is True: check_good.append(idx)
             else          : check_bad .append(idx)
 
-          # state_needle('start %s %s' % (idx, ret))
+            state_needle('start %s %s' % (idx, ret))
 
             if ret is True: last_good = idx
             else          : last_bad  = idx
@@ -382,12 +385,12 @@ def lazy_bisect(data, check, ratio=0.5):
 
             if idx in check_good:
                 last_good = idx
-              # state_needle('known %3d True' % idx)
+                state_needle('known %3d True' % idx)
                 continue
 
             if idx in check_bad:
                 last_bad = idx
-              # state_needle('known %3d False' % idx)
+                state_needle('known %3d False' % idx)
                 continue
 
             ret = check(data[idx])
@@ -398,7 +401,7 @@ def lazy_bisect(data, check, ratio=0.5):
             if ret is True: last_good = idx
             else          : last_bad  = idx  # break out of this branch
 
-          # state_needle('good  %3d %s' % (idx, ret))
+            state_needle('good  %3d %s' % (idx, ret))
 
 
         # If we know a bad one, we bisect the remaining list and check the
@@ -409,16 +412,21 @@ def lazy_bisect(data, check, ratio=0.5):
         # otherwise we bisect to last_good.
         elif last_bad is not None:
 
-          # state_needle('range')
+            if last_good is not None:
+                if last_good > last_bad:
+                    last_good = None
 
             # bisect for next candidate
             if last_good is not None:
+
                 # bisect the difference
-                idx = int(m.ceil((last_bad - last_good) / 2 + last_good))
+                idx = int(m.ceil((last_bad - last_good + 1) / 2 + last_good))
 
             else:
                 # bisect to begin of data
-                idx = int(m.ceil(last_bad / 2))
+                idx = int(m.ceil((last_bad + 1) / 2))
+
+            state_needle('range %3d?' % idx)
 
             # make sure we make progress: if space is too small for bisect, then
             # increase last_good or decrease last_bad
@@ -433,7 +441,7 @@ def lazy_bisect(data, check, ratio=0.5):
                 if ret is True: check_good.append(idx)
                 else          : check_bad .append(idx)
 
-          # state_needle('range %3d %s' % (idx, ret))
+            state_needle('range %3d %s' % (idx, ret))
 
             if ret is True:
                 # found a new good one closer to the last bad one - bisect again
@@ -441,25 +449,33 @@ def lazy_bisect(data, check, ratio=0.5):
                 # and restart searching (and bisecting) from that meeting point.
                 last_good = idx
 
-                if last_good is not None and last_bad - last_good == 1:
-                    last_bad = None
-                  # state_needle('range  a')
+                if last_bad is not None:
+                    if last_bad < last_good:
+                        last_good = None
+                        state_needle('range  A')
+
+                    elif last_bad - last_good == 1:
+                        last_bad = None
+                        state_needle('range  a')
 
             else:
 
                 # found a new, smaller bad one - consider all indexes between
                 # id and the previous last_bad as bad
                 for i in range((last_bad - idx - 1)):
-                    check_bad.append(last_bad - i - 1)
-                  # state_needle('Range %3d %s' % (last_bad - i - 1, False))
+                    this = last_bad - i - 1
+                    if this not in check_bad and\
+                       this not in check_good:
+                        check_bad.append(this)
+                state_needle('Range')
                 last_bad = idx
 
-                if last_good > last_bad:
+                if last_good is not None and last_good > last_bad:
                     # this last_good is not interesting anymore  we search
                     # downwards
                     last_good = None
 
-  # state_hay()
+    state_hay()
 
   # # a break condition has been met, we are done.  Do some sanity checks
   # for x in data:
