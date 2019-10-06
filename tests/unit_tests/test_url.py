@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 __author__    = "Andre Merzky, Ole Weidner"
 __copyright__ = "Copyright 2012-2013, The SAGA Project"
@@ -5,6 +6,60 @@ __license__   = "MIT"
 
 
 import radical.utils as ru
+from   radical.utils.contrib.urlparse25 import urljoin
+
+
+# ------------------------------------------------------------------------------
+#
+def test_contrib():
+
+    test_cases = [('http://a/b/c/d', ''                    ),
+                  ('g:h',            'g:h'                 ),
+                  ('http:g',         'http://a/b/c/g'      ),
+                  ('http:',          'http://a/b/c/d'      ),
+                  ('g',              'http://a/b/c/g'      ),
+                  ('./g',            'http://a/b/c/g'      ),
+                  ('g/',             'http://a/b/c/g/'     ),
+                  ('/g',             'http://a/g'          ),
+                  ('//g',            'http://g'            ),
+                  ('?y',             'http://a/b/c/?y'     ),  # [1]
+                  ('g?y',            'http://a/b/c/g?y'    ),
+                  ('g?y/./x',        'http://a/b/c/g?y/./x'),
+                  ('.',              'http://a/b/c/'       ),
+                  ('./',             'http://a/b/c/'       ),
+                  ('..',             'http://a/b/'         ),
+                  ('../',            'http://a/b/'         ),
+                  ('../g',           'http://a/b/g'        ),
+                  ('../..',          'http://a/'           ),
+                  ('../../g',        'http://a/g'          ),
+                  ('../../../g',     'http://a/../g'       ),
+                  ('./../g',         'http://a/b/g'        ),
+                  ('./g/.',          'http://a/b/c/g/'     ),
+                  ('/./g',           'http://a/./g'        ),
+                  ('g/./h',          'http://a/b/c/g/h'    ),
+                  ('g/../h',         'http://a/b/c/h'      ),
+                  ('http:g',         'http://a/b/c/g'      ),
+                  ('http:',          'http://a/b/c/d'      ),
+                  ('http:?y',        'http://a/b/c/?y'     ),  # [1]
+                  ('http:g?y',       'http://a/b/c/g?y'    ),
+                  ('http:g?y/./x',   'http://a/b/c/g?y/./x')]
+
+    # [1] https://bugs.python.org/issue18828 - open since 2013 :-/
+    # This test case *should* result in `http://a/b/c/d?y`
+
+
+    base = ''
+    for tc in test_cases:
+
+        url    = tc[0]
+        check  = tc[1]
+        result = urljoin(base, url)
+
+        if check:
+            assert(result == check), '%s == %s' % (result, check)
+
+        if not base:
+            base = result
 
 
 # -------------------------------------------------------------------------
@@ -142,6 +197,7 @@ def test_url_properties():
 # run tests if called directly
 if __name__ == "__main__":
 
+    test_contrib()
     test_url_api()
     test_url_scheme_issue()
     test_url_issue_49()

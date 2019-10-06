@@ -4,8 +4,8 @@ __copyright__ = "Copyright 2018, RADICAL"
 __license__   = "GPL"
 
 
-""" 
-Provide an abstraction for distributed queue network.  
+'''
+Provide an abstraction for distributed queue network.
 
 The network nodes are instances of queue_network::Node.  A node can exist either
 as thread, as a local process, or as a remote process, the latter spawned via
@@ -25,8 +25,8 @@ being passed through a queue.  A queue connection thus exists for every valid
 state transition.
 
 Nodes also support the observer patter, ie. they can notify observers about
-enacted state transitions. 
-"""
+enacted state transitions.
+'''
 
 # ------------------------------------------------------------------------------
 #
@@ -42,8 +42,8 @@ enacted state transitions.
 # We do some trickery to keep the actual components independent from the actual
 # schema:
 #
-#   - we wrap the different queue types into a rpu.Queue object
-#   - we change the base class of the component dynamically to the respective type
+#   - wrap the different queue types into a rpu.Queue object
+#   - change the base class of the component dynamically to the respective type
 #
 # This requires components to adhere to the following restrictions:
 #
@@ -61,46 +61,59 @@ enacted state transitions.
 
 # ------------------------------------------------------------------------------
 #
-class network (object):
+class Network(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__ (self, state_model={}, network_description={}):
-        """
+    def __init__(self, state_model=None, network_description=None):
+        '''
         span the network according to state model and network description
-        """
+        '''
 
-        self.state_model = state_model
+        if state_model         is None: state_model = dict()
+        if network_description is None: network_description = dict()
+
+        self._state_model         = state_model
+        self._network_description = network_description
+
+        self._callbacks = dict()
 
 
     # --------------------------------------------------------------------------
     #
-    def feed (self, entities):
-        """
+    def feed(self, entities):
+        '''
         feed entities into the network
-        """
+        '''
 
         if not isinstance(entities, list):
             entities = [entities]
 
         for entity in entities:
-            assert (entity.state == self.state_model['initial'])
+            assert(entity.state == self._state_model['initial'])
 
-        self.feeder_queue.push (entities)
+        self.feeder_queue.push(entities)
 
 
     # --------------------------------------------------------------------------
     #
-    def subscribe (self, states, callback):
-        """
+    def subscribe(self, states, callback):
+        '''
         subscribe for callback notifications for state transitions *into* the
         specified states.  If callbacks return 'False' or 'None', they are
         unregistered.
-        """
+        '''
 
         if not isinstance(states, list):
             states = [states]
 
+        for state in states:
+
+            if state not in self._calbacks:
+                self._callbacks[state] = list()
+
+            self._callbacks[state].append(callback)
 
 
+# ------------------------------------------------------------------------------
 

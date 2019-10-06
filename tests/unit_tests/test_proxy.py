@@ -21,9 +21,9 @@ def test_socks():
 
     cmd = 'curl --socks5 %s:%s %s' % (ret_url.host, ret_url.port, test_url)
     out = sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
-    print 'curl   : %s' % test_url
-    print '         %s' % ret_url
-    print '         %d characters' % len(out)
+    print('curl   : %s' % test_url)
+    print('         %s' % ret_url)
+    print('         %d characters' % len(out))
 
     assert(ret_url.host == '127.0.0.1')
     assert('version_detail' in out)
@@ -42,9 +42,9 @@ def test_tunnel():
 
     _, db, _, _, _ = ru.mongodb_connect(ret_url)
     cols = list(db.collection_names())
-    print 'mongodb: %s' % test_url
-    print '         %s' % ret_url
-    print '         %d sessions' % len(cols)
+    print('mongodb: %s' % test_url)
+    print('         %s' % ret_url)
+    print('         %d sessions' % len(cols))
 
     assert(ret_url.host == '127.0.0.1')
     assert(len(cols))
@@ -107,7 +107,7 @@ def test_integration():
 
     # create a command endpoint (zmq, persistent, async)
     rush = ru.SH(p2.tunnel(rush_url))
-    print rush.ps()
+    print(rush.ps())
 
 
 # ------------------------------------------------------------------------------

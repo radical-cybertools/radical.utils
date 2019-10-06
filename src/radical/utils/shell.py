@@ -8,7 +8,7 @@ import threading  as mt
 import subprocess as sp
 
 from .constants import RUNNING, DONE, FAILED
-from .misc      import is_str
+from .misc      import is_string, as_string
 
 
 # ------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     '''
 
     # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
+    if not shell and is_string(cmd): cmd = shlex.split(cmd)
 
     if stdout: stdout = sp.PIPE
     else     : stdout = None
@@ -34,7 +34,8 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     else:
         stdout, stderr = p.communicate()
         ret            = p.returncode
-    return stdout, stderr, ret
+
+    return as_string(stdout), as_string(stderr), ret
 
 
 # ------------------------------------------------------------------------------
@@ -50,15 +51,15 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
     if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
 
     # openfile descriptors for I/O, if needed
-    if is_str(stdout): stdout = open(stdout, 'w')
-    if is_str(stderr): stderr = open(stderr, 'w')
+    if is_string(stdout): stdout = open(stdout, 'w')
+    if is_string(stderr): stderr = open(stderr, 'w')
 
     # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
+    if not shell and is_string(cmd): cmd = shlex.split(cmd)
 
     sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
 
-    return 
+    return
 
 
 # ------------------------------------------------------------------------------
@@ -96,9 +97,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     #       python applications.
     assert(False), 'this is broken for python apps'
 
-
     # --------------------------------------------------------------------------
-    #
     class _PROC(object):
 
         # ----------------------------------------------------------------------
@@ -118,22 +117,21 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             self._out_q = queue.Queue()              # put stdout to parent
             self._err_q = queue.Queue()              # put stderr to parent
 
-            if is_str(stdout): self._out_f = open(stdout, 'w')
-            else             : self._out_f = None
+            if is_string(stdout): self._out_f = open(stdout, 'w')
+            else                : self._out_f = None
 
-            if is_str(stderr): self._err_f = open(stderr, 'w')
-            else             : self._err_f = None
+            if is_string(stderr): self._err_f = open(stderr, 'w')
+            else                : self._err_f = None
 
             self.state = RUNNING
             self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
                                   shell=shell, bufsize=1)
 
-            t = mt.Thread(target=self._watch) 
+            t = mt.Thread(target=self._watch)
             t.daemon = True
             t.start()
 
             self.rc = None  # return code
-
 
 
         @property
@@ -160,7 +158,6 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             if not self._err_f:
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
-
 
         # ----------------------------------------------------------------------
         def _watch(self):
@@ -216,7 +213,6 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                     if self._err_q: self._err_q.join()     # ensure reads
 
                     return  # finishes thread
-
     # --------------------------------------------------------------------------
 
     return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)

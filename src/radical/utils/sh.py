@@ -41,7 +41,7 @@ def sh_callout(cmd, shell=False, quiet=False):
     '''
 
     # convert string into arg list if needed
-    if not shell and isinstance(cmd, basestring):
+    if not shell and isinstance(cmd, str):
         cmd = shlex.split(cmd)
 
     if quiet:
@@ -101,7 +101,7 @@ class Cmd(object):
             self._reconnect()
 
         else:
-            self._uid = generate_id('cmd.%(item_counter)06d', mode=ID_CUSTOM, 
+            self._uid = generate_id('cmd.%(item_counter)06d', mode=ID_CUSTOM,
                                     base=self._sh.root)
             self._pwd = '%s/%s' % (self._sh.root, self._uid)
             self._initialize()
@@ -242,7 +242,7 @@ class Cmd(object):
     # ----------------------------------------------------------------------
     #
     def _run(self):
-        ''' 
+        '''
         Create a shell script which will execute the requested command
         asynchronously and reconnectably in its pwd sandbox.
         '''

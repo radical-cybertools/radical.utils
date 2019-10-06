@@ -56,23 +56,28 @@ if _use_pypoll:
 
         def __init__(self, logger=None):
 
-          # self._log  = logger
+            self._log  = logger
             self._poll = select.poll()
+
 
         def close(self):
             self._poll = None
+
 
         def register(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.register(fd, eventmask)
 
+
         def modify(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.modify(fd, eventmask)
 
+
         def unregister(self, fd):
             assert(self._poll)
             return self._poll.unregister(fd)
+
 
         def poll(self, timeout=None):
             assert(self._poll)
@@ -124,7 +129,7 @@ else:
         #
         def __init__(self, logger=None):
 
-          # self._log        = logger
+            self._log        = logger
             self._lock       = mt.RLock()
             self._registered = {POLLIN  : list(),
                                 POLLOUT : list(),
@@ -252,17 +257,16 @@ else:
                     elif hasattr(fd, 'read'):
                         try:
                             fd.read(0)
-                            fd.write('')
-                        except:
+                            fd.write(b'')
+                        except Exception:
                             hup = True
 
                     # socket
                     elif hasattr(fd, 'recv'):
                         try:
                             fd.recv(0)
-                            fd.send('')
-                        except Exception as e:
-                          # print 'check : error %s' % e
+                            fd.send(b'')
+                        except Exception:
                             hup = True
 
                     # we can't handle errors on other types

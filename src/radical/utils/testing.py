@@ -8,7 +8,6 @@ import os
 
 from .misc       import import_module
 from .read_json  import read_json
-from .dict_mixin import DictMixin
 
 
 # ------------------------------------------------------------------------------
@@ -38,7 +37,7 @@ def set_test_config(ns, cfg_name=None, cfg_section=None):
     this method again.
     '''
 
-    global _test_config
+    global _test_config                                  # pylint: disable=W0603
     _test_config = TestConfig(ns, cfg_name, cfg_section)
 
 
@@ -125,7 +124,7 @@ class TestConfig(dict):
 
         cfg = self._load_config(ns, cfg_name, cfg_section)
 
-        for k,v in cfg.iteritems():
+        for k,v in cfg.items():
             self._cfg[k] = v
 
         dict.__init__(self, self._cfg)
@@ -164,5 +163,5 @@ class TestConfig(dict):
             self.__setitem__(item, value)
 
 
-# --------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 

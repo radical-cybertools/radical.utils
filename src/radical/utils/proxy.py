@@ -5,7 +5,6 @@ __license__   = "MIT"
 
 
 import os
-import sys
 import fcntl
 import psutil
 import signal
@@ -14,6 +13,7 @@ import socket
 import subprocess as sp
 
 from .url   import Url
+from .misc  import as_bytes
 from .which import which
 
 # ------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ from .which import which
 #       p2 = p1.hop(proxy2_url)
 #       p1 = p2.proxy
 #
-# 
+#
 #
 # ------------------------------------------------------------------------------
 #
@@ -93,7 +93,7 @@ from .which import which
 #           (proxy host).  That connection can be used to tunnel one or more
 #           protocol channels.
 #
-#           Proxies can be used to 
+#           Proxies can be used to
 #
 #             * run commands on the remote host
 #             * establish additional tunnel connections to the remote host
@@ -306,7 +306,7 @@ class Proxy(object):
 
 
         # FIXME: this should be moved to a method
-        fd = None 
+        fd = None
         try:
             # open the file or create it, then lock it, then read from begin of
             # file.  We expect a string and two integers(host, port, and pid of
@@ -315,7 +315,7 @@ class Proxy(object):
             # the information to the file, and close it (which also unlocks it).
             #
             # NOTE: that there is a race condition between checking for an
-            #       existing proxy and using it: the proxy might disappear 
+            #       existing proxy and using it: the proxy might disappear
             #       meanwhile. Since we have no control over that time, we make
             #       no guarantees wrt. proxy health whatsoever.  It is the
             #       application's responsibility to ensure sufficient proxy
@@ -368,7 +368,7 @@ class Proxy(object):
                         +     '-fND %d -p %s %s' \
                         % (self._proxy_port, url_port, url_host)
 
-                    try: 
+                    try:
                         # FIXME: use ru.sh_callout_async
                         # TODO:  add pid inspection to ru.sh_callout_async and
                         #        remove netstat search (we might still want to
@@ -403,9 +403,9 @@ class Proxy(object):
 
                 # store new proxy parameters (first rewind from previous read)
                 os.lseek(fd, 0, os.SEEK_SET)
-                os.write(fd, "%s %d %d\n" % (self._proxy_host,
-                                             self._proxy_port,
-                                             self._proxy_pid))
+                os.write(fd, as_bytes("%s %d %d\n" % (self._proxy_host,
+                                                      self._proxy_port,
+                                                      self._proxy_pid)))
         finally:
 
             # release the lock
@@ -441,7 +441,7 @@ class Proxy(object):
                          +    ' %(proxy_host)s'
 
         # if we have tunnel proxy support, it becomes part of the tunnel command
-        if tunnel_proxy: 
+        if tunnel_proxy:
             self._tunnel_cmd += " -o ProxyCommand='%s'" % tunnel_proxy
 
         # finally, we add the command for the ptty shell at the other tunnel end
@@ -553,7 +553,7 @@ class Proxy(object):
         #
         #   ssh -vNL 10001:ds015720.mlab.com:15720 144.76.72.175 \
         #
-        # 'tsocks' would be another option, but it is less widely deployed, 
+        # 'tsocks' would be another option, but it is less widely deployed,
         # relies on `LD_PRLOAD`, which won't work on all our machines and is
         # somewhat hacky (even more so than the others).
         #
@@ -603,8 +603,8 @@ class Proxy(object):
             port = self._find_port(interface='127.0.0.1',
                                    port_min=port_min)
 
-            cmd = self._tunnel_cmd % {'loc_port'   : port, 
-                                      'url_host'   : url_host, 
+            cmd = self._tunnel_cmd % {'loc_port'   : port,
+                                      'url_host'   : url_host,
                                       'url_port'   : url_port,
                                       'proxy_host' : self._proxy_host,
                                       'proxy_port' : self._proxy_port,
@@ -613,14 +613,14 @@ class Proxy(object):
             try:
 
               # # set up stdin, stdout, stderr named pipes (FIFOs), and create
-              # # a lock. 
+              # # a lock.
               # #
               # # We need to put the FIFOs in asyn I/O mode, as otherwise we may
               # # hang on a dead tunnel.
-              # # 
+              # #
               # # We need the lock as only one thing can talk to that process at
-              # # any point in time, and right now this is us.  
-              # # 
+              # # any point in time, and right now this is us.
+              # #
               # # Why do we use named pipes in the first place?  So that the
               # # tunnel survives this process.  But since there is
               # # a back-and-forth on the fifos, it might well happen that the
@@ -675,9 +675,9 @@ class Proxy(object):
         ret.port = port
 
         # remember that we own that tunnel
-        self._tunnels.append({'url' : url, 
-                              'ret' : ret, 
-                              'pid' : pid, 
+        self._tunnels.append({'url' : url,
+                              'ret' : ret,
+                              'pid' : pid,
                               'port': port})
         return ret
 

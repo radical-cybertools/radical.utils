@@ -4,13 +4,13 @@ import radical.utils as ru
 
 stack = ru.stack()
 
-print 
+print() 
 for key in sorted(stack['sys'].keys()):
-    print '  %-20s : %s' % (key, stack['sys'][key])
-print
+    print('  %-20s : %s' % (key, stack['sys'][key]))
+print()
 for key in sorted(stack['radical'].keys()):
-    print '  %-20s : %s' % (key, stack['radical'][key])
-print
+    print('  %-20s : %s' % (key, stack['radical'][key]))
+print()
 
 # ------------------------------------------------------------------------------
 

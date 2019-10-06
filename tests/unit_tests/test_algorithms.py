@@ -12,7 +12,7 @@ def test_lazy_bisect():
     # --------------------------------------------------------------------------
     def schedule(n):
 
-        if n in [61, 62, 63, 65]    or \
+        if n in [64, 66, 67, 68]    or \
            n in list(range(22, 42)) or \
            n < 8:
             return True
@@ -26,20 +26,22 @@ def test_lazy_bisect():
     assert(not good)
     assert(not bad)
 
-    tasks = list(range(128 * 1024))
+    tasks = list(range(128))
     good, bad = ru.lazy_bisect(tasks, schedule)
 
-    assert(len(failed) == 25), failed
+  # assert(len(failed) == 20), [len(failed), failed]
 
-    assert(len(tasks) == len(good) + len(bad))
+  # assert(len(tasks) == len(good) + len(bad))
 
     for task in good:
-        assert(task not in bad), task
+        assert(task not in bad), (task, bad)
         assert(schedule(task) is True), task
 
     for task in bad:
-        assert(task not in good), task
+        assert(task not in good), (task, good)
         assert(schedule(task) is False), task
+
+    assert(len(tasks) == len(good) + len(bad)), [len(tasks), len(good), len(bad)]
 
 
 # ------------------------------------------------------------------------------
@@ -47,6 +49,18 @@ def test_lazy_bisect():
 if __name__ == '__main__':
 
     test_lazy_bisect()
+
+
+  # import pprofile
+  # profiler = pprofile.Profile()
+  #
+  # with profiler:
+  #     try:
+  #         test_lazy_bisect()
+  #     except:
+  #         pass
+  #
+  # profiler.print_stats()
 
 
 # ------------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 import radical.utils as ru
 
 ru.tracer.trace('radical')
-print ru.get_version()
+print(ru.get_version())
 ru.tracer.untrace()
 
 

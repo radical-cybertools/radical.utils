@@ -16,8 +16,7 @@ import shutil
 
 import subprocess as sp
 
-from distutils.ccompiler import new_compiler
-from setuptools          import setup, Command, find_packages
+from setuptools import setup, find_packages
 
 
 # ------------------------------------------------------------------------------
@@ -49,7 +48,7 @@ def sh_callout(cmd):
 #     tree.
 #   - The VERSION file is used to provide the runtime version information.
 #
-def get_version(mod_root):
+def get_version(_mod_root):
     '''
     mod_root
         a VERSION file containes the version strings is created in mod_root,
@@ -59,8 +58,8 @@ def get_version(mod_root):
 
     try:
 
-        version_base   = None
-        version_detail = None
+        _version_base   = None
+        _version_detail = None
 
         # get version from './VERSION'
         src_root = os.path.dirname(__file__)
@@ -68,7 +67,7 @@ def get_version(mod_root):
             src_root = '.'
 
         with open(src_root + '/VERSION', 'r') as f:
-            version_base = f.readline().strip()
+            _version_base = f.readline().strip()
 
         # attempt to get version detail information from git
         # We only do that though if we are in a repo root dir,
@@ -77,41 +76,45 @@ def get_version(mod_root):
         # and the pip version used uses an install tmp dir in the ve space
         # instead of /tmp (which seems to happen with some pip/setuptools
         # versions).
-        out, err, ret = sh_callout(
-            'cd %s ; '
-            'test -z `git rev-parse --show-prefix` || exit -1; '
-            'tag=`git describe --tags --always` 2>/dev/null ; '
-            'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
+        out, _, ret = sh_callout(
+            'cd %s;'
+            'test -z `git rev-parse --show-prefix` || exit -1;'
+            'tag=`git describe --tags --always` 2>/dev/null;'
+            'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null;'
             'echo $tag@$branch' % src_root)
-        version_detail = out.strip()
-        version_detail = version_detail.replace('detached from ', 'detached-')
+        _version_detail = out.strip()
+
+        # NOTE Python 3: sh_callout returns a byte object. .decode() convert
+        # the byte object to a str object.
+        _version_detail = _version_detail.decode()
+        _version_detail = _version_detail.replace('detached from ', 'detached-')
 
         # remove all non-alphanumeric (and then some) chars
-        version_detail = re.sub('[/ ]+', '-', version_detail)
-        version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', version_detail)
+        _version_detail = re.sub('[/ ]+', '-', _version_detail)
+        _version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', _version_detail)
 
         if  ret            !=  0  or \
-            version_detail == '@' or \
-            'git-error'      in version_detail or \
-            'not-a-git-repo' in version_detail or \
-            'not-found'      in version_detail or \
-            'fatal'          in version_detail :
-            version = version_base
-        elif '@' not in version_base:
-            version = '%s-%s' % (version_base, version_detail)
+            _version_detail == '@' or \
+            'git-error'      in _version_detail or \
+            'not-a-git-repo' in _version_detail or \
+            'not-found'      in _version_detail or \
+            'fatal'          in _version_detail :
+            _version = _version_base
+        elif '@' not in _version_base:
+            _version = '%s-%s' % (_version_base, _version_detail)
         else:
-            version = version_base
+            _version = _version_base
 
         # make sure the version files exist for the runtime version inspection
-        path = '%s/%s' % (src_root, mod_root)
+        path = '%s/%s' % (src_root, _mod_root)
         with open(path + '/VERSION', 'w') as f:
-            f.write(version + '\n')
+            f.write(_version + '\n')
 
-        sdist_name = '%s-%s.tar.gz' % (name, version)
-        sdist_name = sdist_name.replace('/', '-')
-        sdist_name = sdist_name.replace('@', '-')
-        sdist_name = sdist_name.replace('#', '-')
-        sdist_name = sdist_name.replace('_', '-')
+        _sdist_name = '%s-%s.tar.gz' % (name, _version)
+        _sdist_name = _sdist_name.replace('/', '-')
+        _sdist_name = _sdist_name.replace('@', '-')
+        _sdist_name = _sdist_name.replace('#', '-')
+        _sdist_name = _sdist_name.replace('_', '-')
 
         if '--record'    in sys.argv or \
            'bdist_egg'   in sys.argv or \
@@ -121,26 +124,26 @@ def get_version(mod_root):
           # pip install will untar the sdist in a tmp tree.  In that tmp
           # tree, we won't be able to derive git version tags -- so we pack the
           # formerly derived version as ./VERSION
-            shutil.move('VERSION', 'VERSION.bak')            # backup version
-            shutil.copy('%s/VERSION' % path, 'VERSION')      # use full version
-            os.system  ('python setup.py sdist')             # build sdist
-            shutil.copy('dist/%s' % sdist_name,
-                        '%s/%s'   % (mod_root, sdist_name))  # copy into tree
-            shutil.move('VERSION.bak', 'VERSION')            # restore version
+            shutil.move('VERSION', 'VERSION.bak')              # backup version
+            shutil.copy('%s/VERSION' % path, 'VERSION')        # full version
+            os.system  ('python setup.py sdist')               # build sdist
+            shutil.copy('dist/%s' % _sdist_name,
+                        '%s/%s'   % (_mod_root, _sdist_name))  # copy into tree
+            shutil.move('VERSION.bak', 'VERSION')              # restore version
 
         with open(path + '/SDIST', 'w') as f:
-            f.write(sdist_name + '\n')
+            f.write(_sdist_name + '\n')
 
-        return version_base, version_detail, sdist_name
+        return _version_base, _version_detail, _sdist_name
 
     except Exception as e:
         raise RuntimeError('Could not extract/set version: %s' % e)
 
 
 # ------------------------------------------------------------------------------
-# check python version. we need >= 2.7, <3.x
-if  sys.hexversion < 0x02070000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError('%s requires Python 2.x (2.7 or higher)' % name)
+# check python version. we need >= 3.5
+if  sys.hexversion < 0x03050000:
+    raise RuntimeError('%s requires Python 3.x (3.5 or higher)' % name)
 
 
 # ------------------------------------------------------------------------------
@@ -159,6 +162,7 @@ def read(*rnames):
 
 
 # ------------------------------------------------------------------------------
+# FIXME: pip3 bug: binaries files cannot be installed into bin.
 # compile gtod
 try:
     compiler = new_compiler(verbose=1)
@@ -174,28 +178,16 @@ except:
 
 # ------------------------------------------------------------------------------
 #
-class RunTwine(Command):
-    user_options = []
-    def initialize_options (self) : pass
-    def finalize_options   (self) : pass
-    def run (self) :
-        out,  err, ret = sh_callout('python setup.py sdist upload -r pypi')
-        raise SystemExit(ret)
+if  sys.hexversion < 0x03050000:
+    raise RuntimeError('ERROR: %s requires Python 3.5 or newer' % name)
 
 
 # ------------------------------------------------------------------------------
 #
-if  sys.hexversion < 0x02060000 or sys.hexversion >= 0x03000000:
-    raise RuntimeError('SETUP ERROR: %s requires Python 2.6 or higher' % name)
-
-
-# ------------------------------------------------------------------------------
-#
-df = list()
-df.append(('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}')))
-df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/*.md')))
-df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/queue/*')))
-df.append(('share/%s/examples/zmq' % name, glob.glob('examples/zmq/pubsub/*')))
+df = [('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}'  )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/*.md'    )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/queue/*' )),
+      ('share/%s/examples/zmq' % name, glob.glob('examples/zmq/pubsub/*'))]
 
 
 # ------------------------------------------------------------------------------
@@ -213,14 +205,15 @@ setup_args = {
     'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
     'license'            : 'MIT',
     'keywords'           : 'radical utils',
+    'python_requires'    : '>=3.5',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
         'Topic :: Scientific/Engineering',
@@ -235,7 +228,9 @@ setup_args = {
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
-                            'bin/radical-utils-gtod',
+                          # 'bin/radical-utils-gtod',
+                            'bin/radical-utils-pylint.sh',
+                            'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.sh.py',
                             'bin/ru.json.sh',
@@ -243,7 +238,9 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['pyzmq',
+    'install_requires'   : ['munch',
+                            'wheel',
+                            'pyzmq',
                             'regex',
                             'future',
                             'psutil',
@@ -264,7 +261,7 @@ setup_args = {
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : df,
-    'cmdclass'           : {'upload': RunTwine},
+    'cmdclass'           : {},
 }
 
 

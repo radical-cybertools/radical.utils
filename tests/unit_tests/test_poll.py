@@ -17,9 +17,9 @@ def test_poll():
     if not child:
 
         sp[0].close()
-        sp[1].send('foo')
+        sp[1].send(b'foo')
         time.sleep(1)
-        sp[1].send('bar')
+        sp[1].send(b'bar')
         time.sleep(2)
         sp[1].close()
         return
@@ -37,18 +37,18 @@ def test_poll():
 
             events = poller.poll(1.0)
 
-            for fd,event in events:
+            for _,event in events:
 
                 if event & ru.POLLIN:
                     msg = sp[0].recv(200)
-                    assert(msg in ['foo', 'bar', ''])
+                    assert(msg in [b'foo', b'bar', b''])
                     msgs.append(msg)
 
                 if  event & ru.POLLERR or event & ru.POLLHUP:
                     abort = True
-                    assert(msgs[0] == 'foo')
-                    assert(msgs[1] == 'bar')
-                    assert(msgs[2] == '')
+                    assert(msgs[0] == b'foo')
+                    assert(msgs[1] == b'bar')
+                    assert(msgs[2] == b'')
                     break
 
         os.waitpid(child, 0)

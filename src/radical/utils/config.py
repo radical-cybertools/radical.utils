@@ -9,8 +9,8 @@ __license__   = "MIT"
 # We provide a json based config file parser with following properties
 #
 #   - system config files will be merged with user configs (if those exist)
-#   - python style comments are filtered out before parsing 
-#   - after parsing, `${ABC:default}`-style values are set or expanded via 
+#   - python style comments are filtered out before parsing
+#   - after parsing, `${ABC:default}`-style values are set or expanded via
 #     `os.environ`
 #
 #
@@ -41,12 +41,12 @@ __license__   = "MIT"
 #   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
 #   usr_config_dir = /home/merzky/.radical/utils/
 #
-# The remaining two arguments are exclusive (exactly *one* must be specified).  
-# If `path` is given, it is interpreted as a path under those locations.  
-# If `name` is given, then the same `. -> /` replacement as on the module name 
-# is performed, and the result is interpreted like `path` again.  
+# The remaining two arguments are exclusive (exactly *one* must be specified).
+# If `path` is given, it is interpreted as a path under those locations.
+# If `name` is given, then the same `. -> /` replacement as on the module name
+# is performed, and the result is interpreted like `path` again.
 #
-# In both cases, we add the file extension `.json` if no match is found without 
+# In both cases, we add the file extension `.json` if no match is found without
 # it.  It is not an error if the so specified config files do not exist -- in
 # that case, the config is considered empty.
 #
@@ -94,13 +94,13 @@ __license__   = "MIT"
 #
 # Environment
 # -----------
-# 
+#
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
 #   '${RADICAL_UTILS_ENV:default_value}
 #
-# which will be replaced by 
+# which will be replaced by
 #
 #   `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
 #
@@ -119,10 +119,11 @@ __license__   = "MIT"
 #
 # ------------------------------------------------------------------------------
 
-import glob
 import os
+import glob
+import munch
 
-from .misc       import find_module, is_str
+from .misc       import find_module, is_string
 from .misc       import expand_env as ru_expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
@@ -132,7 +133,7 @@ from .singleton  import Singleton
 
 # ------------------------------------------------------------------------------
 #
-class Config(object, DictMixin):
+class Config(munch.Munch):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -146,67 +147,105 @@ class Config(object, DictMixin):
     # identify as dictionary
     # FIXME: why is this not inherited from DictMixin?
     # FIXME: we also want to identify as ru.Config!
-    @property
-    def __class__(self):
-        return dict
+  # @property
+  # def __class__(self):
+  #     return dict
 
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module, path=None, name=None, cfg=None,
-                       expand=True, env=None):
+    def __init__(self, module=None, name=None, cfg=None, app_cfg=None,
+                 expand=True, env=None):
         '''
-        expand:  enable / disable environment var expansion.  When disabled, the
-                 consumer should expand manually upon use of config entries.
+        Load a config (json) file from the module's config tree, and overload
+        any user specific config settings if found.
+
+        module:  used to determine the module's config file location
+                 - default: `radical.utils`
+        name:    name of config to be loaded from module's config path
+        cfg:     specify a specific configuration to be used
+                 - if string: config to be loaded from module's config path
+                 - if dict  : config to be merged into the default config
+                 - default  : `default`
+        expand:  enable / disable environment var expansion
+                 - default: True
         env:     environment dictionary to be used for expansion
-                 defaults to `os.environ`
+                 - default: `os.environ`
+
+        The naming of config files follows this rule:
+
+          `<name>_<cfg>.json`
+
+        For example, if the following is used in a system python installation:
+
+            ru.Config(module='radical.pilot', name='session', cfg='minimal')
+
+        it would attempt to load (depending on system details):
+
+            /usr/lib/python3/site-packages/radical/pilot/\
+                                                   config/session_mininmal.json
         '''
 
-        modpath = find_module(module)
-        if not modpath:
-            raise ValueError("Cannot find module %s" % module)
+        self._expand = expand
+        self._env    = env
 
-        home    = os.environ.get('HOME', '/tmp')
-        home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
-        sys_dir = "%s/configs" % (modpath)
-        usr_dir = "%s/.%s"     % (home, module.replace('.', '/'))
+        # if a name has dot limited elements and no module is given, iterpret
+        # the first part as module
+        # radical.pilot.session -> [radical.pilot, session]
+        if not module and name and '.' in name:
+            elems  = name.split('.')
+            module = '.'.join(elems[:-1])
+            name   = elems[-1]
 
-        if path and name:
-            raise ValueError("'path' and 'name' parameters are exclusive")
+        # do the same if module is given but not the name
+        if not name and module and '.' in module:
+            elems  = module.split('.')
+            module = '.'.join(elems[:-1])
+            name   = elems[-1]
 
         # if a name starts with a module prefix, strip that prefix
         if name and name.startswith('%s.' % module):
             name = name[len(module) + 1:]
 
-        # if a path starts with a module prefix, strip that prefix
-        if path and path.startswith('%s/' % module.replace('.', '/')):
-            path = path[len(module) + 1:]
-
-        if not path and not name:
-            # Default to `name='*.json'`
-            name = '*.json'
-
         if not cfg:
-            cfg = dict()
+            # by default, load all matching configs into separate subsections
+            cfg = '*'
 
+        if not app_cfg:
+            # just use config files
+            app_cfg = dict()
 
-        if path: path = path
-        else   : path = name.replace('.', '/')
+        if cfg.startswith('/'):
 
-        if '*' in path: starred = True
-        else          : starred = False
-
-        if starred and path.count('*') > 1:
-            raise ValueError('only one wildcard allowed in config path')
-
-        if path.startswith('/'):
-            sys_fspec = path
+            # load config from abs path
+            sys_fspec = cfg
             usr_fspec = None
-        else:
-            sys_fspec = '%s/%s' % (sys_dir, path)
-            usr_fspec = '%s/%s' % (usr_dir, path)
 
-        app_cfg = cfg
+
+        elif module and name:
+
+            # construct cfg file paths
+            modpath = find_module(module)
+            if not modpath:
+                raise ValueError("Cannot find module %s" % module)
+
+            home    = os.environ.get('HOME', '/tmp')
+            home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
+            sys_dir = "%s/configs"     % (modpath)
+            usr_dir = "%s/.%s/configs" % (home, module.replace('.', '/'))
+            fname   = '%s_%s.json'     % (name.replace('.', '/'), cfg)
+
+            sys_fspec = '%s/%s' % (sys_dir, fname)
+            usr_fspec = '%s/%s' % (usr_dir, fname)
+
+        else:
+            # we can't load a config file - just use the app config
+            sys_fspec = None
+            usr_fspec = None
+
+        if '*' in cfg: starred = True
+        else         : starred = False
+
         sys_cfg = dict()
         usr_cfg = dict()
 
@@ -214,7 +253,7 @@ class Config(object, DictMixin):
 
             if sys_fspec:
                 sys_fname = sys_fspec
-                if not os.path.isfile(sys_fname): sys_fname += '.json' 
+                if not os.path.isfile(sys_fname): sys_fname += '.json'
                 if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
 
             if usr_fspec:
@@ -222,97 +261,95 @@ class Config(object, DictMixin):
                 if not os.path.isfile(usr_fname): usr_fname += '.json'
                 if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
-        else: 
+        else:
 
             # wildcard mode: whatever the '*' expands into is used as root dict
             # entry, and the respective content of the config file is stored
             # underneath it.
             if sys_fspec:
 
-                prefix_len  = sys_fspec.find('*')
-                postfix_len = len(sys_fspec) - prefix_len - 1
+                postfix_len = len('.json')                      # ' .json'
+                prefix_len  = len(sys_fspec) - postfix_len - 1  # '*.json'
 
                 for sys_fname in glob.glob(sys_fspec):
 
-                    if postfix_len: base = sys_fname[prefix_len:-postfix_len]
-                    else          : base = sys_fname[prefix_len:]
-
+                    base = sys_fname[prefix_len:-postfix_len]
                     scfg = read_json(sys_fname)
                     sys_cfg[base] = scfg
 
 
             if usr_fspec:
 
-                prefix_len  = usr_fspec.find('*')
-                postfix_len = len(usr_fspec) - prefix_len - 1
+                postfix_len = len('.json')                      # ' .json'
+                prefix_len  = len(usr_fspec) - postfix_len - 1  # '*.json'
 
                 for usr_fname in glob.glob(usr_fspec):
+
                     base = usr_fname[prefix_len:-postfix_len]
                     ucfg = read_json(usr_fname)
                     usr_cfg[base] = ucfg
 
-
         # merge sys, app, and user cfg before expansion
-        self._cfg = dict()
-        self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
+        cfg_dict = dict()
+        cfg_dict = dict_merge(cfg_dict, sys_cfg, policy='overwrite')
+        cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
+        cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
         if expand:
-            self.expand_env(env)
+            ru_expand_env(cfg_dict, env=env)
+
+        def to_config(data):
+            for k,v in data.items():
+                if isinstance(v, dict):
+                    data[k] = Config(app_cfg=v, expand=expand, env=env)
+            return data
+
+        if cfg_dict:
+            self.update(to_config(cfg_dict))
 
 
     # --------------------------------------------------------------------------
     #
-    def expand_env(self, env):
+    def __getattr__(self, k):
+        return self.get(k, None)
 
-        # expand environment
-        def _expand_env(d):
-            if isinstance(d, dict):
-                for k,v in d.iteritems():
-                    d[k] = _expand_env(v)
-            elif isinstance(d, list):
-                for i,v in enumerate(d):
-                    d[i] = _expand_env(v)
-            elif isinstance(d, basestring):
-                d = ru_expand_env(d, env)
-            return d
+    def __setattr__(self, k, v):
 
-        _expand_env(self._cfg)
+        if self._expand:
+            ru_expand_env(v, env=self._env)
+
+        if isinstance(v, dict):
+            self[k] = Config(app_cfg=v, expand=False)
+        else:
+            self[k] = v
 
 
     # --------------------------------------------------------------------------
     #
-    def __repr__(self):
+    def merge(self, cfg, expand=True, env=None):
+        '''
+        merge the given config into the existing config settings, overwriting
+        any values which already existed
+        '''
 
-        import pprint
-        return pprint.pformat(self._cfg)
+        self._cfg = dict_merge(self._cfg, cfg, policy='overwrite')
+
+        if expand:
+            ru_expand_env(self._cfg, env=env)
 
 
     # --------------------------------------------------------------------------
     #
     def as_dict(self):
 
-        return self._cfg
+        return self.to_dict()
 
 
     # --------------------------------------------------------------------------
     #
-    # first level definitions should be implemented for the dict mixin
-    #
-    def __getitem__(self, key):
-        if key not in self._cfg:
-            raise KeyError('no such key [%s]' % key)
-        return self._cfg[key]
+    def write(self, fname):
 
-    def __setitem__(self, key, value):
-        self._cfg[key] = value
-
-    def __delitem__(self, key):
-        del(self._cfg[key])
-
-    def keys(self):
-        return self._cfg.keys()
+        ru.json_write(self._cfg, fname)
 
 
     # --------------------------------------------------------------------------
@@ -326,16 +363,16 @@ class Config(object, DictMixin):
         this method behaves like:
 
             config['some']['path']['to'].get('key', default='foo')
-
         '''
+        # TODO: overload `get()`?
 
-        if is_str(key): elems = key.split('.')
-        else          : elems = key
+        if is_string(key): elems = key.split('.')
+        else             : elems = key
 
         if not elems:
             raise ValueError('empty key on query')
 
-        pos  = self._cfg
+        pos  = self
         path = list()
         for elem in elems:
 
@@ -352,14 +389,12 @@ class Config(object, DictMixin):
 
 # ------------------------------------------------------------------------------
 #
-class DefaultConfig(Config):
+class DefaultConfig(Config, metaclass=Singleton):
     '''
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
     '''
-
-    __metaclass__ = Singleton
 
     def __init__(self):
 
@@ -375,7 +410,22 @@ class DefaultConfig(Config):
                'profile_dir': '${RADICAL_DEFAULT_PROFILE_DIR:%s}'      % pwd,
                }
 
-        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+        super(DefaultConfig, self).__init__(module='radical.utils', app_cfg=cfg)
+
+
+# ------------------------------------------------------------------------------
+#
+class Configurable(object):
+    '''
+    a simple base class which loads a configuration on __init__.
+    '''
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, module, path=None, name=None, cfg=None,
+                       expand=True, env=None):
+
+        self._cfg = Config(module, path, name, cfg, expand, env)
 
 
 # ------------------------------------------------------------------------------
