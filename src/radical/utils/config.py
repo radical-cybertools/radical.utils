@@ -156,6 +156,14 @@ class Config(DictMixin):
     def __init__(self, module, path=None, name=None, cfg=None,
                        expand=True, env=None):
         '''
+        Load a config (json) file from the module's config tree, and overload
+        any user specific config settings if found.
+
+        module:  used to determine the module's config file location
+        path:    full path to a config file (leading module name elements are
+                 strippeed)
+        name:    the path is here determined by module name and config name
+        cfg:     runtime config settings to be merged into the default config
         expand:  enable / disable environment var expansion.  When disabled, the
                  consumer should expand manually upon use of config entries.
         env:     environment dictionary to be used for expansion
@@ -251,12 +259,11 @@ class Config(DictMixin):
                     ucfg = read_json(usr_fname)
                     usr_cfg[base] = ucfg
 
-
         # merge sys, app, and user cfg before expansion
         self._cfg = dict()
         self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
         self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
 
         if expand:
             ru_expand_env(self._cfg, env=env)
