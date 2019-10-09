@@ -325,6 +325,22 @@ def tolist(thing):
 
 # ------------------------------------------------------------------------------
 #
+def to_type(data):
+
+    if not isinstance(data, basestring):
+        return data
+
+    try   : return(int(data))
+    except: pass
+
+    try   : return(float(data))
+    except: pass
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
 is_list = islist  # FIXME
 to_list = tolist  # FIXME
 def is_str(s):
@@ -580,6 +596,9 @@ def expand_env(data, env=None, ignore_missing=True):
             $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+    The method will also opportunistically convert strings to integers or
+    floats if they are formatted that way and contain no other characters.
     '''
 
     # no data: None, empty dict / sequence / string
@@ -606,7 +625,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # handle string expansion, which is what we really care about
     if '$' not in data:
-        return data
+        return to_type(data)
 
     # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
     # one version we need to search for)
@@ -652,7 +671,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
             data = ReString(post)
 
-    return ret
+    return to_type(ret)
 
 
 # ------------------------------------------------------------------------------
