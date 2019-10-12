@@ -290,9 +290,6 @@ def remove_common_prefix(data, extend=0):
 #       assert(schedule(task) is False)
 #       task not in good
 #   # --------------------------------------------------------------------------
-
-
-# ------------------------------------------------------------------------------
 #
 def lazy_bisect(data, check, ratio=0.5):
     '''
@@ -352,7 +349,7 @@ def lazy_bisect(data, check, ratio=0.5):
         print ' %3s - %3s %s %s' % (g, b, needle, msg)
     # --------------------------------------------------------------------------
 
-    state_hay()
+  # state_hay()
     while True:
 
         # if we don't know anything, yet, check the first element
@@ -365,7 +362,7 @@ def lazy_bisect(data, check, ratio=0.5):
             if ret is True: check_good.append(idx)
             else          : check_bad .append(idx)
 
-            state_needle('start %s %s' % (idx, ret))
+          # state_needle('start %s %s' % (idx, ret))
 
             if ret is True: last_good = idx
             else          : last_bad  = idx
@@ -385,12 +382,12 @@ def lazy_bisect(data, check, ratio=0.5):
 
             if idx in check_good:
                 last_good = idx
-                state_needle('known %3d True' % idx)
+              # state_needle('known %3d True' % idx)
                 continue
 
             if idx in check_bad:
                 last_bad = idx
-                state_needle('known %3d False' % idx)
+              # state_needle('known %3d False' % idx)
                 continue
 
             ret = check(data[idx])
@@ -401,7 +398,7 @@ def lazy_bisect(data, check, ratio=0.5):
             if ret is True: last_good = idx
             else          : last_bad  = idx  # break out of this branch
 
-            state_needle('good  %3d %s' % (idx, ret))
+          # state_needle('good  %3d %s' % (idx, ret))
 
 
         # If we know a bad one, we bisect the remaining list and check the
@@ -426,7 +423,7 @@ def lazy_bisect(data, check, ratio=0.5):
                 # bisect to begin of data
                 idx = int(m.ceil((last_bad + 1) / 2))
 
-            state_needle('range %3d?' % idx)
+          # state_needle('range %3d?' % idx)
 
             # make sure we make progress: if space is too small for bisect, then
             # increase last_good or decrease last_bad
@@ -441,7 +438,7 @@ def lazy_bisect(data, check, ratio=0.5):
                 if ret is True: check_good.append(idx)
                 else          : check_bad .append(idx)
 
-            state_needle('range %3d %s' % (idx, ret))
+          # state_needle('range %3d %s' % (idx, ret))
 
             if ret is True:
                 # found a new good one closer to the last bad one - bisect again
@@ -452,11 +449,11 @@ def lazy_bisect(data, check, ratio=0.5):
                 if last_bad is not None:
                     if last_bad < last_good:
                         last_good = None
-                        state_needle('range  A')
+                      # state_needle('range  A')
 
                     elif last_bad - last_good == 1:
                         last_bad = None
-                        state_needle('range  a')
+                      # state_needle('range  a')
 
             else:
 
@@ -467,7 +464,7 @@ def lazy_bisect(data, check, ratio=0.5):
                     if this not in check_bad and\
                        this not in check_good:
                         check_bad.append(this)
-                state_needle('Range')
+              # state_needle('Range')
                 last_bad = idx
 
                 if last_good is not None and last_good > last_bad:
@@ -475,7 +472,7 @@ def lazy_bisect(data, check, ratio=0.5):
                     # downwards
                     last_good = None
 
-    state_hay()
+  # state_hay()
 
   # # a break condition has been met, we are done.  Do some sanity checks
   # for x in data:
