@@ -7,7 +7,9 @@ import time
 import errno
 import socket
 import pkgutil
+import tarfile
 import datetime
+import tempfile
 import itertools
 import netifaces
 
@@ -779,6 +781,47 @@ def rec_makedir(target):
             pass
         else:
             raise
+
+
+# ------------------------------------------------------------------------------
+#
+def mktar(tarname, fnames=None, data=None):
+    '''
+    Create a tarfile at the given `tarname`, and pack all files given in
+    `fnames` into it, and lso pack any `data` blobs.
+
+    `fnames` is expected to be list, where each element is either a string
+    pointing to a file to be added under that name, or a tuple where the first
+    element points again to the file to be packed, and the second element
+    specifies the name under which the file should be packed into the archive.
+
+    `data` is expected to
+    be a list of tuples, where the first element is a set of bytes comprising
+    the data to be written into the archive, and the second element again
+    specifies the name of the tarred file.
+
+    Note that this method always create gzip'ed tarfiles, but will never change
+    the `tarname` to reflect that.
+    '''
+
+    tar = tarfile.open(tarname, "w:gz")
+    if fnames:
+        for element in fnames:
+            if isinstance(basestring, element):
+                tar.add(element)
+            else:
+                src, tgt = element
+                tar.add(src, arcname=tgt)
+
+    if data:
+        for fname, fdata in data:
+            tmp_name, tmp_fd = tempfile.mkstemp()
+            tmp_fd.write(fdata)
+            tmp_fd.close()
+            tar.add(tmp_name, fname)
+            os.unlink(tmp_name)
+
+    tar.close()
 
 
 # ------------------------------------------------------------------------------
