@@ -1,6 +1,8 @@
 
 import math as m
 
+from .logger import Logger
+
 
 # ------------------------------------------------------------------------------
 #
@@ -291,7 +293,7 @@ def remove_common_prefix(data, extend=0):
 #       task not in good
 #   # --------------------------------------------------------------------------
 #
-def lazy_bisect(data, check, ratio=0.5):
+def lazy_bisect(data, check, ratio=0.5, log=None):
     '''
     Find the next potentially good candidate element in a presumably ordered
     list `data` (from smallest to largest). The given callable `check` should
@@ -312,49 +314,56 @@ def lazy_bisect(data, check, ratio=0.5):
     if not data:
         return [], []
 
+    if not log:
+        log = Logger('radical.utils.alg')
+
     if ratio > 1.0: ratio = 1.0
     if ratio < 0.0: ratio = 0.0
 
-    last_good  = None    # last known good
-    last_bad   = None    # last known bad
-    check_good = list()  # found good
-    check_bad  = list()  # found bad
+    last_good  = None    # last known good index
+    last_bad   = None    # last known bad index
+    check_good = list()  # found good index
+    check_bad  = list()  # found bad index
 
-    # --------------------------------------------------------------------------
-    def state_hay():
-        hay = ''
-        for i,x in enumerate(data):
-            if not i % 10       : hay += '|'
-            if check(x) is True : hay += '#'
-            else                : hay += '.'
-        if not hay.endswith('|'):
-            hay += '|'
-        print '           %s' % hay
-    # --------------------------------------------------------------------------
-
-    # --------------------------------------------------------------------------
-    def state_needle(msg=''):
-        needle = ''
-        for i,x in enumerate(data):
-            if not i % 10       : needle += '|'
-            if   x in check_good: needle += '#'
-            elif x in check_bad : needle += '.'
-            else                : needle += ' '
-        if not needle.endswith('|'):
-            needle += '|'
-        g = last_good
-        b = last_bad
-        if g is None: g = '?'
-        if b is None: b = '?'
-        print ' %3s - %3s %s %s' % (g, b, needle, msg)
-    # --------------------------------------------------------------------------
+  # # --------------------------------------------------------------------------
+  # def state_hay():
+  #     hay = ''
+  #     for i,x in enumerate(data):
+  #         if not i % 10       : hay += '|'
+  #         if check(x) is True : hay += '#'
+  #         else                : hay += '.'
+  #     if not hay.endswith('|'):
+  #         hay += '|'
+  #     log.debug('=== %30s %s', '', hay)
+  # # --------------------------------------------------------------------------
+  #
+  # # --------------------------------------------------------------------------
+  # def state_needle(msg=''):
+  #     needle = ''
+  #     for i,x in enumerate(data):
+  #         if not i % 10       : needle += '|'
+  #         if   x in check_good: needle += '#'
+  #         elif x in check_bad : needle += '.'
+  #         else                : needle += ' '
+  #     if not needle.endswith('|'):
+  #         needle += '|'
+  #     g = last_good
+  #     b = last_bad
+  #     if g is None: g = '?'
+  #     if b is None: b = '?'
+  #     log.debug('=== %3s - %3s %20s %s %s', g, b, ' ', needle, msg)
+  # # --------------------------------------------------------------------------
 
   # state_hay()
+    first = True
     while True:
 
         # if we don't know anything, yet, check the first element
         if  last_good is None and \
             last_bad  is None:
+
+            assert(first)
+            first = False
 
             idx = len(data) - 1
             ret = check(data[idx])
@@ -409,6 +418,10 @@ def lazy_bisect(data, check, ratio=0.5):
         # otherwise we bisect to last_good.
         elif last_bad is not None:
 
+            # make sure we still have something to check
+            if last_bad == 0:
+                break
+
             if last_good is not None:
                 if last_good > last_bad:
                     last_good = None
@@ -429,6 +442,8 @@ def lazy_bisect(data, check, ratio=0.5):
             # increase last_good or decrease last_bad
             if idx == last_good: idx = last_good + 1
             if idx == last_bad : idx = last_bad  - 1
+
+            if idx < 0: idx = 0
 
             # check this bisected index (if we don't know it yet)
             if   idx in check_good: ret = True
@@ -483,7 +498,8 @@ def lazy_bisect(data, check, ratio=0.5):
 
     # return list of all bad elements
     assert(len(data) == len(check_good) + len(check_bad))
-    return check_good, check_bad
+    return [data[i] for i in check_good], \
+           [data[i] for i in check_bad ]
 
 
 # ------------------------------------------------------------------------------
