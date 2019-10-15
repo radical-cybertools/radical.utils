@@ -5,7 +5,7 @@ import radical.utils as ru
 
 
 if len(sys.argv) > 1 and sys.argv[1] == '-v':
-    print ru.version_detail
+    print(ru.version_detail)
 else:
-    print ru.version
+    print(ru.version)
 

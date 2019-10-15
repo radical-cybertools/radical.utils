@@ -11,12 +11,12 @@ with open('test.bridge.url', 'r') as fin:
         if tag == 'SUB':
             break
 
-print 'add: %s' % addr
+print('add: %s' % addr)
 
 ctx = zmq.Context()
 sub = ctx.socket(zmq.SUB)
 sub.connect(addr)
-sub.setsockopt_string(zmq.SUBSCRIBE, u'topic')
+sub.setsockopt_string(zmq.SUBSCRIBE, 'topic')
 
 n = 0
 start = time.time()
@@ -27,7 +27,7 @@ while True:
     n += 1 
     if msg == 'x':
         break
-print
+print()
 stop = time.time()
-print '<- %.2f /s' % (n / (stop - start))
+print('<- %.2f /s' % (n / (stop - start)))
 

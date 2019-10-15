@@ -14,6 +14,7 @@ from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager
 from .singleton      import Singleton
 from .process        import Process, pid_watcher
+from .heartbeat      import Heartbeat
 from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid
@@ -29,11 +30,12 @@ from .lockfile       import Lockfile
 from .registry       import Registry, READONLY, READWRITE
 from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
-from .daemonize      import Daemon
+from .daemon         import Daemon, daemonize
 from .config         import Config, DefaultConfig
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
+from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
 
@@ -63,9 +65,9 @@ from .get_version    import get_version
 from .timing         import timed_method, epoch, dt_epoch
 
 # import sub-modules
-import scheduler
-import config
-import zmq
+from . import scheduler
+from . import config
+from . import zmq
 
 
 # ------------------------------------------------------------------------------

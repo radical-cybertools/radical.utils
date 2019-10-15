@@ -6,14 +6,12 @@ __license__   = "MIT"
 
 import os
 import sys
-import time
 import signal
-import thread
-import traceback
+import ctypes
+import _thread
 
-import Queue        as queue
+import queue        as queue
 import threading    as mt
-import setproctitle as spt
 
 from .logger  import Logger
 
@@ -114,18 +112,7 @@ class Thread(mt.Thread):
 
         if target:
             # we don't support `arguments`, yet
-            self.work_cb = target
-
-        # when cprofile is requested but not available,
-        # we complain, but continue unprofiled
-        self._ru_cprofile = False
-        if self._ru_name in os.environ.get('RADICAL_CPROFILE', '').split(':'):
-            try:
-                self._ru_log.error('enable cprofile for %s', self._ru_local.name)
-                import cprofile
-                self._ru_cprofile = True
-            except:
-                self._ru_log.error('cannot import cprofile - disable')
+            self.work_cb = target                        # pylint: disable=E0202
 
         # base class initialization
         super(Thread, self).__init__(name=self._ru_local.name)
@@ -170,13 +157,13 @@ class Thread(mt.Thread):
             return msg
 
         except queue.Empty:
-            self._ru_log.warn('get msg timed out')
+            self._ru_log.warning('get msg timed out')
             return ''
 
 
     # --------------------------------------------------------------------------
     #
-    def is_alive(self, strict=True):
+    def is_alive(self, strict=True):                     # pylint: disable=W0221
         '''
         Since our threads are daemon threads we don't need to wait for them to
         actually die, but consider it sufficient to have the terminationm signal
@@ -218,7 +205,7 @@ class Thread(mt.Thread):
         alive = self.is_alive(strict=False)
 
         if not alive and term:
-            self._ru_log.warn('alive check failed, stop [%s - %s]', alive, term)
+            self._ru_log.warning('alive check failed [%s - %s]', alive, term)
             self.stop()
         else:
             return alive
@@ -226,7 +213,7 @@ class Thread(mt.Thread):
 
     # --------------------------------------------------------------------------
     #
-    def start(self, spawn=True, timeout=None):
+    def start(self, spawn=True, timeout=None):           # pylint: disable=W0221
         '''
         Overload the `mt.Thread.start()` method, and block (with timeout) until
         the child signals to be alive via a message over our queue.  Also
@@ -275,7 +262,7 @@ class Thread(mt.Thread):
             # assumptions about successful child startup.
             self._ru_initialize()
 
-        except Exception:
+        except:
             self._ru_log.exception('%s init failed', self._ru_local.name)
             self.stop()
             raise
@@ -308,6 +295,9 @@ class Thread(mt.Thread):
         threads -- which is an explicit purpose of this implementation.
         '''
 
+        # FIXME: ensure that this is not overloaded
+        # TODO:  how?
+
         # set local data
         self._ru_local.name = self._ru_name + '.thread'
         self._ru_log.debug('child name: %s' % self._ru_local.name)
@@ -319,27 +309,7 @@ class Thread(mt.Thread):
         self._ru_local.is_parent   = False  # set in start()
         self._ru_local.is_child    = True   # set in run()
 
-        # if no profiling is wanted, we just run the workload and exit
-        if not self._ru_cprofile:
-            self._run()
-
-        # otherwise we run under the profiler, obviously
-        else:
-            import cprofile
-            cprofiler = cprofile.Profile()
-            cprofiler.runcall(self._run)
-            cprofiler.dump_stats('%s.cprof' % (self._ru_local.name))
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _run(self):
-
-        # FIXME: ensure that this is not overloaded
-        # TODO:  how?
-
       # _main_thread = main_thread()
-
         try:
             # we consider the invocation of the child initializers to be part of
             # the bootstrap process, which includes starting the watcher thread
@@ -496,7 +466,7 @@ class Thread(mt.Thread):
             try:
                 super(Thread, self).join(timeout=timeout)
             except Exception as e:
-                self._ru_log.warn('ignoring %s' % e)
+                self._ru_log.warning('ignoring %s' % e)
 
 
     # --------------------------------------------------------------------------
@@ -676,12 +646,12 @@ class Thread(mt.Thread):
         `stop()` or thread child termination, in the child thread.
         '''
 
-        self._ru_log.debug('ru_finalize_child (NOOP)')
+        self._ru_log.debug('ru_finalize_child (t:NOOP)')
 
 
     # --------------------------------------------------------------------------
     #
-    def work_cb(self):
+    def work_cb(self):                                   # pylint: disable=E0202
         '''
         This method MUST be overloaded.  It represents the workload of the
         thread, and will be called over and over again.
@@ -724,16 +694,17 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, obj=None):
+    def __init__(self, name=None):
 
         self._lock = mt.RLock()
+        self._name = name
 
 
     # --------------------------------------------------------------------------
     #
     def acquire(self):
 
-        self._lock.acquire()
+        self._lock.acquire()                             # pylint: disable=E0202
 
 
     # --------------------------------------------------------------------------
@@ -750,8 +721,8 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def __enter__(self)                        : self.acquire()
-    def __exit__ (self, type, value, traceback): self.release()
+    def __enter__(self)         : self.acquire()
+    def __exit__ (self, x, y, z): self.release()
 
 
 # ------------------------------------------------------------------------------
@@ -780,7 +751,6 @@ def gettid():
     (Hi MacOS).
     """
     try:
-        import ctypes
         SYS_gettid = 186
         libc = ctypes.cdll.LoadLibrary('libc.so.6')
         return int(libc.syscall(SYS_gettid))
@@ -797,7 +767,7 @@ def is_main_thread(t=None):
     else:
         t = this_thread()
 
-    return isinstance(t, mt._MainThread)
+    return isinstance(t, mt._MainThread)                 # pylint: disable=W0212
 
 
 # ------------------------------------------------------------------------------
@@ -821,7 +791,7 @@ def main_thread():
     '''
 
     for t in mt.enumerate():
-        if isinstance(t, mt._MainThread):
+        if isinstance(t, mt._MainThread):                # pylint: disable=W0212
             return t
 
     assert(False), 'main thread not found'
@@ -872,34 +842,34 @@ def cancel_main_thread(signame=None, once=False):
     finalization.
     """
 
-    global _signal_lock
-    global _signal_sent
+    global _signal_lock                                  # pylint: disable=W0603
+    global _signal_sent                                  # pylint: disable=W0603
 
-    if signame: signal = get_signal_by_name(signame)
-    else      : signal = None
+    if signame: signum = get_signal_by_name(signame)
+    else      : signum = None
 
     with _signal_lock:
 
         if once:
-            if signal in _signal_sent:
+            if signum in _signal_sent:
                 # don't signal again
                 return
 
-        if signal:
+        if signum:
             # send the given signal to the process to which this thread belongs
-            os.kill(os.getpid(), signal)
+            os.kill(os.getpid(), signum)
         else:
             # this sends a SIGINT, resulting in a KeyboardInterrupt.
             # NOTE: see http://bugs.python.org/issue23395 for problems on using
             #       SIGINT in combination with signal handlers!
             try:
-                thread.interrupt_main()
+                _thread.interrupt_main()
             except TypeError:
                 # this is known to be a side effect of `thread.interrup_main()`
                 pass
 
         # record the signal sending
-        _signal_sent[signal] = True
+        _signal_sent[signum] = True
 
     # the sub thread will at this point also exit.
     if not is_main_thread():
@@ -923,7 +893,7 @@ def cancel_main_thread(signame=None, once=False):
 #        `set_cancellation_handler()` should, too.
 #
 def _sigusr2_handler(signum, frame):
-    print 'caught sigusr2 (%s)' % os.getpid()
+    print('caught sigusr2 (%s)' % os.getpid())
     # we only want to get this exception once, so we unset the signal handler
     # before we raise it
     signal.signal(signal.SIGUSR2, signal.SIG_IGN)
@@ -934,8 +904,8 @@ def set_cancellation_handler():
 
     # check if any handler exists
     old_handler = signal.getsignal(signal.SIGUSR2)
-    if  old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
-        old_handler != _sigusr2_handler:
+    if old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
+       old_handler != _sigusr2_handler:                 # pylint:  disable=W0143
         raise RuntimeError('handler for SIGUSR2 is already present')
 
     try:
@@ -1094,7 +1064,6 @@ def raise_in_thread(e=None, tname=None, tident=None):
     else:
         # otherwise we inject the exception into the main thread's async
         # exception scheduler
-        import ctypes
         ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(tident),
                                                    ctypes.py_object(e))
 

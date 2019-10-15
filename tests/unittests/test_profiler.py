@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__    = "Andre Merzky"
 __copyright__ = "Copyright 2012-2013, The SAGA Project"
@@ -6,23 +6,25 @@ __license__   = "MIT"
 
 
 import os
+import copy
 import time
 
 import radical.utils as ru
+
+# create a virgin env
+old_env = copy.deepcopy(os.environ)
+for _key in list(os.environ.keys()):
+    if _key.startswith('RADICAL_'):
+        del(os.environ[_key])
+
 
 # ------------------------------------------------------------------------------
 #
 def _cmd(cmd):
 
-    out, err, ret = ru.sh_callout(cmd)
+    _, _, ret = ru.sh_callout(cmd)
 
-    if ret == 0:
-        return True
-    else:
-      # print 'cmd: %s' % cmd
-      # print 'out: %s' % out
-      # print 'err: %s' % err
-        return False
+    return not bool(ret)
 
 
 # ------------------------------------------------------------------------------
@@ -32,22 +34,32 @@ def test_profiler():
     create and check profile timestamps
     '''
 
-    os.environ['RADICAL_UTILS_PROFILE'] = 'True'
     pname = 'ru.%d'        % os.getpid()
     fname = '/tmp/%s.prof' % pname
     now   = time.time()
-    prof  = ru.Profiler(name=pname, ns='radical.utils', path='/tmp/')
-    prof.prof('foo')
-    prof.prof('bar', uid='baz')
-    prof.prof('buz', timestamp=now)
 
-    assert(os.path.isfile(fname))
-    assert(_cmd('grep -e "^[0-9\.]*,foo,%s,MainThread,,,$"    %s' % (pname, fname)))
-    assert(_cmd('grep -e "^[0-9\.]*,bar,%s,MainThread,baz,,$" %s' % (pname, fname)))
-    assert(_cmd('grep -e "^%.7f,buz,%s,MainThread,,,$"        %s' % (now, pname, fname)))
+    try:
+        os.environ['RADICAL_PROFILE'] = 'True'
+        prof = ru.Profiler(name=pname, ns='radical.utils', path='/tmp/')
 
-    try   : os.unlink(fname)
-    except: pass
+        prof.prof('foo')
+        prof.prof('bar', uid='baz')
+        prof.prof('buz', ts=now)
+
+        assert(os.path.isfile(fname))
+
+        def _grep(pat):
+            return _cmd('grep -e "%s" %s' % (pat, fname))
+
+        assert(_grep('^[0-9\\.]*,foo,%s,MainThread,,,$'    %       pname ))
+        assert(_grep('^[0-9\\.]*,bar,%s,MainThread,baz,,$' %       pname ))
+        assert(_grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname)))
+
+    finally:
+        try   : del(os.environ['RADICAL_PROFILE'])
+        except: pass
+        try   : os.unlink(fname)
+        except: pass
 
 
 # ------------------------------------------------------------------------------
@@ -61,25 +73,33 @@ def test_env():
     #
     def _assert_profiler(key, val, res):
 
-        pname = 'ru.%d'        % os.getpid()
-        fname = '/tmp/%s.prof' % pname
-        prof  = ru.Profiler(name=pname, ns='radical.utils.test', path='/tmp/')
-        prof.prof('foo')
+        try:
+            os.environ[key] = val
 
-        assert(res == os.path.isfile(fname))
-        assert(res == _cmd('grep -e "^[0-9\.]*,foo,%s," %s' % (pname, fname)))
+            pname = 'ru.%d'        % os.getpid()
+            fname = '/tmp/%s.prof' % pname
+            prof  = ru.Profiler(name=pname, ns='radical.utils.test',
+                                path='/tmp/')
+            prof.prof('foo')
 
-        try   : os.unlink(fname)
-        except: pass
+            assert(res == os.path.isfile(fname))
+            assert(res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s'
+                              % (pname, fname)))
+
+        finally:
+            try   : del(os.environ[key])
+            except: pass
+            try   : os.unlink(fname)
+            except: pass
 
 
     # --------------------------------------------------------------------------
     #
-    for key in ['RADICAL_PROFILE', 
+    for key in ['RADICAL_PROFILE',
                 'RADICAL_UTILS_PROFILE',
                 'RADICAL_UTILS_TEST_PROFILE']:
 
-        for k in os.environ.keys():
+        for k in list(os.environ.keys()):
             if k.startswith('RADICAL'):
                 del(os.environ[k])
 
@@ -87,7 +107,7 @@ def test_env():
 
         for val, res in [
                          ['false', False],
-                         ['',      True ], 
+                         ['',      True ],
                          ['1',     True ],
                          ['true',  True ],
                          ['True',  True ],
@@ -97,7 +117,7 @@ def test_env():
                          ['FALSE', False],
                          ['0',     False]]:
 
-            for k in os.environ.keys():
+            for k in list(os.environ.keys()):
                 if k.startswith('RADICAL'):
                     del(os.environ[k])
 
