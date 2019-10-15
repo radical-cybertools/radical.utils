@@ -326,7 +326,7 @@ def as_list(data):
 #
 def to_type(data):
 
-    if not isinstance(data, basestring):
+    if not isinstance(data, str):
         return data
 
     try   : return(int(data))
@@ -371,7 +371,7 @@ def as_string(data):
 # ------------------------------------------------------------------------------
 #
 def is_str(s):
-    return isinstance(s, basestring)
+    return isinstance(s, str)
 
 
 # ------------------------------------------------------------------------------
