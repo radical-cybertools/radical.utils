@@ -332,7 +332,7 @@ def lazy_bisect(data, check, ratio=0.5):
   #         else                : hay += '.'
   #     if not hay.endswith('|'):
   #         hay += '|'
-  #     print '           %s' % hay
+  #     print('           %s' % hay)
   # # --------------------------------------------------------------------------
   #
   # # --------------------------------------------------------------------------
@@ -349,7 +349,7 @@ def lazy_bisect(data, check, ratio=0.5):
   #     b = last_bad
   #     if g is None: g = '?'
   #     if b is None: b = '?'
-  #     print ' %3s - %3s %s %s' % (g, b, needle, msg)
+  #     print(' %3s - %3s %s %s' % (g, b, needle, msg))
   # # --------------------------------------------------------------------------
 
   # state_hay()
@@ -466,10 +466,10 @@ def lazy_bisect(data, check, ratio=0.5):
 
   # # a break condition has been met, we are done.  Do some sanity checks
   # for x in data:
-  #     if x not in check_good and x not in check_bad: print '-%d' % x
-  #     if x     in check_good and x     in check_bad: print '!%d' % x
+  #     if x not in check_good and x not in check_bad: print('-%d' % x)
+  #     if x     in check_good and x     in check_bad: print('!%d' % x)
   # for x, _ in check_good + check_bad:
-  #     if  x        not in data                     : print '?%d' % x
+  #     if  x        not in data                     : print('?%d' % x)
 
     # return list of all bad elements
     assert(len(data) == len(check_good) + len(check_bad))
@@ -509,17 +509,17 @@ if __name__ == '__main__':
 
         if not check:
             time.sleep(0.1)  # scheduling is slow (but not checks)
-            print n,
+            print(n)
 
         if n in [61, 62, 63, 65]    or \
            n in list(range(22, 42)) or \
            n < 8:
             scheduled.append(n)
-            if not check: print 'ok'
+            if not check: print('ok')
             return True
 
         else:
-            if not check: print '--'
+            if not check: print('--')
             return False
 
     tasks = list(range(128 * 1024))
