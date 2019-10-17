@@ -183,11 +183,11 @@ class Publisher(object):
 
         self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
 
-        self._ctx      = zmq.Context()  # rely on GC for destruction
-        self._q        = self._ctx.socket(zmq.PUB)
-        self._q.linger = _LINGER_TIMEOUT
-        self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._url)
+        self._ctx           = zmq.Context()  # rely on GC for destruction
+        self._socket        = self._ctx.socket(zmq.PUB)
+        self._socket.linger = _LINGER_TIMEOUT
+        self._socket.hwm    = _HIGH_WATER_MARK
+        self._socket.connect(self._url)
 
 
     # --------------------------------------------------------------------------
@@ -219,12 +219,54 @@ class Publisher(object):
         data  = as_bytes([topic, msgpack.packb(msg)])
 
         with self._lock:
-            no_intr(self._q.send_multipart, data)
+            no_intr(self._socket.send_multipart, data)
 
 
 # ------------------------------------------------------------------------------
 #
 class Subscriber(object):
+
+    # instead of creating a new listener thread for each endpoint which then, on
+    # incoming messages, calls a subscriber callback, we only create *one*
+    # listening thread per ZMQ endpoint address and call *all* registered
+    # callbacks in that thread.  We hold those endpoints in a class dict, so
+    # that all class instances share that information
+    _endpoints = dict()
+
+    @staticmethod
+    def _get_nowait(socket, lock, timeout):
+
+        # FIXME: add logging
+
+        if no_intr(socket.poll, flags=zmq.POLLIN, timeout=timeout):
+            with lock:
+                topic, data = no_intr(socket.recv_multipart, flags=zmq.NOBLOCK)
+            msg = msgpack.unpackb(data)
+            return [topic, msg]
+        return None, None
+
+
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _listener(url=None):
+
+        # FIXME: add logging
+
+        lock      = Subscriber._endpoints[url]['lock']
+        socket    = Subscriber._endpoints[url]['socket']
+        callbacks = Subscriber._endpoints[url]['callbacks']
+
+        while True:
+
+            topic, msg = Subscriber._get_nowait(socket, lock, 500)
+
+            if topic:
+                t = as_string(topic)
+                for m in as_list(msg):
+                    m = as_string(m)
+                    for cb in callbacks:
+                        cb(t, m)
+
 
     # --------------------------------------------------------------------------
     #
@@ -241,48 +283,36 @@ class Subscriber(object):
 
         self._channel  = channel
         self._url      = url
-        self._topic    = topic
+        self._topic    = as_list(topic)
         self._cb       = cb
         self._log      = log
         self._uid      = generate_id('%s.sub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils')
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq')
 
         self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
         self._lock     = mt.Lock()
         self._ctx      = zmq.Context()  # rely on GC for destruction
-        self._q        = self._ctx.socket(zmq.SUB)
-        self._q.linger = _LINGER_TIMEOUT
-        self._q.hwm    = _HIGH_WATER_MARK
-        self._q.connect(self._url)
 
-        if self._cb:
+        if url not in Subscriber._endpoints:
 
-            assert(self._topic), 'callback without topics?'
+            s        = self._ctx.socket(zmq.SUB)
+            s.linger = _LINGER_TIMEOUT
+            s.hwm    = _HIGH_WATER_MARK
+            s.connect(self._url)
 
-            for t in as_list(self._topic):
-                self.subscribe(t)
+            Subscriber._endpoints[url] = {'socket'   : s,
+                                          'lock'     : mt.Lock(),
+                                          'thread'   : None,
+                                          'callbacks': list()}
 
-            # ------------------------------------------------------------------
-            def listener():
+        # only allow `get()` and `get_nowait()`
+        self._interactive = True
 
-                try:
-                    while True:
-
-                        topic, msg = self.get_nowait(500)
-
-                        if topic:
-                            for m in as_list(msg):
-                                self._cb(as_string(topic), as_string(m))
-                except:
-                    self._log.exception('subscriber failed')
-            # ------------------------------------------------------------------
-
-            self._cb_thread = mt.Thread(target=listener)
-            self._cb_thread.daemon = True
-            self._cb_thread.start()
+        if topic and cb:
+            self.subscribe(topic, cb)
 
 
     # --------------------------------------------------------------------------
@@ -302,23 +332,57 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
-    def subscribe(self, topic):
+    def _start_listener(self):
+
+        # only start if needed
+        if not Subscriber._endpoints[self._url]['thread']:
+
+            t = mt.Thread(target=Subscriber._listener, args=[self._url])
+            t.daemon = True
+            t.start()
+
+            Subscriber._endpoints[self._url]['thread'] = t
+
+
+    # --------------------------------------------------------------------------
+    #
+    def subscribe(self, topic, cb=None):
+
+        # if we need to serve callbacks, then open a thread to watch the socket
+        # and register the callbacks.  If a thread is already runnning on that
+        # channel, just register the callback.
+        #
+        # Note that once a thread is watching a socket, we cannot allow to use
+        # `get()` and `get_nowait()` anymore, as those will interfere with the
+        # rhread consuming the messages,
+
+        if cb:
+
+            self._interactive = False
+            self._start_listener()
+            Subscriber._endpoints[self._url]['callbacks'].append(cb)
+
+        s = Subscriber._endpoints[self._url]['socket']
 
         topic = topic.replace(' ', '_')
-
         log_bulk(self._log, topic, '~~ %s' % self.channel)
+
         with self._lock:
-            no_intr(self._q.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+            no_intr(s.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
 
     # --------------------------------------------------------------------------
     #
     def get(self):
 
+        if not self._interactive:
+            raise RuntimeError('get() on non-interactive EP')
+
+
         # FIXME: add timeout to allow for graceful termination
 
         with self._lock:
-            topic, data = no_intr(self._q.recv_multipart)
+            topic, data = no_intr(self._socket.recv_multipart)
 
         msg = msgpack.unpackb(data)
 
@@ -329,13 +393,17 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
-    def get_nowait(self, timeout=None):  # timeout in ms
+    def get_nowait(self, timeout=None):
 
-        if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
+        if not self._interactive:
+            raise RuntimeError('get_nowait() on non-interactive EP')
+
+
+        if no_intr(self._socket.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                topic, data = no_intr(self._q.recv_multipart,
-                                                              flags=zmq.NOBLOCK)
+                topic, data = no_intr(self._socket.recv_multipart,
+                                      flags=zmq.NOBLOCK)
             msg = msgpack.unpackb(data)
 
             log_bulk(self._log, msg, '<- %s' % self.channel)

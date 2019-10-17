@@ -187,7 +187,6 @@ class Config(munch.Munch):
             raise ValueError('conflicting initializers (path, cfg)')
 
         if path:
-            print(path)
             cfg = read_json(path)
 
         # if a category has dot limited elements and no module is given,
@@ -300,17 +299,21 @@ class Config(munch.Munch):
         cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
         cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
-        if expand:
-            ru_expand_env(cfg_dict, env=env)
-
-        def to_config(data):
-            for k,v in data.items():
-                if isinstance(v, dict):
-                    data[k] = Config(cfg=v, expand=expand, env=env)
-            return data
-
         if cfg_dict:
+
+            # -----------------------------------------------
+            def to_config(data):
+                for k,v in data.items():
+                    if isinstance(v, dict):
+                        data[k] = Config(cfg=v, expand=False)
+                return data
+            # -----------------------------------------------
+
             self.update(to_config(cfg_dict))
+
+        if expand:
+            ru_expand_env(self, env=env)
+
 
 
     # --------------------------------------------------------------------------
@@ -338,13 +341,13 @@ class Config(munch.Munch):
     #
     def __iter__(self):
         for k in dict.__iter__(self):
-            if k.startswith('_'):
+            if str(k).startswith('_'):
                 continue
             yield k
 
     def items(self):
         for k in dict.__iter__(self):
-            if k.startswith('_'):
+            if str(k).startswith('_'):
                 continue
             yield k, self[k]
 
@@ -354,16 +357,16 @@ class Config(munch.Munch):
 
     # --------------------------------------------------------------------------
     #
-    def merge(self, cfg, expand=True, env=None, policy='overwrite'):
+    def merge(self, cfg, expand=True, env=None, policy='overwrite', logger=None):
         '''
         merge the given config into the existing config settings, overwriting
         any values which already existed
         '''
 
-        self._cfg = dict_merge(self._cfg, cfg, policy=policy)
+        dict_merge(self, cfg, policy=policy, logger=logger)
 
         if expand:
-            ru_expand_env(self._cfg, env=env)
+            ru_expand_env(cfg, env=env)
 
 
     # --------------------------------------------------------------------------

@@ -48,7 +48,7 @@ class Heartbeat(object):
         self._term     = mt.Event()
 
         if not self._log:
-            self._log  = Logger('radical.utils')
+            self._log  = Logger('radical.utils.heartbeat')
 
         self._tstamps  = dict()
         self._pid      = os.getpid()
@@ -88,7 +88,7 @@ class Heartbeat(object):
             uids = list(self._tstamps.keys())
             for uid in uids:
 
-                self._log.debug('hb %s check %s', self._uid, uid)
+              # self._log.debug('hb %s check %s', self._uid, uid)
 
                 # use `get()` in case python dict population is not atomic
                 last = self._tstamps.get(uid)

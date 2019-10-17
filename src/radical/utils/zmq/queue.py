@@ -10,7 +10,7 @@ from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip
+from ..misc   import get_hostip, as_string, as_bytes, as_list
 from ..logger import Logger
 
 
@@ -88,7 +88,6 @@ class Queue(Bridge):
 
         super(Queue, self).__init__(cfg)
 
-        self._channel    = self._cfg['name']
         self._stall_hwm  = self._cfg.get('stall_hwm', 1)  # FIXME: use
         self._bulk_size  = self._cfg.get('bulk_size', 10)
 
@@ -105,10 +104,6 @@ class Queue(Bridge):
     @property
     def uid(self):
         return self._uid
-
-    @property
-    def channel(self):
-        return self._channel
 
     @property
     def type_in(self):
@@ -160,8 +155,8 @@ class Queue(Bridge):
         self._get.bind(self._url)
 
         # communicate the bridge ports to the parent process
-        _addr_put = self._put.getsockopt (zmq.LAST_ENDPOINT)
-        _addr_get = self._get.getsockopt(zmq.LAST_ENDPOINT)
+        _addr_put = as_string(self._put.getsockopt (zmq.LAST_ENDPOINT))
+        _addr_get = as_string(self._get.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses
         self._addr_put = Url(_addr_put)
@@ -214,7 +209,7 @@ class Queue(Bridge):
 
                     active = True
                     log_bulk(self._log, msgs, '>< %s [%d]'
-                                              % (self._channel, len(buf)))
+                                              % (self._uid, len(buf)))
 
 
                 # if we don't have any data in the buffer, there is no point in
@@ -237,7 +232,7 @@ class Queue(Bridge):
 
                         no_intr(self._get.send, data)
                         log_bulk(self._log, bulk, '<> %s [%s]'
-                                                % (self._channel, req))
+                                                % (self._uid, req))
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])

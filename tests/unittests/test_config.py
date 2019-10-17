@@ -19,6 +19,7 @@ def test_config():
     print(path)
 
     cfg1 = ru.Config(name=path)
+    print(type(cfg1))
 
     import pprint
     pprint.pprint(cfg1)

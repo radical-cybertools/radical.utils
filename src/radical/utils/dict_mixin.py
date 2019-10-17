@@ -126,8 +126,8 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
     '''
 
-    if  a    is None: return
-    if  b    is None: return
+    if  a    is None: return a
+    if  b    is None: return a
     if _path is None: _path = list()
 
     if  not isinstance(a, dict):
@@ -178,7 +178,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
     # --------------------------------------------------------------------------
 
     # first a clean merge, i.e. no interpretation of wildcards
-    for key in b:
+    for key in sorted(b.keys()):
 
         if  key in a:
 
@@ -192,11 +192,11 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
 
     # optionally, check if other merge options are also valid
-    for key_b in b:
+    for key_b in sorted(b.keys()):
         if  wildcards:
             if  '*' in key_b:
                 pat = re.compile(fnmatch.translate(key_b))
-                for key_a in a:
+                for key_a in sorted(a,keys()):
                     if  pat.match(key_a):
                         merge_key(a, key_a, b, key_b)
 
