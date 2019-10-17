@@ -205,6 +205,7 @@ class Reporter(object):
 
         self._idle_sequence = '/-\\|'
         self._idle_pos      = dict()
+        self._idle_count    = 0
         self._streams       = list()
 
         for t in targets:
@@ -220,7 +221,7 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def _out(self, color, msg):
+    def _out(self, color, msg, count=None):
 
         if not self._enabled:
             return
@@ -243,7 +244,10 @@ class Reporter(object):
         if self._pos >= (self._line_len) and msg and msg[0] != '\n':
             while msg[0] == '\b':
                 msg = msg[1:]
-            msg = '\n        %s' % msg
+            if count:
+                msg = ' %6d\n        %s' % (count, msg)
+            else:
+                msg = '\n        %s' % msg
 
         # special control characters:
         #
@@ -409,8 +413,13 @@ class Reporter(object):
         else    : col = self._settings['idle']['color']
 
         idx = 0
-        if   mode == 'start': self._out(col, 'O')
-        elif mode == 'stop' : self._out(col, '\b ')
+        if mode == 'start':
+            self._out(col, 'O')
+            self._idle_count = 0
+
+        elif mode == 'stop':
+            self._out(col, '\b %6d' % self._idle_count)
+
         else:
             if not c:
                 idx  = self._idle_pos.get(idle_id, 0)
@@ -419,7 +428,8 @@ class Reporter(object):
                 self._out(col, '\b%s' % c)
             else:
                 idx += 1
-                self._out(col, '\b%s|' % c)
+                self._idle_count += 1
+                self._out(col, '\b%s|' % c, count=self._idle_count)
 
         self._idle_pos[idle_id] = idx
 
