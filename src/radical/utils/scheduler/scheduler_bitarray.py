@@ -3,6 +3,7 @@ __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
+import math
 
 from .scheduler_base import SchedulerBase
 
@@ -12,8 +13,10 @@ from .scheduler_base import SchedulerBase
 class BitarrayScheduler(SchedulerBase):
 
     try:
-        from bitarray import bitarray as _ba
+        from bitarray import bitarray as _ba             # pylint: disable=E0401
+
     except:
+        # fake with a do-nothing implementation so that initialization works
         class _ba(object):
             def __init__(self, i):
                 pass
@@ -45,7 +48,6 @@ class BitarrayScheduler(SchedulerBase):
     #
     def get_layout(self):
 
-        import math
         return {'cores' : self._size,
                 'rows'  : math.sqrt(self._size),
                 'cols'  : math.sqrt(self._size)}
@@ -77,7 +79,7 @@ class BitarrayScheduler(SchedulerBase):
 
         # we check if the allocation is on a single node.  If that is not the
         # case, we search again from the point of allocation, and check again.
-        # We do that until we cycle around the full core list once, reaching 
+        # We do that until we cycle around the full core list once, reaching
         # the original location again
         orig_pos   = loc
         pos        = loc
@@ -137,7 +139,7 @@ class BitarrayScheduler(SchedulerBase):
 
 
         if not loc:
-            # FIXME: assume we first search from pos 100 to 1000, then rewind, 
+            # FIXME: assume we first search from pos 100 to 1000, then rewind,
             #        then search from 0 to 1000, 900 cores being searched twice.
             #        We should add an 'end_pos' parameter to bitarray.search.
             #        But then again, rewind should be rare if cores are on
@@ -250,11 +252,11 @@ class BitarrayScheduler(SchedulerBase):
             node += 1
 
 
-        return {'total'     : self._size, 
+        return {'total'     : self._size,
                 'free'      : self._cores.count(),
                 'busy'      : self._size - self._cores.count(),
-                'free_dist' : free_dict, 
-                'busy_dist' : busy_dict, 
+                'free_dist' : free_dict,
+                'busy_dist' : busy_dict,
                 'node_free' : node_free}
 
 

@@ -90,7 +90,7 @@ def mongodb_connect(dburl, default_dburl=None):
     try:
         import pymongo
     except ImportError:
-        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
@@ -116,7 +116,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception:
+            except:
                 pass
 
     return mongo, db, dbname, cname, pname
@@ -159,13 +159,13 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not is_str(directive):
+        if  not is_string(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
         rs = ReString(directive)
 
-        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
+        if  rs // r'^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
             res = rs.get()
             ret.append([res['one'], res['two'], res['op']])
 
@@ -233,7 +233,7 @@ def cluster_list(iterable, n):
          ...
     '''
 
-    return itertools.izip(*[iter(iterable)] * n)
+    return zip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
@@ -281,10 +281,10 @@ def round_to_base(value, base=1):
 #
 def round_upper_bound(value):
     '''
-    This method expects an integer or float value, and will return an integer upper
-    bound suitable for example to define plot ranges.  The upper bound is the
-    smallest value larger than the input value which is a multiple of 1, 2 or
-    5 times the order of magnitude (10**x) of the value.
+    This method expects an integer or float value, and will return an integer
+    upper bound suitable for example to define plot ranges.  The upper bound is
+    the smallest value larger than the input value which is a multiple of 1,
+    2 or 5 times the order of magnitude (10**x) of the value.
     '''
 
     bound = 0
@@ -305,32 +305,97 @@ def round_upper_bound(value):
 
 # ------------------------------------------------------------------------------
 #
-def islist(thing):
+def is_list(data):
     '''
-    return True if a thing is a list thing, False otherwise
+    return True if given data are a `list`, `False` otherwise
     '''
 
-    return isinstance(thing, list)
+    return isinstance(data, list)
 
 
 # ------------------------------------------------------------------------------
 #
-def tolist(thing):
+def as_list(data):
     '''
-    return a non-list thing into a list thing
+    return non-list data into a list.
     '''
 
-    if islist(thing):
-        return thing
-    return [thing]
+    if is_list(data): return data
+    else            : return [data]
 
 
 # ------------------------------------------------------------------------------
 #
-is_list = islist  # FIXME
-to_list = tolist  # FIXME
+def to_type(data):
+
+    if not isinstance(data, str):
+        return data
+
+    try   : return(int(data))
+    except: pass
+
+    try   : return(float(data))
+    except: pass
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
+def is_seq(data):
+    '''
+    tests if the given data is a sequence (but not a string)
+    '''
+    return hasattr(data, '__iter__') and not is_string(data)
+
+
+# ------------------------------------------------------------------------------
+#
+def is_string(data):
+    '''
+    tests if the given data are a `string` type
+    '''
+    return isinstance(data, str)
+
+
+# ------------------------------------------------------------------------------
+#
+def as_string(data):
+    '''
+    convert the given data to a UTF-8 decoded `string`.
+    '''
+    if   is_string(data): return data
+    elif is_bytes(data) : return data.decode('utf-8')
+    else:
+        raise TypeError('cannot convert %s to string' % type(data))
+
+
+# ------------------------------------------------------------------------------
+#
 def is_str(s):
-    return isinstance(s, basestring)
+    return isinstance(s, str)
+
+
+# ------------------------------------------------------------------------------
+#
+def is_bytes(data):
+    '''
+    checks if the given data are of types `bytes` or `bytearray`
+    '''
+    return isinstance(data, (bytes, bytearray))
+
+
+# ------------------------------------------------------------------------------
+#
+def as_bytes(data):
+    '''
+    converts data given as `string` into a `bytes` (UTF-8 encoded).
+    '''
+
+    if   is_bytes(data) : return data
+    elif is_string(data): return bytes(data, 'utf-8')
+    else:
+        raise TypeError('cannot convert %s to bytes' % type(data))
 
 
 # ------------------------------------------------------------------------------
@@ -363,7 +428,7 @@ def find_module(name):
     if not package:
         return None
 
-    return package.filename
+    return os.path.dirname(package.get_filename())
 
 
 # ------------------------------------------------------------------------------
@@ -376,7 +441,7 @@ def get_hostname():
     Look up the hostname
     '''
 
-    global _hostname
+    global _hostname                                     # pylint: disable=W0603
     if not _hostname:
 
         if socket.gethostname().find('.') >= 0:
@@ -398,7 +463,7 @@ def get_hostip(req=None, logger=None):
     If interface is not given, do some magic.
     '''
 
-    global _hostip
+    global _hostip                                       # pylint: disable=W0603
     if _hostip:
         return _hostip
 
@@ -430,17 +495,17 @@ def get_hostip(req=None, logger=None):
                   'sit0'     # ?
                  ]
 
-    all  = netifaces.interfaces()
-    rest = [iface for iface in all
-                   if iface not in req and
-                      iface not in white_list and
-                      iface not in black_list]
+    ifaces = netifaces.interfaces()
+    rest   = [iface for iface in ifaces
+                     if iface not in req        and
+                        iface not in white_list and
+                        iface not in black_list]
 
     preflist = req + white_list + rest
 
     for iface in preflist:
 
-        if iface not in all:
+        if iface not in ifaces:
             if logger:
                 logger.debug('check iface %s: does not exist', iface)
             continue
@@ -563,7 +628,7 @@ def expand_env(data, env=None, ignore_missing=True):
     a copy of scalar strings, as it seems to be custom in Python.  Other data
     types are silently ignored and not altered.
 
-    The replacement in strings is performed for the following variable specs
+    The replacement in strings is performed for the following variable specs:
 
         assume  `export BAR=bar`:
 
@@ -582,6 +647,9 @@ def expand_env(data, env=None, ignore_missing=True):
             $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+    The method will also opportunistically convert strings to integers or
+    floats if they are formatted that way and contain no other characters.
     '''
 
     # no data: None, empty dict / sequence / string
@@ -591,24 +659,24 @@ def expand_env(data, env=None, ignore_missing=True):
     # dict type
     elif isinstance(data, dict):
 
-        for k,v in data.iteritems():
+        for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)
         return data
 
-    # sequence types: list, set, ...
-    elif hasattr(data, '__iter__'):
+    # sequence types: list, set, tuple - but not string
+    elif is_seq(data):
 
         for idx, elem in enumerate(data):
             data[idx] = expand_env(elem, env, ignore_missing)
         return data
 
     # all other non-string types are left alone
-    elif not isinstance(data, basestring):
+    elif not is_string(data):
         return data
 
     # handle string expansion, which is what we really care about
     if '$' not in data:
-        return data
+        return to_type(data)
 
     # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
     # one version we need to search for)
@@ -654,7 +722,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
             data = ReString(post)
 
-    return ret
+    return to_type(ret)
 
 
 # ------------------------------------------------------------------------------
@@ -673,7 +741,14 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__
+    path = radical.__path__
+    if isinstance(path, list):
+        path = path[0]
+
+    if isinstance(path, str):
+        rpath = path
+    else:
+        rpath = path._path                               # pylint: disable=W0212
 
     if isinstance(rpath, list):
         rpath = rpath[0]
@@ -681,7 +756,6 @@ def stack():
     for mpath in glob.glob('%s/*' % rpath):
 
         if os.path.isdir(mpath):
-
             mname = 'radical.%s' % os.path.basename(mpath)
             try:    ret['radical'][mname] = import_module(mname).version_detail
             except: ret['radical'][mname] = '?'
@@ -711,7 +785,8 @@ def get_size(obj, seen=None, strict=False):
     elif hasattr(obj, '__dict__'):
         size += get_size(obj.__dict__, seen, strict)
 
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+    elif hasattr(obj, '__iter__') and \
+        not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_size(i, seen, strict) for i in obj])
 
     return size

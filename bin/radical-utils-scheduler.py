@@ -5,30 +5,37 @@ import sys
 import time
 import random
 import pprint
-import thread
-
-from Xlib import X, display, Xutil
+import _thread
 
 import radical.utils as ru
 
+
+try:
+    # make pylint happy - this is optional code
+    from Xlib import X, display, Xutil
+except:
+    raise RuntimeError('need Xlib module to work')
+
+
+
 ROWS      =  1024
 COLS      =  1024
-CORES     =  ROWS*COLS   # number of cores to schedule over (sqrt must be int)
-PPN       =    32        # cores per node, used for alignment
-GPN       =     2        # GPUs per node, never aligned
+CORES     =  ROWS * COLS  # number of cores to schedule over (sqrt must be int)
+PPN       =    32         # cores per node, used for alignment
+GPN       =     2         # GPUs per node, never aligned
 
-ALIGN     =  True        # align small req onto single node
-SCATTER   =  True        # allow scattered allocattions as fallback
+ALIGN     =  True         # align small req onto single node
+SCATTER   =  True         # allow scattered allocattions as fallback
 
-CYCLES    = 10000        # number of cycles 
-CPU_MIN   =     0        # minimal number of cores requested
-CPU_MAX   =    32        # maximal number of cores requested
-GPU_MIN   =     0        # minimal number of GPUs  requested
-GPU_MAX   =     4        # maximal number of GPUs  requested
-REQ_BULK  =     2        # number of requests to handle in bulk
-REL_PROB  =     0.010    # probablility of release per cycle
-REQ_MIN   =     1        # probablility of release per cycle
-REQ_MAX   =     2        # probablility of release per cycle
+CYCLES    = 10000         # number of cycles
+CPU_MIN   =     0         # minimal number of cores requested
+CPU_MAX   =    32         # maximal number of cores requested
+GPU_MIN   =     0         # minimal number of GPUs  requested
+GPU_MAX   =     4         # maximal number of GPUs  requested
+REQ_BULK  =     2         # number of requests to handle in bulk
+REL_PROB  =     0.010     # probablility of release per cycle
+REQ_MIN   =     1         # probablility of release per cycle
+REQ_MAX   =     2         # probablility of release per cycle
 
 
 # ------------------------------------------------------------------------------
@@ -37,16 +44,16 @@ class SchedulerViz(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, scheduler, cycles, req_min, req_max, req_bulk, rel_prob):
+    def __init__(self, args):
 
-        self.scheduler = scheduler
-        self.cycles    = cycles
-        self.req_min   = req_min
-        self.req_max   = req_max
-        self.req_bulk  = req_bulk
-        self.rel_prob  = rel_prob
+        self.scheduler = args[0]
+        self.cycles    = args[1]
+        self.req_min   = args[2]
+        self.req_max   = args[3]
+        self.req_bulk  = args[4]
+        self.rel_prob  = args[5]
 
-        print scheduler
+        print(scheduler)
 
         self.d      = display.Display()
         self.screen = self.d.screen()
@@ -85,8 +92,8 @@ class SchedulerViz(object):
                                         min_height=20)
         self.window.map()
 
-        self._thread = thread.start_new_thread(self.update_viz,   tuple())
-        self._thread = thread.start_new_thread(self.update_sched, tuple())
+        self._thread = _thread.start_new_thread(self.update_viz,   tuple())
+        self._thread = _thread.start_new_thread(self.update_sched, tuple())
 
 
     # --------------------------------------------------------------------------
@@ -124,7 +131,7 @@ class SchedulerViz(object):
 
         while True:
 
-            print 1
+            print(1)
 
             state   = self.scheduler.get_map()
             active  = list()
@@ -151,7 +158,7 @@ class SchedulerViz(object):
             if passive_chunk:
                 passive.append(passive_chunk)
 
-            print 2
+            print(2)
 
             self.gc.change(foreground=red)
             for active_chunk in active:
@@ -159,88 +166,83 @@ class SchedulerViz(object):
 
             self.gc.change(foreground=blue)
             for passive_chunk in passive:
-                self.window.poly_point(self.gc, X.CoordModeOrigin, passive_chunk)
-            print 3
+                self.window.poly_point(self.gc, X.CoordModeOrigin,passive_chunk)
+            print(3)
 
             self.d.flush()
-            print 'done'
+            print('done')
             time.sleep(0.1)
 
 
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #
     def update_sched(self):
-        
-        scheduler = self.scheduler
-        cycles    = self.cycles
-        req_min   = self.req_min
-        req_max   = self.req_max
-        req_bulk  = self.req_bulk
-        rel_prob  = self.rel_prob
-        
+
         try:
-            # ----------------------------------------------------------------------
+            # ------------------------------------------------------------------
             #
             # This implementation will first create a number of requests,
-            # specifically 'REQ_BULK' requests, each randomly distributed between
-            # 'REQ_MIN' and 'REQ_MAX'.  Those requests are the scheduled via calls
-            # to 'scheduler.allocate(req)', and the results are stored in
-            # a 'running' list.
+            # specifically 'REQ_BULK' requests, each randomly distributed
+            # between 'REQ_MIN' and 'REQ_MAX'.  Those requests are the
+            # scheduled via calls to 'self.scheduler.allocate(req)', and the
+            # results are stored in a 'running' list.
             #
             # After that requested bulk is allocated, all items in 'running'
-            # (including those allocated in earlier cycles)  are up for release,
-            # with a certain probaility REL_PROB.  For example, for 'REL_PROB
-            # = 0.01',  approximately 1% of the entries will be released, via a call
-            # to 'scheduler.deallocate(res)'.
+            # (including those allocated in earlier self.cycles)  are up for
+            # release, with a certain probaility REL_PROB.  For example, for
+            # 'REL_PROB = 0.01',  approximately 1% of the entries will be
+            # released, via a call to 'self.scheduler.deallocate(res)'.
             #
-            # The above cycle repeats 'CYCLES' times, with a (potentially) ever
-            # increasing 'running' list, The load on the scheduler is thus
-            # continuously increasing as cores remain allocated over cycles, and the
-            # scheduler needs to search harder for free cores
+            # The above cycle repeats 'self.cycles' times, with a (potentially)
+            # ever increasing 'running' list, The load on the self.scheduler is
+            # thus continuously increasing as cores remain allocated over
+            # self.cycles, and the self.scheduler needs to search harder for
+            # free cores
             #
             # This thread finishes when:
-            #   - all cycles are completed
-            #   - the scheduler cannot find anough cores for a request
-            #   - the scheduler can't align an allocation (if 'ALIGN' is set)
+            #   - all self.cycles are completed
+            #   - the self.scheduler cannot find anough cores for a request
+            #   - the self.scheduler can't align an allocation (if 'ALIGN' is
+            #     set)
             #
-            # ----------------------------------------------------------------------
-    
+            # ------------------------------------------------------------------
+
             running = list()
             done    = list()
-    
+
             total_start   = time.time()
             total_alloc   = 0
             total_dealloc = 0
             total_align   = 0
             total_scatter = 0
-    
-    
+
+
             # for range 1024:
             #   find 1024 chunks of 16  cores
             #   free  512 chunks of  8 or 16 cores (random)
             abort_cycles = False
-            for cycle in range(cycles):
+            for cycle in range(self.cycles):
 
                 time.sleep(0.1)
 
                 if abort_cycles:
                     break
-    
+
                 # we randomly request cores in a certain range
                 requests = list()
-                for _ in range(req_bulk):
-                    requests.append(random.randint(req_min,req_max))
-            
+                for _ in range(self.req_bulk):
+                    requests.append(random.randint(self.req_min,self.req_max))
+
                 tmp = list()
                 start = time.time()
                 try:
                     for req in requests:
-                        tmp.append(scheduler.alloc(req))
+                        tmp.append(self.scheduler.alloc(req))
                 except Exception as e:
-                    print e
+                    print(e)
                     abort_cycles = True
                 stop = time.time()
-    
+
                 for res in tmp:
                     total_alloc += 1
                     if res[2]:
@@ -248,110 +250,111 @@ class SchedulerViz(object):
                     if res[3]:
                         total_align += 1
                 running += tmp
-    
+
                 if (stop == start):
                     alloc_rate = -1
                 else:
                     alloc_rate = len(requests) / (stop - start)
-    
+
                 if abort_cycles:
                     # don't dealloc, as it screws with statistics
                     dealloc_rate = -1
-    
+
                 else:
-    
+
                     # build a list of release candidates and, well, release them
                     to_release = list()
-                    for idx in reversed(range(len(running))):
-                        if random.random() < rel_prob:
+                    for idx in reversed(list(range(len(running)))):
+                        if random.random() < self.rel_prob:
                             to_release.append(running[idx])
                             del(running[idx])
-    
+
                     start = time.time()
                     try:
                         for res in to_release:
-                            scheduler.dealloc(res)
+                            self.scheduler.dealloc(res)
                             done.append(res)
                     except Exception as e:
-                        print e
+                        print(e)
                         abort_cycles = True
                     stop   = time.time()
                     total_dealloc += len(to_release)
-    
+
                     if (stop == start):
                         dealloc_rate = -1
                     else:
                         dealloc_rate = len(to_release) / (stop - start)
-    
-                print "%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)   free %6d" % \
-                        (cycle, total_alloc, alloc_rate, 
-                                total_dealloc, dealloc_rate, 
-                                scheduler._cores.count())
-    
+
+                print('%5d : alloc : %6d (%8.1f/s)   dealloc : %6d (%8.1f/s)'
+                      'free %6d' % (cycle, total_alloc,   alloc_rate,
+                                           total_dealloc, dealloc_rate,
+                                           self.scheduler.get_map.count()))
+
             if abort_cycles:
-                print 'cycle aborted'
+                print('cycle aborted')
             else:
-                print 'cycles done'
-    
-        except Exception as e:
+                print('cycles done')
+
+        except Exception:
             import traceback
-            print traceback.format_exc(sys.exc_info())
-    
+            print(traceback.format_exc(sys.exc_info()))
+
         total_stop = time.time()
-        stats = scheduler.get_stats()
-    
+        stats = self.scheduler.get_stats()
+
+        # NOTE: Uncomment to DEBUG
         # continuous stretches of #free/busy cores
-        if False:
-            print
-            print '\ncores :  free :  busy'
-            counts = set(stats['free_dist'].keys() + stats['busy_dist'].keys())
-            for count in sorted(counts):
-                print '%5d : %5s : %5s' % (count, 
-                        stats['free_dist'].get(count, ''), 
-                        stats['busy_dist'].get(count, ''))
-    
+        # print()
+        # print('\ncores :  free :  busy')
+        # counts = set(list(stats['free_dist'].keys()) + \
+        #          list(stats['busy_dist'].keys()))
+        # for count in sorted(counts):
+        #     print('%5d : %5s : %5s' % (count,
+        #             stats['free_dist'].get(count, ''),
+        #             stats['busy_dist'].get(count, '')))
+
         # distributions of free cores over nodes
-        print
-        print 'free : nodes'
+        print()
+        print('free : nodes')
         for i in sorted(stats['node_free'].keys()):
-            print ' %3d : %5d' % (i, stats['node_free'].get(i, ''))
-    
-        print
-        print 'total cores  : %9d' % stats['total']
-        print '      free   : %9d' % stats['free']
-        print '      busy   : %9d' % stats['busy']
-        print '      alloc  : %9d' % total_alloc
-        print '      align  : %9d' % total_align
-        print '      scatter: %9d' % total_scatter
-        print '      dealloc: %9d' % total_dealloc
-        print '      runtime: %9.1fs'  % (total_stop - total_start)
-        print '      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) / (total_stop - total_start))
-    
-        if False:
-            idx = 0
-            with open('cores', 'w') as f:
-                node = '%5d : ' % idx
-                for b in scheduler._cores:
-                    if not idx % ppn:
-                        node += '\n'
-                    if b:
-                        node += '#'
-                    else:
-                        node += ' '
-                    idx += 1
-                f.write(node)
-    
-        print '\nuse <Esc> in viz-window to quit\n'
+            print(' %3d : %5d' % (i, stats['node_free'].get(i, '')))
+
+        print()
+        print('total cores  : %9d' % stats['total'])
+        print('      free   : %9d' % stats['free'])
+        print('      busy   : %9d' % stats['busy'])
+        print('      alloc  : %9d' % total_alloc)
+        print('      align  : %9d' % total_align)
+        print('      scatter: %9d' % total_scatter)
+        print('      dealloc: %9d' % total_dealloc)
+        print('      runtime: %9.1fs'  % (total_stop   - total_start))
+        print('      ops/sec: %9.1f/s' % ((total_alloc + total_dealloc) /
+                                          (total_stop  - total_start)))
+
+        # NOTE: Uncomment to DEBUG
+        # idx = 0
+        # with open('cores', 'w') as f:
+        #     node = '%5d : ' % idx
+        #     for b in self.scheduler.get_map():
+        #         if not idx % ppn:
+        #             node += '\n'
+        #         if b:
+        #             node += '#'
+        #         else:
+        #             node += ' '
+        #         idx += 1
+        #     f.write(node)
+
+        print('\nuse <Esc> in viz-window to quit\n')
 
 
 # ------------------------------------------------------------------------------
 #
 if __name__ == "__main__":
 
-
     if len(sys.argv) >= 3:
 
-        if not '/' in __file__:
+        if '/' not in __file__:
             path = '.'
         elif __file__:
             path = os.path.dirname(__file__)
@@ -365,8 +368,8 @@ if __name__ == "__main__":
         cluster  = config['cluster'][cluster_id]
         workload = config['workload'][workload_id]
 
-        print 'using cluster: %s'  % pprint.pformat(cluster)
-        print 'using workload: %s' % pprint.pformat(workload)
+        print('using cluster: %s'  % pprint.pformat(cluster))
+        print('using workload: %s' % pprint.pformat(workload))
 
         cores   =  int(cluster['cores'])
         ppn     =  int(cluster['ppn'])
@@ -392,12 +395,13 @@ if __name__ == "__main__":
         rel_prob = REL_PROB
 
 
-    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : cores, 
-                                                'ppn'     : ppn, 
-                                                'align'   : align, 
+    scheduler = ru.scheduler.BitarrayScheduler({'cores'   : cores,
+                                                'ppn'     : ppn,
+                                                'align'   : align,
                                                 'scatter' : scatter})
 
-    vs = SchedulerViz(scheduler, cycles, req_min, req_max, req_bulk, rel_prob)
+    vs_args = [scheduler, cycles, req_min, req_max, req_bulk, rel_prob]
+    vs      = SchedulerViz(vs_args)
     vs.loop()
 
 
