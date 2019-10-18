@@ -63,8 +63,8 @@ def monkeypatch_os_fork_functions():
     all locks before forking and release them afterwards.
     '''
 
-    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
-    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+    # monkeypatching can be enabled by setting RADICAL_UTILS_PATCHATFORK
+    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
         return
 
     builtin_function = type(''.join)
@@ -100,8 +100,8 @@ def atfork(prepare=None, parent=None, child=None):
     to do so.
     '''
 
-    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
-    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+    # monkeypatching can be disabled by setting RADICAL_UTILS_PATCHATFORK
+    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
         return
 
     assert not prepare or callable(prepare)
