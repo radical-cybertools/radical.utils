@@ -17,7 +17,7 @@ with open('test.bridge.url', 'r') as fin:
         if tag == 'GET':
             break
 
-print 'GET: %s' % addr
+print('GET: %s' % addr)
 
 context    = zmq.Context()
 socket     = context.socket(zmq.REQ)
@@ -27,7 +27,7 @@ socket.connect(addr)
 while True:
     socket.send('request %d' % os.getpid())
     msg = msgpack.unpackb(socket.recv())
-    print '<- %s' % msg
+    print('<- %s' % msg)
     time.sleep(DELAY)
 
 

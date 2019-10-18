@@ -20,7 +20,7 @@ def _open(target):
 
     try:
         os.makedirs(os.path.abspath(os.path.dirname(target)))
-    except:
+    except OSError:
         pass  # exists
 
     return open(target, 'w')
@@ -105,6 +105,7 @@ class Reporter(object):
 
         ru_def = DefaultConfig()
 
+        self._name = name
         if not ns:
             ns = name
 
@@ -146,7 +147,7 @@ class Reporter(object):
             if not targets:
                 targets = ru_def['report_tgt']
 
-        if isinstance(targets, basestring):
+        if isinstance(targets, str):
             targets = targets.split(',')
 
         if not isinstance(targets, list):
@@ -155,9 +156,8 @@ class Reporter(object):
         if '/' in name:
             try:
                 os.makedirs(os.path.normpath(os.path.dirname(name)))
-            except:
-                # dir exists
-                pass
+            except OSError:
+                pass  # dir exists
 
         self._pos      = 0
         self._settings = {'title'    : {'color'   : self.TITLE,
@@ -211,9 +211,9 @@ class Reporter(object):
             if   t in ['0', 'null']       : continue
             elif t in ['-', '1', 'stdout']: h = sys.stdout
             elif t in ['=', '2', 'stderr']: h = sys.stderr
-            elif t in ['.']               : h = _open("%s/%s.rep" % (path, name))
+            elif t in ['.']               : h = _open("%s/%s.rep" % (path,name))
             elif t.startswith('/')        : h = _open(t)
-            else                          : h = _open("%s/%s"     % (path, t))
+            else                          : h = _open("%s/%s"     % (path,t))
 
             self._streams.append(h)
 
@@ -272,7 +272,7 @@ class Reporter(object):
             else:
                 msg = msg.replace('<<', '')
 
-        mlen  = len(filter(lambda x: x in string.printable, msg))
+        mlen  = len([x for x in msg if x in string.printable])
         mlen -= msg.count('\b')
 
       # print "<%s>" % (self._pos),
@@ -297,7 +297,7 @@ class Reporter(object):
                 stream.write(self.MODS['reset'])
             try:
                 stream.flush()
-            except:
+            except Exception:
                 pass
 
 
@@ -356,6 +356,12 @@ class Reporter(object):
     def title(self, title):
 
         if not self._enabled:
+            return
+
+        if not title:
+            title = self._name
+
+        if not title:
             return
 
         fmt = " %%-%ds\n" % (self._line_len - 1)

@@ -6,7 +6,7 @@ int main ()
 {
     struct timeval tv;
     (void) gettimeofday (&tv, NULL);
-    fprintf (stdout, "%ld.%06ld\n", tv.tv_sec, tv.tv_usec);
+    fprintf (stdout, "%ld.%06d\n", tv.tv_sec, tv.tv_usec);
     return (0);
 }
 

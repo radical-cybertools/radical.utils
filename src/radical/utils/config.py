@@ -9,8 +9,8 @@ __license__   = "MIT"
 # We provide a json based config file parser with following properties
 #
 #   - system config files will be merged with user configs (if those exist)
-#   - python style comments are filtered out before parsing 
-#   - after parsing, `${ABC:default}`-style values are set or expanded via 
+#   - python style comments are filtered out before parsing
+#   - after parsing, `${ABC:default}`-style values are set or expanded via
 #     `os.environ`
 #
 #
@@ -41,12 +41,12 @@ __license__   = "MIT"
 #   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
 #   usr_config_dir = /home/merzky/.radical/utils/
 #
-# The remaining two arguments are exclusive (exactly *one* must be specified).  
-# If `path` is given, it is interpreted as a path under those locations.  
-# If `name` is given, then the same `. -> /` replacement as on the module name 
-# is performed, and the result is interpreted like `path` again.  
+# The remaining two arguments are exclusive (exactly *one* must be specified).
+# If `path` is given, it is interpreted as a path under those locations.
+# If `name` is given, then the same `. -> /` replacement as on the module name
+# is performed, and the result is interpreted like `path` again.
 #
-# In both cases, we add the file extension `.json` if no match is found without 
+# In both cases, we add the file extension `.json` if no match is found without
 # it.  It is not an error if the so specified config files do not exist -- in
 # that case, the config is considered empty.
 #
@@ -94,13 +94,13 @@ __license__   = "MIT"
 #
 # Environment
 # -----------
-# 
+#
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
 #   '${RADICAL_UTILS_ENV:default_value}
 #
-# which will be replaced by 
+# which will be replaced by
 #
 #   `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
 #
@@ -122,7 +122,7 @@ __license__   = "MIT"
 import glob
 import os
 
-from .misc       import find_module, is_str
+from .misc       import find_module, is_string
 from .misc       import expand_env as ru_expand_env
 from .read_json  import read_json
 from .dict_mixin import dict_merge, DictMixin
@@ -132,7 +132,7 @@ from .singleton  import Singleton
 
 # ------------------------------------------------------------------------------
 #
-class Config(object, DictMixin):
+class Config(DictMixin):
 
     # FIXME: we should do some magic on values, like, convert to into, float,
     #        bool, list of those, after env expansion.  For now, typing is the
@@ -156,6 +156,14 @@ class Config(object, DictMixin):
     def __init__(self, module, path=None, name=None, cfg=None,
                        expand=True, env=None):
         '''
+        Load a config (json) file from the module's config tree, and overload
+        any user specific config settings if found.
+
+        module:  used to determine the module's config file location
+        path:    full path to a config file (leading module name elements are
+                 strippeed)
+        name:    the path is here determined by module name and config name
+        cfg:     runtime config settings to be merged into the default config
         expand:  enable / disable environment var expansion.  When disabled, the
                  consumer should expand manually upon use of config entries.
         env:     environment dictionary to be used for expansion
@@ -214,7 +222,7 @@ class Config(object, DictMixin):
 
             if sys_fspec:
                 sys_fname = sys_fspec
-                if not os.path.isfile(sys_fname): sys_fname += '.json' 
+                if not os.path.isfile(sys_fname): sys_fname += '.json'
                 if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
 
             if usr_fspec:
@@ -222,7 +230,7 @@ class Config(object, DictMixin):
                 if not os.path.isfile(usr_fname): usr_fname += '.json'
                 if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
 
-        else: 
+        else:
 
             # wildcard mode: whatever the '*' expands into is used as root dict
             # entry, and the respective content of the config file is stored
@@ -251,34 +259,28 @@ class Config(object, DictMixin):
                     ucfg = read_json(usr_fname)
                     usr_cfg[base] = ucfg
 
-
         # merge sys, app, and user cfg before expansion
         self._cfg = dict()
         self._cfg = dict_merge(self._cfg, sys_cfg, policy='overwrite')
-        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
         self._cfg = dict_merge(self._cfg, usr_cfg, policy='overwrite')
+        self._cfg = dict_merge(self._cfg, app_cfg, policy='overwrite')
 
         if expand:
-            self.expand_env(env)
+            ru_expand_env(self._cfg, env=env)
 
 
     # --------------------------------------------------------------------------
     #
-    def expand_env(self, env):
+    def merge(self, cfg, expand=True, env=None):
+        '''
+        merge the given config into the existing config settings, overwriting
+        any values which already existed
+        '''
 
-        # expand environment
-        def _expand_env(d):
-            if isinstance(d, dict):
-                for k,v in d.iteritems():
-                    d[k] = _expand_env(v)
-            elif isinstance(d, list):
-                for i,v in enumerate(d):
-                    d[i] = _expand_env(v)
-            elif isinstance(d, basestring):
-                d = ru_expand_env(d, env)
-            return d
+        self._cfg = dict_merge(self._cfg, cfg, policy='overwrite')
 
-        _expand_env(self._cfg)
+        if expand:
+            ru_expand_env(self._cfg, env=env)
 
 
     # --------------------------------------------------------------------------
@@ -312,7 +314,7 @@ class Config(object, DictMixin):
         del(self._cfg[key])
 
     def keys(self):
-        return self._cfg.keys()
+        return list(self._cfg.keys())
 
 
     # --------------------------------------------------------------------------
@@ -329,8 +331,8 @@ class Config(object, DictMixin):
 
         '''
 
-        if is_str(key): elems = key.split('.')
-        else          : elems = key
+        if is_string(key): elems = key.split('.')
+        else             : elems = key
 
         if not elems:
             raise ValueError('empty key on query')
@@ -352,14 +354,12 @@ class Config(object, DictMixin):
 
 # ------------------------------------------------------------------------------
 #
-class DefaultConfig(Config):
+class DefaultConfig(Config, metaclass=Singleton):
     '''
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
     '''
-
-    __metaclass__ = Singleton
 
     def __init__(self):
 
@@ -376,6 +376,21 @@ class DefaultConfig(Config):
                }
 
         super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+
+
+# ------------------------------------------------------------------------------
+#
+class Configurable(object):
+    '''
+    a simple base class which loads a configuration on __init__.
+    '''
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, module, path=None, name=None, cfg=None,
+                       expand=True, env=None):
+
+        self._cfg = Config(module, path, name, cfg, expand, env)
 
 
 # ------------------------------------------------------------------------------

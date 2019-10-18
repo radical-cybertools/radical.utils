@@ -10,7 +10,7 @@ with open('test.bridge.url', 'r') as fin:
         if tag == 'PUB':
             break
 
-print 'add: %s' % addr
+print('add: %s' % addr)
 
 context = zmq.Context()
 socket  = context.socket(zmq.PUB)
@@ -26,5 +26,5 @@ for index in range(n):
 stop = time.time()
 
 socket.send_multipart([topic, 'x'])
-print '-> %.2f /s' % ((n * 2) / (stop - start))
+print('-> %.2f /s' % ((n * 2) / (stop - start)))
 
