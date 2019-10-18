@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import os
+import pprint
+
 # ------------------------------------------------------------------------------
 #
 # This example demonstrates various utilities to inspect, print, trigger stack
@@ -9,76 +12,90 @@
 
 import radical.utils as ru
 
+
 # ------------------------------------------------------------------------------
 # helper method
 def raise_something():
-    print '%s wants an exception' % ru.get_caller_name()
+
+    print('%s wants an exception' % ru.get_caller_name())
     raise RuntimeError('oops')
+
 
 # ------------------------------------------------------------------------------
 # print current stack trace
-def inner_1(arg_1, arg_2):
+def inner_1(arg_1, arg_2):                               # pylint: disable=W0613
+
     ru.print_stacktrace()
+
 
 # ------------------------------------------------------------------------------
 # get currenet stack trace as list (to store to disk or print or whatever)
-def inner_2(arg_1, arg_2):
+def inner_2(arg_1, arg_2):                               # pylint: disable=W0613
+
     st = ru.get_stacktrace()
-    import pprint
     pprint.pprint(st)
+
 
 # ------------------------------------------------------------------------------
 # print an exception trace, pointint to the origin of an exception
-def inner_3(arg_1, arg_2):
+def inner_3(arg_1, arg_2):                               # pylint: disable=W0613
+
     try:
         raise_something()
-    except:
+    except Exception:
         ru.print_exception_trace()
+
 
 # ------------------------------------------------------------------------------
 # print the name of the calling class and method
-def inner_4(arg_1, arg_2):
-    print ru.get_caller_name()
+def inner_4(arg_1, arg_2):                               # pylint: disable=W0613
+
+    print(ru.get_caller_name())
+
 
 # ------------------------------------------------------------------------------
 # trigger exception for integration testing etc.
-def inner_5(arg_1, arg_2):
+def inner_5(arg_1, arg_2):                               # pylint: disable=W0613
 
-    import os
     os.environ['RU_RAISE_ON_TEST'] = '3'
 
     for i in range(10):
-        print i
+        print(i)
         ru.raise_on('test')
 
-    print
+    print()
 
-    import os
     os.environ['RU_RAISE_ON_RAND'] = 'RANDOM_10'
 
     for i in range(100):
         try:
             ru.raise_on('rand')
-        except Exception as e:
-            print 'raised on %d' % i
+        except Exception:
+            print('raised on %d' % i)
 
 
 # ------------------------------------------------------------------------------
 #
 def outer(arg):
-    print '################################'
+    print('--------------------------------')
     inner_1(arg, 'bar')
-    print '################################'
+    print('--------------------------------')
     inner_2(arg, 'bar')
-    print '################################'
+    print('--------------------------------')
     inner_3(arg, 'bar')
-    print '################################'
+    print('--------------------------------')
     inner_4(arg, 'bar')
-    print '################################'
+    print('--------------------------------')
     inner_5(arg, 'bar')
-    print '################################'
+    print('--------------------------------')
+
 
 # ------------------------------------------------------------------------------
 #
-outer('foo')
+if __name__ == '__main__':
+
+    outer('foo')
+
+
+# ------------------------------------------------------------------------------
 

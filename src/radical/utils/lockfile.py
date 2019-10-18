@@ -5,6 +5,8 @@ import fcntl
 
 import threading as mt
 
+from .misc import as_bytes
+
 
 # ------------------------------------------------------------------------------
 #
@@ -154,7 +156,7 @@ class Lockfile(object):
         if not self._fd:
             raise ValueError('lockfile is not open')
 
-        return os.write(self._fd, data)
+        return os.write(self._fd, as_bytes(data))
 
 
     # --------------------------------------------------------------------------

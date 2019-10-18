@@ -11,9 +11,9 @@ import fcntl
 import socket
 import datetime
 import threading
-import singleton
 
-from .misc import dockerized, get_radical_base
+from .singleton import Singleton
+from .misc      import dockerized, get_radical_base
 
 TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
 TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
@@ -23,15 +23,13 @@ TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 
 # ------------------------------------------------------------------------------
 #
-class _IDRegistry(object):
+class _IDRegistry(object, metaclass=Singleton):
     """
     This helper class (which is not exposed to any user of radical.utils)
     generates a sequence of continous numbers for each known ID prefix.  It is
     a singleton, and thread safe (assuming that the Singleton metaclass supports
     thread safe construction).
     """
-
-    __metaclass__ = singleton.Singleton
 
 
     # --------------------------------------------------------------------------
@@ -141,12 +139,12 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
     and can thus span multiple applications.
 
-    'namespace' argument can be specified to a value such that unique IDs are 
+    'namespace' argument can be specified to a value such that unique IDs are
     created local to that namespace, . For example, you can create a session
     and use the session ID as a namespace for all the IDs of the objects of that
-    execution. 
+    execution.
 
-    Example:: 
+    Example::
 
         sid  = generate_id('re.session', ID_PRIVATE)
         uid1 = generate_id('task.%(item_counter)04d', ID_CUSTOM, namespace=sid)
@@ -156,7 +154,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
 
     This will generate the following ids::
 
-        re.session.rivendell.vivek.017548.0001 
+        re.session.rivendell.vivek.017548.0001
         task.0000
         task.0001
 
@@ -170,7 +168,7 @@ def generate_id(prefix, mode=ID_SIMPLE, namespace=None):
     """
 
     if not prefix or \
-        not isinstance(prefix, basestring):
+        not isinstance(prefix, str):
         raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""
@@ -214,7 +212,7 @@ def _generate_id(template, prefix, namespace=None):
 
     try:
         user = getpass.getuser()
-    except Exception:
+    except:
         user = 'nobody'
 
     info = dict()
@@ -244,7 +242,9 @@ def _generate_id(template, prefix, namespace=None):
         if not data: data = 0
         info['day_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET )
-        os.write(fd, "%d\n" % (info['day_counter'] + 1))
+        line = "%d\n" % (info['day_counter'] + 1)
+        line = str.encode(line)
+        os.write(fd, line)
         os.close(fd)
 
     if '%(item_counter)' in template:
@@ -256,7 +256,9 @@ def _generate_id(template, prefix, namespace=None):
         if not data: data = 0
         info['item_counter'] = int(data)
         os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, "%d\n" % (info['item_counter'] + 1))
+        line = "%d\n" % (info['item_counter'] + 1)
+        line = str.encode(line)
+        os.write(fd, line)
         os.close(fd)
 
     if '%(counter)' in template:

@@ -16,17 +16,17 @@ with open('test.bridge.url', 'r') as fin:
         if tag == 'PUT':
             break
 
-print 'PUT: %s' % addr
+print('PUT: %s' % addr)
 
 context    = zmq.Context()
 socket     = context.socket(zmq.PUSH)
 socket.hwm = 1
 socket.connect(addr)
 
-for n in xrange(1000):
+for n in range(1000):
     msg = {'data' : n}
     socket.send(msgpack.packb(msg))
-    print '-> %s' % msg
+    print('-> %s' % msg)
     time.sleep(DELAY)
 
 

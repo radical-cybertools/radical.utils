@@ -16,15 +16,16 @@
 #
 # Author: Gregory P. Smith <greg@krypto.org>
 
-"""
+'''
 This module implements a pthread_atfork() work-a-like mechanism for all
 fork() calls made from the Python os module.  Any time a fork() is called
 from Python a set of unique callbacks will be made in each of the following
 three states:
-    Preparing to fork - Immediately before the fork call is made.
+
+    Preparing to fork        - Immediately before the fork call is made.
     In the parent after fork - Immediately after the fork (regardless of
                                success or failure) in the parent process.
-    In the child after fork - Immediately after the fork in the child process.
+    In the child after fork  - Immediately after the fork in the child process.
 
 To use this module, first import it early on your programs initialization:
 
@@ -43,34 +44,33 @@ Next, register your atfork actions by calling atfork.atfork:
 No API to unregister an atfork call is provided.  If you are concerned
 about resource usage by references your callable holds, consider using
 weakref's within your callable.
-"""
+'''
 
 import os
 import sys
 import threading
 import traceback
 
+_orig_os_fork    = os.fork
+_orig_os_forkpty = os.forkpty
+
 
 # ------------------------------------------------------------------------------
 #
 def monkeypatch_os_fork_functions():
-    """
+    '''
     Replace os.fork* with wrappers that use ForkSafeLock to acquire
     all locks before forking and release them afterwards.
-    """
+    '''
 
-    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
-    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+    # monkeypatching can be enabled by setting RADICAL_UTILS_PATCHATFORK
+    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
         return
 
     builtin_function = type(''.join)
     if hasattr(os, 'fork') and isinstance(os.fork, builtin_function):
-        global _orig_os_fork
-        _orig_os_fork = os.fork
         os.fork = os_fork_wrapper
     if hasattr(os, 'forkpty') and isinstance(os.forkpty, builtin_function):
-        global _orig_os_forkpty
-        _orig_os_forkpty = os.forkpty
         os.forkpty = os_forkpty_wrapper
 
 
@@ -85,7 +85,7 @@ _child_call_list         = list()
 # ------------------------------------------------------------------------------
 #
 def atfork(prepare=None, parent=None, child=None):
-    """
+    '''
     A Python work-a-like of pthread_atfork.
 
     Any time a fork() is called from Python, all 'prepare' callables will
@@ -98,10 +98,10 @@ def atfork(prepare=None, parent=None, child=None):
     No exceptions may be raised from any of the registered callables.  If so
     they will be printed to sys.stderr after the fork call once it is safe
     to do so.
-    """
+    '''
 
-    # monkeypatching can be disabled by setting RADICAL_UTILS_NOATFORK
-    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+    # monkeypatching can be disabled by setting RADICAL_UTILS_PATCHATFORK
+    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
         return
 
     assert not prepare or callable(prepare)
@@ -124,10 +124,10 @@ def atfork(prepare=None, parent=None, child=None):
 # ------------------------------------------------------------------------------
 #
 def _call_atfork_list(call_list):
-    """
+    '''
     Given a list of callables in call_list, call them all in order and save
     and return a list of sys.exc_info() tuples for each exception raised.
-    """
+    '''
     exception_list = []
     for func in call_list:
         try:
@@ -140,7 +140,7 @@ def _call_atfork_list(call_list):
 # ------------------------------------------------------------------------------
 #
 def prepare_to_fork_acquire():
-    """Acquire our lock and call all prepare callables."""
+    '''Acquire our lock and call all prepare callables.'''
     _fork_lock.acquire()
     _prepare_call_exceptions.extend(_call_atfork_list(_prepare_call_list))
 
@@ -148,38 +148,43 @@ def prepare_to_fork_acquire():
 # ------------------------------------------------------------------------------
 #
 def parent_after_fork_release():
-    """
+    '''
     Call all parent after fork callables, release the lock and print
     all prepare and parent callback exceptions.
-    """
+    '''
+
     prepare_exceptions = list(_prepare_call_exceptions)
     del _prepare_call_exceptions[:]
     exceptions = _call_atfork_list(_parent_call_list)
     _fork_lock.release()
-  # _print_exception_list(prepare_exceptions, 'before fork')
-  # _print_exception_list(exceptions, 'after fork from parent')
+
+    _print_exception_list(prepare_exceptions, 'before fork')
+    _print_exception_list(exceptions, 'after fork from parent')
 
 
 # ------------------------------------------------------------------------------
 #
 def child_after_fork_release():
-    """
+    '''
     Call all child after fork callables, release lock and print all
     all child callback exceptions.
-    """
+    '''
+
     del _prepare_call_exceptions[:]
     exceptions = _call_atfork_list(_child_call_list)
     _fork_lock.release()
-   #_print_exception_list(exceptions, 'after fork from child')
+
+    _print_exception_list(exceptions, 'after fork from child')
 
 
 # ------------------------------------------------------------------------------
 #
 def _print_exception_list(exceptions, message, output_file=None):
-    """
+    '''
     Given a list of sys.exc_info tuples, print them all using the traceback
     module preceeded by a message and separated by a blank line.
-    """
+    '''
+
     output_file = output_file or sys.stderr
     message = 'Exception %s:\n' % message
     for exc_type, exc_value, exc_traceback in exceptions:
@@ -192,10 +197,11 @@ def _print_exception_list(exceptions, message, output_file=None):
 # ------------------------------------------------------------------------------
 #
 def os_fork_wrapper():
-    """Wraps os.fork() to run atfork handlers."""
+    '''Wraps os.fork() to run atfork handlers.'''
     pid = None
     prepare_to_fork_acquire()
     try:
+        global _orig_os_fork
         pid = _orig_os_fork()
     finally:
         if pid == 0:
@@ -210,10 +216,11 @@ def os_fork_wrapper():
 # ------------------------------------------------------------------------------
 #
 def os_forkpty_wrapper():
-    """Wraps os.forkpty() to run atfork handlers."""
+    '''Wraps os.forkpty() to run atfork handlers.'''
     pid = None
     prepare_to_fork_acquire()
     try:
+        global _orig_os_forkpty
         pid, fd = _orig_os_forkpty()
     finally:
         if pid == 0:
