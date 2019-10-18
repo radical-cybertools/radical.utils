@@ -21,7 +21,7 @@ def test_logger():
 
     tmp.debug('debug')
     tmp.info('info')
-    tmp.warn('warning')
+    tmp.warning('warning')
     tmp.error('error')
     tmp.fatal('fatal')
 
@@ -39,7 +39,7 @@ def test_env():
 
     tmp.debug('debug')
     tmp.info('info')
-    tmp.warn('warning')
+    tmp.warning('warning')
     tmp.error('error')
     tmp.fatal('fatal')
 

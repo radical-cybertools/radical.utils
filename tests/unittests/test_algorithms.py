@@ -38,10 +38,7 @@ def test_lazy_bisect():
     things = [Thing(x) for x in range(128)]
     good, bad = ru.lazy_bisect(things, schedule)
 
-    print good
-    print bad
-
-    assert(len(failed) == 15), [len(failed), failed]
+    assert(len(failed) == 12), [len(failed), failed]
     assert(len(things) == len(good) + len(bad))
 
     for task in good:

@@ -510,13 +510,6 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
 
   # state_hay()
 
-  # # a break condition has been met, we are done.  Do some sanity checks
-  # for x in data:
-  #     if x not in check_good and x not in check_bad: print '-%d' % x
-  #     if x     in check_good and x     in check_bad: print '!%d' % x
-  # for x, _ in check_good + check_bad:
-  #     if  x        not in data                     : print '?%d' % x
-
     # return list of all bad elements
     assert(len(data) == len(check_good) + len(check_bad))
     return [data[i] for i in check_good], \
@@ -540,10 +533,10 @@ if __name__ == '__main__':
     pprint.pprint(test)
     pprint.pprint(collapse_ranges(test))
 
-    test_space = range(75)
+    test_space = list(range(75))
     parts = partition(test_space, 8)
     for part in parts:
-        print "%3d: %s" % (len(part), part)
+        print("%3d: %s" % (len(part), part))
 
 
 # ------------------------------------------------------------------------------
@@ -556,17 +549,17 @@ if __name__ == '__main__':
 
         if not check:
             time.sleep(0.1)  # scheduling is slow (but not checks)
-            print n,
+            print(n)
 
         if n in [61, 62, 63, 65]    or \
            n in list(range(22, 42)) or \
            n < 8:
             scheduled.append(n)
-            if not check: print 'ok'
+            if not check: print('ok')
             return True
 
         else:
-            if not check: print '--'
+            if not check: print('--')
             return False
 
     tasks = list(range(128 * 1024))

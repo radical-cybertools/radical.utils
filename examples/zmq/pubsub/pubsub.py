@@ -15,8 +15,8 @@ socket_out.bind("tcp://*:*")
 addr_in  = socket_in .getsockopt(zmq.LAST_ENDPOINT)
 addr_out = socket_out.getsockopt(zmq.LAST_ENDPOINT)
 
-print 'PUB: %s' % addr_in
-print 'SUB: %s' % addr_out
+print('PUB: %s' % addr_in)
+print('SUB: %s' % addr_out)
 
 with open('test.bridge.url', 'w') as fout:
     fout.write('PUB %s\n' % addr_in)
