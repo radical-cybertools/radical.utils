@@ -23,8 +23,8 @@ socket_out.bind("tcp://*:*")
 addr_in  = socket_in .getsockopt(zmq.LAST_ENDPOINT)
 addr_out = socket_out.getsockopt(zmq.LAST_ENDPOINT)
 
-print 'PUT: %s' % addr_in
-print 'GET: %s' % addr_out
+print('PUT: %s' % addr_in)
+print('GET: %s' % addr_out)
 
 with open('test.bridge.url', 'w') as fout:
     fout.write('PUT %s\n' % addr_in)
@@ -39,7 +39,7 @@ while True:
     req = socket_out.recv()
     msg = msgpack.unpackb(socket_in.recv())
     msg['req'] = req
-    print '<> %s' % msg
+    print('<> %s' % msg)
     socket_out.send(msgpack.packb(msg))
 
     time.sleep(delay)

@@ -20,9 +20,9 @@ if  'RADICAL_PILOT_DBURL' in os.environ :
 def usage (msg=None, noexit=False) :
 
     if  msg :
-        print "\n\t%s\n" % msg
+        print("\n\t%s\n" % msg)
 
-    print """
+    print("""
 
       usage   : %s -m mode [-d url]
       example : %s mongodb://localhost/synapse_profiles/profiles/
@@ -38,8 +38,8 @@ def usage (msg=None, noexit=False) :
         list:   list entries in the subtree, but do not traverse
         remove: remove the specified subtree
 
-      The default command is 'tree'.  
-      The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL
+      The default command is 'tree'.
+      The default MongoDB is """ + "'%s'\n\n" % _DEFAULT_DBURL)
 
     if  msg :
         sys.exit (1)
@@ -55,26 +55,26 @@ def dump (url, mode) :
     Connect to mongodb at the given location, and traverse the data bases
     """
 
-    mongo, db, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
+    mongo, _, dbname, cname, pname = ru.mongodb_connect (url, _DEFAULT_DBURL)
 
-    print dbname
- 
+    print(dbname)
+
     if  dbname : dbnames = [dbname]
-    else       : dbnames = mongo.database_names ()
+    else       : dbnames = mongo.database_names()
 
     for name in dbnames :
 
         if  mode == 'list' and not dbname :
-            print " +-- db   %s" % name
+            print(" +-- db   %s" % name)
 
         elif  mode == 'remove' :
-            
+
             if (not dbname) or (name == dbname) :
                 try :
                     mongo.drop_database (name)
-                    print "  removed database %s" % name
+                    print("  removed database %s" % name)
                 except :
-                    pass # ignore system tables
+                    pass  # ignore system tables
 
         else :
             handle_db (mongo, mode, name, cname, pname)
@@ -89,7 +89,7 @@ def handle_db (mongo, mode, dbname, cname, pname) :
     """
 
     database = mongo[dbname]
-    print " +-- db   %s" % dbname
+    print(" +-- db   %s" % dbname)
 
 
     if  cname : cnames = [cname]
@@ -98,18 +98,17 @@ def handle_db (mongo, mode, dbname, cname, pname) :
     for name in cnames :
 
         if  mode == 'list' and not cname :
-            print " | +-- coll %s" % name
+            print(" | +-- coll %s" % name)
 
         elif  mode == 'remove' and not pname :
             try :
                 database.drop_collection (name)
-                print "  removed collection %s" % name
+                print("  removed collection %s" % name)
             except :
-                pass # ignore errors
+                pass  # ignore errors
 
         else :
             handle_coll (database, mode, name, pname)
-
 
 
 # ------------------------------------------------------------------------------
@@ -122,7 +121,7 @@ def handle_coll (database, mode, cname, pname) :
         return
 
     collection = database[cname]
-    print " | +-- coll %s" % cname
+    print(" | +-- coll %s" % cname)
 
     docs = collection.find ()
 
@@ -131,23 +130,23 @@ def handle_coll (database, mode, cname, pname) :
         name = doc['_id']
 
         if  mode == 'list' and not pname :
-            print " | | +-- doc  %s" % name
+            print(" | | +-- doc  %s" % name)
 
         elif  mode == 'remove' :
-            if (not pname) or (str(name)==str(pname)) :
+            if (not pname) or (str(name) == str(pname)) :
                 try :
                     collection.remove (name)
-                    print "  removed document %s" % name
-                except Exception as e:
-                    pass # ignore errors
+                    print("  removed document %s" % name)
+                except Exception:
+                    pass  # ignore errors
 
         else :
-            if (not pname) or (str(name)==str(pname)) :
-                handle_doc (collection, mode, doc)
+            if (not pname) or (str(name) == str(pname)) :
+                handle_doc (mode, doc)
 
 
 # ------------------------------------------------------------------------------
-def handle_doc (collection, mode, doc) :
+def handle_doc (mode, doc) :
     """
     And, surprise, for a given document, show it according to 'mode'
     """
@@ -157,15 +156,15 @@ def handle_doc (collection, mode, doc) :
     if  mode == 'list' :
 
         for key in doc :
-            print " | | | +-- %s" % (key)
+            print(" | | | +-- %s" % (key))
 
     elif  mode == 'tree' :
-        print " | | +-- doc  %s" % (name)
+        print(" | | +-- doc  %s" % (name))
         for key in doc :
-            print " | | | +-- %s" % (key)
+            print(" | | | +-- %s" % (key))
 
     elif  mode == 'dump' :
-        print " | | +-- doc  %s" % (name)
+        print(" | | +-- doc  %s" % (name))
         for key in doc :
             txt_in  = pprint.pformat (doc[key])
             txt_out = ""
@@ -177,7 +176,8 @@ def handle_doc (collection, mode, doc) :
                 txt_out += '\n'
                 lnum    += 1
 
-            print " | | | +-- %-10s : %s" % (key, txt_out[:-1]) # remove last \n
+            # remove last \n
+            print(" | | | +-- %-10s : %s" % (key, txt_out[:-1]))
 
 
 # ------------------------------------------------------------------------------
@@ -193,30 +193,29 @@ if __name__ == '__main__' :
 
     options, args = parser.parse_args ()
 
-    if  args         : usage ("Too many arguments (%s)" % args) 
+    if  args         : usage ("Too many arguments (%s)" % args)
     if  options.help : usage ()
 
-    mode    = options.mode 
+    modes    = options.mode
     dburl   = options.dburl
 
-    if not mode  : mode  = _DEFAULT_MODE
+    if not modes  : modes  = _DEFAULT_MODE
     if not dburl : dburl = _DEFAULT_DBURL
 
-    print "modes   : %s" % mode
-    print "db url  : %s" % dburl
+    print("modes   : %s" % modes)
+    print("db url  : %s" % dburl)
 
-    for m in mode.split (',') :
+    for m in modes.split (',') :
 
-        if  m not in ['list', 'dump', 'tree', 'remove', 'help'] : 
+        if  m not in ['list', 'dump', 'tree', 'remove', 'help'] :
             usage ("Unsupported mode '%s'" % m)
 
-        elif m == 'tree'   : dump  (dburl, m) 
-        elif m == 'dump'   : dump  (dburl, m) 
-        elif m == 'list'   : dump  (dburl, m) 
-        elif m == 'remove' : dump  (dburl, m) 
+        elif m == 'tree'   : dump  (dburl, m)
+        elif m == 'dump'   : dump  (dburl, m)
+        elif m == 'list'   : dump  (dburl, m)
+        elif m == 'remove' : dump  (dburl, m)
         elif m == 'help'   : usage (noexit=True)
-        else               : usage ("unknown mode '%s'" % mode)
+        else               : usage ("unknown mode '%s'" % m)
 
 
 # ------------------------------------------------------------------------------
-

@@ -14,7 +14,7 @@ from ..misc   import get_hostip
 from ..logger import Logger
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
@@ -40,7 +40,7 @@ def log_bulk(log, bulk, token):
             log.debug("%s: ?", str(token))
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
@@ -56,8 +56,10 @@ def _uninterruptible(f, *args, **kwargs):
         cnt += 1
         try:
             return f(*args, **kwargs)
-        except zmq.ContextTerminated as e:
+
+        except zmq.ContextTerminated:
             return None
+
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
                 if cnt > 10:
@@ -116,7 +118,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _initialize_bridge(self):
 
         self._log.info('start bridge %s', self._uid)
@@ -164,7 +166,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def wait(self, timeout=None):
         '''
         join negates the daemon thread settings, in that it stops us from
@@ -187,7 +189,7 @@ class PubSub(Bridge):
 
 
     # --------------------------------------------------------------------------
-    # 
+    #
     def _bridge_work(self):
 
         # we could use a zmq proxy - but we rather code it directly to have
@@ -210,7 +212,8 @@ class PubSub(Bridge):
                     # if any incoming socket signals a message, get the
                     # message on the subscriber channel, and forward it
                     # to the publishing channel, no questions asked.
-                    msg = _uninterruptible(self._in.recv_multipart, flags=zmq.NOBLOCK)
+                    msg = _uninterruptible(self._in.recv_multipart,
+                                                              flags=zmq.NOBLOCK)
                     _uninterruptible(self._out.send_multipart, msg)
                     log_bulk(self._log, msg, '>> %s' % self.channel)
 
@@ -231,7 +234,7 @@ class PubSub(Bridge):
                     # keep this bridge alive
                     self.heartbeat()
 
-        except Exception:
+        except:
             self._log.exception('bridge failed')
 
 
@@ -280,7 +283,7 @@ class Publisher(object):
         assert(isinstance(msg,dict)), 'invalide message type'
 
         topic = topic.replace(' ', '_')
-        data  = msgpack.packb(msg) 
+        data  = msgpack.packb(msg)
 
         log_bulk(self._log, msg, '-> %s' % self.channel)
 
@@ -343,7 +346,7 @@ class Subscriber(object):
         # FIXME: add timeout to allow for graceful termination
 
         topic, data = _uninterruptible(self._q.recv_multipart)
-        msg         = msgpack.unpackb(data) 
+        msg         = msgpack.unpackb(data)
 
         log_bulk(self._log, msg, '<- %s' % self.channel)
 
