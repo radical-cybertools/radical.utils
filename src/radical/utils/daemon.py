@@ -4,6 +4,7 @@ import os
 import sys
 import queue
 import signal
+import queue
 import multiprocessing as mp
 
 from .misc    import as_list
@@ -33,8 +34,8 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
     if main:
         assert(callable(main))
 
-    pid  = None
-    q    = mp.Queue()
+    pid   = None
+    pid_q = mp.Queue()
 
     # first fork
     try:
@@ -45,12 +46,12 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
             # TODO: timeout
             if timeout:
                 try:
-                    pid = q.get(timeout=timeout)
+                    pid = pid_q.get(timeout=timeout)
                 except queue.Empty:
                     raise RuntimeError('daemon startup timed out')
 
             else:
-                pid = q.get()
+                pid = pid_q.get()
 
             if not pid:
                 raise RuntimeError('daemon startup failed')
@@ -78,13 +79,13 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
 
         if  f2_pid > 0:
             # communicate pid to first parent
-            q.put(f2_pid)
+            pid_q.put(f2_pid)
 
             # exit from second parent
             sys_exit(0)
 
     except OSError:
-        q.put(None)  # unblock parent
+        pid_q.put(None)  # unblock parent
         sys_exit(1)
 
     # redirect standard file descriptors

@@ -324,6 +324,22 @@ def as_list(data):
 
 # ------------------------------------------------------------------------------
 #
+def to_type(data):
+
+    if not isinstance(data, str):
+        return data
+
+    try   : return(int(data))
+    except: pass
+
+    try   : return(float(data))
+    except: pass
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
 def is_seq(data):
     '''
     tests if the given data is a sequence (but not a string)
@@ -355,6 +371,12 @@ def as_string(data):
 
     else:
         return data
+
+
+# ------------------------------------------------------------------------------
+#
+def is_str(s):
+    return isinstance(s, str)
 
 
 # ------------------------------------------------------------------------------
@@ -632,7 +654,10 @@ def expand_env(data, env=None, ignore_missing=True):
 
             ${BAR}     : foo_${BAR}_baz      -> ValueError('cannot expand $BAR')
             ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
-            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
+            ${BAR:$BIZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
+
+    The method will also opportunistically convert strings to integers or
+    floats if they are formatted that way and contain no other characters.
     '''
 
     # no data: None, empty dict / sequence / string
@@ -659,7 +684,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # handle string expansion, which is what we really care about
     if '$' not in data:
-        return data
+        return to_type(data)
 
     # fall back to process env if no other expansion dict is specified
     if not env:
@@ -712,7 +737,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
             data = ReString(post)
 
-    return ret
+    return to_type(ret)
 
 
 # ------------------------------------------------------------------------------
