@@ -324,6 +324,22 @@ def as_list(data):
 
 # ------------------------------------------------------------------------------
 #
+def to_type(data):
+
+    if not isinstance(data, str):
+        return data
+
+    try   : return(int(data))
+    except: pass
+
+    try   : return(float(data))
+    except: pass
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
 def is_seq(data):
     '''
     tests if the given data is a sequence (but not a string)
@@ -350,6 +366,12 @@ def as_string(data):
     elif is_bytes(data) : return data.decode('utf-8')
     else:
         raise TypeError('cannot convert %s to string' % type(data))
+
+
+# ------------------------------------------------------------------------------
+#
+def is_str(s):
+    return isinstance(s, str)
 
 
 # ------------------------------------------------------------------------------
@@ -626,6 +648,9 @@ def expand_env(data, env=None, ignore_missing=True):
             $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
             ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
             $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+
+    The method will also opportunistically convert strings to integers or
+    floats if they are formatted that way and contain no other characters.
     '''
 
     # no data: None, empty dict / sequence / string
@@ -652,7 +677,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # handle string expansion, which is what we really care about
     if '$' not in data:
-        return data
+        return to_type(data)
 
     # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
     # one version we need to search for)
@@ -704,7 +729,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
             data = ReString(post)
 
-    return ret
+    return to_type(ret)
 
 
 # ------------------------------------------------------------------------------
