@@ -88,11 +88,14 @@ class Bridge(object):
         self._uid     = self._cfg.uid
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level='INFO', path=self._cfg.session_pwd)
+        self._log.debug('=== ### %s init 1', self._uid)
         self._prof    = Profiler(name=self._uid, path=self._cfg.session_pwd)
+        self._log.debug('=== ### %s init 2', self._uid)
 
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()
+        self._log.debug('=== ### %s init 3', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -108,9 +111,10 @@ class Bridge(object):
 
         self._log.info('start bridge %s', self._uid)
 
-        # the bridge runs in a daemon thread, so that the main process will not
-        # wait for it.  But, give Python's thread performance (or lack thereof),
-        # this means that the user of this class should create a separate
+        # the bridge runs in a thread.  It is the bridge's owner process'
+        # responsibility to ensure the thread is seeing suffient time to perform
+        # as needed.  Given Python's thread performance (or lack thereof), this
+        # basically means that the user of this class should create a separate
         # process instance to host the bridge thread.
         self._term          = mt.Event()
         self._bridge_thread = mt.Thread(target=self._bridge_work)
@@ -157,32 +161,6 @@ class Bridge(object):
     @property
     def alive(self):
         return self._bridge_thread.is_alive()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def wait(self, timeout=None):
-        '''
-        join negates the daemon thread settings, in that it stops us from
-        killing the parent process w/o hanging it.  So we do a slow pull on the
-        thread state.
-        '''
-
-        self._log.info('wait bridge %s', self._uid)
-
-        start = time.time()
-
-        while True:
-
-            if not self.alive:
-
-                return True
-
-            if  timeout is not None and \
-                timeout < time.time() - start:
-                return False
-
-            time.sleep(0.1)
 
 
 # ------------------------------------------------------------------------------

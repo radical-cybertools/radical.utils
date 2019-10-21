@@ -3,6 +3,8 @@ import os
 import csv
 import time
 
+from   .ids     import get_radical_base
+from   .misc    import as_string
 from   .misc    import get_env_ns      as ru_get_env_ns
 from   .misc    import get_hostname    as ru_get_hostname
 from   .misc    import get_hostip      as ru_get_hostip
@@ -45,6 +47,51 @@ PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
 # a certain value (float, in seconds) from each other, we print a warning:
 #
 NTP_DIFF_WARN_LIMIT = 1.0
+
+# syncing with the NTP host is expensive, so we only do it once in a while and
+# cache the result.  We use a disk cache which is valid for 1 minute
+NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
+
+
+def _sync_ntp():
+
+    # read from disk cache
+    try:
+        with open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
+            data  = as_string(fin.read()).split()
+            t_sys = float(data[0])
+            t_ntp = float(data[1])
+            t_now = time.time()
+
+    except:
+        t_sys = None
+        t_ntp = None
+
+
+    # if disc cache is empty or old
+    if t_sys is None or t_now - t_sys > NTP_CACHE_TIMEOUT:
+
+        # refresh data
+        import ntplib                                    # pylint: disable=E0401
+
+        ntp_host = os.environ.get('RADICAL_UTILS_NTPHOST','0.pool.ntp.org')
+
+        t_one = time.time()
+        response = ntplib.NTPClient().request(ntp_host, timeout=1)
+        t_two = time.time()
+
+        t_sys = (t_one + t_two) / 2.0
+        t_ntp = response.tx_time
+
+        with open('%s/ntp.cache' % get_radical_base('utils'), 'w') as fout:
+            fout.write('%f\n%f\n' % (t_sys, t_ntp))
+
+    # correct both time stamps by current time
+    t_cor  = time.time() - t_sys
+    t_sys += t_cor
+    t_ntp += t_cor
+
+    return t_sys, t_ntp
 
 
 # ------------------------------------------------------------------------------
@@ -107,7 +154,6 @@ class Profiler(object):
         if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
             return
-
 
         # profiler is enabled - set properties, sync time, open handle
         self._enabled = True
@@ -242,16 +288,7 @@ class Profiler(object):
         # We first try to contact a network time service for a timestamp, if
         # that fails we use the current system time.
         try:
-            import ntplib                                # pylint: disable=E0401
-
-            ntphost = os.environ.get('RADICAL_UTILS_NTPHOST', '0.pool.ntp.org')
-
-            t_one = time.time()
-            response = ntplib.NTPClient().request(ntphost, timeout=1)
-            t_two = time.time()
-
-            ts_ntp = response.tx_time
-            ts_sys = (t_one + t_two) / 2.0
+            ts_sys, ts_ntp = _sync_ntp()
             return [ts_sys, ts_ntp, 'ntp']
 
         except:

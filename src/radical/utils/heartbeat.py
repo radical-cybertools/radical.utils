@@ -1,6 +1,7 @@
 
 import os
 import time
+import pprint
 import signal
 
 import threading as mt
@@ -15,7 +16,7 @@ class Heartbeat(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, uid, timeout, interval=1, cb=None, term_cb=None,
+    def __init__(self, uid, timeout, interval=1, beat_cb=None, term_cb=None,
                        log=None):
         '''
         This is a simple hearteat monitor: after construction, it's `beat()`
@@ -24,7 +25,7 @@ class Heartbeat(object):
         timely - if not, the current process is killed via `os.kill()` (but see
         below).
 
-        If a callback `cb` is specified, the watcher will also invoke that
+        If a callback `beat_cb` is specified, the watcher will also invoke that
         callback after every `interval` seconds.  This can be used to ensure
         heartbeats by the owning instance (which may feed this or any other
         `Heartbeat` monitor instance).  The `term_cb` callback is invoked on
@@ -35,6 +36,12 @@ class Heartbeat(object):
         recover from failing components.
         '''
 
+        # we should not need to lock timestamps, in the current CPython
+        # implementation, dict access is assumed to be atomic.  But heartbeats
+        # should not be in the performance critical path, and should not have
+        # threads competing with the (provate) dict lock, so we accept the
+        # overhead.
+
         if interval > timeout:
             raise ValueError('timeout [%.1f] too small [>%.1f]'
                             % (timeout, interval))
@@ -43,16 +50,23 @@ class Heartbeat(object):
         self._log      = log
         self._timeout  = timeout
         self._interval = interval
-        self._cb       = cb
+        self._beat_cb  = beat_cb
         self._term_cb  = term_cb
         self._term     = mt.Event()
+        self._lock     = mt.Lock()
+        self._tstamps  = dict()
+        self._pid      = os.getpid()
+        self._watcher  = None
 
         if not self._log:
             self._log  = Logger('radical.utils.heartbeat')
 
-        self._tstamps  = dict()
-        self._pid      = os.getpid()
 
+    # --------------------------------------------------------------------------
+    #
+    def start(self):
+
+        self._log.debug('start heartbeat')
         self._watcher  = mt.Thread(target=self._watch)
         self._watcher.daemon = True
         self._watcher.start()
@@ -74,26 +88,40 @@ class Heartbeat(object):
 
     # --------------------------------------------------------------------------
     #
+    def dump(self, log):
+
+        log.debug('=== ### hb %s: \n%s', self._uid, pprint.pformat(self._tstamps))
+
+
+    # --------------------------------------------------------------------------
+    #
     def _watch(self):
+
+        # initial heartbeat w ithout delay
+        if  self._beat_cb:
+            self._beat_cb()
 
         while not self._term.is_set():
 
             time.sleep(self._interval)
             now = time.time()
 
-            if  self._cb:
-                self._cb()
+            if  self._beat_cb:
+                self._beat_cb()
 
             # avoid iteration over changing dict
-            uids = list(self._tstamps.keys())
+            with self._lock:
+                uids = list(self._tstamps.keys())
+
             for uid in uids:
 
               # self._log.debug('hb %s check %s', self._uid, uid)
 
-                # use `get()` in case python dict population is not atomic
-                last = self._tstamps.get(uid)
-                if not last:
-                    self._log.warn('hb %s[%s]: initial hb missing', self._uid, uid)
+                with self._lock:
+                    last = self._tstamps.get(uid)
+
+                if last is None:
+                    self._log.warn('hb %s[%s]: never seen', self._uid, uid)
                     continue
 
                 if now - last > self._timeout:
@@ -106,18 +134,21 @@ class Heartbeat(object):
                     if  self._term_cb:
                         ret = self._term_cb(uid)
 
-                    if ret is True:
-                        # recovered - remove that failed UID from the registry
-                        self._log.info('hb recovered for %s', uid)
-                        del(self._tstamp[uid])
-
-                    else:
+                    if ret is False:
                         # could not recover: abandon mothership
                         self._log.warn('hb failure for %s - fatal', uid)
-                        from .logger import _logger_registry
-                        _logger_registry.close_all()
-
                         os.kill(self._pid, signal.SIGTERM)
+                        time.sleep(1)
+                        os.kill(self._pid, signal.SIGKILL)
+
+                    else:
+                        # recovered - the failed UID wath replaced with the one
+                        # returned by the callback.  We do not register
+                        # a heartbeat for the new one, but instead wait for
+                        # a heartbeat to arrive via the proper channels.
+                        self._log.info('hb recovered %s with %s', uid, ret)
+                        with self._lock:
+                            del(self._tstamps[uid])
 
 
     # --------------------------------------------------------------------------
@@ -130,27 +161,28 @@ class Heartbeat(object):
         if not uid:
             uid = 'default'
 
-      # last = self._tstamps.get(uid, 0.0)
       # self._log.debug('hb %s beat [%s]', self._uid, uid)
-        self._tstamps[uid] = timestamp
+        with self._lock:
+            self._tstamps[uid] = timestamp
 
 
-    # --------------------------------------------------------------------------
-    #
-    def is_alive(self, uid=None):
-        '''
-        Check if an entity of the given UID sent a recent heartbeat
-        '''
-
-        if not uid:
-            uid = 'default'
-
-        ts = self._tstamps.get(uid)
-
-        if ts and time.time() - ts <= self._timeout:
-            return True
-
-        return False
+  # # --------------------------------------------------------------------------
+  # #
+  # def is_alive(self, uid=None):
+  #     '''
+  #     Check if an entity of the given UID sent a recent heartbeat
+  #     '''
+  #
+  #     if not uid:
+  #         uid = 'default'
+  #
+  #     with self._lock:
+  #         ts = self._tstamps.get(uid)
+  #
+  #     if ts and time.time() - ts <= self._timeout:
+  #         return True
+  #
+  #     return False
 
 
     # --------------------------------------------------------------------------
@@ -170,7 +202,11 @@ class Heartbeat(object):
         ok    = list()
         while True:
 
-            ok = [uid for uid in uids if self._tstamps.get(uid)]
+            with self._lock:
+                ok = [uid for uid in uids if self._tstamps.get(uid)]
+
+            self._log.debug('=== wait ok: %s / %s (%d/%d)', ok, uids, len(ok), len(uids))
+
             if len(ok) == len(uids):
                 break
 

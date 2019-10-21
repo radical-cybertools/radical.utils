@@ -10,7 +10,7 @@ from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string, as_bytes, as_list
+from ..misc   import get_hostip, as_string
 from ..logger import Logger
 
 
