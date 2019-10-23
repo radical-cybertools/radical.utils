@@ -9,7 +9,6 @@ from .bridge  import Bridge, no_intr, log_bulk
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
 from ..misc   import get_hostip, as_string, as_bytes, as_list
-from ..config import Config
 from ..logger import Logger
 
 
@@ -215,8 +214,9 @@ class Publisher(object):
         self._log.debug('-> %s: %s', self.channel, msg)
         log_bulk(self._log, msg, '-> %s' % self.channel)
 
-        topic = topic.replace(' ', '_')
-        data  = as_bytes([topic, msgpack.packb(msg)])
+        btopic = as_bytes(topic.replace(' ', '_'))
+        bmsg   = msgpack.packb(msg)
+        data   = [btopic, bmsg]
 
         with self._lock:
             no_intr(self._socket.send_multipart, data)
@@ -240,20 +240,25 @@ class Subscriber(object):
 
         if no_intr(socket.poll, flags=zmq.POLLIN, timeout=timeout):
             with lock:
-                topic, data = no_intr(socket.recv_multipart, flags=zmq.NOBLOCK)
-            msg = msgpack.unpackb(data)
+                data = no_intr(socket.recv_multipart, flags=zmq.NOBLOCK)
+
+            topic = as_string(data[0])
+            msg   = msgpack.unpackb(data[1])
+
             return [topic, msg]
+
         return None, None
 
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _listener(url=None):
+    def _listener(url):
 
         # FIXME: add logging
 
         lock      = Subscriber._endpoints[url]['lock']
         socket    = Subscriber._endpoints[url]['socket']
+        channel   = Subscriber._endpoints[url]['channel']
         callbacks = Subscriber._endpoints[url]['callbacks']
 
         while True:
@@ -304,6 +309,7 @@ class Subscriber(object):
             s.connect(self._url)
 
             Subscriber._endpoints[url] = {'socket'   : s,
+                                          'channel'  : channel,
                                           'lock'     : mt.Lock(),
                                           'thread'   : None,
                                           'callbacks': list()}

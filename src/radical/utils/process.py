@@ -15,7 +15,6 @@ import setproctitle    as spt
 
 from .misc    import as_bytes, as_string
 from .logger  import Logger
-from .threads import Thread as ru_Thread
 from .        import poll   as ru_poll
 
 
@@ -944,9 +943,8 @@ class Process(mp.Process):
         #
         # FIXME: move to _ru_initialize_common
         #
-        self._ru_watcher = ru_Thread(name='%s.watch' % self._ru_name,
-                                     target=self._ru_watch,
-                                     log=self._ru_log)
+        self._ru_watcher = mt.Thread(target=self._ru_watch)
+        self._ru_watcher.daemon = True
         self._ru_watcher.start()
 
         self._ru_log.info('child is alive')
@@ -964,9 +962,8 @@ class Process(mp.Process):
         self._ru_log.info('child (me) initializing')
 
         # start the watcher thread
-        self._ru_watcher = ru_Thread(name='%s.watch' % self._ru_name,
-                                     target=self._ru_watch,
-                                     log=self._ru_log)
+        self._ru_watcher = mt.Thread(target=self._ru_watch)
+        self._ru_watcher.daemon = True
         self._ru_watcher.start()
 
         self._ru_log.info('child (me) is alive')

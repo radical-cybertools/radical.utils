@@ -90,7 +90,7 @@ class Heartbeat(object):
     #
     def dump(self, log):
 
-        log.debug('=== ### hb %s: \n%s', self._uid, pprint.pformat(self._tstamps))
+        log.debug('hb dump %s: \n%s', self._uid, pprint.pformat(self._tstamps))
 
 
     # --------------------------------------------------------------------------
@@ -205,7 +205,7 @@ class Heartbeat(object):
             with self._lock:
                 ok = [uid for uid in uids if self._tstamps.get(uid)]
 
-            self._log.debug('=== wait ok: %s / %s (%d/%d)', ok, uids, len(ok), len(uids))
+            self._log.debug('wait ok: %s / %s (%d/%d)', ok, uids, len(ok), len(uids))
 
             if len(ok) == len(uids):
                 break

@@ -15,7 +15,6 @@ from .plugin_manager import PluginManager
 from .singleton      import Singleton
 from .process        import Process, pid_watcher
 from .heartbeat      import Heartbeat
-from .threads        import Thread, RLock
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid
 from .threads        import set_cancellation_handler, unset_cancellation_handler
@@ -23,8 +22,8 @@ from .threads        import raise_in_thread, ThreadExit, SignalRaised
 from .futures        import Future
 from .futures        import NEW, RUNNING, DONE, FAILED, CANCELED
 from .url            import Url
-from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand
-from .dict_mixin     import PRESERVE, OVERWRITE
+from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
+from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .lockable       import Lockable
 from .lockfile       import Lockfile
 from .registry       import Registry, READONLY, READWRITE

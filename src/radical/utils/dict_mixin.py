@@ -330,4 +330,112 @@ def _string_stringexpand(target, source):
 
 
 # ------------------------------------------------------------------------------
+#
+def iter_diff(a, b):
+
+    if isinstance(a, list) and isinstance(b, list):
+        for ea, eb in zip(a, b):
+            iter_diff(ea, eb)
+    elif isinstance(a, dict) and isinstance(b, dict):
+        assert(len(list(a.keys())) == len(list(b.keys()))), \
+               (len(a), sorted(list(a.keys())), len(b), sorted(list(b.keys())))
+        for k in a:
+            iter_diff(a[k], b[k])
+    else:
+        if a != b:
+            print('elem diff: %s' % a)
+            print('elem diff: %s' % b)
+            print()
+        assert(a == b), [a, b]
+
+
+# ------------------------------------------------------------------------------
+#
+def dict_diff(a, b):
+    '''
+    return a dict of the form:
+
+        {
+           'k1': {'a': 'foo',
+                  'b': 'bar'},
+           'k2': {'a': 'foo'},
+           'k3': {'b': 'bar'},
+        }
+    which contains only those keys which are different in the two given dicts.
+    Keys which are missing in either one are not included (to distinguish from
+    `None` values).  This methods operates recursively over the given dicts.
+    '''
+
+    def _list_diff(a, b):
+
+        if len(a) != len(b):
+            la, lb = sorted([len(a), len(b)])
+            ret = ['len(%d) != len(%d)' % (la, lb)]
+        else:
+            ret = list()
+            for va, vb in zip(a, b):
+                if isinstance(va, dict) and isinstance(vb, dict):
+                    tmp = _dict_diff(va, vb)
+                    if tmp:
+                        ret.append(tmp)
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret.append(tmp)
+                else:
+                    if va != vb:
+                        ret.append({'a': va,
+                                    'b': vb})
+
+        return ret
+
+
+    def _dict_diff(a, b):
+
+        ka  = sorted(list(a.keys()))
+        kb  = sorted(list(b.keys()))
+        ret = dict()
+
+        for k in ka:
+            if k not in kb:
+                ret[k] = {'a': a[k]}
+            else:
+                va = a[k]
+                vb = b[k]
+                if isinstance(va, dict) and isinstance(vb, dict):
+                    tmp = _dict_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif va != vb:
+                    ret[k] = {'a': va,
+                              'b': vb}
+
+        for k in kb:
+            if k not in ka:
+                ret[k] = {'b': b[k]}
+            else:
+                va = a[k]
+                vb = b[k]
+                if isinstance(vb, dict) and isinstance(va, dict):
+                    tmp = _dict_diff(vb, va)
+                    if tmp:
+                        ret[k] = tmp
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif va != vb:
+                    ret[k] = {'a': va,
+                              'b': vb}
+
+        return ret
+
+    return _dict_diff(a, b)
+
+
+# ------------------------------------------------------------------------------
 

@@ -148,7 +148,7 @@ class Config(munch.Munch):
     # --------------------------------------------------------------------------
     #
     def __init__(self, module=None, category=None, name=None, cfg=None,
-                       path=None, expand=True, env=None):
+                       path=None, expand=True, env=None, _internal=False):
         '''
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
@@ -207,9 +207,10 @@ class Config(munch.Munch):
         if category and category.startswith('%s.' % module):
             category = category[len(module) + 1:]
 
+        name_orig = name
         if not name:
-            # by default, load all matching configs into separate subsections
-            name = '*'
+            # by default, load the default config
+            name = 'default'
 
         if not cfg:
             # just use config files
@@ -254,17 +255,35 @@ class Config(munch.Munch):
         usr_cfg = dict()
         app_cfg = cfg
 
+        if _internal:
+            # no need to look at the FS, just convert the given cfg dict
+            sys_fspec = None
+            usr_fspec = None
+
+        nfiles = 0
         if not starred:
 
             if sys_fspec:
+
                 sys_fname = sys_fspec
-                if not os.path.isfile(sys_fname): sys_fname += '.json'
-                if     os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
+
+                if not os.path.isfile(sys_fname):
+                    sys_fname += '.json'
+
+                if os.path.isfile(sys_fname):
+                    sys_cfg = read_json(sys_fname)
+                    nfiles += 1
 
             if usr_fspec:
+
                 usr_fname = usr_fspec
-                if not os.path.isfile(usr_fname): usr_fname += '.json'
-                if     os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
+
+                if not os.path.isfile(usr_fname):
+                    usr_fname += '.json'
+
+                if os.path.isfile(usr_fname):
+                    usr_cfg = read_json(usr_fname)
+                    nfiles += 1
 
         else:
 
@@ -281,6 +300,7 @@ class Config(munch.Munch):
                     base = sys_fname[prefix_len:-postfix_len]
                     scfg = read_json(sys_fname)
                     sys_cfg[base] = scfg
+                    nfiles += 1
 
             if usr_fspec:
 
@@ -292,6 +312,21 @@ class Config(munch.Munch):
                     base = usr_fname[prefix_len:-postfix_len]
                     ucfg = read_json(usr_fname)
                     usr_cfg[base] = ucfg
+                    nfiles += 1
+
+        # if we did not find *any* file, and the original `name` was None,
+        # then try to load config files w/o name
+        # eg, if there is no `registry_default.json`, then try to load
+        # `registry.json`.
+        if nfiles == 0 and name_orig is None and not _internal and category:
+
+            fname     = '%s.json' % (category.replace('.', '/'))
+            sys_fname = '%s/%s'   % (sys_dir, fname)
+            usr_fname = '%s/%s'   % (usr_dir, fname)
+
+            if os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
+            if os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
+
 
         # merge sys, usr and app cfg before expansion
         cfg_dict = dict()
@@ -301,13 +336,13 @@ class Config(munch.Munch):
 
         if cfg_dict:
 
-            # -----------------------------------------------
+            # ------------------------------------------------------------------
             def to_config(data):
                 for k,v in data.items():
                     if isinstance(v, dict):
-                        data[k] = Config(cfg=v, expand=False)
+                        data[k] = Config(cfg=v, expand=False, _internal=True)
                 return data
-            # -----------------------------------------------
+            # ------------------------------------------------------------------
 
             self.update(to_config(cfg_dict))
 

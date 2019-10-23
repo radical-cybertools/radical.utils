@@ -10,7 +10,7 @@ from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string
+from ..misc   import get_hostip, as_string, as_bytes
 from ..logger import Logger
 
 
@@ -307,7 +307,7 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url):
+    def __init__(self, channel, url,  log=None):
 
         self._channel   = channel
         self._url       = url
@@ -315,11 +315,14 @@ class Getter(object):
 
         self._uid       = generate_id('%s.get.%s' % (self._channel,
                                                     '%(counter)04d'), ID_CUSTOM)
-        self._log       = Logger(name=self._uid, ns='radical.utils')
+        self._log       = log
+
+        if not self._log:
+            self._log   = Logger(name=self._uid, ns='radical.utils')
+
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
         self._requested = False          # send/recv sync
-
         self._ctx       = zmq.Context()  # rely on GC for destruction
         self._q         = self._ctx.socket(zmq.REQ)
         self._q.linger  = _LINGER_TIMEOUT
@@ -378,30 +381,29 @@ class Getter(object):
 
             if not self._requested:
 
-                # we can only send the request once per recieval
+                # send the request *once* per recieval (got lock above)
                 req = 'request %s' % os.getpid()
-                with self._lock:
-                    no_intr(self._q.send, req)
+                no_intr(self._q.send, as_bytes(req))
 
                 self._requested = True
                 log_bulk(self._log, req, '-> %s [%-5s]'
                                          % (self._channel, self._requested))
 
-            if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
+        if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
-                with self._lock:
-                    data = no_intr(self._q.recv)
+            with self._lock:
+                data = no_intr(self._q.recv)
 
-                msg = msgpack.unpackb(data)
-                self._requested = False
-                log_bulk(self._log, msg, '<- %s [%-5s]'
-                                         % (self._channel, self._requested))
-                return msg
+            msg = msgpack.unpackb(data)
+            self._requested = False
+            log_bulk(self._log, msg, '<- %s [%-5s]'
+                                     % (self._channel, self._requested))
+            return as_string(msg)
 
-            else:
-                log_bulk(self._log, None, '-- %s [%-5s]'
-                                          % (self._channel, self._requested))
-                return None
+        else:
+            log_bulk(self._log, None, '-- %s [%-5s]'
+                                      % (self._channel, self._requested))
+            return None
 
 
 # ------------------------------------------------------------------------------

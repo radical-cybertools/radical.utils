@@ -109,8 +109,6 @@ class Bridge(object):
     #
     def start(self):
 
-        self._log.info('start bridge %s', self._uid)
-
         # the bridge runs in a thread.  It is the bridge's owner process'
         # responsibility to ensure the thread is seeing suffient time to perform
         # as needed.  Given Python's thread performance (or lack thereof), this

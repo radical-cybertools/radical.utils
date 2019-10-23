@@ -318,8 +318,9 @@ def as_list(data):
     return non-list data into a list.
     '''
 
-    if is_list(data): return data
-    else            : return [data]
+    if   data is None : return []
+    elif is_list(data): return data
+    else              : return [data]
 
 
 # ------------------------------------------------------------------------------
@@ -682,9 +683,9 @@ def expand_env(data, env=None, ignore_missing=True):
     elif not is_string(data):
         return data
 
-    # handle string expansion, which is what we really care about
     if '$' not in data:
-        return to_type(data)
+        # nothing to expand
+        return data
 
     # fall back to process env if no other expansion dict is specified
     if not env:
@@ -737,6 +738,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
             data = ReString(post)
 
+    # attempt string-to-type conversion (int and float detection only)
     return to_type(ret)
 
 
