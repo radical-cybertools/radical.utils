@@ -75,6 +75,7 @@ class Heartbeat(object):
     # --------------------------------------------------------------------------
     #
     def stop(self):
+
         self._term.set()
         self._watcher.join()
 
@@ -132,11 +133,17 @@ class Heartbeat(object):
 
                     ret = False
                     if  self._term_cb:
-                        ret = self._term_cb(uid)
+                        self._log.warn('hb term cb for %s: %s', uid, self._term_cb)
+                        try:
+                            ret = self._term_cb(uid)
+                        except:
+                            self._log.exception('=== oops')
+                        self._log.warn('hb term cb for %s: %s', uid, ret)
 
                     if ret is False:
                         # could not recover: abandon mothership
-                        self._log.warn('hb failure for %s - fatal', uid)
+                        self._log.warn('hb failure for %s - fatal (%d)', uid,
+                                self._pid)
                         os.kill(self._pid, signal.SIGTERM)
                         time.sleep(1)
                         os.kill(self._pid, signal.SIGKILL)

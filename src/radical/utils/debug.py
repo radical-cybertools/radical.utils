@@ -6,8 +6,12 @@ import pprint
 import signal
 import random
 import inspect
-import threading
 import traceback
+
+import threading as mt
+
+from .ids     import generate_id
+from .threads import get_thread_id, get_thread_name
 
 
 # ------------------------------------------------------------------------------
@@ -36,100 +40,13 @@ def get_trace():
 
 # ------------------------------------------------------------------------------
 #
-class DebugHelper(object):
-    '''
-    When instantiated, and when 'RADICAL_DEBUG' is set in the environment, this
-    class will install a signal handler for SIGUSR1.  When that signal is
-    received, a stacktrace for all threads is printed to stdout.
-    We also check if SIGINFO is available, which is generally bound to CTRL-T.
-
-    Additionally, a call to 'dh.fs_block(info=None)' will create a file system
-    based barrier: it will create a unique file in /tmp/ (based on 'name' if
-    given), and dump the stack trace and any 'info' into it.  It then waits
-    until that file has changed (touched or removed etc), and then returns.
-    The wait is a simple pull based 'os.stat()' (once per sec).
-    '''
-
-    # --------------------------------------------------------------------------
-    #
-    def __init__(self, name=None, info=None):
-        '''
-        name: string to identify fs barriers
-        info: static info to dump into fs barriers
-        '''
-
-        self._name = name
-        self._info = info
-
-        if not self._name:
-            self._name = str(id(self))
-
-        if 'MainThread' not in threading.current_thread().name:
-            # python only supports signals in main threads :-/
-            return
-
-        if 'RADICAL_DEBUG' in os.environ:
-            signal.signal(signal.SIGUSR1, print_stacktraces)  # signum 30
-            signal.signal(signal.SIGQUIT, print_stacktraces)  # signum  3
-
-            try:
-                assert signal.SIGINFO
-                signal.signal(signal.SIGINFO, print_stacktraces)  # signum 29
-
-            except AttributeError:  # stack unwind in progress
-                pass
-
-
-    # --------------------------------------------------------------------------
-    #
-    def fs_block(self, info=None):
-        '''
-        Dump state, info in barrier file, and wait for it tou be touched or
-        read or removed, then continue.  Leave no trace.
-        '''
-
-        if 'RADICAL_DEBUG' not in os.environ:
-            return
-
-        try:
-            pid = os.getpid()
-            tid = threading.currentThread().ident
-
-            fb  = '/tmp/ru.dh.%s.%s.%s' % (self._name, pid, tid)
-            fd  = open(fb, 'w+')
-
-            fd.seek(0,0)
-            fd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))
-            fd.write('\nSTATIC INFO:\n%s\n\n' % pprint.pformat(self._info))
-            fd.write('\nINFO:\n%s\n\n' % pprint.pformat(info))
-            fd.flush()
-
-            new = os.stat(fb)
-            old = new
-
-            while old == new:
-                new = os.stat(fb)
-                time.sleep(0.1)
-
-        except:
-            # we don't care (much)...
-            pass
-
-        finally:
-            if fd : fd.close()
-            try   : os.unlink(fb)
-            except: pass
-
-
-# ------------------------------------------------------------------------------
-#
 # pylint: disable=unused-argument
 def print_stacktraces(signum=None, sigframe=None):
     '''
     signum, sigframe exist to satisfy signal handler signature requirements
     '''
 
-    this_tid = threading.currentThread().ident
+    this_tid = mt.currentThread().ident
 
     # if multiple processes (ie. a process group) get the signal, then all
     # traces are mixed together.  Thus we waid 'pid%100' milliseconds, in
@@ -137,9 +54,28 @@ def print_stacktraces(signum=None, sigframe=None):
     pid = int(os.getpid())
     time.sleep((pid % 100) / 1000)
 
-    out  = '===============================================================\n'
+    out  = '=========================================================\n'
     out += 'RADICAL Utils -- Debug Helper -- Stacktraces\n'
     out += os.popen("%s | grep ' %s ' | grep -v grep" % (_ps_cmd, pid)).read()
+
+    if _debug_helper:
+        out += '---------------------------------------------------------\n'
+        if _debug_helper._locks:
+            out += 'Locks:\n'
+        for name, lock in _debug_helper._locks.items():
+            owner = lock._owner
+            waits = lock._waits
+            if not owner: owner = '-'
+            out += '  %-60s: %s %s\n' % (name, owner, waits)
+
+        if _debug_helper._rlocks:
+            out += 'RLocks:\n'
+        for name, rlock in _debug_helper._rlocks.items():
+            owner = rlock._owner
+            waits = rlock._waits
+            if not owner: owner = '-'
+            out += '  %-60s: %s %s\n' % (name, owner, waits)
+        out += '---------------------------------------------------------\n'
 
     try:
         info = get_stacktraces()
@@ -172,7 +108,7 @@ def print_stacktraces(signum=None, sigframe=None):
                     out += '  File: %s, line %d, in %s\n' % (fname, line, func)
                     out += '        %s\n' % code
 
-    out += '==============================================================='
+    out += '========================================================='
 
     sys.stdout.write('%s\n' % out)
 
@@ -186,7 +122,7 @@ def print_stacktraces(signum=None, sigframe=None):
 def get_stacktraces():
 
     id2name = dict()
-    for th in threading.enumerate():
+    for th in mt.enumerate():
         id2name[th.ident] = th.name
 
     ret = dict()
@@ -206,7 +142,7 @@ def print_stacktrace(msg=None, _stack = None):
     if not msg:
         msg = ''
 
-    tname = threading.currentThread().name
+    tname = mt.currentThread().name
     pid   = os.getpid()
 
     out   = '--------------\n'
@@ -291,7 +227,7 @@ if 'RADICAL_DEBUG' in os.environ:
     _verb = True
 
 _raise_on_state = dict()
-_raise_on_lock  = threading.Lock()
+_raise_on_lock  = mt.Lock()
 
 
 # ------------------------------------------------------------------------------
@@ -476,6 +412,224 @@ def get_snippet(sid):
                 pass
 
     return 'None'
+
+
+# ------------------------------------------------------------------------------
+#
+class DebugHelper(object):
+    '''
+    When instantiated, and when 'RADICAL_DEBUG' is set in the environment, this
+    class will install a signal handler for SIGUSR1.  When that signal is
+    received, a stacktrace for all threads is printed to stdout.
+    We also check if SIGINFO is available, which is generally bound to CTRL-T.
+
+    Additionally, a call to 'dh.fs_block(info=None)' will create a file system
+    based barrier: it will create a unique file in /tmp/ (based on 'name' if
+    given), and dump the stack trace and any 'info' into it.  It then waits
+    until that file has changed (touched or removed etc), and then returns.
+    The wait is a simple pull based 'os.stat()' (once per sec).
+    '''
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, name=None, info=None):
+        '''
+        name: string to identify fs barriers
+        info: static info to dump into fs barriers
+        '''
+
+        self._name   = name
+        self._info   = info
+        self._locks  = dict()
+        self._rlocks = dict()
+
+        if not self._name:
+            self._name = str(id(self))
+
+        if 'MainThread' not in mt.current_thread().name:
+            # python only supports signals in main threads :-/
+            return
+
+        if 'RADICAL_DEBUG' in os.environ:
+            signal.signal(signal.SIGUSR1, print_stacktraces)  # signum 30
+            signal.signal(signal.SIGQUIT, print_stacktraces)  # signum  3
+
+            try:
+                assert signal.SIGINFO
+                signal.signal(signal.SIGINFO, print_stacktraces)  # signum 29
+
+            except AttributeError:  # stack unwind in progress
+                pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register_lock(self, name, lock):
+        assert(name not in self._locks), name
+        self._locks[name] = lock
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register_rlock(self, name, rlock):
+        assert(name not in self._rlocks), name
+        self._rlocks[name] = rlock
+
+
+    # --------------------------------------------------------------------------
+    #
+    def fs_block(self, info=None):
+        '''
+        Dump state, info in barrier file, and wait for it tou be touched or
+        read or removed, then continue.  Leave no trace.
+        '''
+
+        if 'RADICAL_DEBUG' not in os.environ:
+            return
+
+        try:
+            pid = os.getpid()
+            tid = mt.currentThread().ident
+
+            fb  = '/tmp/ru.dh.%s.%s.%s' % (self._name, pid, tid)
+            fd  = open(fb, 'w+')
+
+            fd.seek(0,0)
+            fd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))
+            fd.write('\nSTATIC INFO:\n%s\n\n' % pprint.pformat(self._info))
+            fd.write('\nINFO:\n%s\n\n' % pprint.pformat(info))
+            fd.flush()
+
+            new = os.stat(fb)
+            old = new
+
+            while old == new:
+                new = os.stat(fb)
+                time.sleep(0.1)
+
+        except:
+            # we don't care (much)...
+            pass
+
+        finally:
+            if fd : fd.close()
+            try   : os.unlink(fb)
+            except: pass
+
+
+# ------------------------------------------------------------------------------
+#
+_debug_helper = None
+if 'RADICAL_DEBUG_HELPER' in os.environ:
+    if not _debug_helper:
+        _debug_helper = DebugHelper()
+
+
+# ------------------------------------------------------------------------------
+#
+class Lock(object):
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, name=None):
+
+        self._lock  = mt.Lock()
+        self._owner = None
+        self._waits = list()
+        self._name  = name
+
+        if not self._name:
+            self._name = generate_id('lock')
+
+        print('dh: %s' % _debug_helper)
+        if _debug_helper:
+            print('register %s' % self._name)
+            _debug_helper.register_lock(self._name, self)
+
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, a, b, c):
+        self.release()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def acquire(self, blocking=1):
+
+        self._waits.append(get_thread_name())
+        ret = self._lock.acquire()
+
+        if ret is not False:
+            self._owner = get_thread_name()
+
+        self._waits.pop()
+        return ret
+
+
+    # --------------------------------------------------------------------------
+    #
+    def release(self):
+
+        ret = self._lock.release()
+
+        self._owner = None
+
+        return ret
+
+
+# ------------------------------------------------------------------------------
+#
+class RLock(object):
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, name=None):
+
+        self._lock  = mt.RLock()
+        self._owner = None
+        self._waits = list()
+        self._name  = name
+
+        if not self._name:
+            self._name = generate_id('rlock')
+
+        if _debug_helper:
+            _debug_helper.register_rlock(self._name, self)
+
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, a, b, c):
+        self.release()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def acquire(self, blocking=1):
+
+        self._waits.append(get_thread_name())
+        ret = self._lock.acquire(blocking=blocking)
+
+        if ret is not False:
+            self._owner = get_thread_name()
+
+        self._waits.pop()
+
+        return ret
+
+
+    # --------------------------------------------------------------------------
+    #
+    def release(self):
+
+        ret = self._lock.release()
+
+        self._owner = None
+
+        return ret
 
 
 # ------------------------------------------------------------------------------

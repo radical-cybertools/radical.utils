@@ -390,6 +390,10 @@ class Config(munch.Munch):
         return [x for x in self]
 
 
+    def __len__(self):
+        return len(self.keys())
+
+
     # --------------------------------------------------------------------------
     #
     def merge(self, cfg, expand=True, env=None, policy='overwrite', logger=None):

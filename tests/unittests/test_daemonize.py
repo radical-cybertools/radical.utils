@@ -95,7 +95,7 @@ def test_daemon_class():
 if __name__ == "__main__":
 
     test_daemonize()
-  # test_daemon_class()
+    test_daemon_class()
 
 
 # ------------------------------------------------------------------------------

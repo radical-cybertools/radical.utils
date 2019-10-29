@@ -4,10 +4,8 @@ import os
 import sys
 import queue
 import signal
-import queue
 import multiprocessing as mp
 
-from .misc    import as_list
 from .testing import sys_exit
 
 # from

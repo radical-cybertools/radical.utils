@@ -88,14 +88,11 @@ class Bridge(object):
         self._uid     = self._cfg.uid
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level='INFO', path=self._cfg.session_pwd)
-        self._log.debug('=== ### %s init 1', self._uid)
         self._prof    = Profiler(name=self._uid, path=self._cfg.session_pwd)
-        self._log.debug('=== ### %s init 2', self._uid)
 
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()
-        self._log.debug('=== ### %s init 3', self._uid)
 
 
     # --------------------------------------------------------------------------

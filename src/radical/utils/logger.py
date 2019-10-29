@@ -269,11 +269,11 @@ class Logger(object):
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']
 
-        formatter = logging.Formatter('%(asctime)s: '
-                                      '%(name)-20s: '
-                                      '%(processName)-32s: '
-                                      '%(threadName)-15s: '
-                                      '%(levelname)-8s: '
+        formatter = logging.Formatter('%(created).3f : '
+                                      '%(name)-20s : '
+                                      '%(process)-5d : '
+                                      '%(thread)-5d : '
+                                      '%(levelname)-8s : '
                                       '%(message)s')
 
         # add a handler for each targets (using the same format)
