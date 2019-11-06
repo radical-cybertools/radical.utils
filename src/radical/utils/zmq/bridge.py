@@ -90,6 +90,7 @@ class Bridge(object):
                                level='INFO', path=self._cfg.session_pwd)
         self._prof    = Profiler(name=self._uid, path=self._cfg.session_pwd)
 
+        self._prof.prof('init3', uid=self._uid, msg=self._cfg.session_pwd)
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()
@@ -149,6 +150,7 @@ class Bridge(object):
     def stop(self, timeout=None):
 
         self._term.set()
+        self._prof.prof('term', uid=self._uid)
 
 
     # --------------------------------------------------------------------------
