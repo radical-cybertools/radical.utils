@@ -30,7 +30,7 @@ class Heartbeat(object):
         heartbeats by the owning instance (which may feed this or any other
         `Heartbeat` monitor instance).  The `term_cb` callback is invoked on
         heartbeat failure, i.e., just before the process would be killed, and
-        gets a single argument, the uid of the failing heartbeeat sender.  If
+        gets a single argument, the uid of the failing heartbeat sender.  If
         that term callback returns `True`, the kill is avoided though: timers
         are reset and everything continues like before.  This should be used to
         recover from failing components.
