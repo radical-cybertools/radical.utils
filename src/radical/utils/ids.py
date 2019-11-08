@@ -140,7 +140,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     and can thus span multiple applications.
 
     'ns' argument can be specified to a value such that unique IDs are created
-    local to that namespace, . For example, you can create a session and use the
+    local to that namespace. For example, you can create a session and use the
     session ID as a namespace for all the IDs of the objects of that execution.
 
     Example::
