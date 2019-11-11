@@ -19,7 +19,7 @@ from .testing import sys_exit
 def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
               timeout=None):
     '''
-    Create a damon process and run the given method in it.   For that, do the
+    Create a daemon process and run the given method in it.   For that, do the
     UNIX double-fork magic, see Stevens' "Advanced Programming in the UNIX
     Environment" for details (ISBN 0201563177)
 
