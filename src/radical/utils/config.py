@@ -6,8 +6,6 @@ __license__   = "MIT"
 
 # ------------------------------------------------------------------------------
 #
-# FIXME: documentation is out of sync with implementation
-#
 # We provide a json based config file parser with following properties
 #
 #   - system config files will be merged with user configs (if those exist)
@@ -423,7 +421,6 @@ class Config(munch.Munch):
     #
     def write(self, fname):
 
-        # FIXME: pretty format, please
         write_json(self.as_dict(), fname)
 
 
