@@ -188,10 +188,7 @@ class Queue(Bridge):
         try:
 
             buf = list()
-            i   = -1
             while True:
-
-                i += 1
 
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))

@@ -360,6 +360,10 @@ def is_string(data):
 # ------------------------------------------------------------------------------
 #
 def as_string(data):
+    '''
+    Make a best-effort attempt to convert bytes to strings.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
+    '''
 
     if isinstance(data, dict):
         return {as_string(k): as_string(v) for k,v in data.items()}
@@ -393,6 +397,10 @@ def is_bytes(data):
 # thanks to
 # http://stackoverflow.com/questions/956867/#13105359
 def as_bytes(data):
+    '''
+    Make a best-effort attempt to convert strings to bytes.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
+    '''
 
     if isinstance(data, dict):
         return {as_bytes(k): as_bytes(v) for k,v in data.items()}

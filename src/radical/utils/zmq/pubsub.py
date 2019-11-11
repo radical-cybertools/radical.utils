@@ -275,10 +275,10 @@ class Subscriber(object):
                     t = as_string(topic)
                     for m in as_list(msg):
                         m = as_string(m)
-                        for cb, l in callbacks:
+                        for cb, _lock in callbacks:
                           # log.debug('cb  %s [%s] [%s]', cb, len(msg), l)
-                            if l:
-                                with l:
+                            if _lock:
+                                with _lock:
                                     cb(t, m)
                             else:
                                 cb(t, m)
@@ -374,7 +374,7 @@ class Subscriber(object):
         #
         # Note that once a thread is watching a socket, we cannot allow to use
         # `get()` and `get_nowait()` anymore, as those will interfere with the
-        # rhread consuming the messages,
+        # thread consuming the messages,
         #
         # The given callback (if any) is used to shield concurrent cb
         # invokations.
@@ -385,13 +385,12 @@ class Subscriber(object):
             self._start_listener()
             Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
 
-        s = Subscriber._callbacks[self._url]['socket']
-
+        sock  = Subscriber._callbacks[self._url]['socket']
         topic = topic.replace(' ', '_')
         log_bulk(self._log, topic, '~~ %s' % self.channel)
 
         with self._lock:
-            no_intr(s.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+            no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
 
     # --------------------------------------------------------------------------
@@ -399,7 +398,7 @@ class Subscriber(object):
     def get(self):
 
         if not self._interactive:
-            raise RuntimeError('get() on non-interactive EP')
+            raise RuntimeError('invalid get(): callbacks are registered')
 
 
         # FIXME: add timeout to allow for graceful termination
@@ -419,7 +418,7 @@ class Subscriber(object):
     def get_nowait(self, timeout=None):
 
         if not self._interactive:
-            raise RuntimeError('get_nowait() on non-interactive EP')
+            raise RuntimeError('invalid get_nowait(): callbacks are registered')
 
 
         if no_intr(self._socket.poll, flags=zmq.POLLIN, timeout=timeout):

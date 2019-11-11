@@ -39,7 +39,7 @@ class Heartbeat(object):
         # we should not need to lock timestamps, in the current CPython
         # implementation, dict access is assumed to be atomic.  But heartbeats
         # should not be in the performance critical path, and should not have
-        # threads competing with the (provate) dict lock, so we accept the
+        # threads competing with the (private) dict lock, so we accept the
         # overhead.
 
         if interval > timeout:
@@ -144,7 +144,7 @@ class Heartbeat(object):
                         os.kill(self._pid, signal.SIGKILL)
 
                     else:
-                        # recovered - the failed UID wath replaced with the one
+                        # recovered - the failed UID was replaced with the one
                         # returned by the callback.  We do not register
                         # a heartbeat for the new one, but instead wait for
                         # a heartbeat to arrive via the proper channels.

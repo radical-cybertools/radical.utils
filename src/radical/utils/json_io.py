@@ -53,7 +53,7 @@ def write_json(data, fname):
     '''
 
     if isinstance(fname, dict) and isinstance(data, str):
-        # be generous
+        # arguments were switched: accept anyway
         tmp   = data
         data  = fname
         fname = tmp

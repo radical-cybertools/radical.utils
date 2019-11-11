@@ -228,6 +228,7 @@ class Logger(object):
         # otherwise configure this logger
         if not path:
             path = ru_def['log_dir']
+            print('=== l switch to %s' % path)
 
         if not ns:
             ns = name
