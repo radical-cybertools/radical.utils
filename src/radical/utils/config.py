@@ -14,6 +14,8 @@ __license__   = "MIT"
 #   - python style comments are filtered out before parsing
 #   - after parsing, `${ABC:default}`-style values are set or expanded via
 #     `os.environ`
+#   - the returned class exposes settings as dicts or attributes
+#     cfg['foo']['bar'] == cfg.foo.bar
 #
 #
 # Config Names and Locations
@@ -26,7 +28,7 @@ __license__   = "MIT"
 #
 #   - module: name of module under which the config is installed
 #   - path  : config file path relative to the module home
-#   - name  : config file name relative to the module home
+#   - name  : config file name relative to the path
 #
 # The `module` string is interpreted as follows:
 #
@@ -43,16 +45,6 @@ __license__   = "MIT"
 #   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
 #   usr_config_dir = /home/merzky/.radical/utils/
 #
-
-# The remaining two arguments are exclusive (exactly *one* must be specified).
-# If `path` is given, it is interpreted as a path under those locations.  If
-# `category` is given, then the same `. -> /` replacement as on the module name
-# is performed, and the result is interpreted like `path` again.
-#
-# In both cases, we add the file extension `.json` if no match is found without
-# it.  It is not an error if the so specified config files do not exist -- in
-# that case, the config is considered empty.
-#
 # After loading the system level config file, any existing user level config
 # file is merged into it, via
 #
@@ -61,7 +53,7 @@ __license__   = "MIT"
 # so that the user config settings supercede the system config settings.
 #
 # Both path and name specifiers can contain `*` as wildcard, which is then
-# interpreted as by `glob()`.  If that wirldcard exist, then all matching config
+# interpreted as by `glob()`.  If that wildcard exist, then all matching config
 # files are read into *one* configuration dict, where each root key is set to
 # the value the '*' expands to (minus the `.json` extension).
 #
@@ -109,7 +101,8 @@ __license__   = "MIT"
 #
 # The default value is optional, an empty string is used if no default value is
 # given.  Env evaluation is only performed at time of parsing, not at time of
-# query.
+# query.  RU attempts to convert env variables to float and int - if that fails,
+# values are stored as strings.
 #
 #
 # Validation
@@ -138,9 +131,6 @@ from .singleton  import Singleton
 #
 class Config(munch.Munch):
 
-    # FIXME: we should do some magic on values, like, convert to into, float,
-    #        bool, list of those, after env expansion.  For now, typing is the
-    #        responsibility of the consumer.
     # FIXME: we should cache config files after reading, so that repeated
     #        instance creations do not trigger a new (identical) round of
     #        parsing.
@@ -177,7 +167,9 @@ class Config(munch.Munch):
             /usr/lib/python3/site-packages/radical/pilot/\
                                                    config/session_mininmal.json
 
-        NOTE: keys MUST NOT begin with an underscore, and MUST NOT contain dots.
+        NOTE: Keys containing an underscore are not exposed via the API.
+              Keys containing dots are split and interpreted as paths in te
+              configuration hierarchy.
         '''
 
         self._expand = expand
