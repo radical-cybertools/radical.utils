@@ -306,7 +306,7 @@ class Config(munch.Munch):
 
         # if we did not find *any* file, and the original `name` was None,
         # then try to load config files w/o name
-        # eg, if there is no `registry_default.json`, then try to load
+        # Example: if there is no `registry_default.json`, then try to load
         # `registry.json`.
         if nfiles == 0 and name_orig is None and not _internal and category:
 
@@ -436,7 +436,6 @@ class Config(munch.Munch):
 
             config['some']['path']['to'].get('key', default='foo')
         '''
-        # TODO: overload `get()`?
 
         if is_string(key): elems = key.split('.')
         else             : elems = key

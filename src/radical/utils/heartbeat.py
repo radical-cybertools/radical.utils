@@ -133,12 +133,7 @@ class Heartbeat(object):
 
                     ret = False
                     if  self._term_cb:
-                        self._log.warn('hb term cb for %s: %s', uid, self._term_cb)
-                        try:
-                            ret = self._term_cb(uid)
-                        except:
-                            self._log.exception('=== oops')
-                        self._log.warn('hb term cb for %s: %s', uid, ret)
+                        ret = self._term_cb(uid)
 
                     if ret is False:
                         # could not recover: abandon mothership
