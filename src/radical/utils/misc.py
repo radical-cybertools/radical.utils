@@ -696,7 +696,7 @@ def expand_env(data, env=None, ignore_missing=True):
         # idea     :   pre     ${  Vari_ABLE            : val     } post
         # captures :  (   )(?    (                  )(?  (     ))  )(  )
         # indexes  :  1          2                       3          4
-        with data // r'(.*?)(?:\${([A-Z][a-zA-Z0-9_]+)(?::([^}]+))?})(.*)' \
+        with data // r'(.*?)(?:\${([a-zA-Z][a-zA-Z0-9_-]+)(?::([^}]+))?})(.*)' \
             as res:
 
             if not res:
