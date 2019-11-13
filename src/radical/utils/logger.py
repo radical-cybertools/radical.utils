@@ -46,6 +46,8 @@ from   .misc      import import_module    as ru_import_module
 from   .config    import DefaultConfig
 from   .singleton import Singleton
 
+from   .debug     import print_stacktrace, get_stacktrace
+
 
 CRITICAL = logging.CRITICAL
 ERROR    = logging.ERROR
@@ -228,7 +230,6 @@ class Logger(object):
         # otherwise configure this logger
         if not path:
             path = ru_def['log_dir']
-            print('=== l switch to %s' % path)
 
         if not ns:
             ns = name

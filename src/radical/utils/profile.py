@@ -162,7 +162,6 @@ class Profiler(object):
 
         if not self._path:
             self._path = ru_def['profile_dir']
-            print('=== p switch to %s' % self._path)
 
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
