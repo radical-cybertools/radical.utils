@@ -115,10 +115,12 @@ class Queue(Bridge):
 
     @property
     def addr_in(self):
+        # protocol independent addr query
         return self._addr_put
 
     @property
     def addr_out(self):
+        # protocol independent addr query
         return self._addr_get
 
     @property

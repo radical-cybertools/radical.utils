@@ -52,10 +52,12 @@ class PubSub(Bridge):
 
     @property
     def addr_in(self):
+        # protocol independent addr query
         return self.addr_pub
 
     @property
     def addr_out(self):
+        # protocol independent addr query
         return self.addr_sub
 
     @property
