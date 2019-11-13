@@ -79,7 +79,7 @@ class _LoggerRegistry(object, metaclass=Singleton):
                 logger = logger.parent
 
     def close_all(self):
-        # FIXME: add `atexit` handler
+
         for logger in self._registry:
             while logger:
                 for handler in logger.handlers:

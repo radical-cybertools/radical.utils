@@ -11,13 +11,13 @@ from ..logger    import Logger
 from ..profile   import Profiler
 
 
-_MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
-
-
 # --------------------------------------------------------------------------
 #
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
+#
+# This is presumably rare, and repeated interrupts increasingly unlikely.
+# More than, say, 3 point to races or I/O thrashing
 #
 # FIXME: how does that behave wrt. timeouts?  We probably should include
 #        an explicit timeout parameter.
@@ -26,7 +26,8 @@ _MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
 #
 def no_intr(f, *args, **kwargs):
 
-    cnt = 0
+    _max = 3
+    cnt  = 0
     while True:
         try:
             return f(*args, **kwargs)
@@ -36,7 +37,7 @@ def no_intr(f, *args, **kwargs):
 
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
-                if cnt > _MAX_RETRY:
+                if cnt > _max:
                     raise  # interrupted too often - forward exception
                 continue   # interrupted, try again
             raise          # some other error condition, raise it
