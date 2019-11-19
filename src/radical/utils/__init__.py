@@ -44,8 +44,8 @@ from .zmq            import PubSub, Publisher, Subscriber
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger
 from .reporter       import Reporter
-from .profile        import Profiler, timestamp
-from .profile        import read_profiles, combine_profiles, clean_profile
+from .profile        import Profiler, timestamp, event_to_label
+from.profile        import read_profiles, combine_profiles, clean_profile
 from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
 from .profile        import PROF_KEY_MAX
 

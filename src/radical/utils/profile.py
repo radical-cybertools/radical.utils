@@ -356,7 +356,7 @@ def read_profiles(profiles, sid=None, efilter=None):
 
     for prof in profiles:
 
-        with open(prof, 'rb') as csvfile:
+        with open(prof, 'r') as csvfile:
 
             ret[prof] = list()
             reader    = csv.reader(csvfile)
@@ -452,6 +452,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                   #     print('MSG     : %s' % row[MSG   ])
 
             except:
+                raise
                 print('skip remainder of %s' % prof)
                 continue
 
@@ -764,6 +765,16 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
     ret = sorted(ret[:], key=lambda k: k[TIME])
 
     return ret
+
+
+# ------------------------------------------------------------------------------
+#
+def event_to_label(event):
+
+    if event[EVENT] == 'state':
+        return event[STATE]
+    else:
+        return event[EVENT]
 
 
 # ------------------------------------------------------------------------------

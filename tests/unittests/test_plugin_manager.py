@@ -50,17 +50,6 @@ def test_plugin_manager():
     assert(ret == ('a', 1)), 'plugin_3 invocation: %s != %s' % (['a', 1], ret)
 
 
-  # try:
-  #     pmgr = ru.PluginManager    ('troy')
-  #     plugin_strategy = pmgr.load('strategy', 'basic_late_binding')
-  #     import troy
-  #     session = troy.Session()
-  #     plugin_strategy.init_plugin(session)
-  #     plugin_strategy.execute    (None, None, None, None)
-  # except:
-  #     pass
-
-
     mem_0 = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     pmgr  = ru.PluginManager('radical.utils')
 
