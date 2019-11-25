@@ -445,7 +445,11 @@ def find_module(name):
     if not package:
         return None
 
-    return os.path.dirname(package.get_filename())
+    if '_NamespaceLoader' in str(package):
+        # since Python 3.5, loaders differ between modules and namespaces
+        return package._path._path[0]
+    else:
+        return os.path.dirname(package.get_filename())
 
 
 # ------------------------------------------------------------------------------
