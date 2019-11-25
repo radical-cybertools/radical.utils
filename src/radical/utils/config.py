@@ -379,6 +379,9 @@ class Config(munch.Munch):
     def keys(self):
         return [x for x in self]
 
+    def __len__(self):
+        return len([k for k in self])
+
 
     def __len__(self):
         return len(self.keys())
