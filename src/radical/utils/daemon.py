@@ -66,10 +66,8 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
                           % (e.errno, e.strerror))
 
 
-    # decouple from parent environment
-  # os.chdir("/")
+    # decouple from parent process group
     os.setsid()
-  # os.umask(0)
 
     # second fork
     try:
@@ -87,9 +85,6 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
         sys_exit(1)
 
     # redirect standard file descriptors
-    sys.stdout.flush()
-    sys.stderr.flush()
-
     if stdin:
         try:
             si = open(stdin, 'r')
@@ -99,6 +94,7 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
 
     if stdout:
         try:
+            sys.stdout.flush()
             so = open(stdout, 'a+')
             os.dup2(so.fileno(), sys.stdout.fileno())
         except io.UnsupportedOperation:
@@ -106,6 +102,7 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
 
     if stderr:
         try:
+            sys.stderr.flush()
             se = open(stderr, 'a+')
             os.dup2(se.fileno(), sys.stderr.fileno())
         except io.UnsupportedOperation:
