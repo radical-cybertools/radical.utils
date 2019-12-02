@@ -91,6 +91,8 @@ class Heartbeat(object):
     #
     def dump(self, log):
 
+        if not log: log = self._log
+
         log.debug('hb dump %s: \n%s', self._uid, pprint.pformat(self._tstamps))
 
 
@@ -131,11 +133,11 @@ class Heartbeat(object):
                         self._log.warn('hb %s[%s]: %.1f - %.1f > %1.f: timeout',
                                        self._uid, uid, now, last, self._timeout)
 
-                    ret = False
+                    ret = None
                     if  self._term_cb:
                         ret = self._term_cb(uid)
 
-                    if ret is False:
+                    if ret is None:
                         # could not recover: abandon mothership
                         self._log.warn('hb failure for %s - fatal (%d)', uid,
                                 self._pid)
@@ -145,12 +147,14 @@ class Heartbeat(object):
 
                     else:
                         # recovered - the failed UID was replaced with the one
-                        # returned by the callback.  We do not register
-                        # a heartbeat for the new one, but instead wait for
-                        # a heartbeat to arrive via the proper channels.
+                        # returned by the callback.  We delete the heartbeat
+                        # information for the old uid and register a new
+                        # heartbeat for the new one, so that we can immediately
+                        # begin to watch it.
                         self._log.info('hb recovered %s with %s', uid, ret)
                         with self._lock:
                             del(self._tstamps[uid])
+                            self._tstamps[ret] = time.time()
 
 
     # --------------------------------------------------------------------------
