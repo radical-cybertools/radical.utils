@@ -94,7 +94,7 @@ class PubSub(Bridge):
         self._sub.bind(self._url)
 
         # communicate the bridge ports to the parent process
-        _addr_pub = as_string(self._pub.getsockopt (zmq.LAST_ENDPOINT))
+        _addr_pub = as_string(self._pub.getsockopt(zmq.LAST_ENDPOINT))
         _addr_sub = as_string(self._sub.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses

@@ -88,7 +88,7 @@ class Bridge(object):
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
         self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level='INFO', path=self._cfg.path)
+                               level='DEBUG', path=self._cfg.path)
         self._prof    = Profiler(name=self._uid, path=self._cfg.path)
 
         self._prof.prof('init3', uid=self._uid, msg=self._cfg.path)
