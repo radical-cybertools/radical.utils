@@ -205,21 +205,28 @@ class Heartbeat(object):
         while True:
 
             with self._lock:
-                ok = [uid for uid in uids if self._tstamps.get(uid)]
+                ok  = [uid for uid in uids if self._tstamps.get(uid)]
+                nok = [uid for uid in uids if uid not in ok]
 
-            self._log.debug('wait ok: %s / %s (%d/%d)', ok, uids, len(ok), len(uids))
+            self._log.debug('wait for : %s', nok)
 
             if len(ok) == len(uids):
                 break
 
             if timeout:
                 if time.time() - start > timeout:
+                    self._log.debug('wait time: %s', nok)
                     break
 
             time.sleep(0.05)
 
         if len(ok) != len(uids):
-            return [uid for uid in uids if uid not in ok]
+            nok = [uid for uid in uids if uid not in ok]
+            self._log.debug('wait fail: %s', nok)
+            return nok
+
+        else:
+            self._log.debug('wait ok  : %s', ok)
 
 
 # ------------------------------------------------------------------------------
