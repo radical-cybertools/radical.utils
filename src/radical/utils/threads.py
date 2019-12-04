@@ -13,54 +13,6 @@ import _thread
 import threading    as mt
 
 
-# # ------------------------------------------------------------------------------
-# #
-# # thread-related utility classes and methods
-# #
-# class RLock(object):
-#     """
-#     This mt.RLock wrapper is supportive of lock debugging.  The only
-#     semantic difference to mt.RLock is that a lock acquired via the
-#     'with' statement can be released within the 'with' scope, w/o penalty when
-#     leaving the locked scope.  This supports up-calling callback semantics, but
-#     should be used with utter care, and rarely (such as on close()).
-#
-#     see http://stackoverflow.com/questions/6780613/
-#     """
-#
-#     # --------------------------------------------------------------------------
-#     #
-#     def __init__(self, name=None):
-#
-#         self._lock = mt.RLock()
-#         self._name = name
-#
-#
-#     # --------------------------------------------------------------------------
-#     #
-#     def acquire(self):
-#
-#         self._lock.acquire()                             # pylint: disable=E0202
-#
-#
-#     # --------------------------------------------------------------------------
-#     #
-#     def release(self):
-#
-#         try:
-#             self._lock.release()
-#
-#         except RuntimeError:
-#             # lock has been released meanwhile - we allow that
-#             pass
-#
-#
-#     # --------------------------------------------------------------------------
-#     #
-#     def __enter__(self)         : self.acquire()
-#     def __exit__ (self, x, y, z): self.release()
-
-
 # ------------------------------------------------------------------------------
 #
 def get_thread_name():

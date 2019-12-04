@@ -46,8 +46,6 @@ from   .misc      import import_module    as ru_import_module
 from   .config    import DefaultConfig
 from   .singleton import Singleton
 
-from   .debug     import print_stacktrace, get_stacktrace
-
 
 CRITICAL = logging.CRITICAL
 ERROR    = logging.ERROR

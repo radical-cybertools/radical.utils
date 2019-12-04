@@ -11,7 +11,7 @@ import traceback
 import threading as mt
 
 from .ids     import generate_id
-from .threads import get_thread_id, get_thread_name
+from .threads import get_thread_name
 
 
 # ------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ def get_stacktraces():
 
 # ------------------------------------------------------------------------------
 #
-def print_stacktrace(msg=None, _stack = None):
+def print_stacktrace(msg=None, _stack=None):
 
     if not msg:
         msg = ''

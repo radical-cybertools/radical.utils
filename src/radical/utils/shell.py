@@ -97,7 +97,10 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
     assert(False), 'this is broken for python apps'
 
     # --------------------------------------------------------------------------
-    class _PROC(object):
+    class _P(object):
+        '''
+        internal representation of a process
+        '''
 
         # ----------------------------------------------------------------------
         def __init__(self, cmd, stdin, stdout, stderr, shell):
@@ -236,7 +239,7 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
                     return  # finishes thread
     # --------------------------------------------------------------------------
 
-    return _PROC(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
+    return _P(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
 
 
 # ------------------------------------------------------------------------------

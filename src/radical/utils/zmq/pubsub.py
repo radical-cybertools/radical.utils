@@ -1,6 +1,5 @@
 
 import zmq
-import pprint
 import msgpack
 
 import threading as mt

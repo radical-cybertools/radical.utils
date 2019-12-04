@@ -110,7 +110,7 @@ class DictMixin:
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
+def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
     # thanks to
     # http://stackoverflow.com/questions/7204805/ \
     #                          python-dictionaries-of-dictionaries-merge
@@ -144,7 +144,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
             dict_merge(a[key_a], b[key_b],
                        policy    = policy,
                        wildcards = wildcards,
-                       logger    = logger,
+                       log       = log,
                        _path     = _path + [str(key_a)])
 
 
@@ -162,14 +162,14 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
         else:
             if  policy == PRESERVE:
-                if  logger:
-                    logger.debug('preserving key %s:%s \t(%s)'
-                                % (':'.join(_path), key_b, b[key_b]))
+                if  log:
+                    log.debug('preserving key %s:%s \t(%s)'
+                              % (':'.join(_path), key_b, b[key_b]))
 
             elif policy == OVERWRITE:
-                if  logger:
-                    logger.debug('overwriting key %s:%s \t(%s)'
-                                % (':'.join(_path), key_b, b[key_b]))
+                if  log:
+                    log.debug('overwriting key %s:%s \t(%s)'
+                              % (':'.join(_path), key_b, b[key_b]))
                 a[key_a] = b[key_b]  # use new value
             else:
                 raise ValueError('Conflict at %s (%s : %s)'
@@ -196,7 +196,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
         if  wildcards:
             if  '*' in key_b:
                 pat = re.compile(fnmatch.translate(key_b))
-                for key_a in sorted(a,keys()):
+                for key_a in sorted(a.keys()):
                     if  pat.match(key_a):
                         merge_key(a, key_a, b, key_b)
 

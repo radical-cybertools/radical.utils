@@ -120,7 +120,7 @@ import munch
 from .misc       import find_module, is_string
 from .misc       import expand_env as ru_expand_env
 from .json_io    import read_json, write_json
-from .dict_mixin import dict_merge, DictMixin
+from .dict_mixin import dict_merge
 
 from .singleton  import Singleton
 
@@ -380,22 +380,18 @@ class Config(munch.Munch):
         return [x for x in self]
 
     def __len__(self):
-        return len([k for k in self])
-
-
-    def __len__(self):
         return len(self.keys())
 
 
     # --------------------------------------------------------------------------
     #
-    def merge(self, cfg, expand=True, env=None, policy='overwrite', logger=None):
+    def merge(self, cfg, expand=True, env=None, policy='overwrite', log=None):
         '''
         merge the given config into the existing config settings, overwriting
         any values which already existed
         '''
 
-        dict_merge(self, cfg, policy=policy, logger=logger)
+        dict_merge(self, cfg, policy=policy, log=log)
 
         if expand:
             ru_expand_env(cfg, env=env)
