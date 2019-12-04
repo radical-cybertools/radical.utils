@@ -63,16 +63,16 @@ def print_stacktraces(signum=None, sigframe=None):
         if _debug_helper.locks:
             out += 'Locks:\n'
         for name, lock in _debug_helper.locks.items():
-            owner = lock._owner
-            waits = lock._waits
+            owner = lock.owner
+            waits = lock.waits
             if not owner: owner = '-'
             out += '  %-60s: %s %s\n' % (name, owner, waits)
 
         if _debug_helper.rlocks:
             out += 'RLocks:\n'
         for name, rlock in _debug_helper.rlocks.items():
-            owner = rlock._owner
-            waits = rlock._waits
+            owner = rlock.owner
+            waits = rlock.waits
             if not owner: owner = '-'
             out += '  %-60s: %s %s\n' % (name, owner, waits)
         out += '---------------------------------------------------------\n'
@@ -533,18 +533,18 @@ class Lock(object):
     #
     def __init__(self, name=None):
 
-        self._lock  = mt.Lock()
-        self._owner = None
-        self._waits = list()
-        self._name  = name
+        self.lock  = mt.Lock()
+        self.owner = None
+        self.waits = list()
+        self.name  = name
 
-        if not self._name:
-            self._name = generate_id('lock')
+        if not self.name:
+            self.name = generate_id('lock')
 
         print('dh: %s' % _debug_helper)
         if _debug_helper:
-            print('register %s' % self._name)
-            _debug_helper.register_lock(self._name, self)
+            print('register %s' % self.name)
+            _debug_helper.register_lock(self.name, self)
 
 
     def __enter__(self):
@@ -558,13 +558,13 @@ class Lock(object):
     #
     def acquire(self, blocking=True):
 
-        self._waits.append(get_thread_name())
-        ret = self._lock.acquire(blocking=blocking)
+        self.waits.append(get_thread_name())
+        ret = self.lock.acquire(blocking=blocking)
 
         if ret is not False:
-            self._owner = get_thread_name()
+            self.owner = get_thread_name()
 
-        self._waits.pop()
+        self.waits.pop()
         return ret
 
 
@@ -572,9 +572,9 @@ class Lock(object):
     #
     def release(self):
 
-        ret = self._lock.release()
+        ret = self.lock.release()
 
-        self._owner = None
+        self.owner = None
 
         return ret
 
@@ -587,16 +587,16 @@ class RLock(object):
     #
     def __init__(self, name=None):
 
-        self._lock  = mt.RLock()
-        self._owner = None
-        self._waits = list()
-        self._name  = name
+        self.lock  = mt.RLock()
+        self.owner = None
+        self.waits = list()
+        self.name  = name
 
-        if not self._name:
-            self._name = generate_id('rlock')
+        if not self.name:
+            self.name = generate_id('rlock')
 
         if _debug_helper:
-            _debug_helper.register_rlock(self._name, self)
+            _debug_helper.register_rlock(self.name, self)
 
 
     def __enter__(self):
@@ -610,13 +610,13 @@ class RLock(object):
     #
     def acquire(self, blocking=1):
 
-        self._waits.append(get_thread_name())
-        ret = self._lock.acquire(blocking=blocking)
+        self.waits.append(get_thread_name())
+        ret = self.lock.acquire(blocking=blocking)
 
         if ret is not False:
-            self._owner = get_thread_name()
+            self.owner = get_thread_name()
 
-        self._waits.pop()
+        self.waits.pop()
 
         return ret
 
@@ -625,9 +625,9 @@ class RLock(object):
     #
     def release(self):
 
-        ret = self._lock.release()
+        ret = self.lock.release()
 
-        self._owner = None
+        self.owner = None
 
         return ret
 
