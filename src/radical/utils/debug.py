@@ -60,17 +60,17 @@ def print_stacktraces(signum=None, sigframe=None):
 
     if _debug_helper:
         out += '---------------------------------------------------------\n'
-        if _debug_helper._locks:
+        if _debug_helper.locks:
             out += 'Locks:\n'
-        for name, lock in _debug_helper._locks.items():
+        for name, lock in _debug_helper.locks.items():
             owner = lock._owner
             waits = lock._waits
             if not owner: owner = '-'
             out += '  %-60s: %s %s\n' % (name, owner, waits)
 
-        if _debug_helper._rlocks:
+        if _debug_helper.rlocks:
             out += 'RLocks:\n'
-        for name, rlock in _debug_helper._rlocks.items():
+        for name, rlock in _debug_helper.rlocks.items():
             owner = rlock._owner
             waits = rlock._waits
             if not owner: owner = '-'
@@ -438,13 +438,13 @@ class DebugHelper(object):
         info: static info to dump into fs barriers
         '''
 
-        self._name   = name
-        self._info   = info
-        self._locks  = dict()
-        self._rlocks = dict()
+        self.name   = name
+        self.info   = info
+        self.locks  = dict()
+        self.rlocks = dict()
 
-        if not self._name:
-            self._name = str(id(self))
+        if not self.name:
+            self.name = str(id(self))
 
         if 'MainThread' not in mt.current_thread().name:
             # python only supports signals in main threads :-/
@@ -465,15 +465,15 @@ class DebugHelper(object):
     # --------------------------------------------------------------------------
     #
     def register_lock(self, name, lock):
-        assert(name not in self._locks), name
-        self._locks[name] = lock
+        assert(name not in self.locks), name
+        self.locks[name] = lock
 
 
     # --------------------------------------------------------------------------
     #
     def register_rlock(self, name, rlock):
-        assert(name not in self._rlocks), name
-        self._rlocks[name] = rlock
+        assert(name not in self.rlocks), name
+        self.rlocks[name] = rlock
 
 
     # --------------------------------------------------------------------------
@@ -491,12 +491,12 @@ class DebugHelper(object):
             pid = os.getpid()
             tid = mt.currentThread().ident
 
-            fb  = '/tmp/ru.dh.%s.%s.%s' % (self._name, pid, tid)
+            fb  = '/tmp/ru.dh.%s.%s.%s' % (self.name, pid, tid)
             fd  = open(fb, 'w+')
 
             fd.seek(0,0)
             fd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))
-            fd.write('\nSTATIC INFO:\n%s\n\n' % pprint.pformat(self._info))
+            fd.write('\nSTATIC INFO:\n%s\n\n' % pprint.pformat(self.info))
             fd.write('\nINFO:\n%s\n\n' % pprint.pformat(info))
             fd.flush()
 
@@ -556,10 +556,10 @@ class Lock(object):
 
     # --------------------------------------------------------------------------
     #
-    def acquire(self, blocking=1):
+    def acquire(self, blocking=True):
 
         self._waits.append(get_thread_name())
-        ret = self._lock.acquire()
+        ret = self._lock.acquire(blocking=blocking)
 
         if ret is not False:
             self._owner = get_thread_name()

@@ -446,7 +446,7 @@ def find_module(name):
 
     if '_NamespaceLoader' in str(package):
         # since Python 3.5, loaders differ between modules and namespaces
-        return package._path._path[0]
+        return package._path._path[0]                    # pylint: disable=W0212
     else:
         return os.path.dirname(package.get_filename())
 

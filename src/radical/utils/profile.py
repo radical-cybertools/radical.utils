@@ -453,8 +453,8 @@ def read_profiles(profiles, sid=None, efilter=None):
 
             except:
                 raise
-                print('skip remainder of %s' % prof)
-                continue
+              # print('skip remainder of %s' % prof)
+              # continue
 
     return ret
 
