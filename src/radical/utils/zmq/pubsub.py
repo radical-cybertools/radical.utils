@@ -26,6 +26,8 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 #
 class PubSub(Bridge):
 
+    # --------------------------------------------------------------------------
+    #
     def __init__(self, cfg):
 
         super(PubSub, self).__init__(cfg)
