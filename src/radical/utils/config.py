@@ -202,6 +202,16 @@ class Config(munch.Munch):
             # by default, load the default config
             name = 'default'
 
+        # purge module and category parts from name
+        if module and name.startswith(module + '.'):
+            name = name[len(module) + 1:]
+
+        if category and name.startswith(category + '.'):
+            name = name[len(category) + 1:]
+
+        # replace remaining dots in name with underscroes
+        name = name.replace('.', '_')
+
         if not cfg:
             # just use config files
             cfg = dict()
