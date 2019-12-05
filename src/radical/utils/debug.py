@@ -316,7 +316,7 @@ def raise_on(tag, log=None, msg=None):
 
 # ------------------------------------------------------------------------------
 #
-def attach_pudb(logger=None):
+def attach_pudb(log=None):
 
     # need to move here to avoid circular import
     from .threads import gettid
@@ -326,8 +326,8 @@ def attach_pudb(logger=None):
     tid  = gettid()
     port = tid + 10000
 
-    if logger:
-        logger.info('debugger open: telnet %s %d', host, port)
+    if log:
+        log.info('debugger open: telnet %s %d', host, port)
     else:
         print('debugger open: telnet %s %d' % (host, port))
 
@@ -340,8 +340,8 @@ def attach_pudb(logger=None):
         set_trace(host=host, port=port, term_size=(200, 50))
 
     except Exception as e:
-        if logger:
-            logger.warning('failed to attach pudb (%s)', e)
+        if log:
+            log.warning('failed to attach pudb (%s)', e)
 
 
 # ------------------------------------------------------------------------------

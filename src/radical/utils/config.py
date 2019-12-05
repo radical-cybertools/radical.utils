@@ -209,9 +209,6 @@ class Config(munch.Munch):
         if category and name.startswith(category + '.'):
             name = name[len(category) + 1:]
 
-        # replace remaining dots in name with underscroes
-        name = name.replace('.', '_')
-
         if not cfg:
             # just use config files
             cfg = dict()

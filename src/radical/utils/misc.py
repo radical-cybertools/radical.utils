@@ -477,7 +477,7 @@ def get_hostname():
 _hostip = None
 
 
-def get_hostip(req=None, logger=None):
+def get_hostip(req=None, log=None):
     '''
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
@@ -526,29 +526,29 @@ def get_hostip(req=None, logger=None):
     for iface in preflist:
 
         if iface not in ifaces:
-            if logger:
-                logger.debug('check iface %s: does not exist', iface)
+            if log:
+                log.debug('check iface %s: does not exist', iface)
             continue
 
         info = netifaces.ifaddresses(iface)
         if AF_INET not in info:
-            if logger:
-                logger.debug('check iface %s: no information', iface)
+            if log:
+                log.debug('check iface %s: no information', iface)
             continue
 
         if not len(info[AF_INET]):
-            if logger:
-                logger.debug('check iface %s: insufficient information', iface)
+            if log:
+                log.debug('check iface %s: insufficient information', iface)
             continue
 
         if not info[AF_INET][0].get('addr'):
-            if logger:
-                logger.debug('check iface %s: disconnected', iface)
+            if log:
+                log.debug('check iface %s: disconnected', iface)
             continue
 
         ip = info[AF_INET][0].get('addr')
-        if logger:
-            logger.debug('check iface %s: ip is %s', iface, ip)
+        if log:
+            log.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
             _hostip = ip
