@@ -355,7 +355,7 @@ class Getter(object):
             req = 'Request %s' % os.getpid()
 
             with self._lock:
-                no_intr(self._q.send, req)
+                no_intr(self._q.send_string, req)
 
             self._requested = True
             log_bulk(self._log, req, '>> %s [%-5s]'
