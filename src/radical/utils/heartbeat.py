@@ -139,8 +139,7 @@ class Heartbeat(object):
 
                     if ret is None:
                         # could not recover: abandon mothership
-                        self._log.warn('hb failure for %s - fatal (%d)', uid,
-                                self._pid)
+                        self._log.warn('hb fail %s: fatal (%d)', uid, self._pid)
                         os.kill(self._pid, signal.SIGTERM)
                         time.sleep(1)
                         os.kill(self._pid, signal.SIGKILL)
@@ -151,7 +150,8 @@ class Heartbeat(object):
                         # information for the old uid and register a new
                         # heartbeat for the new one, so that we can immediately
                         # begin to watch it.
-                        self._log.info('hb recovered %s with %s', uid, ret)
+                        self._log.info('hb recover %s -> %s (%s)',
+                                                        uid, ret, self._term_cb)
                         with self._lock:
                             del(self._tstamps[uid])
                             self._tstamps[ret] = time.time()

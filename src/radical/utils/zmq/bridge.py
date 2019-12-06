@@ -113,6 +113,7 @@ class Bridge(object):
         # process instance to host the bridge thread.
         self._term          = mt.Event()
         self._bridge_thread = mt.Thread(target=self._bridge_work)
+        self._bridge_thread.daemon = True
         self._bridge_thread.start()
 
         self._log.info('started bridge %s', self._uid)
