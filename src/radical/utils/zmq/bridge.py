@@ -150,11 +150,11 @@ class Bridge(object):
     def stop(self, timeout=None):
 
         self._term.set()
-        self._bridge_thread.join(timeout=timeout)
+      # self._bridge_thread.join(timeout=timeout)
         self._prof.prof('term', uid=self._uid)
 
-        if timeout is not None:
-            return not self._bridge_thread.is_alive()
+      # if timeout is not None:
+      #     return not self._bridge_thread.is_alive()
 
 
     # --------------------------------------------------------------------------

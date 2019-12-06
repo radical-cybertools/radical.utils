@@ -190,7 +190,7 @@ class Queue(Bridge):
         try:
 
             buf = list()
-            while True:
+            while not self._term.is_set():
 
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
