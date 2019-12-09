@@ -21,11 +21,6 @@ def test_zmq_queue():
       A: 10/s
       B: 20/s
 
-    and receive with the following rates:
-
-      C: 5/s
-      D: 10/s
-
     Ensure that
       - the ratios of sent / received messages reflects the rates
       - the local order of messages is preserved

@@ -26,6 +26,7 @@ def no_intr(f, *args, **kwargs):
 
     _max = 3
     cnt  = 0
+    return f(*args, **kwargs)
     while True:
         try:
             return f(*args, **kwargs)
@@ -37,10 +38,9 @@ def no_intr(f, *args, **kwargs):
             if e.errno == errno.EINTR:
                 if cnt > _max:
                     raise  # interrupted too often - forward exception
+                cnt += 1
                 continue   # interrupted, try again
             raise          # some other error condition, raise it
-        finally:
-            cnt += 1
 
 
 # ------------------------------------------------------------------------------

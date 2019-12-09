@@ -16,6 +16,7 @@ from ..logger import Logger
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
+                          # 0:  infinite
 
 
 # ------------------------------------------------------------------------------
@@ -128,41 +129,33 @@ class PubSub(Bridge):
         #
         # That's the equivalent of the code below.
 
-        try:
+        while not self._term.is_set():
 
-            while not self._term.is_set():
+            # timeout in ms
+            socks = dict(self._poll.poll(timeout=500))
 
-                # timeout in ms
-                _socks = dict(no_intr(self._poll.poll, timeout=500))
+            if self._sub in socks:
 
-                if self._sub in _socks:
+                # if the sub socket signals a message, it's likely
+                # a topic subscription.  Forward that to the pub
+                # channel, so the bridge subscribes for the respective
+                # message topic.
+                msg = self._sub.recv()
+                self._pub.send(msg)
 
-                    # if the sub socket signals a message, it's likely a topic
-                    # subscription.  Forward that to the pub channel, so the
-                    # bridge subscribes for the respective message topic.
-                    with self._lock:
-                        msg = no_intr(self._sub.recv_multipart)
-                        no_intr(self._pub.send_multipart, msg)
-
-                    self._log.debug('~~ %s: %s', self.channel, msg)
-                  # log_bulk(self._log, msg, '~~ %s' % self.channel)
+                self._log.debug('~~ %s: %s', self.channel, msg)
+              # log_bulk(self._log, msg, '~~ %s' % self.channel)
 
 
-                if self._pub in _socks:
+            if self._pub in socks:
 
-                    # if the pub socket signals a message, get the message and
-                    # forward it to the sub channel, no questions asked.
-                    # TODO: check topic filtering
-                    with self._lock:
-                        msg = no_intr(self._pub.recv_multipart,
-                                                flags=zmq.NOBLOCK)
-                        no_intr(self._sub.send_multipart, msg)
+                # if the pub socket signals a message, get the message
+                # and forward it to the sub channel, no questions asked.
+                msg = self._pub.recv()
+                self._sub.send(msg)
 
-                    self._log.debug('<> %s: %s', self.channel, msg)
-                  # log_bulk(self._log, msg, '<> %s' % self.channel)
-
-        except:
-            self._log.exception('bridge failed')
+                self._log.debug('<> %s: %s', self.channel, msg)
+              # log_bulk(self._log, msg, '<> %s' % self.channel)
 
 
 # ------------------------------------------------------------------------------
@@ -220,10 +213,9 @@ class Publisher(object):
 
         btopic = as_bytes(topic.replace(' ', '_'))
         bmsg   = msgpack.packb(msg)
-        data   = [btopic, bmsg]
+        data   = btopic + b' ' + bmsg
 
-        with self._lock:
-            no_intr(self._socket.send_multipart, data)
+        self._socket.send(data)
 
 
 # ------------------------------------------------------------------------------
@@ -244,14 +236,14 @@ class Subscriber(object):
 
         # FIXME: add logging
 
-        if no_intr(socket.poll, flags=zmq.POLLIN, timeout=timeout):
-            with lock:
-                data = no_intr(socket.recv_multipart, flags=zmq.NOBLOCK)
+        if socket.poll(flags=zmq.POLLIN, timeout=timeout):
 
-            topic = as_string(data[0])
-            msg   = msgpack.unpackb(data[1])
+            raw         = no_intr(socket.recv, flags=zmq.NOBLOCK)
+            topic, data = raw.split(b' ', 1)
+            msg         = msgpack.unpackb(data)
 
-            return [topic, msg]
+            return [as_string(topic), as_string(msg)]
+
         return None, None
 
 
@@ -405,15 +397,18 @@ class Subscriber(object):
 
 
         # FIXME: add timeout to allow for graceful termination
+        #
+        sock = Subscriber._callbacks[self._url]['socket']
 
         with self._lock:
-            topic, data = no_intr(self._socket.recv_multipart)
+            raw = no_intr(sock.recv)
 
+        topic, data = raw.split(b' ', 1)
         msg = msgpack.unpackb(data)
 
         log_bulk(self._log, msg, '<- %s' % self.channel)
 
-        return [topic, msg]
+        return [as_string(topic), as_string(msg)]
 
 
     # --------------------------------------------------------------------------
@@ -424,16 +419,19 @@ class Subscriber(object):
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
 
 
-        if no_intr(self._socket.poll, flags=zmq.POLLIN, timeout=timeout):
+        sock = Subscriber._callbacks[self._url]['socket']
+
+        if no_intr(sock.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                topic, data = no_intr(self._socket.recv_multipart,
-                                      flags=zmq.NOBLOCK)
+                raw = no_intr(sock.recv, flags=zmq.NOBLOCK)
+
+            topic, data = raw.split(b' ', 1)
             msg = msgpack.unpackb(data)
 
             log_bulk(self._log, msg, '<- %s' % self.channel)
 
-            return [topic, msg]
+            return [as_string(topic), as_string(msg)]
 
         else:
             return [None, None]
