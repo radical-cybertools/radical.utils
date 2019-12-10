@@ -1,8 +1,11 @@
+
 language: python
 python:   "3.5"
 sudo:     disabled
 os:       linux
-git:      depth: 1
+
+git:
+  depth: 1
 
 env:
   global:
@@ -58,8 +61,10 @@ after_success:
       coverage report; \
       curl -s https://codecov.io/bash | bash
     fi
+
 notifications:
   email:
     recipients: andre@merzky.net
     on_success: change
     on_failure: always
+
