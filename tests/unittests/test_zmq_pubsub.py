@@ -97,6 +97,7 @@ def test_zmq_pubsub():
     t_b.join()
 
     b.stop()
+    time.sleep(1)
 
     assert(data['A']['A'] == c_a)
     assert(data['B']['B'] == c_b)
