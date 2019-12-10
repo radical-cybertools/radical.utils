@@ -14,6 +14,20 @@ import radical.utils as ru
 
 # ------------------------------------------------------------------------------
 #
+def test_import_file():
+
+    syms = ru.import_file('%s/data/import_file.py' % os.path.dirname(__file__))
+
+    assert(syms['functions']['foo'](1))
+    assert(syms['functions']['foo'](4, 4))
+
+    f = syms['classes']['Foo']()
+    assert(f.foo(1))
+    assert(f.foo(4, 4))
+
+
+# ------------------------------------------------------------------------------
+#
 def test_round_to_base():
 
     assert(ru.round_to_base(1.5, 2) == 2)
@@ -181,6 +195,7 @@ def test_expand_env():
 # run tests if called directly
 if __name__ == "__main__":
 
+    test_import_file()
     test_round_to_base()
     test_round_upper_bound()
     test_sh_callout()
