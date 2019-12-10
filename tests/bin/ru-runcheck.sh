@@ -3,7 +3,7 @@
 check="$1"; shift
 args="$*"
 
-test "$check" = "flake8" && check="flake8 --statistics --format=pylint"
+test "$check" = "flake8" && check="flake8 --format=pylint"
 
 test -z "$args" && args='src'
 
