@@ -454,8 +454,6 @@ def import_file(path):
 #
 # as import_module, but without the import part :-P
 #
-# FIXME: should we cache this?
-#
 def find_module(name):
 
     package = pkgutil.get_loader(name)
