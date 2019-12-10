@@ -232,6 +232,7 @@ setup_args = {
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.json.sh',
+                            'tests/bin/ru-runcheck.sh',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},

@@ -12,10 +12,10 @@ env:
 
   matrix:
     - MAIN_CMD="$PYTEST tests/"
-    - MAIN_CMD="tests/bin/run_check.sh flake8 diff"
-    - MAIN_CMD="tests/bin/run_check.sh pylint diff"
-    - MAIN_CMD="tests/bin/run_check.sh flake8 tests/ bin/ examples/"
-    - MAIN_CMD="tests/bin/run_check.sh pylint tests/ bin/ examples/"
+    - MAIN_CMD="ru-runcheck.sh flake8 diff"
+    - MAIN_CMD="ru-runcheck.sh pylint diff"
+    - MAIN_CMD="ru-runcheck.sh flake8 tests/ bin/ examples/"
+    - MAIN_CMD="ru-runcheck.sh pylint tests/ bin/ examples/"
 
 before_install:
   - uname -a
@@ -58,5 +58,8 @@ after_success:
       coverage report; \
       curl -s https://codecov.io/bash | bash
     fi
-
-
+notifications:
+  email:
+    recipients: andre@merzky.net
+    on_success: change
+    on_failure: always
