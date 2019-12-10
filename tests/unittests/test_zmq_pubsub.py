@@ -42,6 +42,7 @@ def test_zmq_pubsub():
 
     b = ru.zmq.PubSub(cfg)
     b.start()
+    time.sleep(1)
 
     assert(b.addr_in  != b.addr_out)
     assert(b.addr_in  == b.addr_pub)
@@ -65,6 +66,7 @@ def test_zmq_pubsub():
                           topic='topic', cb=cb_C)
     D = ru.zmq.Subscriber(channel=cfg['channel'], url=str(b.addr_sub),
                           topic='topic', cb=cb_D)
+    time.sleep(1)
 
 
     # --------------------------------------------------------------------------
