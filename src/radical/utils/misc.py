@@ -444,10 +444,8 @@ def import_file(path):
 
     for k,v in mod.__dict__.items():
         if not k.startswith('__'):
-            if inspect.isclass(v):
-                symbols['classes'][k] = v
-            if inspect.isfunction(v):
-                symbols['functions'][k] = v
+            if inspect.isclass(v):    symbols['classes'  ][k] = v
+            if inspect.isfunction(v): symbols['functions'][k] = v
 
     return symbols
 
