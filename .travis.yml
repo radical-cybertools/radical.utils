@@ -1,38 +1,21 @@
 language: python
-python: "3.5"
-sudo: disabled
-
-os:
-  - linux
+python:   "3.5"
+sudo:     disabled
+os:       linux
+git:      depth: 1
 
 env:
   global:
     - CODECOV_TOKEN="18d4cc7a-d35c-44ec-9684-e6f2ec7702fc"
-    - LOG=`git log -n 1 | grep Merge`
-    - OLD=`echo $LOG | cut -d ' ' -f2`
-    - NEW=`echo $LOG | cut -d ' ' -f3`
-    - DIFF=`git diff --name-only --diff-filter=b $OLD...$NEW`
-    - DIFF=$(echo $DIFF | grep -o -e '\b[^ ]*.py\b')
-    - PYTEST="coverage run -m pytest -ra --timeout=600 -vvv --showlocals"
-    - PEP8="pycodestyle --config=.pep8 --statistics --format=pylint"
-    - FLAKE8="flake8    --config=.pep8 --statistics --format=pylint"
-    - PYLINT="pylint    --rcfile=.pylintrc"
-    - CMD_PYTEST="$PYTEST tests/"
-    - CMD_PEP8="test -z \"$DIFF\" && echo 'nothing to pep8' || $PEP8 $DIFF"
-    - CMD_FLAKE8="test -z \"$DIFF\" && echo 'nothing to flake8' || $FLAKE8 $DIFF"
-    - CMD_PYLINT="test -z \"$DIFF\" && echo 'nothing to pylint' || $PYLINT $DIFF"
-    - CMD_PEP8_TESTS="$PEP8 tests/"
-    - CMD_FLAKE8_TESTS="$FLAKE8 tests/"
-    - CMD_PYLINT_TESTS="$PYLINT tests/"
     - COVERAGE=false
+    - PYTEST="coverage run -m pytest -ra --timeout=600 -vvv --showlocals"
+
   matrix:
-    - MAIN_CMD=$CMD_PYTEST COVERAGE=true
-    - MAIN_CMD=$CMD_PEP8
-    - MAIN_CMD=$CMD_FLAKE8
-    - MAIN_CMD=$CMD_PYLINT
-    - MAIN_CMD=$CMD_PEP8_TESTS
-    - MAIN_CMD=$CMD_FLAKE8_TESTS
-    - MAIN_CMD=$CMD_PYLINT_TESTS
+    - MAIN_CMD="$PYTEST tests/"
+    - MAIN_CMD="tests/bin/run_check.sh flake8 diff"
+    - MAIN_CMD="tests/bin/run_check.sh pylint diff"
+    - MAIN_CMD="tests/bin/run_check.sh flake8 tests/ bin/ examples/"
+    - MAIN_CMD="tests/bin/run_check.sh pylint tests/ bin/ examples/"
 
 before_install:
   - uname -a
@@ -46,7 +29,6 @@ before_install:
   - ssh localhost hostname
   - ssh localhost uname -a
 
-# command to install dependencies
 # command to install dependencies
 install:
   - pip install .
