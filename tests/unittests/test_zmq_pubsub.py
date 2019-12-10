@@ -48,15 +48,15 @@ def test_zmq_pubsub():
     assert(b.addr_out == b.addr_sub)
 
     data = dict()
-    data['A'] = list()
-    data['B'] = list()
-    data['C'] = list()
-    data['D'] = list()
+    for i in 'ABCD':
+        data[i] = dict()
+        for j in 'AB':
+            data[i][j] = 0
 
     def cb(uid, topic, msg):
         if msg['idx'] is None:
             return False
-        data[uid].append(msg['src'])
+        data[uid][msg['src']] += 1
 
     cb_C = lambda t,m: cb('C', t, m)
     cb_D = lambda t,m: cb('D', t, m)
@@ -71,15 +71,13 @@ def test_zmq_pubsub():
     def work_pub(uid, n, delay):
 
         pub = ru.zmq.Publisher(channel=cfg['channel'], url=str(b.addr_pub))
-
-        data[uid] = list()
-        idx   = 0
+        idx = 0
         while idx < n:
             time.sleep(delay)
             pub.put('topic', {'src': uid,
                               'idx': idx})
             idx += 1
-            data[uid].append(uid)
+            data[uid][uid] += 1
 
         # send EOF
         pub.put('topic', {'src': uid,
@@ -98,13 +96,11 @@ def test_zmq_pubsub():
 
     b.stop()
 
-    assert(data['A'].count('A') == c_a)
-    assert(data['B'].count('B') == c_b)
-    assert(len(data['A'])       == c_a)
-    assert(len(data['B'])       == c_b)
+    assert(data['A']['A'] == c_a)
+    assert(data['B']['B'] == c_b)
 
-    assert(data['C'].count('A') + data['C'].count('B') +
-           data['D'].count('A') + data['D'].count('B') == 2 * (c_a + c_b))
+    assert(data['C']['A'] + data['C']['B'] +
+           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b))
 
 
 # ------------------------------------------------------------------------------
