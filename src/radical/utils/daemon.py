@@ -2,8 +2,8 @@
 import io
 import os
 import sys
-import signal
 import queue
+import signal
 import multiprocessing as mp
 
 from .testing import sys_exit
@@ -16,9 +16,10 @@ from .testing import sys_exit
 
 # ------------------------------------------------------------------------------
 #
-def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
+def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
+              timeout=None):
     '''
-    Create a damon process and run the given method in it.   For that, do the
+    Create a daemon process and run the given method in it.   For that, do the
     UNIX double-fork magic, see Stevens' "Advanced Programming in the UNIX
     Environment" for details (ISBN 0201563177)
 
@@ -28,7 +29,8 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
     and read / written in their respective capabilities.
     '''
 
-    assert(callable(main))
+    if main:
+        assert(callable(main))
 
     pid   = None
     pid_q = mp.Queue()
@@ -64,10 +66,8 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
                           % (e.errno, e.strerror))
 
 
-    # decouple from parent environment
-    os.chdir("/")
+    # decouple from parent process group
     os.setsid()
-    os.umask(0)
 
     # second fork
     try:
@@ -85,9 +85,6 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
         sys_exit(1)
 
     # redirect standard file descriptors
-    sys.stdout.flush()
-    sys.stderr.flush()
-
     if stdin:
         try:
             si = open(stdin, 'r')
@@ -97,6 +94,7 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
 
     if stdout:
         try:
+            sys.stdout.flush()
             so = open(stdout, 'a+')
             os.dup2(so.fileno(), sys.stdout.fileno())
         except io.UnsupportedOperation:
@@ -104,16 +102,21 @@ def daemonize(main, stdout=None, stderr=None, stdin=None, timeout=None):
 
     if stderr:
         try:
+            sys.stderr.flush()
             se = open(stderr, 'a+')
             os.dup2(se.fileno(), sys.stderr.fileno())
         except io.UnsupportedOperation:
             sys.stderr = open(stderr, 'a+')
 
-    # we are successfully daemonized - run the workload
-    main()
+    if main:
+        # we are successfully daemonized - run the workload and exit
+        if args is None: main()
+        else           : main(*args)
+        sys_exit(0)
 
-    # work is done
-    sys_exit(0)
+    else:
+        # just return - the callinng code will now continue daemonized
+        return
 
 
 # ------------------------------------------------------------------------------
@@ -130,7 +133,8 @@ class Daemon(object):
     def __init__(self, stdin='/dev/null',
                        stdout='/dev/null',
                        stderr='/dev/null',
-                       target=None):
+                       target=None,
+                       args=None):
 
         if target:
             assert(callable(target))
@@ -140,6 +144,7 @@ class Daemon(object):
         self.stderr  = stderr
         self.pid     = None
         self.target  = target
+        self.args    = args
 
 
     # --------------------------------------------------------------------------
@@ -147,9 +152,9 @@ class Daemon(object):
     def start(self):
 
         # start the daemon, and in the demon process, run the workload
-        self.pid = daemonize(main=self.run, stdin=self.stdin,
-                                            stdout=self.stdout,
-                                            stderr=self.stderr)
+        self.pid = daemonize(main=self.run, args=self.args, stdin=self.stdin,
+                                                            stdout=self.stdout,
+                                                            stderr=self.stderr)
         return self.pid
 
 
@@ -196,11 +201,7 @@ class Daemon(object):
         daemon process has been created by start() or restart().
         '''
 
-        if self.target:
-            self.target()
-
-        else:
-            raise NotImplementedError("daemon workload undefined")
+        self.target(*self.args)
 
 
 # ------------------------------------------------------------------------------

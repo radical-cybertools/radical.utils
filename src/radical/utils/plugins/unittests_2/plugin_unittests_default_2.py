@@ -3,8 +3,6 @@ __author__    = 'Radical.Utils Development Team (Andre Merzky)'
 __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
 __license__   = 'MIT'
 
-import radical.utils as ru
-
 
 # ------------------------------------------------------------------------------
 #
@@ -12,28 +10,20 @@ PLUGIN_DESCRIPTION = {
     'type'        : 'unittests_2',
     'name'        : 'default_2',
     'version'     : '0.1',
-    'description' : 'this is an empty test which basically does nothing.'
+    'description' : 'this is a test which basically does nothing.'
 }
 
 
 # ------------------------------------------------------------------------------
 #
-class PLUGIN_CLASS(object, metaclass=ru.Singleton):
+class PLUGIN_CLASS(object):
     '''
-    This class implements the (empty) default unittest plugin for radical.utils.
+    This class implements a unittest plugin for radical.utils.
     '''
-
-    _created = False  # singleton test
-
 
     # --------------------------------------------------------------------------
     #
     def __init__(self):
-
-        if PLUGIN_CLASS._created:
-            assert(False), 'singleton plugin should not get created twice'
-
-        PLUGIN_CLASS._created = True
 
         self._args = None
 
@@ -42,6 +32,7 @@ class PLUGIN_CLASS(object, metaclass=ru.Singleton):
     #
     def init(self, *args):
 
+        assert(self._args is None), 'plugin should get created twice'
         self._args = args
 
 

@@ -7,8 +7,8 @@ __license__   = 'MIT'
 import os
 import sys
 
-from .misc       import import_module
-from .read_json  import read_json
+from .misc    import import_module
+from .json_io import read_json
 
 
 # ------------------------------------------------------------------------------
