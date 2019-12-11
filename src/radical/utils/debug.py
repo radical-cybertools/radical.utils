@@ -541,9 +541,7 @@ class Lock(object):
         if not self.name:
             self.name = generate_id('lock')
 
-        print('dh: %s' % _debug_helper)
         if _debug_helper:
-            print('register %s' % self.name)
             _debug_helper.register_lock(self.name, self)
 
 
