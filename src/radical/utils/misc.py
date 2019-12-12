@@ -1,5 +1,4 @@
 
-import re
 import os
 import sys
 import glob
@@ -317,8 +316,9 @@ def as_list(data):
     return non-list data into a list.
     '''
 
-    if is_list(data): return data
-    else            : return [data]
+    if   data is None : return []
+    elif is_list(data): return data
+    else              : return [data]
 
 
 # ------------------------------------------------------------------------------
@@ -359,12 +359,21 @@ def is_string(data):
 #
 def as_string(data):
     '''
-    convert the given data to a UTF-8 decoded `string`.
+    Make a best-effort attempt to convert bytes to strings.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
     '''
-    if   is_string(data): return data
-    elif is_bytes(data) : return data.decode('utf-8')
+
+    if isinstance(data, dict):
+        return {as_string(k): as_string(v) for k,v in data.items()}
+
+    elif isinstance(data, list):
+        return [as_string(e) for e in data]
+
+    elif isinstance(data, bytes):
+        return bytes.decode(data, 'utf-8')
+
     else:
-        raise TypeError('cannot convert %s to string' % type(data))
+        return data
 
 
 # ------------------------------------------------------------------------------
@@ -383,16 +392,25 @@ def is_bytes(data):
 
 
 # ------------------------------------------------------------------------------
-#
+# thanks to
+# http://stackoverflow.com/questions/956867/#13105359
 def as_bytes(data):
     '''
-    converts data given as `string` into a `bytes` (UTF-8 encoded).
+    Make a best-effort attempt to convert strings to bytes.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
     '''
 
-    if   is_bytes(data) : return data
-    elif is_string(data): return bytes(data, 'utf-8')
+    if isinstance(data, dict):
+        return {as_bytes(k): as_bytes(v) for k,v in data.items()}
+
+    elif isinstance(data, list):
+        return [as_bytes(e) for e in data]
+
+    elif isinstance(data, str):
+        return str.encode(data, 'utf-8')
+
     else:
-        raise TypeError('cannot convert %s to bytes' % type(data))
+        return data
 
 
 # ------------------------------------------------------------------------------
@@ -421,7 +439,7 @@ def get_hostname():
 _hostip = None
 
 
-def get_hostip(req=None, logger=None):
+def get_hostip(req=None, log=None):
     '''
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
@@ -470,29 +488,29 @@ def get_hostip(req=None, logger=None):
     for iface in preflist:
 
         if iface not in ifaces:
-            if logger:
-                logger.debug('check iface %s: does not exist', iface)
+            if log:
+                log.debug('check iface %s: does not exist', iface)
             continue
 
         info = netifaces.ifaddresses(iface)
         if AF_INET not in info:
-            if logger:
-                logger.debug('check iface %s: no information', iface)
+            if log:
+                log.debug('check iface %s: no information', iface)
             continue
 
         if not len(info[AF_INET]):
-            if logger:
-                logger.debug('check iface %s: insufficient information', iface)
+            if log:
+                log.debug('check iface %s: insufficient information', iface)
             continue
 
         if not info[AF_INET][0].get('addr'):
-            if logger:
-                logger.debug('check iface %s: disconnected', iface)
+            if log:
+                log.debug('check iface %s: disconnected', iface)
             continue
 
         ip = info[AF_INET][0].get('addr')
-        if logger:
-            logger.debug('check iface %s: ip is %s', iface, ip)
+        if log:
+            log.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
             _hostip = ip
@@ -594,23 +612,23 @@ def expand_env(data, env=None, ignore_missing=True):
 
     The replacement in strings is performed for the following variable specs:
 
-        assume  `export BAR=bar`:
+        assume  `export BAR=bar BIZ=biz`:
 
-            $BAR      : foo_$BAR_baz   -> foo_bar_baz
-            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo_bar_baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_bar_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=True`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=True`
 
-            $BAR      : foo_$BAR_baz   -> foo__baz
-            ${BAR}    : foo_${BAR}_baz -> foo__baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo__baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=False`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=False`
 
-            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
-            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> ValueError('cannot expand $BAR')
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BIZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
     The method will also opportunistically convert strings to integers or
     floats if they are formatted that way and contain no other characters.
@@ -638,13 +656,9 @@ def expand_env(data, env=None, ignore_missing=True):
     elif not is_string(data):
         return data
 
-    # handle string expansion, which is what we really care about
     if '$' not in data:
-        return to_type(data)
-
-    # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
-    # one version we need to search for)
-    data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
+        # nothing to expand
+        return data
 
     # fall back to process env if no other expansion dict is specified
     if not env:
@@ -679,13 +693,25 @@ def expand_env(data, env=None, ignore_missing=True):
             if val  is None: val  = ''
             if post is None: post = ''
 
+            # support env expansion of val, as in
+            #   LOGDIR : "${RCT_LOGDIR:$PWD}"
+            if val.startswith('$'):
+                val = env.get(val[1:], '')
+
             val = env.get(key, val)
+
+            if key and not pre and not post and not val:
+                # we had something to expand, and that expansion is all there is
+                # in the key, and the expand failed - then the result it not an
+                # empty string but None
+                return None
 
             ret += pre
             ret += val
 
             data = ReString(post)
 
+    # attempt string-to-type conversion (int and float detection only)
     return to_type(ret)
 
 

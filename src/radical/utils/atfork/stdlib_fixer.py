@@ -54,7 +54,7 @@ class Error(Exception):
 
 def fix_logging_module():
 
-    if 'RADICAL_UTILS_NOATFORK' in os.environ:
+    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
         return
 
     logging = sys.modules.get('logging')
