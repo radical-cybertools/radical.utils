@@ -42,7 +42,7 @@ import logging
 
 from   .atfork    import atfork
 from   .misc      import get_env_ns       as ru_get_env_ns
-from   .misc      import import_module    as ru_import_module
+from   .debug     import import_module    as ru_import_module
 from   .config    import DefaultConfig
 from   .singleton import Singleton
 
