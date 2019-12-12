@@ -5,7 +5,6 @@ import glob
 import time
 import errno
 import socket
-import pkgutil
 import datetime
 import itertools
 import netifaces
@@ -412,43 +411,6 @@ def as_bytes(data):
 
     else:
         return data
-
-
-# ------------------------------------------------------------------------------
-#
-# to keep RU 2.6 compatible, we provide import_module which works around some
-# quirks of __import__ when being used with dotted names. This is what the
-# python docs recommend to use.  This basically steps down the module path and
-# loads the respective submodule until arriving at the target.
-#
-# FIXME: should we cache this?
-#
-def import_module(name):
-
-    mod = __import__(name)
-    for s in name.split('.')[1:]:
-        mod = getattr(mod, s)
-    return mod
-
-
-# ------------------------------------------------------------------------------
-#
-# as import_module, but without the import part :-P
-#
-# FIXME: should we cache this?
-#
-def find_module(name):
-
-    package = pkgutil.get_loader(name)
-
-    if not package:
-        return None
-
-    if '_NamespaceLoader' in str(package):
-        # since Python 3.5, loaders differ between modules and namespaces
-        return package._path._path[0]                    # pylint: disable=W0212
-    else:
-        return os.path.dirname(package.get_filename())
 
 
 # ------------------------------------------------------------------------------
