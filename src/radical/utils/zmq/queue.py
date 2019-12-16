@@ -2,16 +2,15 @@
 import os
 import zmq
 import time
-import errno
 import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge
+from .bridge  import Bridge, no_intr, log_bulk
 
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip
+from ..misc   import get_hostip, as_string, as_bytes
 from ..logger import Logger
 
 
@@ -21,57 +20,6 @@ from ..logger import Logger
 #
 _LINGER_TIMEOUT  =   250  # ms to linger after close
 _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
-
-
-def log_bulk(log, bulk, token):
-
-    if not bulk:
-      # log.debug("%s: None", token)
-        return
-
-    if not isinstance(bulk, list):
-        bulk = [bulk]
-
-    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
-        bulk = [e['arg'] for e in bulk]
-
-    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
-        for e in bulk:
-            log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
-    else:
-        for e in bulk:
-            log.debug("%s: ?", str(token))
-            log.debug("%s: %s", token, str(e)[0:32])
-            log.debug("%s: %s", token, str(e)[0:32])
-
-
-# --------------------------------------------------------------------------
-#
-# zmq will (rightly) barf at interrupted system calls.  We are able to rerun
-# those calls.
-#
-# FIXME: how does that behave wrt. timeouts?  We probably should include
-#        an explicit timeout parameter.
-#
-# kudos: https://gist.github.com/minrk/5258909
-#
-def _no_intr(f, *args, **kwargs):
-    cnt = 0
-    while True:
-        cnt += 1
-        try:
-            return f(*args, **kwargs)
-        except zmq.ContextTerminated:
-            return None
-        except zmq.ZMQError as e:
-            if e.errno == errno.EINTR:
-                if cnt > 10:
-                    raise
-                # interrupted, try again
-                continue
-            else:
-                # real error, raise it
-                raise
 
 
 # ------------------------------------------------------------------------------
@@ -135,19 +83,16 @@ class Queue(Bridge):
 
         Addresses are of the form 'tcp://host:port'.  Both 'host' and 'port' can
         be wildcards for BRIDGE roles -- the bridge will report the in and out
-        addresses as obj.addr_in and obj.addr_out.
+        addresses as obj.addr_put and obj.addr_get.
         '''
 
         super(Queue, self).__init__(cfg)
 
-        self._channel    = self._cfg['name']
         self._stall_hwm  = self._cfg.get('stall_hwm', 1)  # FIXME: use
         self._bulk_size  = self._cfg.get('bulk_size', 10)
 
         if self._bulk_size <= 0:
             self._bulk_size = 1
-
-        self._initialize_bridge()
 
 
     # --------------------------------------------------------------------------
@@ -161,98 +106,78 @@ class Queue(Bridge):
         return self._uid
 
     @property
-    def channel(self):
-        return self._channel
-
-    @property
-    def addr_in(self):
-        return self._addr_in
-
-    @property
-    def addr_out(self):
-        return self._addr_out
-
-    @property
     def type_in(self):
-        return 'PUT'
+        return 'put'
 
     @property
     def type_out(self):
-        return 'GET'
+        return 'get'
+
+    @property
+    def addr_in(self):
+        # protocol independent addr query
+        return self._addr_put
+
+    @property
+    def addr_out(self):
+        # protocol independent addr query
+        return self._addr_get
+
+    @property
+    def addr_put(self):
+        return self._addr_put
+
+    @property
+    def addr_get(self):
+        return self._addr_get
+
+    def addr(self, spec):
+        if spec.lower() == self.type_in : return self.addr_put
+        if spec.lower() == self.type_out: return self.addr_get
 
 
     # --------------------------------------------------------------------------
     #
-    def _initialize_bridge(self):
+    def _bridge_initialize(self):
 
         self._log.info('start bridge %s', self._uid)
 
         self._url        = 'tcp://*:*'
+        self._lock       = mt.Lock()
 
         self._ctx        = zmq.Context()  # rely on GC for destruction
-        self._in         = self._ctx.socket(zmq.PULL)
-        self._in.linger  = _LINGER_TIMEOUT
-        self._in.hwm     = _HIGH_WATER_MARK
-        self._in.bind(self._url)
+        self._put         = self._ctx.socket(zmq.PULL)
+        self._put.linger  = _LINGER_TIMEOUT
+        self._put.hwm     = _HIGH_WATER_MARK
+        self._put.bind(self._url)
 
-        self._out        = self._ctx.socket(zmq.REP)
-        self._out.linger = _LINGER_TIMEOUT
-        self._out.hwm    = _HIGH_WATER_MARK
-        self._out.bind(self._url)
+        self._get        = self._ctx.socket(zmq.REP)
+        self._get.linger = _LINGER_TIMEOUT
+        self._get.hwm    = _HIGH_WATER_MARK
+        self._get.bind(self._url)
 
         # communicate the bridge ports to the parent process
-        _addr_in  = self._in.getsockopt (zmq.LAST_ENDPOINT)
-        _addr_out = self._out.getsockopt(zmq.LAST_ENDPOINT)
+        _addr_put = as_string(self._put.getsockopt (zmq.LAST_ENDPOINT))
+        _addr_get = as_string(self._get.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses
-        self._addr_in  = Url(_addr_in)
-        self._addr_out = Url(_addr_out)
+        self._addr_put = Url(_addr_put)
+        self._addr_get = Url(_addr_get)
 
         # use the local hostip for bridge addresses
-        self._addr_in.host  = get_hostip()
-        self._addr_out.host = get_hostip()
+        self._addr_put.host = get_hostip()
+        self._addr_get.host = get_hostip()
 
-        self._log.info('bridge in  %s: %s'  % (self._uid, self._addr_in ))
-        self._log.info('       out %s: %s'  % (self._uid, self._addr_out))
+        self._log.info('bridge in  %s: %s'  % (self._uid, self._addr_put))
+        self._log.info('       out %s: %s'  % (self._uid, self._addr_get))
 
         # start polling senders
-        self._poll_in = zmq.Poller()
-        self._poll_in.register(self._in, zmq.POLLIN)
+        self._poll_put = zmq.Poller()
+        self._poll_put.register(self._put, zmq.POLLIN)
 
         # start polling receivers
-        self._poll_out = zmq.Poller()
-        self._poll_out.register(self._out, zmq.POLLIN)
-
-        # the bridge runs in a daemon thread, so that the main process will not
-        # wait for it.  But, given Python's thread performance (or lack
-        # thereof), this means that the user of this class should create
-        # a separate process instance to host the bridge thread.
-        self._bridge_thread = mt.Thread(target=self._bridge_work)
-        self._bridge_thread.daemon = True
-        self._bridge_thread.start()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def wait(self, timeout=None):
-        '''
-        join would negate the daemon thread settings, in that it stops us from
-        killing the parent process w/o hanging it.  So we do a slow pull on the
-        thread state instead.
-        '''
-
-        start = time.time()
-
-        while True:
-
-            if not self._bridge_thread.is_alive():
-                return True
-
-            if  timeout is not None and \
-                timeout < time.time() - start:
-                return False
-
-            time.sleep(0.1)
+        self._poll_get = zmq.Poller()
+        self._poll_get.register(self._get, zmq.POLLIN)
 
 
     # --------------------------------------------------------------------------
@@ -265,59 +190,57 @@ class Queue(Bridge):
         try:
 
             buf = list()
-
-            i = -1
-            while True:
-
-                i += 1
-
-                # we avoid busy pulling during inactivity
-                active = False
+            while not self._term.is_set():
 
                 # check for incoming messages, and buffer them
-                ev_in = dict(_no_intr(self._poll_in.poll, timeout=0))
+                ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
+                active = False
 
-                if self._in in ev_in:
+                if self._put in ev_put:
 
-                    active = True
-                    data   = _no_intr(self._in.recv)
-                    msgs   = msgpack.unpackb(data)
+                    with self._lock:
+                        data = no_intr(self._put.recv)
+
+                    msgs = msgpack.unpackb(data)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
 
+                    active = True
                     log_bulk(self._log, msgs, '>< %s [%d]'
-                                              % (self._channel, len(buf)))
+                                              % (self._uid, len(buf)))
+
 
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
                 if buf:
-                    # check if somebody wants our messages
-                    ev_out = dict(_no_intr(self._poll_out.poll,
-                                                   timeout=0))
 
-                    if self._out in ev_out:
+                    # check if somebody wants our messages
+                    ev_get = dict(no_intr(self._poll_get.poll,
+                                                   timeout=0))
+                    if self._get in ev_get:
 
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
-                        active = True
-                        req    = _no_intr(self._out.recv)
+                        with self._lock:
+                            req = no_intr(self._get.recv)
+
                         bulk   = buf[:self._bulk_size]
                         data   = msgpack.packb(bulk)
-                        _no_intr(self._out.send, data)
+                        active = True
 
+                        no_intr(self._get.send, data)
                         log_bulk(self._log, bulk, '<> %s [%s]'
-                                                % (self._channel, req))
+                                                % (self._uid, req))
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
-                if active:
-                    # keep this bridge alive
-                    self.heartbeat()
-
-                else:
+                if not active:
                     # let CPU sleep a bit when there is nothing to do
+                    # We don't want to use poll timouts since we use two
+                    # competing polls and don't want the idle channel slow down
+                    # the busy one.
                     time.sleep(0.01)
 
         except  Exception:
@@ -334,6 +257,7 @@ class Putter(object):
 
         self._channel  = channel
         self._url      = url
+        self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.put.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
@@ -371,7 +295,9 @@ class Putter(object):
 
         log_bulk(self._log, msg, '-> %s' % self._channel)
         data = msgpack.packb(msg)
-        _no_intr(self._q.send, data)
+
+        with self._lock:
+            no_intr(self._q.send, data)
 
 
 # ------------------------------------------------------------------------------
@@ -380,19 +306,22 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url):
+    def __init__(self, channel, url,  log=None):
 
         self._channel   = channel
         self._url       = url
+        self._lock      = mt.Lock()
 
         self._uid       = generate_id('%s.get.%s' % (self._channel,
                                                     '%(counter)04d'), ID_CUSTOM)
-        self._log       = Logger(name=self._uid, ns='radical.utils')
+        self._log       = log
+
+        if not self._log:
+            self._log   = Logger(name=self._uid, ns='radical.utils')
+
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
-        self._lock      = mt.RLock()
         self._requested = False          # send/recv sync
-
         self._ctx       = zmq.Context()  # rely on GC for destruction
         self._q         = self._ctx.socket(zmq.REQ)
         self._q.linger  = _LINGER_TIMEOUT
@@ -424,13 +353,18 @@ class Getter(object):
 
         if not self._requested:
             req = 'Request %s' % os.getpid()
-            _no_intr(self._q.send, req)
+
+            with self._lock:
+                no_intr(self._q.send_string, req)
+
             self._requested = True
             log_bulk(self._log, req, '>> %s [%-5s]'
                                    % (self._channel, self._requested))
 
-        data = _no_intr(self._q.recv)
-        msg  = msgpack.unpackb(data)
+        with self._lock:
+            data = no_intr(self._q.recv)
+
+        msg = msgpack.unpackb(data)
         self._requested = False
         log_bulk(self._log, msg, '-- %s [%-5s]'
                                % (self._channel, self._requested))
@@ -445,25 +379,30 @@ class Getter(object):
         with self._lock:  # need to protect self._requested
 
             if not self._requested:
-                # we can only send the request once per recieval
+
+                # send the request *once* per recieval (got lock above)
                 req = 'request %s' % os.getpid()
-                _no_intr(self._q.send, req)
+                no_intr(self._q.send, as_bytes(req))
+
                 self._requested = True
                 log_bulk(self._log, req, '-> %s [%-5s]'
                                          % (self._channel, self._requested))
 
-            if _no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
-                data = _no_intr(self._q.recv)
-                msg  = msgpack.unpackb(data)
-                self._requested = False
-                log_bulk(self._log, msg, '<- %s [%-5s]'
-                                         % (self._channel, self._requested))
-                return msg
+        if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
-            else:
-                log_bulk(self._log, None, '-- %s [%-5s]'
-                                          % (self._channel, self._requested))
-                return None
+            with self._lock:
+                data = no_intr(self._q.recv)
+
+            msg = msgpack.unpackb(data)
+            self._requested = False
+            log_bulk(self._log, msg, '<- %s [%-5s]'
+                                     % (self._channel, self._requested))
+            return as_string(msg)
+
+        else:
+            log_bulk(self._log, None, '-- %s [%-5s]'
+                                      % (self._channel, self._requested))
+            return None
 
 
 # ------------------------------------------------------------------------------

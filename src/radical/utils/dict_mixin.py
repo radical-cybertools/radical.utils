@@ -24,12 +24,6 @@ class DictMixin:
     dictionary.
     '''
 
-  # # identify as dictionary
-  # @property
-  # def __class__(self):
-  #     return dict
-
-
     # --------------------------------------------------------------------------
     #
     # first level definitions should be implemented by the sub-class
@@ -116,7 +110,7 @@ class DictMixin:
 
 # ------------------------------------------------------------------------------
 #
-def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
+def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
     # thanks to
     # http://stackoverflow.com/questions/7204805/ \
     #                          python-dictionaries-of-dictionaries-merge
@@ -132,8 +126,8 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
     '''
 
-    if  a    is None: return
-    if  b    is None: return
+    if  a    is None: return a
+    if  b    is None: return a
     if _path is None: _path = list()
 
     if  not isinstance(a, dict):
@@ -150,7 +144,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
             dict_merge(a[key_a], b[key_b],
                        policy    = policy,
                        wildcards = wildcards,
-                       logger    = logger,
+                       log       = log,
                        _path     = _path + [str(key_a)])
 
 
@@ -168,14 +162,14 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
         else:
             if  policy == PRESERVE:
-                if  logger:
-                    logger.debug('preserving key %s:%s \t(%s)'
-                                % (':'.join(_path), key_b, b[key_b]))
+                if  log:
+                    log.debug('preserving key %s:%s \t(%s)'
+                              % (':'.join(_path), key_b, b[key_b]))
 
             elif policy == OVERWRITE:
-                if  logger:
-                    logger.debug('overwriting key %s:%s \t(%s)'
-                                % (':'.join(_path), key_b, b[key_b]))
+                if  log:
+                    log.debug('overwriting key %s:%s \t(%s)'
+                              % (':'.join(_path), key_b, b[key_b]))
                 a[key_a] = b[key_b]  # use new value
             else:
                 raise ValueError('Conflict at %s (%s : %s)'
@@ -184,7 +178,7 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
     # --------------------------------------------------------------------------
 
     # first a clean merge, i.e. no interpretation of wildcards
-    for key in b:
+    for key in sorted(b.keys()):
 
         if  key in a:
 
@@ -198,11 +192,11 @@ def dict_merge(a, b, policy=None, wildcards=False, logger=None, _path=None):
 
 
     # optionally, check if other merge options are also valid
-    for key_b in b:
+    for key_b in sorted(b.keys()):
         if  wildcards:
             if  '*' in key_b:
                 pat = re.compile(fnmatch.translate(key_b))
-                for key_a in a:
+                for key_a in sorted(a.keys()):
                     if  pat.match(key_a):
                         merge_key(a, key_a, b, key_b)
 
@@ -333,6 +327,114 @@ def _string_stringexpand(target, source):
     # only check for success after success.  Duh!
     if  orig == expanded: return expanded, False
     else                : return expanded, True
+
+
+# ------------------------------------------------------------------------------
+#
+def iter_diff(a, b):
+
+    if isinstance(a, list) and isinstance(b, list):
+        for ea, eb in zip(a, b):
+            iter_diff(ea, eb)
+    elif isinstance(a, dict) and isinstance(b, dict):
+        assert(len(list(a.keys())) == len(list(b.keys()))), \
+               (len(a), sorted(list(a.keys())), len(b), sorted(list(b.keys())))
+        for k in a:
+            iter_diff(a[k], b[k])
+    else:
+        if a != b:
+            print('elem diff: %s' % a)
+            print('elem diff: %s' % b)
+            print()
+        assert(a == b), [a, b]
+
+
+# ------------------------------------------------------------------------------
+#
+def dict_diff(a, b):
+    '''
+    return a dict of the form:
+
+        {
+           'k1': {'a': 'foo',
+                  'b': 'bar'},
+           'k2': {'a': 'foo'},
+           'k3': {'b': 'bar'},
+        }
+    which contains only those keys which are different in the two given dicts.
+    Keys which are missing in either one are not included (to distinguish from
+    `None` values).  This methods operates recursively over the given dicts.
+    '''
+
+    def _list_diff(a, b):
+
+        if len(a) != len(b):
+            la, lb = sorted([len(a), len(b)])
+            ret = ['len(%d) != len(%d)' % (la, lb)]
+        else:
+            ret = list()
+            for va, vb in zip(a, b):
+                if isinstance(va, dict) and isinstance(vb, dict):
+                    tmp = _dict_diff(va, vb)
+                    if tmp:
+                        ret.append(tmp)
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret.append(tmp)
+                else:
+                    if va != vb:
+                        ret.append({'a': va,
+                                    'b': vb})
+
+        return ret
+
+
+    def _dict_diff(a, b):
+
+        ka  = sorted(list(a.keys()))
+        kb  = sorted(list(b.keys()))
+        ret = dict()
+
+        for k in ka:
+            if k not in kb:
+                ret[k] = {'a': a[k]}
+            else:
+                va = a[k]
+                vb = b[k]
+                if isinstance(va, dict) and isinstance(vb, dict):
+                    tmp = _dict_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif va != vb:
+                    ret[k] = {'a': va,
+                              'b': vb}
+
+        for k in kb:
+            if k not in ka:
+                ret[k] = {'b': b[k]}
+            else:
+                va = a[k]
+                vb = b[k]
+                if isinstance(vb, dict) and isinstance(va, dict):
+                    tmp = _dict_diff(vb, va)
+                    if tmp:
+                        ret[k] = tmp
+                elif isinstance(va, list) and isinstance(vb, list):
+                    tmp = _list_diff(va, vb)
+                    if tmp:
+                        ret[k] = tmp
+                elif va != vb:
+                    ret[k] = {'a': va,
+                              'b': vb}
+
+        return ret
+
+    return _dict_diff(a, b)
 
 
 # ------------------------------------------------------------------------------

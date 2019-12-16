@@ -96,13 +96,13 @@ def _tracer(frame, event, _):
 
 
 # ------------------------------------------------------------------------------
-def trace(namespace='radical', logger=None):
+def trace(namespace='radical', log=None):
 
     global _trace_namespace                              # pylint: disable=W0603
     global _trace_logger                                 # pylint: disable=W0603
 
     _trace_namespace = namespace
-    _trace_logger    = logger
+    _trace_logger    = log
 
     sys.settrace(_tracer)
 

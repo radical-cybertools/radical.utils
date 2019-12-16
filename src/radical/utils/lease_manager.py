@@ -23,11 +23,11 @@ class _LeaseObject(object):
     _uid = 0
 
     # --------------------------------------------------------------------------
-    def __init__(self, lm, logger, creator, args):
+    def __init__(self, lm, log, creator, args):
 
         self.lm         = lm
         self.used       = False
-        self.log        = logger
+        self.log        = log
         self.obj        = creator(*args)
         self.uid        = 'lo.%04d' % _LeaseObject._uid
         self.t_created  = time.time()

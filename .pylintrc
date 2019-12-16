@@ -135,10 +135,10 @@ disable=not-context-manager,
         c-extension-no-member,
         unbalanced-tuple-unpacking,               # FIXME
         super-init-not-called,                    # FIXME
-        unused-import,                            # FIXME
         no-member,                                # FIXME
         global-statement,
-        try-except-raise
+        try-except-raise,
+        attribute-defined-outside-init
 
 
 
