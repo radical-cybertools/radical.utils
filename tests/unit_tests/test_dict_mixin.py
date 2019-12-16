@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
 
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
 
+
+import pytest
 
 import radical.utils as ru
 
@@ -124,9 +127,33 @@ def test_dict_stringexpand():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_dict_diff():
+
+    a  = {'foo': 'bar',
+          'baz': {'k1': 1,
+                  'k2': [2, -2]}
+         }
+    b  = {'foo': 'bar',
+          'baz': {'k1': 1,
+                  'k2': [-2],
+                  'k3': 3}
+         }
+    d1 = ru.dict_diff(a, b)
+    d2 = {'baz': {'k2': ['len(1) != len(2)'],
+                  'k3': {'a': 3}}}
+
+    assert(d1 == d2)
+
+    with pytest.raises(AssertionError):
+        ru.iter_diff(a, b)
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
+    test_dict_diff()
     test_dict_mixin()
     test_dict_merge()
     test_dict_stringexpand()

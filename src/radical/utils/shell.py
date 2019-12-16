@@ -64,7 +64,7 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
+def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
     '''
 
     Run a command, and capture stdout/stderr if so flagged.  The call will
@@ -98,24 +98,31 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     assert(False), 'this is broken for python apps'
 
     # --------------------------------------------------------------------------
-    class _PROC(object):
+    class _P(object):
+        '''
+        internal representation of a process
+        '''
 
         # ----------------------------------------------------------------------
-        def __init__(self, cmd, stdout, stderr, shell):
+        def __init__(self, cmd, stdin, stdout, stderr, shell):
 
             cmd = cmd.strip()
 
+            self._in_c  = bool(stdin)                # flag stdin capture
             self._out_c = bool(stdout)               # flag stdout capture
             self._err_c = bool(stderr)               # flag stderr capture
 
+            self._in_r , self._in_w  = os.pipe()     # put stdin  to   child
             self._out_r, self._out_w = os.pipe()     # get stdout from child
             self._err_r, self._err_w = os.pipe()     # get stderr from child
 
+            self._in_o  = os.fdopen(self._in_r)      # file object for in  ep
             self._out_o = os.fdopen(self._out_r)     # file object for out ep
             self._err_o = os.fdopen(self._err_r)     # file object for err ep
 
-            self._out_q = queue.Queue()              # put stdout to parent
-            self._err_q = queue.Queue()              # put stderr to parent
+            self._in_q  = queue.Queue()              # get stdin  from parent
+            self._out_q = queue.Queue()              # put stdout to   parent
+            self._err_q = queue.Queue()              # put stderr to   parent
 
             if is_string(stdout): self._out_f = open(stdout, 'w')
             else                : self._out_f = None
@@ -124,8 +131,11 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             else                : self._err_f = None
 
             self.state = RUNNING
-            self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
-                                  shell=shell, bufsize=1)
+            self._proc = sp.Popen(cmd, stdin=self._in_r,
+                                       stdout=self._out_w,
+                                       stderr=self._err_w,
+                                       shell=shell,
+                                       bufsize=1)
 
             t = mt.Thread(target=self._watch)
             t.daemon = True
@@ -133,6 +143,12 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
 
             self.rc = None  # return code
 
+
+        @property
+        def stdin(self):
+            if not self._in_c:
+                raise RuntimeError('stdin not captured')
+            return self._in_q
 
         @property
         def stdout(self):
@@ -159,6 +175,9 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
 
+        def kill(self):
+            self._proc.terminate()
+
         # ----------------------------------------------------------------------
         def _watch(self):
 
@@ -166,9 +185,15 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             poller.register(self._out_r, select.POLLIN | select.POLLHUP)
             poller.register(self._err_r, select.POLLIN | select.POLLHUP)
 
-            # try forever to read stdout and stderr, stop only when either
-            # signals that process died
+            # try forever to read stdin, stdout and stderr, stop only when
+            # either signals that process (parent or child) died
             while True:
+
+                # check for input
+                data = self._in_q.get_nowait()
+                if data:
+                    self._out_o.write(data)
+                    self._out_f.write(data)
 
                 active = False
                 fds    = poller.poll(100)  # timeout configurable (ms)
@@ -176,7 +201,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                 for fd,mode in fds:
 
                     if mode & select.POLLHUP:
-                        # fd died - #grab data from other fds
+                        # fd died - grab data from other fds
                         continue
 
                     if fd    == self._out_r:
@@ -215,7 +240,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                     return  # finishes thread
     # --------------------------------------------------------------------------
 
-    return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)
+    return _P(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
 
 
 # ------------------------------------------------------------------------------

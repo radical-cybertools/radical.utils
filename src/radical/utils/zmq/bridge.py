@@ -1,21 +1,21 @@
 
 import zmq
-import copy
 import errno
 import msgpack
 
+import threading as mt
+
 from ..logger    import Logger
 from ..profile   import Profiler
-from ..heartbeat import Heartbeat
-
-
-_MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
 
 
 # --------------------------------------------------------------------------
 #
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
 # those calls.
+#
+# This is presumably rare, and repeated interrupts increasingly unlikely.
+# More than, say, 3 point to races or I/O thrashing
 #
 # FIXME: how does that behave wrt. timeouts?  We probably should include
 #        an explicit timeout parameter.
@@ -24,7 +24,9 @@ _MAX_RETRY = 3  # max number of ZMQ snd/rcv retries on interrupts
 #
 def no_intr(f, *args, **kwargs):
 
-    cnt = 0
+    _max = 3
+    cnt  = 0
+    return f(*args, **kwargs)
     while True:
         try:
             return f(*args, **kwargs)
@@ -34,12 +36,11 @@ def no_intr(f, *args, **kwargs):
 
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:
-                if cnt > _MAX_RETRY:
+                if cnt > _max:
                     raise  # interrupted too often - forward exception
+                cnt += 1
                 continue   # interrupted, try again
             raise          # some other error condition, raise it
-        finally:
-            cnt += 1
 
 
 # ------------------------------------------------------------------------------
@@ -81,35 +82,41 @@ class Bridge(object):
     #
     def __init__(self, cfg):
 
-        self._cfg     = copy.deepcopy(cfg)
+        self._cfg     = cfg
+        self._channel = self._cfg.channel
+        self._uid     = self._cfg.uid
+        self._log     = Logger(name=self._uid, ns='radical.utils',
+                               level='DEBUG', path=self._cfg.path)
+        self._prof    = Profiler(name=self._uid, path=self._cfg.path)
 
-        self._channel = self._cfg['name']
-        self._uid     = self._cfg['uid']
+        self._prof.prof('init3', uid=self._uid, msg=self._cfg.path)
+        self._log.debug('bridge %s init', self._uid)
 
-        self._log     = Logger(name=self._uid, ns='radical.utils')
-        self._prof    = Profiler(name=self._uid)
+        self._bridge_initialize()
 
-        timeout       = self._cfg.get('timeout', 1)
-        interval      = timeout / 10.0
-        self._hb      = Heartbeat(uid=self._uid, timeout=timeout,
-                                  interval=interval, log=self._log)
-        self._hb.beat()
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def channel(self):
+        return self._channel
 
 
     # --------------------------------------------------------------------------
     #
     def start(self):
-        pass
 
+        # the bridge runs in a thread.  It is the bridge's owner process'
+        # responsibility to ensure the thread is seeing suffient time to perform
+        # as needed.  Given Python's thread performance (or lack thereof), this
+        # basically means that the user of this class should create a separate
+        # process instance to host the bridge thread.
+        self._term          = mt.Event()
+        self._bridge_thread = mt.Thread(target=self._bridge_work)
+        self._bridge_thread.daemon = True
+        self._bridge_thread.start()
 
-    # --------------------------------------------------------------------------
-    #
-    def heartbeat(self):
-        '''
-        this *must* be called by deriving classes
-        '''
-
-        self._hb.beat()
+        self._log.info('started bridge %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -117,7 +124,6 @@ class Bridge(object):
     @staticmethod
     def create(cfg):
 
-        # ----------------------------------------------------------------------
         # NOTE: I'd rather have this as class data than as stack data, but
         #       python stumbles over circular imports at that point :/
         #       Another option though is to discover and dynamically load
@@ -127,7 +133,6 @@ class Bridge(object):
 
         _btypemap = {'pubsub' : PubSub,
                      'queue'  : Queue}
-        # ----------------------------------------------------------------------
 
         kind = cfg['kind']
 
@@ -138,6 +143,25 @@ class Bridge(object):
         bridge = btype(cfg)
 
         return bridge
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self, timeout=None):
+
+        self._term.set()
+      # self._bridge_thread.join(timeout=timeout)
+        self._prof.prof('term', uid=self._uid)
+
+      # if timeout is not None:
+      #     return not self._bridge_thread.is_alive()
+
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def alive(self):
+        return self._bridge_thread.is_alive()
 
 
 # ------------------------------------------------------------------------------

@@ -42,7 +42,7 @@ import logging
 
 from   .atfork    import atfork
 from   .misc      import get_env_ns       as ru_get_env_ns
-from   .misc      import import_module    as ru_import_module
+from   .debug     import import_module    as ru_import_module
 from   .config    import DefaultConfig
 from   .singleton import Singleton
 
@@ -77,7 +77,7 @@ class _LoggerRegistry(object, metaclass=Singleton):
                 logger = logger.parent
 
     def close_all(self):
-        # FIXME: add `atexit` handler
+
         for logger in self._registry:
             while logger:
                 for handler in logger.handlers:
@@ -269,11 +269,11 @@ class Logger(object):
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']
 
-        formatter = logging.Formatter('%(asctime)s: '
-                                      '%(name)-20s: '
-                                      '%(processName)-32s: '
-                                      '%(threadName)-15s: '
-                                      '%(levelname)-8s: '
+        formatter = logging.Formatter('%(created).3f : '
+                                      '%(name)-20s : '
+                                      '%(process)-5d : '
+                                      '%(thread)-5d : '
+                                      '%(levelname)-8s : '
                                       '%(message)s')
 
         # add a handler for each targets (using the same format)
