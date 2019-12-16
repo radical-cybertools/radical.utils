@@ -30,8 +30,8 @@ _use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 # ------------------------------------------------------------------------------
 # define the Poller factory.  No idea why the Poller object is not directly
 # exposed in the `select` module... :/
-def poll(logger=None):
-    return (Poller(logger))
+def poll(log=None):
+    return (Poller(log))
 
 
 # ------------------------------------------------------------------------------
@@ -54,9 +54,9 @@ if _use_pypoll:
         with our own, select based implementation.
         '''
 
-        def __init__(self, logger=None):
+        def __init__(self, log=None):
 
-            self._log  = logger
+            self._log  = log
             self._poll = select.poll()
 
 
@@ -127,9 +127,9 @@ else:
 
         # ----------------------------------------------------------------------
         #
-        def __init__(self, logger=None):
+        def __init__(self, log=None):
 
-            self._log        = logger
+            self._log        = log
             self._lock       = mt.RLock()
             self._registered = {POLLIN  : list(),
                                 POLLOUT : list(),

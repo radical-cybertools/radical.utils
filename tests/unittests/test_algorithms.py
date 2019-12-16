@@ -12,8 +12,12 @@ def test_lazy_bisect():
         def __init__(self, uid):
             self.uid = uid
 
-        def __cmp__(self, other):
-            return cmp(self.uid, other.uid)
+        def __lt__(self, other): return self.uid <  other.uid
+        def __gt__(self, other): return self.uid >  other.uid
+        def __le__(self, other): return self.uid <= other.uid
+        def __ge__(self, other): return self.uid >= other.uid
+        def __eq__(self, other): return self.uid == other.uid
+        def __ne__(self, other): return self.uid != other.uid
     # -------------------------------------
 
     failed = list()

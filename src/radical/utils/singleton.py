@@ -55,7 +55,7 @@ def _atfork_child():
     _singleton_lock = threading.RLock()
 
 
-if 'RADICAL_UTILS_NOATFORK' not in os.environ:
+if 'RADICAL_UTILS_PATCHATFORK' in os.environ:
     atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 
