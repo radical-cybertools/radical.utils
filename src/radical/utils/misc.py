@@ -10,6 +10,7 @@ import itertools
 import netifaces
 
 from .         import url       as ruu
+from .modules  import import_module
 from .ru_regex import ReString
 
 
@@ -753,8 +754,13 @@ def stack():
             if mbase.startswith('_'):
                 continue
 
-            try:    ret['radical'][mname] = import_module(mname).version_detail
-            except: ret['radical'][mname] = '?'
+            try:
+                ret['radical'][mname] = import_module(mname).version_detail
+            except Exception as e:
+                if 'RADICAL_DEBUG' in os.environ:
+                    ret['radical'][mname] = str(e)
+                else:
+                    ret['radical'][mname] = '?'
 
     return ret
 
