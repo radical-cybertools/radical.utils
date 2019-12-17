@@ -746,7 +746,13 @@ def stack():
     for mpath in glob.glob('%s/*' % rpath):
 
         if os.path.isdir(mpath):
-            mname = 'radical.%s' % os.path.basename(mpath)
+
+            mbase = os.path.basename(mpath)
+            mname = 'radical.%s' % mbase
+
+            if mbase.startswith('_'):
+                continue
+
             try:    ret['radical'][mname] = import_module(mname).version_detail
             except: ret['radical'][mname] = '?'
 
