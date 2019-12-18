@@ -855,23 +855,23 @@ def rec_makedir(target):
 def mktar(tarname, fnames=None, data=None):
     '''
     Create a tarfile at the given `tarname`, and pack all files given in
-    `fnames` into it, and lso pack any `data` blobs.
+    `fnames` into it, and also pack any `data` blobs.
 
     `fnames` is expected to be list, where each element is either a string
     pointing to a file to be added under that name, or a tuple where the first
     element points again to the file to be packed, and the second element
     specifies the name under which the file should be packed into the archive.
+    And OSError will be raised if the file does not exist.
 
-    `data` is expected to
-    be a list of tuples, where the first element is a set of bytes comprising
-    the data to be written into the archive, and the second element again
-    specifies the name of the tarred file.
+    `data` is expected to be a list of tuples, where the first element is a set
+    of bytes comprising the data to be written into the archive, and the second
+    element again specifies the name of the tarred file.
 
-    Note that this method always create gzip'ed tarfiles, but will never change
+    Note that this method always create bzip'ed tarfiles, but will never change
     the `tarname` to reflect that.
     '''
 
-    tar = tarfile.open(tarname, "w:gz")
+    tar = tarfile.open(tarname, "w:bz2")
     if fnames:
         for element in fnames:
             if isinstance(basestring, element):
