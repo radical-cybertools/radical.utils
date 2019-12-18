@@ -886,7 +886,7 @@ def mktar(tarname, fnames=None, data=None):
     tar = tarfile.open(tarname, "w:bz2")
     if fnames:
         for element in fnames:
-            if isinstance(basestring, element):
+            if isinstance(str, element):
                 tar.add(element)
             else:
                 src, tgt = element
