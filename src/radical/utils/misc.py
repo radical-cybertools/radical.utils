@@ -12,6 +12,7 @@ import itertools
 import netifaces
 
 from .         import url       as ruu
+from .modules  import import_module
 from .ru_regex import ReString
 
 
@@ -748,9 +749,20 @@ def stack():
     for mpath in glob.glob('%s/*' % rpath):
 
         if os.path.isdir(mpath):
-            mname = 'radical.%s' % os.path.basename(mpath)
-            try:    ret['radical'][mname] = import_module(mname).version_detail
-            except: ret['radical'][mname] = '?'
+
+            mbase = os.path.basename(mpath)
+            mname = 'radical.%s' % mbase
+
+            if mbase.startswith('_'):
+                continue
+
+            try:
+                ret['radical'][mname] = import_module(mname).version_detail
+            except Exception as e:
+                if 'RADICAL_DEBUG' in os.environ:
+                    ret['radical'][mname] = str(e)
+                else:
+                    ret['radical'][mname] = '?'
 
     return ret
 
