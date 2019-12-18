@@ -1,9 +1,4 @@
 
-__author__    = "Radical.Utils Development Team (Andre Merzky, Matteo Turilli)"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
-
-
 import os
 import sys
 import string
@@ -164,49 +159,26 @@ class Reporter(object):
         self._prog_pos = 0
         self._prog_off = 0
 
+        C = 'color'
+        S = 'style'
+        G = 'segment'
+
         self._pos      = 0
-        self._settings = {'title'    : {'color'   : self.TITLE,
-                                        'style'   : 'ELMLE',
-                                        'segment' : self.DOUBLE
-                                       },
-                          'header'   : {'color'   : self.HEADER,
-                                        'style'   : 'ELME',
-                                        'segment' : self.SINGLE
-                                       },
-                          'info'     : {'color'   : self.INFO,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'idle'     : {'color'   : self.IDLE,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'progress' : {'color'   : self.PROGRESS,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'ok'       : {'color'   : self.OK,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'warn'     : {'color'   : self.WARN,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'error'    : {'color'   : self.ERROR,
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       },
-                          'plain'    : {'color'   : '',
-                                        'style'   : 'M',
-                                        'segment' : self.EMPTY
-                                       }
-                         }
+        self._settings = {
+            'title'    : {C: self.TITLE    , S: 'ELMLE' , G: self.DOUBLE},
+            'header'   : {C: self.HEADER   , S: 'ELME'  , G: self.SINGLE},
+            'info'     : {C: self.INFO     , S: 'M'     , G: self.EMPTY },
+            'idle'     : {C: self.IDLE     , S: 'M'     , G: self.EMPTY },
+            'progress' : {C: self.PROGRESS , S: 'M'     , G: self.EMPTY },
+            'ok'       : {C: self.OK       , S: 'M'     , G: self.EMPTY },
+            'warn'     : {C: self.WARN     , S: 'M'     , G: self.EMPTY },
+            'error'    : {C: self.ERROR    , S: 'M'     , G: self.EMPTY },
+            'plain'    : {C: ''            , S: 'M'     , G: self.EMPTY },
+        }
 
         if not self._use_color:
             for k in self._settings:
                 self._settings[k]['color'] = ''
-
 
         self._idle_sequence = '/-\\|'
         self._idle_pos      = dict()
@@ -259,39 +231,31 @@ class Reporter(object):
         #   * '<<' will insert a line break if the position is not already on
         #     the beginning of a line
         #
-      # print "[%s:%s]" % (self.__hash__(), self._pos),
         slash_f  = msg.find('>>')
         if slash_f >= 0:
             copy   = msg[slash_f + 1:].strip()
             spaces = self._line_len - self._pos - len(copy) + 1  # '>>'
-            if  spaces < 0:
-                spaces = 0
-            msg = msg.replace('>>', spaces * ' ')
+            spaces = max(0, spaces)
+            msg    = msg.replace('>>', spaces * ' ')
 
         slash_cr = msg.find('<<')
         if slash_cr >= 0:
-          # print "{%s:%s}" % (self.__hash__(), self._pos),
             if self._pos + slash_cr > 0:
                 spaces = self._line_len - self._pos - 1
-                msg = msg.replace('<<', '%s\\\n' % (spaces * ' '))
+                msg    = msg.replace('<<', '%s\\\n' % (spaces * ' '))
             else:
                 msg = msg.replace('<<', '')
 
         mlen  = len([x for x in msg if x in string.printable])
         mlen -= msg.count('\b')
 
-      # print "<%s>" % (self._pos),
         # find the last \n and then count how many chars we are writing after it
         slash_n = msg.rfind('\n')
-        if slash_n >= 0:
-          # print "(%s" % (self._pos),
-            self._pos = mlen - slash_n - 1
-          # print ": %s)" % (self._pos),
-        else:
-          # print "'%s'[%s" % (msg, self._pos),
-            self._pos += mlen
-          # print ": %s]" % (self._pos),
 
+        if slash_n >= 0:
+            self._pos = mlen - slash_n - 1
+        else:
+            self._pos += mlen
 
         for stream in self._streams:
             if self._use_color:
@@ -317,7 +281,7 @@ class Reporter(object):
             msg = ''
 
         if not settings:
-            settings = {}
+            settings = dict()
 
         color   = settings.get('color',   '')
         style   = settings.get('style',   'M')
