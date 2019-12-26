@@ -40,12 +40,11 @@ import threading
 import colorama
 import logging
 
-
-from   .atfork  import atfork
-from   .misc    import get_env_ns       as ru_get_env_ns
-from   .misc    import import_module    as ru_import_module
-from   .config  import DefaultConfig
-
+from   .atfork    import atfork
+from   .misc      import get_env_ns       as ru_get_env_ns
+from   .debug     import import_module    as ru_import_module
+from   .config    import DefaultConfig
+from   .singleton import Singleton
 
 
 CRITICAL = logging.CRITICAL
@@ -59,10 +58,9 @@ OFF      = -1
 
 # ------------------------------------------------------------------------------
 #
-class _LoggerRegistry(object):
+class _LoggerRegistry(object, metaclass=Singleton):
 
     from .singleton import Singleton
-    __metaclass__ = Singleton
 
     def __init__(self):
         self._registry = list()
@@ -79,6 +77,7 @@ class _LoggerRegistry(object):
                 logger = logger.parent
 
     def close_all(self):
+
         for logger in self._registry:
             while logger:
                 for handler in logger.handlers:
@@ -158,6 +157,7 @@ class ColorStreamHandler(logging.StreamHandler):
                                           self.colours['RESET']))
         else:
             self.stream.write(self.format(record) + self._term)
+        self.stream.flush()
 
 
 # ------------------------------------------------------------------------------
@@ -237,7 +237,7 @@ class Logger(object):
             if not targets:
                 targets = ru_def['log_tgt']
 
-        if isinstance(targets, basestring):
+        if isinstance(targets, str):
             targets = targets.split(',')
 
         if not isinstance(targets, list):
@@ -264,26 +264,28 @@ class Logger(object):
                    '-1' : 'OFF'}
         level   = levels.get(str(level), str(level)).upper()
         warning = None
-        if level not in levels.values():
+        if level not in list(levels.values()):
             warning = "invalid loglevel '%s', use '%s'" \
                                       % (level, ru_def['log_lvl'])
             level   = ru_def['log_lvl']
 
-        formatter = logging.Formatter('%(asctime)s: '
-                                      '%(name)-20s: '
-                                      '%(processName)-32s: '
-                                      '%(threadName)-15s: '
-                                      '%(levelname)-8s: '
+        formatter = logging.Formatter('%(created).3f : '
+                                      '%(name)-20s : '
+                                      '%(process)-5d : '
+                                      '%(thread)-5d : '
+                                      '%(levelname)-8s : '
                                       '%(message)s')
 
         # add a handler for each targets (using the same format)
+        p = path
+        n = name
         for t in targets:
             if   t in ['0', 'null']       : h = logging.NullHandler()
             elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
             elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
-            elif t in ['.']               : h = FSHandler("%s/%s.log" % (path, name))
+            elif t in ['.']               : h = FSHandler("%s/%s.log" % (p, n))
             elif t.startswith('/')        : h = FSHandler(t)
-            else                          : h = FSHandler("%s/%s"     % (path, t))
+            else                          : h = FSHandler("%s/%s"     % (p, t))
 
             h.setFormatter(formatter)
             h.name = self._logger.name
@@ -293,7 +295,7 @@ class Logger(object):
             self._logger.setLevel(level)
 
         if warning:
-            self._logger.warn(warning)
+            self._logger.warning(warning)
 
         # if `name` points to module, try to log its version info
         if verbose:
@@ -328,6 +330,9 @@ class Logger(object):
         self._path    = path
         self._level   = level
         self._targets = targets
+
+        # backward compatibility
+        self._logger.warn = self._logger.warning
 
 
     # --------------------------------------------------------------------------

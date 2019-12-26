@@ -8,7 +8,7 @@ import threading  as mt
 import subprocess as sp
 
 from .constants import RUNNING, DONE, FAILED
-from .misc      import is_str
+from .misc      import is_string
 
 
 # ------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     '''
 
     # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
+    if not shell and is_string(cmd): cmd = shlex.split(cmd)
 
     if stdout: stdout = sp.PIPE
     else     : stdout = None
@@ -34,7 +34,7 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
     else:
         stdout, stderr = p.communicate()
         ret            = p.returncode
-    return stdout, stderr, ret
+    return stdout.decode("utf-8"), stderr.decode("utf-8"), ret
 
 
 # ------------------------------------------------------------------------------
@@ -50,20 +50,20 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
     if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
 
     # openfile descriptors for I/O, if needed
-    if is_str(stdout): stdout = open(stdout, 'w')
-    if is_str(stderr): stderr = open(stderr, 'w')
+    if is_string(stdout): stdout = open(stdout, 'w')
+    if is_string(stderr): stderr = open(stderr, 'w')
 
     # convert string into arg list if needed
-    if not shell and is_str(cmd): cmd = shlex.split(cmd)
+    if not shell and is_string(cmd): cmd = shlex.split(cmd)
 
     sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
 
-    return 
+    return
 
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
+def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
     '''
 
     Run a command, and capture stdout/stderr if so flagged.  The call will
@@ -96,45 +96,58 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
     #       python applications.
     assert(False), 'this is broken for python apps'
 
-
     # --------------------------------------------------------------------------
-    #
-    class _PROC(object):
+    class _P(object):
+        '''
+        internal representation of a process
+        '''
 
         # ----------------------------------------------------------------------
-        def __init__(self, cmd, stdout, stderr, shell):
+        def __init__(self, cmd, stdin, stdout, stderr, shell):
 
             cmd = cmd.strip()
 
+            self._in_c  = bool(stdin)                # flag stdin capture
             self._out_c = bool(stdout)               # flag stdout capture
             self._err_c = bool(stderr)               # flag stderr capture
 
+            self._in_r , self._in_w  = os.pipe()     # put stdin  to   child
             self._out_r, self._out_w = os.pipe()     # get stdout from child
             self._err_r, self._err_w = os.pipe()     # get stderr from child
 
+            self._in_o  = os.fdopen(self._in_r)      # file object for in  ep
             self._out_o = os.fdopen(self._out_r)     # file object for out ep
             self._err_o = os.fdopen(self._err_r)     # file object for err ep
 
-            self._out_q = queue.Queue()              # put stdout to parent
-            self._err_q = queue.Queue()              # put stderr to parent
+            self._in_q  = queue.Queue()              # get stdin  from parent
+            self._out_q = queue.Queue()              # put stdout to   parent
+            self._err_q = queue.Queue()              # put stderr to   parent
 
-            if is_str(stdout): self._out_f = open(stdout, 'w')
-            else             : self._out_f = None
+            if is_string(stdout): self._out_f = open(stdout, 'w')
+            else                : self._out_f = None
 
-            if is_str(stderr): self._err_f = open(stderr, 'w')
-            else             : self._err_f = None
+            if is_string(stderr): self._err_f = open(stderr, 'w')
+            else                : self._err_f = None
 
             self.state = RUNNING
-            self._proc = sp.Popen(cmd, stdout=self._out_w, stderr=self._err_w,
-                                  shell=shell, bufsize=1)
+            self._proc = sp.Popen(cmd, stdin=self._in_r,
+                                       stdout=self._out_w,
+                                       stderr=self._err_w,
+                                       shell=shell,
+                                       bufsize=1)
 
-            t = mt.Thread(target=self._watch) 
+            t = mt.Thread(target=self._watch)
             t.daemon = True
             t.start()
 
             self.rc = None  # return code
 
 
+        @property
+        def stdin(self):
+            if not self._in_c:
+                raise RuntimeError('stdin not captured')
+            return self._in_q
 
         @property
         def stdout(self):
@@ -161,6 +174,8 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
 
+        def kill(self):
+            self._proc.terminate()
 
         # ----------------------------------------------------------------------
         def _watch(self):
@@ -169,9 +184,15 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
             poller.register(self._out_r, select.POLLIN | select.POLLHUP)
             poller.register(self._err_r, select.POLLIN | select.POLLHUP)
 
-            # try forever to read stdout and stderr, stop only when either
-            # signals that process died
+            # try forever to read stdin, stdout and stderr, stop only when
+            # either signals that process (parent or child) died
             while True:
+
+                # check for input
+                data = self._in_q.get_nowait()
+                if data:
+                    self._out_o.write(data)
+                    self._out_f.write(data)
 
                 active = False
                 fds    = poller.poll(100)  # timeout configurable (ms)
@@ -179,7 +200,7 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                 for fd,mode in fds:
 
                     if mode & select.POLLHUP:
-                        # fd died - #grab data from other fds
+                        # fd died - grab data from other fds
                         continue
 
                     if fd    == self._out_r:
@@ -216,10 +237,9 @@ def sh_callout_async(cmd, stdout=True, stderr=False, shell=False):
                     if self._err_q: self._err_q.join()     # ensure reads
 
                     return  # finishes thread
-
     # --------------------------------------------------------------------------
 
-    return _PROC(cmd=cmd, stdout=stdout, stderr=stderr, shell=shell)
+    return _P(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
 
 
 # ------------------------------------------------------------------------------

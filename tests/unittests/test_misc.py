@@ -14,6 +14,20 @@ import radical.utils as ru
 
 # ------------------------------------------------------------------------------
 #
+def test_import_file():
+
+    syms = ru.import_file('%s/data/import_file.py' % os.path.dirname(__file__))
+
+    assert(syms['functions']['foo'](1))
+    assert(syms['functions']['foo'](4, 4))
+
+    f = syms['classes']['Foo']()
+    assert(f.foo(1))
+    assert(f.foo(4, 4))
+
+
+# ------------------------------------------------------------------------------
+#
 def test_round_to_base():
 
     assert(ru.round_to_base(1.5, 2) == 2)
@@ -50,18 +64,18 @@ def test_sh_callout():
 
     out, err, ret = ru.sh_callout('echo TRUE')
     assert(out == 'TRUE\n'),  out
-    assert(err == ''),      err
-    assert(ret == 0),       ret
+    assert(err == ''),        err
+    assert(ret == 0),         ret
 
     out, err, ret = ru.sh_callout('false')
-    assert(out == ''),      out
-    assert(err == ''),      err
-    assert(ret == 1),       ret
+    assert(out == ''),        out
+    assert(err == ''),        err
+    assert(ret == 1),         ret
 
     out, err, ret = ru.sh_callout('echo FALSE 1>&2; exit 2', shell=True)
-    assert(out == ''),      out
+    assert(out == ''),        out
     assert(err == 'FALSE\n'), err
-    assert(ret == 2),       ret
+    assert(ret == 2),         ret
 
 
 # ------------------------------------------------------------------------------
@@ -73,17 +87,17 @@ def test_sh_callout_async():
 #     import t ime
 #     t_0 = time.time()
 #     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
-# 
+#
 #     assert(p.stdout.get() == 'TRUE')
 #     assert(p.state        == ru.RUNNING)
-# 
+#
 #     t_1 = time.time()
-# 
+#
 #     assert(p.stdout.get() is None)
 #     assert(p.state        == ru.DONE)
-# 
+#
 #     t_2 = time.time()
-# 
+#
 #     assert(t_1 - t_0 < 0.1)
 #     assert(t_2 - t_0 > 1.0)
 
@@ -108,32 +122,34 @@ def test_get_env_ns():
 #
 def test_expand_env():
 
-    import os
-
-    noenv = {'FOO' : 'foo'}
+    noenv = {'BIZ' : 'biz'}
     env   = {'BAR' : 'bar'}
 
-    val = os.environ.get('BAR')
-    if val is None: tmp = 'buz'
-    else          : tmp = val
-    if val is None: val = ''
+    os.environ['BAR'] = 'bar'
+    os.environ['BIZ'] = 'biz'
 
-    tc = {'foo_$BAR.baz'      :['foo_%s.baz' % val,
-                                'foo_bar.baz',
-                                'foo_.baz'   ],
-          'foo_${BAR}_baz'    :['foo_%s_baz' % val,
-                                'foo_bar_baz',
-                                'foo__baz'   ],
-          'foo_${BAR:buz}_baz':['foo_%s_baz' % tmp,
-                                'foo_bar_baz',
-                                'foo_buz_baz'],
+    bar = os.environ.get('BAR')
+    biz = os.environ.get('BIZ')
+
+    tc = {'${BAR}'             : [bar,                  # os.environ
+                                  'bar',                # env
+                                  None],                # noenv
+          'foo_${BAR}_baz'     : ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo__baz'   ],
+          'foo_${BAR:buz}_baz' : ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo_buz_baz'],
+          'foo_${BAR:$BIZ}_baz': ['foo_%s_baz' % bar,
+                                  'foo_bar_baz',
+                                  'foo_%s_baz' % biz],
          }
 
     # test string expansion (and also create list and dict for other tests
     l = list()
     d = dict()
     i = 0
-    for k,v in tc.iteritems():
+    for k,v in tc.items():
         assert(ru.expand_env(k       ) == v[0])
         assert(ru.expand_env(k,   env) == v[1])
         assert(ru.expand_env(k, noenv) == v[2])
@@ -164,13 +180,13 @@ def test_expand_env():
     ru.expand_env(d1, env)
     ru.expand_env(d2, noenv)
 
-    for k,v in d0.iteritems(): assert(v == tc[d[k]][0])
-    for k,v in d1.iteritems(): assert(v == tc[d[k]][1])
-    for k,v in d2.iteritems(): assert(v == tc[d[k]][2])
+    for k,v in d0.items(): assert(v == tc[d[k]][0])
+    for k,v in d1.items(): assert(v == tc[d[k]][1])
+    for k,v in d2.items(): assert(v == tc[d[k]][2])
 
     # test `ignore_missing` flag
     env = {'BAR' : 'bar'}
-    src = 'foo$FIZ.baz'
+    src = 'foo${FIZ}.baz'
     tgt = 'foo.baz'
     assert(ru.expand_env(src, env                     ) == tgt)
     assert(ru.expand_env(src, env, ignore_missing=True) == tgt)
@@ -179,11 +195,11 @@ def test_expand_env():
         ru.expand_env(src, env, ignore_missing=False)
 
 
-
 # ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
+    test_import_file()
     test_round_to_base()
     test_round_upper_bound()
     test_sh_callout()

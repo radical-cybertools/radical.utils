@@ -6,7 +6,7 @@
     https://github.com/radical-cybertools/radical.utils/ \
             issues?q=is%3Aissue+is%3Aopen+
 
-
+            
 1.0.0  Release                                                        2019-12-24
 --------------------------------------------------------------------------------
 
@@ -21,6 +21,24 @@
   - implement generic code importer (for RX alg extraction)
   - implement progress bar for reporter
   - testing, flaking, linting and travis improvements
+
+      
+0.90.3 Hotfix                                                         2019-09-06
+--------------------------------------------------------------------------------
+
+  - string byteification
+
+
+0.90.2 Hotfix                                                         2019-09-06
+--------------------------------------------------------------------------------
+
+  - fix radical-stack inspection
+
+
+0.90.1 Alpha-release                                                  2019-08-25
+--------------------------------------------------------------------------------
+
+  - Move to Python-3
 
 
 0.72.0 Release                                                        2019-09-11

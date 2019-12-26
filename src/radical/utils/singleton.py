@@ -7,32 +7,34 @@ __license__   = "MIT"
 import os
 import threading
 
-from .atfork import *
+from .atfork import atfork
 
 
 _singleton_lock = threading.RLock ()
 
 
-""" Provides a Singleton metaclass.  """
+''' Provides a Singleton metaclass.  '''
+
 
 # ------------------------------------------------------------------------------
 #
-class Singleton (type) :
-    """ 
+class Singleton (type):
+    '''
     A metaclass to 'tag' other classes as singleton::
 
         class MyClass(BaseClass):
             __metaclass__ = Singleton
 
-    """
+    '''
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
 
-        with _singleton_lock :
+        with _singleton_lock:
 
             if  cls not in cls._instances:
-                cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+                cls._instances[cls] = super(Singleton, cls).__call__(*args,
+                                                                     **kwargs)
 
             return cls._instances[cls]
 
@@ -42,14 +44,18 @@ class Singleton (type) :
 def _atfork_prepare():
     pass
 
+
 def _atfork_parent():
     pass
 
+
 def _atfork_child():
     # release lock
+    global _singleton_lock
     _singleton_lock = threading.RLock()
 
-if not 'RADICAL_UTILS_NOATFORK' in os.environ:
+
+if 'RADICAL_UTILS_PATCHATFORK' in os.environ:
     atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 

@@ -1,17 +1,18 @@
 
-import re
 import os
 import sys
 import glob
 import time
 import errno
 import socket
-import pkgutil
+import tarfile
 import datetime
+import tempfile
 import itertools
 import netifaces
 
 from .         import url       as ruu
+from .modules  import import_module
 from .ru_regex import ReString
 
 
@@ -88,7 +89,7 @@ def mongodb_connect(dburl, default_dburl=None):
     try:
         import pymongo
     except ImportError:
-        msg  = " \n\npymongo is not available -- install radical.utils with: \n\n"
+        msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
@@ -114,7 +115,7 @@ def mongodb_connect(dburl, default_dburl=None):
         for dbname in mongo.database_names():
             try:
                 mongo[dbname].authenticate(user, pwd)
-            except Exception:
+            except:
                 pass
 
     return mongo, db, dbname, cname, pname
@@ -157,13 +158,13 @@ def parse_file_staging_directives(directives):
 
     for directive in directives:
 
-        if  not is_str(directive):
+        if  not is_string(directive):
             raise TypeError("file staging directives muct by of type string, "
                             "not %s" % type(directive))
 
         rs = ReString(directive)
 
-        if  rs // '^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
+        if  rs // r'^(?P<one>.+?)\s*(?P<op><|<<|>|>>)\s*(?P<two>.+)$':
             res = rs.get()
             ret.append([res['one'], res['two'], res['op']])
 
@@ -231,7 +232,7 @@ def cluster_list(iterable, n):
          ...
     '''
 
-    return itertools.izip(*[iter(iterable)] * n)
+    return zip(*[iter(iterable)] * n)
 
 
 # ------------------------------------------------------------------------------
@@ -279,10 +280,10 @@ def round_to_base(value, base=1):
 #
 def round_upper_bound(value):
     '''
-    This method expects an integer or float value, and will return an integer upper
-    bound suitable for example to define plot ranges.  The upper bound is the
-    smallest value larger than the input value which is a multiple of 1, 2 or
-    5 times the order of magnitude (10**x) of the value.
+    This method expects an integer or float value, and will return an integer
+    upper bound suitable for example to define plot ranges.  The upper bound is
+    the smallest value larger than the input value which is a multiple of 1,
+    2 or 5 times the order of magnitude (10**x) of the value.
     '''
 
     bound = 0
@@ -303,65 +304,116 @@ def round_upper_bound(value):
 
 # ------------------------------------------------------------------------------
 #
-def islist(thing):
+def is_list(data):
     '''
-    return True if a thing is a list thing, False otherwise
+    return True if given data are a `list`, `False` otherwise
     '''
 
-    return isinstance(thing, list)
+    return isinstance(data, list)
 
 
 # ------------------------------------------------------------------------------
 #
-def tolist(thing):
+def as_list(data):
     '''
-    return a non-list thing into a list thing
+    return non-list data into a list.
     '''
 
-    if islist(thing):
-        return thing
-    return [thing]
+    if   data is None : return []
+    elif is_list(data): return data
+    else              : return [data]
 
 
 # ------------------------------------------------------------------------------
 #
-is_list = islist  # FIXME
-to_list = tolist  # FIXME
+def to_type(data):
+
+    if not isinstance(data, str):
+        return data
+
+    try   : return(int(data))
+    except: pass
+
+    try   : return(float(data))
+    except: pass
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
+def is_seq(data):
+    '''
+    tests if the given data is a sequence (but not a string)
+    '''
+    return hasattr(data, '__iter__') and not is_string(data)
+
+
+# ------------------------------------------------------------------------------
+#
+def is_string(data):
+    '''
+    tests if the given data are a `string` type
+    '''
+    return isinstance(data, str)
+
+
+# ------------------------------------------------------------------------------
+#
+def as_string(data):
+    '''
+    Make a best-effort attempt to convert bytes to strings.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
+    '''
+
+    if isinstance(data, dict):
+        return {as_string(k): as_string(v) for k,v in data.items()}
+
+    elif isinstance(data, list):
+        return [as_string(e) for e in data]
+
+    elif isinstance(data, bytes):
+        return bytes.decode(data, 'utf-8')
+
+    else:
+        return data
+
+
+# ------------------------------------------------------------------------------
+#
 def is_str(s):
-    return isinstance(s, basestring)
+    return isinstance(s, str)
 
 
 # ------------------------------------------------------------------------------
 #
-# to keep RU 2.6 compatible, we provide import_module which works around some
-# quirks of __import__ when being used with dotted names. This is what the
-# python docs recommend to use.  This basically steps down the module path and
-# loads the respective submodule until arriving at the target.
-#
-# FIXME: should we cache this?
-#
-def import_module(name):
-
-    mod = __import__(name)
-    for s in name.split('.')[1:]:
-        mod = getattr(mod, s)
-    return mod
+def is_bytes(data):
+    '''
+    checks if the given data are of types `bytes` or `bytearray`
+    '''
+    return isinstance(data, (bytes, bytearray))
 
 
 # ------------------------------------------------------------------------------
-#
-# as import_module, but without the import part :-P
-#
-# FIXME: should we cache this?
-#
-def find_module(name):
+# thanks to
+# http://stackoverflow.com/questions/956867/#13105359
+def as_bytes(data):
+    '''
+    Make a best-effort attempt to convert strings to bytes.  Iterate through
+    lists and dicts, but leave all other datatypes alone.
+    '''
 
-    package = pkgutil.get_loader(name)
+    if isinstance(data, dict):
+        return {as_bytes(k): as_bytes(v) for k,v in data.items()}
 
-    if not package:
-        return None
+    elif isinstance(data, list):
+        return [as_bytes(e) for e in data]
 
-    return package.filename
+    elif isinstance(data, str):
+        return str.encode(data, 'utf-8')
+
+    else:
+        return data
 
 
 # ------------------------------------------------------------------------------
@@ -374,7 +426,7 @@ def get_hostname():
     Look up the hostname
     '''
 
-    global _hostname
+    global _hostname                                     # pylint: disable=W0603
     if not _hostname:
 
         if socket.gethostname().find('.') >= 0:
@@ -390,13 +442,13 @@ def get_hostname():
 _hostip = None
 
 
-def get_hostip(req=None, logger=None):
+def get_hostip(req=None, log=None):
     '''
     Look up the ip number for a given requested interface name.
     If interface is not given, do some magic.
     '''
 
-    global _hostip
+    global _hostip                                       # pylint: disable=W0603
     if _hostip:
         return _hostip
 
@@ -428,40 +480,40 @@ def get_hostip(req=None, logger=None):
                   'sit0'     # ?
                  ]
 
-    all  = netifaces.interfaces()
-    rest = [iface for iface in all
-                   if iface not in req and
-                      iface not in white_list and
-                      iface not in black_list]
+    ifaces = netifaces.interfaces()
+    rest   = [iface for iface in ifaces
+                     if iface not in req        and
+                        iface not in white_list and
+                        iface not in black_list]
 
     preflist = req + white_list + rest
 
     for iface in preflist:
 
-        if iface not in all:
-            if logger:
-                logger.debug('check iface %s: does not exist', iface)
+        if iface not in ifaces:
+            if log:
+                log.debug('check iface %s: does not exist', iface)
             continue
 
         info = netifaces.ifaddresses(iface)
         if AF_INET not in info:
-            if logger:
-                logger.debug('check iface %s: no information', iface)
+            if log:
+                log.debug('check iface %s: no information', iface)
             continue
 
         if not len(info[AF_INET]):
-            if logger:
-                logger.debug('check iface %s: insufficient information', iface)
+            if log:
+                log.debug('check iface %s: insufficient information', iface)
             continue
 
         if not info[AF_INET][0].get('addr'):
-            if logger:
-                logger.debug('check iface %s: disconnected', iface)
+            if log:
+                log.debug('check iface %s: disconnected', iface)
             continue
 
         ip = info[AF_INET][0].get('addr')
-        if logger:
-            logger.debug('check iface %s: ip is %s', iface, ip)
+        if log:
+            log.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
             _hostip = ip
@@ -561,25 +613,28 @@ def expand_env(data, env=None, ignore_missing=True):
     a copy of scalar strings, as it seems to be custom in Python.  Other data
     types are silently ignored and not altered.
 
-    The replacement in strings is performed for the following variable specs
+    The replacement in strings is performed for the following variable specs:
 
-        assume  `export BAR=bar`:
+        assume  `export BAR=bar BIZ=biz`:
 
-            $BAR      : foo_$BAR_baz   -> foo_bar_baz
-            ${BAR}    : foo_${BAR}_baz -> foo_bar_baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_bar_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo_bar_baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_bar_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=True`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=True`
 
-            $BAR      : foo_$BAR_baz   -> foo__baz
-            ${BAR}    : foo_${BAR}_baz -> foo__baz
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> foo__baz
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BUZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
 
-        assume `unset BAR`, `ignore_missing=False`
+        assume `unset BAR; export BIZ=biz`, `ignore_missing=False`
 
-            $BAR      : foo_$BAR_baz   -> ValueError('cannot expand $BAR')
-            ${BAR}    : foo_${BAR}_baz -> ValueError('cannot expand $BAR')
-            $(BAR:buz): foo_${BAR}_baz -> foo_buz_baz
+            ${BAR}     : foo_${BAR}_baz      -> ValueError('cannot expand $BAR')
+            ${BAR:buz} : foo_${BAR:buz}_baz  -> foo_buz_baz
+            ${BAR:$BIZ}: foo_${BAR:$BIZ}_baz -> foo_biz_baz
+
+    The method will also opportunistically convert strings to integers or
+    floats if they are formatted that way and contain no other characters.
     '''
 
     # no data: None, empty dict / sequence / string
@@ -589,28 +644,24 @@ def expand_env(data, env=None, ignore_missing=True):
     # dict type
     elif isinstance(data, dict):
 
-        for k,v in data.iteritems():
+        for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)
         return data
 
-    # sequence types: list, set, ...
-    elif hasattr(data, '__iter__'):
+    # sequence types: list, set, tuple - but not string
+    elif is_seq(data):
 
         for idx, elem in enumerate(data):
             data[idx] = expand_env(elem, env, ignore_missing)
         return data
 
     # all other non-string types are left alone
-    elif not isinstance(data, basestring):
+    elif not is_string(data):
         return data
 
-    # handle string expansion, which is what we really care about
     if '$' not in data:
+        # nothing to expand
         return data
-
-    # convert from `abc.$FOO.def` to `abc${FOO}.def` to simplify parsing (only
-    # one version we need to search for)
-    data = re.sub(r"\$([A-Za-z0-9_]+)", r"${\1}", data)
 
     # fall back to process env if no other expansion dict is specified
     if not env:
@@ -626,7 +677,7 @@ def expand_env(data, env=None, ignore_missing=True):
         # idea     :   pre     ${  Vari_ABLE            : val     } post
         # captures :  (   )(?    (                  )(?  (     ))  )(  )
         # indexes  :  1          2                       3          4
-        with data // r'(.*?)(?:\${([A-Z][a-zA-Z0-9_]+)(?::([^}]+))?})(.*)' \
+        with data // r'(.*?)(?:\${([a-zA-Z][a-zA-Z0-9_-]+)(?::([^}]+))?})(.*)' \
             as res:
 
             if not res:
@@ -645,14 +696,26 @@ def expand_env(data, env=None, ignore_missing=True):
             if val  is None: val  = ''
             if post is None: post = ''
 
+            # support env expansion of val, as in
+            #   LOGDIR : "${RCT_LOGDIR:$PWD}"
+            if val.startswith('$'):
+                val = env.get(val[1:], '')
+
             val = env.get(key, val)
+
+            if key and not pre and not post and not val:
+                # we had something to expand, and that expansion is all there is
+                # in the key, and the expand failed - then the result it not an
+                # empty string but None
+                return None
 
             ret += pre
             ret += val
 
             data = ReString(post)
 
-    return ret
+    # attempt string-to-type conversion (int and float detection only)
+    return to_type(ret)
 
 
 # ------------------------------------------------------------------------------
@@ -671,7 +734,14 @@ def stack():
           }
 
     import radical
-    rpath = radical.__path__
+    path = radical.__path__
+    if isinstance(path, list):
+        path = path[0]
+
+    if isinstance(path, str):
+        rpath = path
+    else:
+        rpath = path._path                               # pylint: disable=W0212
 
     if isinstance(rpath, list):
         rpath = rpath[0]
@@ -680,9 +750,19 @@ def stack():
 
         if os.path.isdir(mpath):
 
-            mname = 'radical.%s' % os.path.basename(mpath)
-            try:    ret['radical'][mname] = import_module(mname).version_detail
-            except: ret['radical'][mname] = '?'
+            mbase = os.path.basename(mpath)
+            mname = 'radical.%s' % mbase
+
+            if mbase.startswith('_'):
+                continue
+
+            try:
+                ret['radical'][mname] = import_module(mname).version_detail
+            except Exception as e:
+                if 'RADICAL_DEBUG' in os.environ:
+                    ret['radical'][mname] = str(e)
+                else:
+                    ret['radical'][mname] = '?'
 
     return ret
 
@@ -709,7 +789,8 @@ def get_size(obj, seen=None, strict=False):
     elif hasattr(obj, '__dict__'):
         size += get_size(obj.__dict__, seen, strict)
 
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+    elif hasattr(obj, '__iter__') and \
+        not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_size(i, seen, strict) for i in obj])
 
     return size
@@ -779,6 +860,47 @@ def rec_makedir(target):
             pass
         else:
             raise
+
+
+# ------------------------------------------------------------------------------
+#
+def mktar(tarname, fnames=None, data=None):
+    '''
+    Create a tarfile at the given `tarname`, and pack all files given in
+    `fnames` into it, and also pack any `data` blobs.
+
+    `fnames` is expected to be list, where each element is either a string
+    pointing to a file to be added under that name, or a tuple where the first
+    element points again to the file to be packed, and the second element
+    specifies the name under which the file should be packed into the archive.
+    And OSError will be raised if the file does not exist.
+
+    `data` is expected to be a list of tuples, where the first element is a set
+    of bytes comprising the data to be written into the archive, and the second
+    element again specifies the name of the tarred file.
+
+    Note that this method always create bzip'ed tarfiles, but will never change
+    the `tarname` to reflect that.
+    '''
+
+    tar = tarfile.open(tarname, "w:bz2")
+    if fnames:
+        for element in fnames:
+            if isinstance(str, element):
+                tar.add(element)
+            else:
+                src, tgt = element
+                tar.add(src, arcname=tgt)
+
+    if data:
+        for fname, fdata in data:
+            tmp_name, tmp_fd = tempfile.mkstemp()
+            tmp_fd.write(fdata)
+            tmp_fd.close()
+            tar.add(tmp_name, fname)
+            os.unlink(tmp_name)
+
+    tar.close()
 
 
 # ------------------------------------------------------------------------------

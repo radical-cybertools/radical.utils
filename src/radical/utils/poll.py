@@ -30,8 +30,8 @@ _use_pypoll = os.environ.get('RU_USE_PYPOLL', False)
 # ------------------------------------------------------------------------------
 # define the Poller factory.  No idea why the Poller object is not directly
 # exposed in the `select` module... :/
-def poll(logger=None):
-    return (Poller(logger))
+def poll(log=None):
+    return (Poller(log))
 
 
 # ------------------------------------------------------------------------------
@@ -54,25 +54,30 @@ if _use_pypoll:
         with our own, select based implementation.
         '''
 
-        def __init__(self, logger=None):
+        def __init__(self, log=None):
 
-          # self._log  = logger
+            self._log  = log
             self._poll = select.poll()
+
 
         def close(self):
             self._poll = None
+
 
         def register(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.register(fd, eventmask)
 
+
         def modify(self, fd, eventmask=None):
             assert(self._poll)
             return self._poll.modify(fd, eventmask)
 
+
         def unregister(self, fd):
             assert(self._poll)
             return self._poll.unregister(fd)
+
 
         def poll(self, timeout=None):
             assert(self._poll)
@@ -122,9 +127,9 @@ else:
 
         # ----------------------------------------------------------------------
         #
-        def __init__(self, logger=None):
+        def __init__(self, log=None):
 
-          # self._log        = logger
+            self._log        = log
             self._lock       = mt.RLock()
             self._registered = {POLLIN  : list(),
                                 POLLOUT : list(),
@@ -252,17 +257,16 @@ else:
                     elif hasattr(fd, 'read'):
                         try:
                             fd.read(0)
-                            fd.write('')
-                        except:
+                            fd.write(b'')
+                        except Exception:
                             hup = True
 
                     # socket
                     elif hasattr(fd, 'recv'):
                         try:
                             fd.recv(0)
-                            fd.send('')
-                        except Exception as e:
-                          # print 'check : error %s' % e
+                            fd.send(b'')
+                        except Exception:
                             hup = True
 
                     # we can't handle errors on other types

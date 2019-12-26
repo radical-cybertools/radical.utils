@@ -1,5 +1,5 @@
 [flake8]
-exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin,.eggs
+exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin
 max-complexity  = 10
 max-line-length = 80
 ignore          =
@@ -12,7 +12,7 @@ ignore          =
      # line too long
      E501,
      # whitespace before/after ...
-     E201, E203, E202, E231, E241, E211, E116, E127,
+     E203, E202, E231, E241, E211, E116, E127,
      # same indent
      E129,
      # comment indent not mod(4)
@@ -31,5 +31,8 @@ ignore          =
      C901,
      # Do not use bare 'except'
      E722,
-     # Line break after binary operator
-     W504
+     # allow line breaks after binary operators
+     W504,
+     # allow lambda assignment (used for partial callbacks)
+     E731
+

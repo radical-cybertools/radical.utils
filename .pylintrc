@@ -3,7 +3,7 @@
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
-extension-pkg-whitelist=
+extension-pkg-whitelist=zmq,netifaces,queue
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
@@ -36,7 +36,7 @@ suggestion-mode=yes
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
-unsafe-load-any-extension=no
+unsafe-load-any-extension=yes
 
 
 [MESSAGES CONTROL]
@@ -64,7 +64,6 @@ disable=not-context-manager,
         long-suffix,
         old-ne-operator,
         old-octal-literal,
-        import-star-module-level,
         non-ascii-bytes-literal,
         invalid-unicode-literal,
         raw-checker-failed,
@@ -73,8 +72,6 @@ disable=not-context-manager,
         locally-enabled,
         file-ignored,
         suppressed-message,
-        useless-suppression,
-        deprecated-pragma,
         apply-builtin,
         basestring-builtin,
         buffer-builtin,
@@ -97,7 +94,6 @@ disable=not-context-manager,
         dict-iter-method,
         dict-view-method,
         next-method-called,
-        metaclass-assignment,
         indexing-exception,
         raising-string,
         reload-builtin,
@@ -105,7 +101,6 @@ disable=not-context-manager,
         hex-method,
         nonzero-method,
         cmp-method,
-        input-builtin,
         round-builtin,
         intern-builtin,
         unichr-builtin,
@@ -122,10 +117,6 @@ disable=not-context-manager,
         invalid-str-codec,
         sys-max-int,
         bad-python3-import,
-        deprecated-string-function,
-        deprecated-str-translate-call,
-        deprecated-itertools-function,
-        deprecated-types-field,
         next-method-defined,
         dict-items-not-iterating,
         dict-keys-not-iterating,
@@ -139,13 +130,23 @@ disable=not-context-manager,
         C,
         R,
         relative-import,
-        bare-except
+        bare-except,
+        unnecessary-pass,
+        c-extension-no-member,
+        unbalanced-tuple-unpacking,               # FIXME
+        super-init-not-called,                    # FIXME
+        no-member,                                # FIXME
+        global-statement,
+        try-except-raise,
+        attribute-defined-outside-init
+
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-enable=c-extension-no-member
+enable=
 
 
 [REPORTS]
@@ -233,16 +234,7 @@ function-naming-style=snake_case
 #function-rgx=
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,
-           j,
-           k,
-           x, 
-           y, 
-           z,
-           e,
-           t,
-           ex,
-           _
+good-names=i, j, k, l, x, y, z, e, t, _
 
 # Include a hint for the correct naming format with invalid-name
 include-naming-hint=no
@@ -297,17 +289,17 @@ expected-line-ending-format=
 ignore-long-lines=^\s*(# )?<?https?://\S+>?$
 
 # Number of spaces of indent required inside a hanging  or continued line.
-indent-after-paren=4
+# indent-after-paren=4
 
 # String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
 # tab).
 indent-string='    '
 
 # Maximum number of characters on a single line.
-max-line-length=100
+max-line-length=80
 
 # Maximum number of lines in a module
-max-module-lines=1000
+# max-module-lines=1000
 
 # List of optional constructs for which whitespace checking is disabled. `dict-
 # separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
@@ -318,11 +310,11 @@ no-space-check=trailing-comma,
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
-single-line-class-stmt=no
+single-line-class-stmt=yes
 
 # Allow the body of an if to be on the same line as the test if there is no
 # else.
-single-line-if-stmt=no
+single-line-if-stmt=yes
 
 
 [LOGGING]
@@ -395,7 +387,7 @@ ignore-mixin-members=yes
 # some branches might not be evaluated, which results in partial inference. In
 # that case, it might be useful to still emit no-member and other checks for
 # the rest of the inferred objects.
-ignore-on-opaque-inference=yes
+ignore-on-opaque-inference=no
 
 # List of class names for which member attributes should not be checked (useful
 # for classes with dynamically set attributes). This supports the use of
