@@ -6,6 +6,23 @@
     https://github.com/radical-cybertools/radical.utils/ \
             issues?q=is%3Aissue+is%3Aopen+
 
+            
+1.0.0  Release                                                        2019-12-24
+--------------------------------------------------------------------------------
+
+  - convert to Python3
+  - *drop* support for RU processes and threads
+  - improve thread lock debugging
+  - add a `mktar` method
+  - add daemonization API
+  - add heartbeat management API
+  - move ZMQ support from RP to RU
+  - implement a lazy_bisect algorithm
+  - implement generic code importer (for RX alg extraction)
+  - implement progress bar for reporter
+  - testing, flaking, linting and travis improvements
+
+      
 0.90.3 Hotfix                                                         2019-09-06
 --------------------------------------------------------------------------------
 
