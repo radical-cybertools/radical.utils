@@ -111,6 +111,13 @@ __license__   = "MIT"
 # this implementation remains schema-less, and will thus, in a very pythonesque
 # way, only fail once values are queried or used.
 #
+#
+# Implementation
+# --------------
+#
+# This implementation bases on typed dictionaries which are accessed as `munch`
+# object hierarchy.
+#
 # ------------------------------------------------------------------------------
 
 import os
