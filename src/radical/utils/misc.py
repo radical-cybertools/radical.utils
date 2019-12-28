@@ -5,11 +5,14 @@ import glob
 import time
 import errno
 import socket
+import tarfile
 import datetime
+import tempfile
 import itertools
 import netifaces
 
 from .         import url       as ruu
+from .modules  import import_module
 from .ru_regex import ReString
 
 
@@ -746,9 +749,20 @@ def stack():
     for mpath in glob.glob('%s/*' % rpath):
 
         if os.path.isdir(mpath):
-            mname = 'radical.%s' % os.path.basename(mpath)
-            try:    ret['radical'][mname] = import_module(mname).version_detail
-            except: ret['radical'][mname] = '?'
+
+            mbase = os.path.basename(mpath)
+            mname = 'radical.%s' % mbase
+
+            if mbase.startswith('_'):
+                continue
+
+            try:
+                ret['radical'][mname] = import_module(mname).version_detail
+            except Exception as e:
+                if 'RADICAL_DEBUG' in os.environ:
+                    ret['radical'][mname] = str(e)
+                else:
+                    ret['radical'][mname] = '?'
 
     return ret
 
@@ -846,6 +860,47 @@ def rec_makedir(target):
             pass
         else:
             raise
+
+
+# ------------------------------------------------------------------------------
+#
+def mktar(tarname, fnames=None, data=None):
+    '''
+    Create a tarfile at the given `tarname`, and pack all files given in
+    `fnames` into it, and also pack any `data` blobs.
+
+    `fnames` is expected to be list, where each element is either a string
+    pointing to a file to be added under that name, or a tuple where the first
+    element points again to the file to be packed, and the second element
+    specifies the name under which the file should be packed into the archive.
+    And OSError will be raised if the file does not exist.
+
+    `data` is expected to be a list of tuples, where the first element is a set
+    of bytes comprising the data to be written into the archive, and the second
+    element again specifies the name of the tarred file.
+
+    Note that this method always create bzip'ed tarfiles, but will never change
+    the `tarname` to reflect that.
+    '''
+
+    tar = tarfile.open(tarname, "w:bz2")
+    if fnames:
+        for element in fnames:
+            if isinstance(str, element):
+                tar.add(element)
+            else:
+                src, tgt = element
+                tar.add(src, arcname=tgt)
+
+    if data:
+        for fname, fdata in data:
+            tmp_name, tmp_fd = tempfile.mkstemp()
+            tmp_fd.write(fdata)
+            tmp_fd.close()
+            tar.add(tmp_name, fname)
+            os.unlink(tmp_name)
+
+    tar.close()
 
 
 # ------------------------------------------------------------------------------
