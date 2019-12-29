@@ -355,7 +355,6 @@ class Config(munch.Munch):
             ru_expand_env(self, env=env)
 
 
-
     # --------------------------------------------------------------------------
     #
     # cfg['foo']        == cfg.foo
@@ -381,15 +380,13 @@ class Config(munch.Munch):
     #
     def __iter__(self):
         for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k
+            if str(k)[0] != '_':
+                yield k
 
     def items(self):
         for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k, self[k]
+            if str(k)[0] != '_':
+                yield k, self[k]
 
     def keys(self):
         return [x for x in self]
