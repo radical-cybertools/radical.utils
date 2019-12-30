@@ -159,6 +159,13 @@ class Munch(munch.Munch):
         for k, v in self.items():
             if k not in schema: raise TypeError('key %s not in schema' % k)
             self[k] = self._verify_kvt(k, v, schema[k])
+        self._verify()
+
+    def _verify(self):
+        '''
+        Can be overloaded
+        '''
+        pass
 
 
 # ------------------------------------------------------------------------------
