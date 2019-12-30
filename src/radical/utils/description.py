@@ -9,20 +9,19 @@
 #   - schema based type definitions
 #   - optional runtime type checking
 #
-# The Description base class can, if so configured, provide an property API
-# similar to the `ru.Config` class.
-#
-# NOTE: keys must not start with an underscore
+# The Description base class provides a property API, similar to the `ru.Config`
+# class.
 #
 
 import munch
 
-from .misc import as_list
+from .misc       import as_list, as_tuple
+from .dict_mixin import DictMixin
 
 
 # ------------------------------------------------------------------------------
 #
-class Munch(munch.Munch):
+class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
@@ -32,13 +31,30 @@ class Munch(munch.Munch):
 
         from_dict: data to be used for initialization
 
-        NOTE: Keys containing an underscore are not exposed via the API.
-              Keys containing dots are split and interpreted as paths in te
-              configuration hierarchy.
+        NOTE: the names listed below are valid keys when used via the
+              dictionary API, and can also be *set* via the property API, but
+              they cannot be *queried* via the property API as their names
+              conflict with the class method names:
+
+                  as_dict
+                  clear
+                  get
+                  has_key
+                  items
+                  iterkeys
+                  itervalues
+                  keys
+                  popitem
+                  setdefault
+                  update
+                  values
+                  verify
+
+              Underscore names are allowed, but SHOULD *only* be used via the
+              dictionary API.
         '''
 
-        # TODO: `as_dict`, `keys` and `items` are reserved attributes.
-        #       Should this list be smaller?
+        self._data = dict()
 
         if from_dict:
             self.update(from_dict)
@@ -46,43 +62,53 @@ class Munch(munch.Munch):
 
     # --------------------------------------------------------------------------
     #
-    # cfg['foo']        == cfg.foo
-    # cfg['foo']['bar'] == cfg.foo.bar
+    # base functionality for the DictMixin
     #
-    def __getattr__(self, k):
-        return self.get(k, None)
+    def __getitem__(self, k):
+        return self._data[k]
 
-    def __setattr__(self, k, v):
-        self[k] = v
+    def __setitem__(self, k, v):
+        self._data[k] = v
+
+    def __delitem__(self, k):
+        del self._data[k]
+
+    def keys(self):
+        return self._data.keys()
+
+    def __deepcopy__(self, memo):
+        c = self.__class__(from_dict={k:v for k, v in self.items()})
+        object.__setattr__(c, '_schema', self._schema)
+        return c
 
 
     # --------------------------------------------------------------------------
     #
-    # don't list private class attributes (starting with `_`) as dict entries
+    # base functionality for attribute access
+    # TODO: Make optional
     #
-    def __iter__(self):
-        for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k
+    def __getattr__(self, k):
 
-    def items(self):
-        for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k, self[k]
+        # TODO: default values
+        if k == '_data'     : return object.__getattribute__(self, k)
+        if k in self._schema: return self._data.get(k)
+        else                : return self._data[k]
 
-    def keys(self):
-        return [x for x in self]
+    def __setattr__(self, k, v):
+        if k == '_data': return object.__setattr__(self, k, v)
+        else           : self._data[k] = v
 
-    def __len__(self):
-        return len(self.keys())
+    def __delattr__(self, k):
+        del(self._data[k])
+
+    def __dir__(self):
+        return self._data.keys()
 
 
   # # --------------------------------------------------------------------------
   # #
   # def __str__(self):
-  #     return str(self.as_dict())
+  #     return str(self._data)
   #
   #
   # # --------------------------------------------------------------------------
@@ -95,7 +121,7 @@ class Munch(munch.Munch):
     #
     def as_dict(self):
 
-        return self.toDict()  # from munch.Munch
+        return self._data
 
 
     # --------------------------------------------------------------------------
@@ -122,27 +148,11 @@ class Munch(munch.Munch):
         if str(v).lower() in ['false', 'no', '0']: return False
         raise TypeError('expected bool type for %s (%s)' % (k, type(v)))
 
-    _verifiers = {
-            int  : _verify_int.__func__,
-            str  : _verify_str.__func__,
-            float: _verify_float.__func__,
-            bool : _verify_bool.__func__,
-    }
-
-    _verifier_keys = list(_verifiers.keys())
-
     @classmethod
-    def _verify_kvt(cls, k, v, t):
-
-        if t is None              : return v
-        if t in cls._verifier_keys: return cls._verifiers[t](k, v, t)
-        if isinstance(t, dict)    : return cls._verify_dict(k, v, t)
-        if isinstance(t, list)    : return cls._verify_list(k, v, t)
-        print()
-        print(t)
-        print(isinstance(t, list))
-        print(type(t))
-        raise TypeError('no verifier defined for type %s' % t)
+    def _verify_tuple(cls, k, v, t):
+        v = as_tuple(v)
+        return tuple([cls._verify_kvt(k + ' tuple element', _v, t[0])
+                      for _v in v])
 
     @classmethod
     def _verify_list(cls, k, v, t):
@@ -155,11 +165,31 @@ class Munch(munch.Munch):
         t_v = list(t.values())[0]
         return {cls._verify_kvt(_k, _k, t_k) : cls._verify_kvt(_k, _v, t_v)
                                                for _k, _v in v.items()}
+
+    _verifiers = {
+            int  : _verify_int.__func__,
+            str  : _verify_str.__func__,
+            float: _verify_float.__func__,
+            bool : _verify_bool.__func__,
+    }
+
+    _verifier_keys = list(_verifiers.keys())
+
+    @classmethod
+    def _verify_kvt(cls, k, v, t):
+        if t is None              : return v
+        if t in cls._verifier_keys: return cls._verifiers[t](k, v, t)
+        if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t)
+        if isinstance(t, list)    : return cls._verify_list(k, v, t)
+        if isinstance(t, dict)    : return cls._verify_dict(k, v, t)
+        raise TypeError('no verifier defined for type %s' % t)
+
     def verify(self, schema):
-        for k, v in self.items():
+        for k, v in self._data.items():
             if k not in schema: raise TypeError('key %s not in schema' % k)
-            self[k] = self._verify_kvt(k, v, schema[k])
+            self._data[k] = self._verify_kvt(k, v, schema[k])
         self._verify()
+        return True
 
     def _verify(self):
         '''

@@ -115,8 +115,8 @@ __license__   = "MIT"
 # Implementation
 # --------------
 #
-# This implementation bases on typed dictionaries which are accessed as `munch`
-# object hierarchy.
+# This implementation is based on typed dictionaries which are accessed as
+# `munch`'ed object hierarchy.
 #
 # ------------------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ class Config(munch.Munch):
                                                    config/session_mininmal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
-              Keys containing dots are split and interpreted as paths in te
+              Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
         '''
 
