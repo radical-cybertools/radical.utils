@@ -16,7 +16,8 @@ import shutil
 
 import subprocess as sp
 
-from setuptools import setup, find_packages
+
+from setuptools import setup, find_namespace_packages
 
 
 # ------------------------------------------------------------------------------
@@ -50,11 +51,10 @@ def sh_callout(cmd):
 #
 def get_version(_mod_root):
     '''
-    mod_root
-        a VERSION file containes the version strings is created in mod_root,
-        during installation.  That file is used at runtime to get the version
-        information.
-        '''
+    a VERSION file containes the version strings is created in mod_root,
+    during installation.  That file is used at runtime to get the version
+    information.
+    '''
 
     try:
 
@@ -221,7 +221,7 @@ setup_args = {
         'Operating System :: POSIX',
         'Operating System :: Unix'
     ],
-    'packages'           : find_packages('src'),
+    'packages'           : find_namespace_packages('src', include=['radical.*']),
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
                             'bin/radical-utils-mongodb.py',
