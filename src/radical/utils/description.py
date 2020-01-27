@@ -1,9 +1,9 @@
 
 # ------------------------------------------------------------------------------
 #
-# We provide a base class for all kinds of description objects in theh RCT
+# We provide a base class for all kinds of description objects in the RCT
 # stack: job descriptions, task descriptions, pilot descriptions, workload
-# descriptions etc.  That base class provides
+# descriptions etc.  That base class provides:
 #
 #   - dict like API
 #   - schema based type definitions
@@ -12,8 +12,6 @@
 # The Description base class provides a property API, similar to the `ru.Config`
 # class.
 #
-
-import munch
 
 from .misc       import as_list, as_tuple
 from .dict_mixin import DictMixin
