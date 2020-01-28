@@ -405,9 +405,12 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def progress_tgt(self, tgt=None):
+    def progress_tgt(self, tgt=None, label=None):
 
-        front = '%d: ' % tgt
+        if label:
+            front = '%-6s: ' % label
+        else:
+            front = '%-6d: ' % tgt
 
         self._prog_len = self._line_len - len(front)
         self._prog_tgt = tgt

@@ -304,6 +304,28 @@ def round_upper_bound(value):
 
 # ------------------------------------------------------------------------------
 #
+def is_tuple(data):
+    '''
+    return True if given data are a `tuple`, `False` otherwise
+    '''
+
+    return isinstance(data, tuple)
+
+
+# ------------------------------------------------------------------------------
+#
+def as_tuple(data):
+    '''
+    return non-tuple data into a tuple.
+    '''
+
+    if   data is None  : return
+    elif is_tuple(data): return data
+    else               : return (data, )
+
+
+# ------------------------------------------------------------------------------
+#
 def is_list(data):
     '''
     return True if given data are a `list`, `False` otherwise

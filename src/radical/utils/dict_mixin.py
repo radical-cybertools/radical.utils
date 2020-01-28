@@ -121,7 +121,7 @@ def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
         None (default) : raise an exception on conflicts
         PRESERVE       : original value in a are preserved, new values
                          from b are only added where the original value
-                         is None / 0 / ''
+                         is not set.
         OVERWRITE      : values in a are overwritten by new values from b
 
     '''

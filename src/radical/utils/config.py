@@ -111,6 +111,13 @@ __license__   = "MIT"
 # this implementation remains schema-less, and will thus, in a very pythonesque
 # way, only fail once values are queried or used.
 #
+#
+# Implementation
+# --------------
+#
+# This implementation is based on typed dictionaries which are accessed as
+# `munch`'ed object hierarchy.
+#
 # ------------------------------------------------------------------------------
 
 import os
@@ -167,7 +174,7 @@ class Config(munch.Munch):
                                                    config/session_mininmal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
-              Keys containing dots are split and interpreted as paths in te
+              Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
         '''
 
@@ -348,7 +355,6 @@ class Config(munch.Munch):
             ru_expand_env(self, env=env)
 
 
-
     # --------------------------------------------------------------------------
     #
     # cfg['foo']        == cfg.foo
@@ -374,15 +380,13 @@ class Config(munch.Munch):
     #
     def __iter__(self):
         for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k
+            if str(k)[0] != '_':
+                yield k
 
     def items(self):
         for k in dict.__iter__(self):
-            if str(k).startswith('_'):
-                continue
-            yield k, self[k]
+            if str(k)[0] != '_':
+                yield k, self[k]
 
     def keys(self):
         return [x for x in self]
