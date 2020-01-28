@@ -30,6 +30,7 @@ from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
 from .daemon         import Daemon, daemonize
 from .config         import Config, DefaultConfig
+from .description    import Munch, Description
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
