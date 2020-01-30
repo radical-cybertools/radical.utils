@@ -3,7 +3,7 @@ exclude         = .git,__pycache__,docs,build,dist,examples,setup.py,bin
 max-complexity  = 10
 max-line-length = 80
 ignore          =
-   # module level import location
+     # module level import location
      E402,
      # space before/after operator
      E221, E222,E251,
@@ -34,10 +34,6 @@ ignore          =
      # allow line breaks after binary operators
      W504,
      # allow lambda assignment (used for partial callbacks)
-<<<<<<< Updated upstream
-     E731
-
-=======
      E731,
      # multiple statements per lin
      E702,
@@ -45,4 +41,3 @@ ignore          =
      W613,
      # ambiguous var name (to whom?)
      E741
->>>>>>> Stashed changes
