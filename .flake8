@@ -34,5 +34,15 @@ ignore          =
      # allow line breaks after binary operators
      W504,
      # allow lambda assignment (used for partial callbacks)
+<<<<<<< Updated upstream
      E731
 
+=======
+     E731,
+     # multiple statements per lin
+     E702,
+     # unused argument
+     W613,
+     # ambiguous var name (to whom?)
+     E741
+>>>>>>> Stashed changes
