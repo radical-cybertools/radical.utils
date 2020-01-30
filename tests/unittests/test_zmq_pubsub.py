@@ -61,12 +61,11 @@ def test_zmq_pubsub():
     cb_C = lambda t,m: cb('C', t, m)
     cb_D = lambda t,m: cb('D', t, m)
 
-    C = ru.zmq.Subscriber(channel=cfg['channel'], url=str(b.addr_sub),
-                          topic='topic', cb=cb_C)
-    D = ru.zmq.Subscriber(channel=cfg['channel'], url=str(b.addr_sub),
-                          topic='topic', cb=cb_D)
+    ru.zmq.Subscriber(channel=cfg['channel'], url=str(b.addr_sub),
+                      topic='topic', cb=cb_C)
+    ru.zmq.Subscriber(channel=cfg['channel'], url=str(b.addr_sub),
+                      topic='topic', cb=cb_D)
     time.sleep(0.1)
-
 
     # --------------------------------------------------------------------------
     def work_pub(uid, n, delay):
