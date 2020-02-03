@@ -538,10 +538,10 @@ def takes(*args, **kwargs):
                 try:
                     return method(*pargs, **pkwargs)
 
-                except:
+                except Exception as e:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et(ei).with_traceback(tb.tb_next)
+                    raise et(ei).with_traceback(tb.tb_next) from e
 
             signature_check.__name__ = method.__name__
             return signature_check
@@ -576,10 +576,10 @@ def returns(sometype):
 
                 try:
                     result = method(*args, **kwargs)
-                except:
+                except Exception as e:
                     # remove signature decorator from exception call stack
                     et, ei, tb = sys.exc_info()
-                    raise et(ei).with_traceback(tb.tb_next)
+                    raise et(ei).with_traceback(tb.tb_next) from e
 
                 if  not checker.check(result):
 

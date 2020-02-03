@@ -34,6 +34,9 @@ class Heartbeat(object):
         that term callback returns `True`, the kill is avoided though: timers
         are reset and everything continues like before.  This should be used to
         recover from failing components.
+
+        When timeout is set to `None`,  no trigger action on missing heartbeats
+        will ever be triggered.
         '''
 
         # we should not need to lock timestamps, in the current CPython
@@ -42,7 +45,7 @@ class Heartbeat(object):
         # threads competing with the (private) dict lock, so we accept the
         # overhead.
 
-        if interval > timeout:
+        if timeout and interval > timeout:
             raise ValueError('timeout [%.1f] too small [>%.1f]'
                             % (timeout, interval))
 
@@ -134,8 +137,14 @@ class Heartbeat(object):
                                        self._uid, uid, now, last, self._timeout)
 
                     ret = None
-                    if  self._term_cb:
-                        ret = self._term_cb(uid)
+                    if self._timeout:
+                        # attempt to recover
+                        if  self._term_cb:
+                            ret = self._term_cb(uid)
+                    else:
+                        # we silently assume that the watchee recovered, thus
+                        # avoiding termination
+                        ret = True
 
                     if ret is None:
                         # could not recover: abandon mothership

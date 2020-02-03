@@ -163,17 +163,18 @@ def read(*rnames):
 
 # ------------------------------------------------------------------------------
 # FIXME: pip3 bug: binaries files cannot be installed into bin.
-# compile gtod
-try:
-    compiler = new_compiler(verbose=1)
-    objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-    exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-except:
-    with open('bin/radical-utils-gtod', 'w') as fout:
-        fout.write('#!/usr/bin/env python\n'
-                   'import time\n'
-                   'print time.time()\n')
-    os.chmod('bin/radical-utils-gtod', 0o755)
+# NOTE : disable to avoid stupid/inconsequrntial bwheel error
+# # compile gtod
+# try:
+#     compiler = new_compiler(verbose=1)
+#     objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
+#     exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
+# except:
+#     with open('bin/radical-utils-gtod', 'w') as fout:
+#         fout.write('#!/usr/bin/env python\n'
+#                    'import time\n'
+#                    'print time.time()\n')
+#     os.chmod('bin/radical-utils-gtod', 0o755)
 
 
 # ------------------------------------------------------------------------------

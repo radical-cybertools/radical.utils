@@ -2,7 +2,6 @@
 import os
 import pprint
 
-import radical.pilot as rp
 import radical.utils as ru
 
 # ------------------------------------------------------------------------------
@@ -11,7 +10,7 @@ import radical.utils as ru
 #   - the default values for the keys
 app_config = {
     'log_level'    : 0,
-    'scheduler'    : rp.SCHED_ROUND_ROBIN,
+    'scheduler'    : 'RoundRobin',
     'resources'    : ['tutorial.radical.org', 'localhost'],
     'resource_cfg' :
     {
@@ -19,35 +18,35 @@ app_config = {
         {
             'needs_account' : False,
             'supports_mpi'  : False,
-            'username'      : None, 
+            'username'      : None,
             'account'       : None
         },
         'tutorial.radical.org' :
         {
             'needs_account' : False,
             'supports_mpi'  : True,
-            'username'      : 'tut_007', 
+            'username'      : 'tut_007',
             'account'       : None
         },
         'sierra.futuregrid.org' :
         {
             'needs_account' : False,
             'supports_mpi'  : True,
-            'username'      : None, 
+            'username'      : None,
             'account'       : None
         },
         'india.futuregrid.org' :
         {
             'needs_account' : False,
             'supports_mpi'  : True,
-            'username'      : None, 
-            'account'       : None 
+            'username'      : None,
+            'account'       : None
         },
         'stampede.tacc.utexas.edu' :
         {
             'needs_account' : True,
             'supports_mpi'  : True,
-            'username'      : None, 
+            'username'      : None,
             'account'       : None
         }
     }
@@ -56,9 +55,9 @@ app_config = {
 # ------------------------------------------------------------------------------
 # location of the user config
 # the config could contain:
-# 
+#
 # {
-#     "scheduler"    : "rp.SCHED_BACKFILLING",
+#     "scheduler"    : "Backfilling",
 #     "resources"    : ["india.furturegrid.org", "sierra.futuregrid.org"],
 #     "resource_cfg" :
 #     {
@@ -68,7 +67,7 @@ app_config = {
 #         }
 #     }
 # }
-USER_CONFIG_PATH = os.environ.get ('HOME', '/tmp') + '/.my_app.cfg' 
+USER_CONFIG_PATH = os.environ.get ('HOME', '/tmp') + '/.my_app.cfg'
 
 # load the user config, and merge it with the default config
 user_config = ru.read_json_str (USER_CONFIG_PATH)
@@ -87,43 +86,43 @@ pprint.pprint (app_config)
 #
 # {
 #     'log_level'   : 0,
-#     'scheduler'   : 'rp.SCHED_BACKFILLING',
+#     'scheduler'   : 'Backfilling',
 #     'resources'   : ['india.furturegrid.org', 'sierra.futuregrid.org'],
-#     'resource_cfg': 
+#     'resource_cfg':
 #     {
-#         '*.futuregrid.org': 
+#         '*.futuregrid.org':
 #         {
 #             'username'     : 'merzky'
 #         },
-#         'india.futuregrid.org': 
+#         'india.futuregrid.org':
 #         {
 #             'account'      : None,
 #             'needs_account': False,
 #             'supports_mpi' : True,
 #             'username'     : 'merzky'
 #         },
-#         'localhost': 
+#         'localhost':
 #         {
 #             'account'      : None,
 #             'needs_account': False,
 #             'supports_mpi' : False,
 #             'username'     : None
 #         },
-#         'sierra.futuregrid.org': 
+#         'sierra.futuregrid.org':
 #         {
 #             'account'      : None,
 #             'needs_account': False,
 #             'supports_mpi' : True,
 #             'username'     : 'merzky'
 #         },
-#         'stampede.tacc.utexas.edu': 
+#         'stampede.tacc.utexas.edu':
 #         {
 #             'account'      : None,
 #             'needs_account': True,
 #             'supports_mpi' : True,
 #             'username'     : None
 #         },
-#         'tutorial.radical.org': 
+#         'tutorial.radical.org':
 #         {
 #             'account'      : None,
 #             'needs_account': False,

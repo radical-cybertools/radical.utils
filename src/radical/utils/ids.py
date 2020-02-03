@@ -22,6 +22,13 @@ TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
 TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 
 
+_cache = {'dir'        : list(),
+          'user'       : None,
+          'pid'        : os.getpid(),
+          'dockerized' : dockerized(),
+          }
+
+
 # ------------------------------------------------------------------------------
 #
 class _IDRegistry(object, metaclass=Singleton):
@@ -172,7 +179,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None, base=None):
 
     template = ""
 
-    if dockerized() and mode == ID_PRIVATE:
+    if _cache['dockerized'] and mode == ID_PRIVATE:
         mode = ID_UUID
 
     if   mode == ID_CUSTOM : template = prefix
@@ -187,28 +194,33 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None, base=None):
     # rarely used in IDs.  They should be created only once per module instance,
     # and/or only if needed.
 
+    global _cache
+
     if not base:
         base = _BASE
 
-    state_dir = _BASE
+    state_dir = base
     if ns:
         state_dir += '/%s' % ns
 
-    try:
-        os.makedirs(state_dir)
-    except:
-        pass
+    if state_dir not in _cache['dir']:
+        try   : os.makedirs(state_dir)
+        except: pass
+        _cache['dir'].append(state_dir)
 
     # seconds since epoch(float), and timestamp
     seconds = time.time()
     now     = datetime.datetime.fromtimestamp(seconds)
     days    = int(seconds / (60 * 60 * 24))
 
-    try:
-        import getpass
-        user = getpass.getuser()
-    except:
-        user = 'nobody'
+    if not _cache['user']:
+        try:
+            import getpass
+            _cache['user'] = getpass.getuser()
+        except:
+            _cache['user'] = 'nobody'
+
+    user = _cache['user']
 
     info = dict()
 
@@ -222,7 +234,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None, base=None):
     info['now'         ] = now
     info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
     info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
-    info['pid'         ] = os.getpid()
+    info['pid'         ] = _cache['pid']
 
     # hostname query and proper uuid are time consuming, only done when needed
     if '%(host)' in template: info['host'] = socket.gethostname()
