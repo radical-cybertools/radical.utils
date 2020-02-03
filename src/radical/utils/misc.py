@@ -88,14 +88,14 @@ def mongodb_connect(dburl, default_dburl=None):
 
     try:
         import pymongo
-    except ImportError:
+    except ImportError as e:
         msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
         msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
         msg += "to resolve that dependency (or install pymongo manually).\n"
         msg += "The first version will work for local installation, \n"
         msg += "the second one for installation from pypi.\n\n"
-        raise ImportError(msg)
+        raise ImportError(msg) from e
 
     [host, port, dbname, cname, pname,
            user, pwd,    ssl] = split_dburl(dburl, default_dburl)

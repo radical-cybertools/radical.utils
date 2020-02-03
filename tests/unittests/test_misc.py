@@ -50,7 +50,7 @@ def test_round_upper_bound():
     assert(ru.round_upper_bound(5.5) == 10)
     assert(ru.round_upper_bound(9.5) == 10)
 
-    assert(ru.round_upper_bound( 5000) ==  10000)
+    assert(ru.round_upper_bound( 5000) ==  10000)                   # noqa: E201
     assert(ru.round_upper_bound(15000) ==  20000)
     assert(ru.round_upper_bound(25000) ==  50000)
     assert(ru.round_upper_bound(45000) ==  50000)

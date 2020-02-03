@@ -11,22 +11,22 @@ import time
 
 # ------------------------------------------------------------------------------
 #
-def benchmark_pre (tid, app_cfg, bench_cfg) :
+def benchmark_pre(tid, app_cfg, bench_cfg):
 
-    if  not 'load' in app_cfg : 
-        raise KeyError ('no load configured')
-
-
-# ------------------------------------------------------------------------------
-#
-def benchmark_core (tid, i, app_cfg, bench_cfg) :
-
-    time.sleep (float(app_cfg['load']))
+    if 'load' not in app_cfg:
+        raise KeyError('no load configured')
 
 
 # ------------------------------------------------------------------------------
 #
-def benchmark_post (tid, app_cfg, bench_cfg) :
+def benchmark_core(tid, i, app_cfg, bench_cfg):
+
+    time.sleep(float(app_cfg['load']))
+
+
+# ------------------------------------------------------------------------------
+#
+def benchmark_post(tid, app_cfg, bench_cfg):
 
     pass
 
@@ -34,9 +34,9 @@ def benchmark_post (tid, app_cfg, bench_cfg) :
 # ------------------------------------------------------------------------------
 #
 cfg = sys.argv[1]
-b = ru.Benchmark (cfg, 'job_run', benchmark_pre, benchmark_core, benchmark_post)
-b.run  ()
-b.eval ()
+b = ru.Benchmark(cfg, 'job_run', benchmark_pre, benchmark_core, benchmark_post)
+b.run()
+b.eval()
 
 
 # ------------------------------------------------------------------------------
