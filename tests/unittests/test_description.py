@@ -56,7 +56,7 @@ def test_description():
     assert(isinstance(td.env,   dict))
     assert(isinstance(td.pre,   list))
     assert(isinstance(td.pop,   list))
-    assert(isinstance(td._foo,  str))
+    assert(isinstance(td._foo,  str))                                     # noqa
 
     assert(isinstance(td['_data'], str))
     assert(isinstance(td['items'], list))
@@ -69,7 +69,7 @@ def test_description():
     assert(td.pre      == ['True'])
     assert(td.post     == ('False',))
     assert(td.pop      == [3, 3])
-    assert(td._foo     == "['bar']")
+    assert(td._foo     == "['bar']")                                      # noqa
 
     assert(td['_data'] == '4')
     assert(td['items'] == [3, 3])

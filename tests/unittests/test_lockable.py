@@ -67,18 +67,18 @@ def test_lockable():
         pass
 
     # check explicit and recursive lock/unlock
-    t.lock  (); assert(    t.locked())
-    t.unlock(); assert(not t.locked())
-    t.lock  (); assert(    t.locked())
-    t.lock  (); assert(    t.locked())
-    t.unlock(); assert(    t.locked())
-    t.unlock(); assert(not t.locked())
+    t.lock  (); assert(    t.locked())                                    # noqa
+    t.unlock(); assert(not t.locked())                                    # noqa
+    t.lock  (); assert(    t.locked())                                    # noqa
+    t.lock  (); assert(    t.locked())                                    # noqa
+    t.unlock(); assert(    t.locked())                                    # noqa
+    t.unlock(); assert(not t.locked())                                    # noqa
 
     # check locking over threads
     t.test()
 
     # check double unlock
-    try                  : t.unlock(); assert(not t.locked())
+    try                  : t.unlock(); assert(not t.locked())             # noqa
     except RuntimeError  : pass
     except Exception as e: assert(False), "RuntimeError != %s" % type(e)
     else                 : assert(False), "expected RuntimeError, got none"

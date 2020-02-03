@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if test -z "$EPOCHREALTIME"
+then
+    python3 -c 'import time; print("%.6f" % time.time())'
+else
+    echo ${EPOCHREALTIME:0:17}
+fi
+
