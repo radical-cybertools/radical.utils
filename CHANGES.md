@@ -3,9 +3,16 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
             
+1.1.1 Hotfix Release                                                  2020-02-11
+--------------------------------------------------------------------------------
+  
+  - resolve merge mistake
+
+
 1.1 Release                                                           2020-02-11
 --------------------------------------------------------------------------------
 
+  - fast description base class     
   - revert to shell based gtod again
   - pylint / flake fixes
   - add verbosity option to `radical-stack`(#192)
