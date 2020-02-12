@@ -1,15 +1,35 @@
 #!/usr/bin/env python
 
+import sys
+
 import radical.utils as ru
+
+verbose = False
+if len(sys.argv) > 1 and sys.argv[1] == '-v':
+    verbose = True
 
 stack = ru.stack()
 
-print() 
+print()
 for key in sorted(stack['sys'].keys()):
     print('  %-20s : %s' % (key, stack['sys'][key]))
 print()
+
 for key in sorted(stack['radical'].keys()):
-    print('  %-20s : %s' % (key, stack['radical'][key]))
+
+    if verbose:
+        # get pip info for latest version available
+        out, _, _ = ru.sh_callout('python -m pip search %s' % key)
+        idx0 = out.find('(')
+        idx1 = out.find(')')
+        out  = out[idx0 + 1:idx1]
+
+        print('  %-20s : %-50s  (latest release: %s)'
+             % (key, stack['radical'][key], out))
+
+    else:
+        print('  %-20s : %s' % (key, stack['radical'][key]))
+
 print()
 
 # ------------------------------------------------------------------------------
