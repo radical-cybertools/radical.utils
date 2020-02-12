@@ -1,12 +1,19 @@
 
-  - For a list of bug fixes, see
-    https://github.com/radical-cybertools/radical.utils/ \
-            issues?q=is%3Aissue+is%3Aclosed+sort%3Aupdated-desc
-  - For a list of open issues and known problems, see
-    https://github.com/radical-cybertools/radical.utils/ \
-            issues?q=is%3Aissue+is%3Aopen+
+For a list of open issues and known problems, see
+https://github.com/radical-cybertools/radical.utils/issues/
 
             
+1.1 Release                                                           2020-02-11
+--------------------------------------------------------------------------------
+
+  - revert to shell based gtod again
+  - pylint / flake fixes
+  - add verbosity option to `radical-stack`(#192)
+  - apply exception chaining (#23)
+  - speed up uid generation
+  - update README
+
+
 1.0.0  Release                                                        2019-12-24
 --------------------------------------------------------------------------------
 
