@@ -319,7 +319,7 @@ def as_tuple(data):
     return non-tuple data into a tuple.
     '''
 
-    if   data is None  : return
+    if   data is None  : return tuple()
     elif is_tuple(data): return data
     else               : return (data, )
 
