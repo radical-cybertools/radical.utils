@@ -8,7 +8,7 @@ This Python package contains shared code and tools for various [Radical
 Group](http://radical.rutgers.edu) projects. Sometimes we call it the Radical
 Kitchen Sink.  
 
-The package is compatible with Python 3.5 and later versions.
+The package is compatible with Python 3.6 and later versions.
 
 
 License
