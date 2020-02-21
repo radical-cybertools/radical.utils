@@ -7,6 +7,7 @@ Copyright: 2018-2019
 import time
 import threading as mt
 
+
 class Time(object):
     '''
     This is a timing class that allows to simulate different types of clocks.
@@ -53,11 +54,8 @@ class Time(object):
         Sleeps for a specific amount of time units. Actual time spent is equal
         to amount divided by speed.
         '''
-        
-        now = self._seconds
 
-        while self._seconds < now + amount:
-            time.sleep(1 / self._speed)
+        time.sleep(amount / self._speed)
 
     def advance(self, amount):
         '''
