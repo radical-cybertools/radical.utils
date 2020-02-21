@@ -56,7 +56,7 @@ def test_multithread_sleep():
 
     # This is a small test to show that the execution the sleep method of this
     # class is thread safe.
-    executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix='sleep')
+    executor = ThreadPoolExecutor(max_workers=2)
     t  = Time(speed=100)
     sleeping_thread1 = executor.submit(t_sleep, t, 2)
     t.sleep(1)
