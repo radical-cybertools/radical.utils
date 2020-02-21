@@ -88,11 +88,11 @@ class Queue(Bridge):
 
         super(Queue, self).__init__(cfg)
 
-        self._stall_hwm  = self._cfg.get('stall_hwm', 1)  # FIXME: use
-        self._bulk_size  = self._cfg.get('bulk_size', 10)
+        self._stall_hwm  = self._cfg.get('stall_hwm', 0)  # FIXME: use
+        self._bulk_size  = self._cfg.get('bulk_size', 0)
 
         if self._bulk_size <= 0:
-            self._bulk_size = 1
+            self._bulk_size = 1024
 
 
     # --------------------------------------------------------------------------
