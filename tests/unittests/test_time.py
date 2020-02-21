@@ -1,74 +1,99 @@
-from radical.utils.custom_time import Time
+
+
 import time
+
+import radical.utils as ru
+import threading     as mt
+
 from concurrent.futures import ThreadPoolExecutor
-import threading as mt
 
 
+# ------------------------------------------------------------------------------
+#
 def test_time():
-    t  = Time()
+
+    t  = ru.Time()
     t0 = t.time()
-    time.sleep(3)
+    time.sleep(1)
     t1 = t.time()
     t.stop()
-    assert(2.99 < (t1 - t0) < 3.01), [t0, t1, t1 - t0]
+
+    assert(0.99 < (t1 - t0) < 1.01), [t0, t1, t1 - t0]
 
 
+# ------------------------------------------------------------------------------
+#
 def test_tick_speed():
-    t  = Time(tick=0.1, speed=3.0)
+
+    t  = ru.Time(tick=0.01, speed=10.0)
     t0 = t.time()
-    time.sleep(3)
+    time.sleep(0.5)
     t1 = t.time()
     t.stop()
-    assert(0.00 <= t0 <= 0.01), t0
-    assert(8.69 <  (t1 - t0) < 9.01), [t0, t1]
+
+    assert(0.0 <=       t0  <= 0.1),  t0
+    assert(4.9 <  (t1 - t0) <  5.1), [t0, t1, t1 - t0]
 
 
+# ------------------------------------------------------------------------------
+#
 def test_advance():
-    t  = Time(tick=0.1, speed=3.0)
+
+    t  = ru.Time(tick=0.01, speed=10.0)
     t0 = t.time()
-    time.sleep(3)
-    t.advance(60)
+    time.sleep(0.5)
+    t.advance(100)
     t1 = t.time()
     t.stop()
-    assert(0.00 <= t0 <= 0.01), t0
-    assert(68.69 <  (t1 - t0) < 69.01), [t0, t1]
+
+    assert(000.0 <=       t0 <=   0.1),  t0
+    assert(104.9 < (t1 - t0) <  105.1), [t0, t1, t1 - t0]
 
 
+# ------------------------------------------------------------------------------
+#
 def test_sleep():
-    t  = Time(tick=0.1, speed=3.0)
+
+    t  = ru.Time(tick=0.01, speed=10.0)
     t0 = t.time()
-    t.sleep(3)
+    t.sleep(5)
     t1 = t.time()
     t.stop()
-    print(t1, t0)
-    assert(2.75 <= t1 - t0 <= 3.01), t0
+
+    assert(4.9 <= (t1 - t0) <= 5.1), [t0, t1, t1 - t0]
 
 
+# ------------------------------------------------------------------------------
+#
 def test_multithread_sleep():
+    '''
+    test that the sleep method of this class is thread safe.
+    '''
 
     def t_sleep(t_obj, amount):
         tic = t_obj.time()
-        print(mt.current_thread().name, ': Start time ', t_obj.time())
         t_obj.sleep(amount)
         toc = t_obj.time()
-        print(mt.current_thread().name, ': Final time ', t_obj.time())
         return tic, toc
 
-    # This is a small test to show that the execution the sleep method of this
-    # class is thread safe.
-    executor = ThreadPoolExecutor(max_workers=2)
-    t  = Time(speed=100)
-    sleeping_thread1 = executor.submit(t_sleep, t, 2)
+    tpe = ThreadPoolExecutor(max_workers=2)
+    t   = ru.Time(speed=10)
+
+    sleeping_thread1 = tpe.submit(t_sleep, t, 3)
     t.sleep(1)
-    sleeping_thread2 = executor.submit(t_sleep, t, 5)
+    sleeping_thread2 = tpe.submit(t_sleep, t, 5)
+
     tic1, toc1 = sleeping_thread1.result()
     tic2, toc2 = sleeping_thread2.result()
-    assert(tic1 == 0)
-    assert(2 <= toc1 <= 2.5)
-    assert(1 <= tic2 <= 1.1)
-    assert(5.6 <= toc2 <= 6.5)
+
+    assert(0.0 <= tic1 <=  0.1), tic1
+    assert(2.9 <= toc1 <=  3.1), toc1
+    assert(0.9 <= tic2 <=  1.1), tic2
+    assert(5.9 <= toc2 <=  6.1), toc2
 
 
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_time()
@@ -76,3 +101,7 @@ if __name__ == '__main__':
     test_advance()
     test_sleep()
     test_multithread_sleep()
+
+
+# ------------------------------------------------------------------------------
+
