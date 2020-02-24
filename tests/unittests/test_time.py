@@ -3,7 +3,6 @@
 import time
 
 import radical.utils as ru
-import threading     as mt
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -104,4 +103,3 @@ if __name__ == '__main__':
 
 
 # ------------------------------------------------------------------------------
-
