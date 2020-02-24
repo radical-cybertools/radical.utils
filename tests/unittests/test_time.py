@@ -1,7 +1,6 @@
 from radical.utils.custom_time import Time
 import time
 from concurrent.futures import ThreadPoolExecutor
-import threading as mt
 
 
 def test_time():
@@ -48,10 +47,8 @@ def test_multithread_sleep():
 
     def t_sleep(t_obj, amount):
         tic = t_obj.time()
-        print(mt.current_thread().name, ': Start time ', t_obj.time())
         t_obj.sleep(amount)
         toc = t_obj.time()
-        print(mt.current_thread().name, ': Final time ', t_obj.time())
         return tic, toc
 
     # This is a small test to show that the execution the sleep method of this
