@@ -63,7 +63,7 @@ from .misc           import *
 from .algorithms     import *
 
 # import decorators
-from .timing         import timed_method, epoch, dt_epoch
+from .timing         import timed_method, epoch, dt_epoch, Time
 
 # import sub-modules
 from . import scheduler
