@@ -18,8 +18,9 @@ from ..logger import Logger
 
 # --------------------------------------------------------------------------
 #
-_LINGER_TIMEOUT  =   250  # ms to linger after close
-_HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
+_LINGER_TIMEOUT    =  250  # ms to linger after close
+_HIGH_WATER_MARK   =    0  # number of messages to buffer before dropping
+_DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
 
 
 # ------------------------------------------------------------------------------
@@ -88,11 +89,10 @@ class Queue(Bridge):
 
         super(Queue, self).__init__(cfg)
 
-        self._stall_hwm  = self._cfg.get('stall_hwm', 1)  # FIXME: use
-        self._bulk_size  = self._cfg.get('bulk_size', 10)
+        self._bulk_size  = self._cfg.get('bulk_size', 0)
 
         if self._bulk_size <= 0:
-            self._bulk_size = 1
+            self._bulk_size = _DEFAULT_BULK_SIZE
 
 
     # --------------------------------------------------------------------------

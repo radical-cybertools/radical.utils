@@ -208,8 +208,8 @@ class Publisher(object):
         assert(isinstance(topic, str )), 'invalid topic type'
         assert(isinstance(msg,   dict)), 'invalid message type'
 
-        self._log.debug('-> %s: %s', self.channel, msg)
-        log_bulk(self._log, msg, '-> %s' % self.channel)
+      # self._log.debug('-> %s: %s', self.channel, msg)
+      # log_bulk(self._log, msg, '-> %s' % self.channel)
 
         btopic = as_bytes(topic.replace(' ', '_'))
         bmsg   = msgpack.packb(msg)
@@ -263,8 +263,8 @@ class Subscriber(object):
                 callbacks = Subscriber._callbacks[url]['callbacks']
 
                 topic, msg = Subscriber._get_nowait(socket, lock, 500, channel)
-                if topic and channel == 'state_pubsub':
-                    log.debug('get %s [%s]', topic, len(msg))
+              # if topic and channel == 'state_pubsub':
+              #     log.debug('get %s [%s]', topic, len(msg))
 
                 if topic:
                     t = as_string(topic)
