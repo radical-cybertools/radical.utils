@@ -40,4 +40,6 @@ ignore          =
      # unused argument
      W613,
      # ambiguous var name (to whom?)
-     E741
+     E741,
+     # explicit delegation
+     W235
