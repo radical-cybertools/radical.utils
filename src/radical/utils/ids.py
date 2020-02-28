@@ -258,6 +258,9 @@ def _generate_id(template, prefix, ns=None):
         os.close(fd)
 
     if '%(item_counter)' in template:
+        if '%(item_counter)' in prefix:
+            prefix = prefix % info
+
         fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, prefix),
                                           os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
