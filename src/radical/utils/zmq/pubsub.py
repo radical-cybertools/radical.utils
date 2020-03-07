@@ -208,6 +208,11 @@ class Publisher(object):
         assert(isinstance(topic, str )), 'invalid topic type'
         assert(isinstance(msg,   dict)), 'invalid message type'
 
+        if str(topic) == 'heartbeat':
+            from ..debug import get_stacktrace
+            self._log.debug(' === stack: %s', get_stacktrace())
+
+        self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._log.debug('-> %s: %s', self.channel, msg)
       # log_bulk(self._log, msg, '-> %s' % self.channel)
 
@@ -228,6 +233,7 @@ class Subscriber(object):
     # callbacks in that thread.  We hold those endpoints in a class dict, so
     # that all class instances share that information
     _callbacks = dict()
+
 
     # --------------------------------------------------------------------------
     #
@@ -252,33 +258,43 @@ class Subscriber(object):
     @staticmethod
     def _listener(url, log):
 
+      # assert(url in Subscriber._callbacks)
+
         try:
-            lock      = Subscriber._callbacks[url]['lock']
-            socket    = Subscriber._callbacks[url]['socket']
-            channel   = Subscriber._callbacks[url]['channel']
+            lock      = Subscriber._callbacks.get(url, {}).get('lock')
+            socket    = Subscriber._callbacks.get(url, {}).get('socket')
+            channel   = Subscriber._callbacks.get(url, {}).get('channel')
 
             while True:
 
+                log.debug(' === L check')
+
                 # this list is dynamic
                 callbacks = Subscriber._callbacks[url]['callbacks']
+                log.debug(' === L check %d', len(callbacks))
 
                 topic, msg = Subscriber._get_nowait(socket, lock, 500, channel)
-              # if topic and channel == 'state_pubsub':
-              #     log.debug('get %s [%s]', topic, len(msg))
+                if not msg:
+                    msg = ''
+                log.debug(' === L get %s [%d] [%d]', topic, len(msg), len(callbacks))
 
                 if topic:
                     t = as_string(topic)
                     for m in as_list(msg):
                         m = as_string(m)
                         for cb, _lock in callbacks:
-                          # log.debug('cb  %s [%s] [%s]', cb, len(msg), l)
+                            log.debug(' === L cb  %s [%s]', cb, len(msg))
                             if _lock:
                                 with _lock:
+                                    log.debug(' === L cb  %s [%s] ok?', cb, len(msg))
                                     cb(t, m)
+                                    log.debug(' === L cb  %s [%s] ok!', cb, len(msg))
                             else:
+                                log.debug(' === cb L %s : %s [%s] OK?', cb, url, len(msg))
                                 cb(t, m)
+                                log.debug(' === cb L %s : %s [%s] OK!', cb, url, len(msg))
         except:
-            log.exception('listener died')
+            log.exception(' === L listener died')
 
 
     # --------------------------------------------------------------------------
@@ -348,15 +364,23 @@ class Subscriber(object):
     #
     def _start_listener(self):
 
+        import pprint
+        self._log.debug(' === X 0 %s: %s : %s', self._channel, self._url,
+                pprint.pformat(Subscriber._callbacks))
+
         # only start if needed
         if Subscriber._callbacks[self._url]['thread']:
             return
 
+        self._log.debug(' === X 1 %s', self._channel)
+
         t = mt.Thread(target=Subscriber._listener, args=[self._url, self._log])
         t.daemon = True
         t.start()
+        self._log.debug(' === X 2 %s', self._channel)
 
         Subscriber._callbacks[self._url]['thread'] = t
+        self._log.debug(' === X 3 %s', self._channel)
 
 
     # --------------------------------------------------------------------------
@@ -371,10 +395,12 @@ class Subscriber(object):
         # `get()` and `get_nowait()` anymore, as those will interfere with the
         # thread consuming the messages,
         #
-        # The given callback (if any) is used to shield concurrent cb
-        # invokations.
+        # The given lock (if any) is used to shield concurrent cb invokations.
+
+        self._log.debug(' === S 0 %s %s', topic, cb)
 
         if cb:
+            self._log.debug(' === S 1 %s %s', topic, cb)
 
             self._interactive = False
             self._start_listener()
@@ -386,6 +412,8 @@ class Subscriber(object):
 
         with self._lock:
             no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+
+        self._log.debug(' === S 2 %s %s', topic, cb)
 
 
     # --------------------------------------------------------------------------
@@ -414,6 +442,8 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     def get_nowait(self, timeout=None):
+
+        # FIXME:  does this duplicate _get_nowait? why / why not?
 
         if not self._interactive:
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
