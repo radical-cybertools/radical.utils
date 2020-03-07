@@ -2,6 +2,13 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.2.0 Release                                                         2020-03-07
+--------------------------------------------------------------------------------
+  
+  - add time simulation class
+  - Travis fix
+  - silence some debug messages
+            
             
 1.1.1 Hotfix Release                                                  2020-02-11
 --------------------------------------------------------------------------------
