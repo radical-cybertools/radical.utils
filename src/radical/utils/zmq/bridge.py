@@ -66,7 +66,7 @@ def log_bulk(log, bulk, token):
     else:
         for e in bulk:
             log.debug("%s: ?", str(token))
-            log.debug("%s: %s", token, str(e)[0:32])
+            log.debug("%s: %s", token, str(e)[0:200])
 
 
 # ------------------------------------------------------------------------------

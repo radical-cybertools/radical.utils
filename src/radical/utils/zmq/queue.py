@@ -322,8 +322,8 @@ class Getter(object):
 
         with info['lock']:
 
-            log.debug('=== %s  %s  %s', info['lock'], info['socket'],
-            info['requested'])
+          # log.debug('=== %s  %s  %s', info['lock'], info['socket'],
+          #           info['requested'])
 
             if not info['requested']:
 
@@ -376,6 +376,10 @@ class Getter(object):
                     continue
 
                 msg = Getter._get_nowait(url, 500, log)
+
+              # log_bulk(log, msg, '>> msg in listener (%s)' %
+              #         [cb[0].__name__ for cb in Getter._callbacks[url]['callbacks']])
+
                 if msg:
                     for m in as_list(msg):
 
@@ -384,7 +388,7 @@ class Getter(object):
                             idx = 0
 
                         cb, _lock = callbacks[idx]
-                      # print(cb.__name__, m, idx)
+                      # log.debug('==== %s [%s] <- %s', cb.__name__, idx, m)
                         if _lock:
                             with _lock:
                                 cb(as_string(m))
@@ -392,29 +396,29 @@ class Getter(object):
                             cb(as_string(m))
 
         except:
-            log.exception(' === G listener died')
+            log.exception('listener died')
 
     # --------------------------------------------------------------------------
     #
     def _start_listener(self):
 
-        import pprint
-        self._log.debug(' === X 0 %s: %s : %s', self._channel, self._url,
-                pprint.pformat(Getter._callbacks))
+      # import pprint
+      # self._log.debug(' === X 0 %s: %s : %s', self._channel, self._url,
+      #         pprint.pformat(Getter._callbacks))
 
         # only start if needed
         if Getter._callbacks[self._url]['thread']:
             return
 
-        self._log.debug(' === X 1 %s', self._channel)
+      # self._log.debug(' === X 1 %s', self._channel)
 
         t = mt.Thread(target=Getter._listener, args=[self._url, self._log])
         t.daemon = True
         t.start()
-        self._log.debug(' === X 2 %s', self._channel)
+      # self._log.debug(' === X 2 %s', self._channel)
 
         Getter._callbacks[self._url]['thread'] = t
-        self._log.debug(' === X 3 %s', self._channel)
+      # self._log.debug(' === X 3 %s', self._channel)
 
 
     # --------------------------------------------------------------------------
@@ -429,7 +433,6 @@ class Getter(object):
 
         self._channel   = channel
         self._url       = url
-        self._cb        = cb
         self._lock      = mt.Lock()
         self._log       = log
         self._uid       = generate_id('%s.get.%s' % (self._channel,
@@ -456,7 +459,9 @@ class Getter(object):
                                       'thread'   : None,
                                       'callbacks': list()}
         if cb:
+          # self._log.debug('=== init cb 0 %s', cb.__name__)
             self.subscribe(cb)
+          # self._log.debug('=== init cb 1 %s', cb.__name__)
         else:
             self._interactive = True
 
@@ -495,14 +500,18 @@ class Getter(object):
         #
         # FIXME: clean up lock usage - see self._lock
 
-        self._log.debug(' === S 0 %s', cb)
+      # self._log.debug(' === S 0 %s', cb.__name__)
 
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 
+      # import pprint
+      # self._log.debug(' === S 1 %s', pprint.pformat(Getter._callbacks))
+
         self._interactive = False
         self._start_listener()
+        log_bulk(self._log, cb.__name__, '~~ %s' % self.channel)
 
-        self._log.debug(' === S 2 %s', cb)
+      # self._log.debug(' === S 2 %s', cb)
 
 
     # --------------------------------------------------------------------------
@@ -515,7 +524,7 @@ class Getter(object):
         if not self._requested:
             req = 'Request %s' % os.getpid()
 
-            self._log.debug('=== O2 %s  %s  %s', self._lock, self._q, self._requested)
+          # self._log.debug('=== O2 %s  %s  %s', self._lock, self._q, self._requested)
 
             with self._lock:
                 no_intr(self._q.send, as_bytes(req))
@@ -544,7 +553,7 @@ class Getter(object):
 
         if not self._requested:
 
-            self._log.debug('=== O1 %s  %s  %s', self._lock, self._q, self._requested)
+          # self._log.debug('=== O1 %s  %s  %s', self._lock, self._q, self._requested)
 
             # send the request *once* per recieval (got lock above)
             req = 'request %s' % os.getpid()
