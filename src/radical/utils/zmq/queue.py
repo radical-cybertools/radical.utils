@@ -8,9 +8,10 @@ import threading as mt
 
 from .bridge  import Bridge, no_intr, log_bulk
 
+from ..atfork import atfork
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string, as_bytes, as_list
+from ..misc   import get_hostip, as_string, as_bytes, as_list, noop
 from ..logger import Logger
 from ..debug  import get_stacktrace
 
@@ -22,6 +23,15 @@ from ..debug  import get_stacktrace
 _LINGER_TIMEOUT    =  250  # ms to linger after close
 _HIGH_WATER_MARK   =    0  # number of messages to buffer before dropping
 _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
+
+
+# ------------------------------------------------------------------------------
+#
+def _atfork_child():
+    Getter._callbacks = dict()
+
+
+atfork(noop, noop, _atfork_child)
 
 
 # ------------------------------------------------------------------------------
