@@ -54,7 +54,8 @@ class Error(Exception):
 
 def fix_logging_module():
 
-    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
+    # monkeypatching can be disabled by setting RADICAL_UTILS_NO_ATFORK
+    if 'RADICAL_UTILS_NO_ATFORK' in os.environ:
         return
 
     logging = sys.modules.get('logging')
