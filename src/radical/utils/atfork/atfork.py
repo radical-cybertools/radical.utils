@@ -100,8 +100,8 @@ def atfork(prepare=None, parent=None, child=None):
     to do so.
     '''
 
-    # monkeypatching can be disabled by setting RADICAL_UTILS_PATCHATFORK
-    if 'RADICAL_UTILS_PATCHATFORK' not in os.environ:
+    # monkeypatching can be disabled by setting RADICAL_UTILS_NO_ATFORK
+    if 'RADICAL_UTILS_NO_ATFORK' in os.environ:
         return
 
     assert not prepare or callable(prepare)

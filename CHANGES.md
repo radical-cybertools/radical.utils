@@ -2,6 +2,20 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.2.1 Hotfix Release                                                  2020-03-22
+--------------------------------------------------------------------------------
+  
+  - fix: clean ZMQ subscriber and listener threads after fork
+  - fix: re-enable atfork handlers for os.fork, logging, singleton by default
+  - PR #216 fix to_tuple
+  - PR #217 add time simulation class
+  - PR #218 change ZMQ bulking defaults
+  - PR #225 add noop() as cb default value
+  - remove deprecated signals
+  - reduce log chattiness
+  - simplify bridge construction
+
+      
 1.2.0 Release                                                         2020-03-07
 --------------------------------------------------------------------------------
   
