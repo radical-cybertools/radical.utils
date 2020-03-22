@@ -14,7 +14,6 @@ from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
 from ..misc   import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger import Logger
-from ..debug  import get_stacktrace
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -29,7 +28,7 @@ _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
 # ------------------------------------------------------------------------------
 #
 def _atfork_child():
-    Getter._callbacks = dict()
+    Getter._callbacks = dict()                                            # noqa
 
 
 atfork(noop, noop, _atfork_child)

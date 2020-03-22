@@ -26,7 +26,6 @@ def no_intr(f, *args, **kwargs):
 
     _max = 3
     cnt  = 0
-    return f(*args, **kwargs)
     while True:
         try:
             return f(*args, **kwargs)

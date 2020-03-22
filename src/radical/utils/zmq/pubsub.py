@@ -24,7 +24,7 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 # ------------------------------------------------------------------------------
 #
 def _atfork_child():
-    Subscriber._callbacks = dict()
+    Subscriber._callbacks = dict()                                        # noqa
 
 
 atfork(noop, noop, _atfork_child)
