@@ -26,7 +26,6 @@ def no_intr(f, *args, **kwargs):
 
     _max = 3
     cnt  = 0
-    return f(*args, **kwargs)
     while True:
         try:
             return f(*args, **kwargs)
@@ -66,7 +65,7 @@ def log_bulk(log, bulk, token):
     else:
         for e in bulk:
             log.debug("%s: ?", str(token))
-            log.debug("%s: %s", token, str(e)[0:32])
+            log.debug("%s: %s", token, str(e)[0:200])
 
 
 # ------------------------------------------------------------------------------
