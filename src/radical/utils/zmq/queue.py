@@ -8,9 +8,11 @@ import threading as mt
 
 from .bridge  import Bridge, no_intr, log_bulk
 
+from ..atfork import atfork
+from ..config import Config
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string, as_bytes
+from ..misc   import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger import Logger
 
 
@@ -21,6 +23,15 @@ from ..logger import Logger
 _LINGER_TIMEOUT    =  250  # ms to linger after close
 _HIGH_WATER_MARK   =    0  # number of messages to buffer before dropping
 _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
+
+
+# ------------------------------------------------------------------------------
+#
+def _atfork_child():
+    Getter._callbacks = dict()                                            # noqa
+
+
+atfork(noop, noop, _atfork_child)
 
 
 # ------------------------------------------------------------------------------
@@ -66,7 +77,7 @@ _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
 #
 class Queue(Bridge):
 
-    def __init__(self, cfg):
+    def __init__(self, cfg=None, channel=None):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -86,6 +97,22 @@ class Queue(Bridge):
         be wildcards for BRIDGE roles -- the bridge will report the in and out
         addresses as obj.addr_put and obj.addr_get.
         '''
+
+        if cfg and not channel and is_string(cfg):
+            # allow construction with only channel name
+            channel = cfg
+            cfg     = None
+
+        if   cfg    : cfg = Config(cfg=cfg)
+        elif channel: cfg = Config(cfg={'channel': channel})
+        else: raise RuntimeError('Queue needs cfg or channel parameter')
+
+        if not cfg.channel:
+            raise ValueError('no channel name provided for queue')
+
+        if not cfg.uid:
+            cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
+                                  ID_CUSTOM)
 
         super(Queue, self).__init__(cfg)
 
@@ -256,11 +283,11 @@ class Putter(object):
     def __init__(self, channel, url):
 
         self._channel  = channel
-        self._url      = url
+        self._url      = as_string(url)
         self._lock     = mt.Lock()
 
-        self._uid      = generate_id('%s.put.%s' % (self._channel,
-                                                   '%(counter)04d'), ID_CUSTOM)
+        self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
+                                     ID_CUSTOM)
         self._log      = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
@@ -304,17 +331,138 @@ class Putter(object):
 #
 class Getter(object):
 
+    # instead of creating a new listener thread for each endpoint which then, on
+    # incoming messages, calls a getter callback, we only create *one*
+    # listening thread per ZMQ endpoint address and call *all* registered
+    # callbacks in that thread.  We hold those endpoints in a class dict, so
+    # that all class instances share that information
+    _callbacks = dict()
+
+
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url,  log=None):
+    @staticmethod
+    def _get_nowait(url, timeout, log):  # timeout in ms
+
+        info = Getter._callbacks[url]
+
+        with info['lock']:
+
+          # log.debug('=== %s  %s  %s', info['lock'], info['socket'],
+          #           info['requested'])
+
+            if not info['requested']:
+
+                # send the request *once* per recieval (got lock above)
+                req = 'request %s' % os.getpid()
+                no_intr(info['socket'].send, as_bytes(req))
+                info['requested'] = True
+
+                log_bulk(log, req, '-> %s (2) [%-5s]' % (info['channel'],
+                                                         info['requested']))
+
+
+            if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
+
+                data = no_intr(info['socket'].recv)
+                info['requested'] = False
+
+                msg = msgpack.unpackb(data)
+                log_bulk(log, msg, '<- %s (2) [%-5s]' % (info['channel'], info['requested']))
+                return as_string(msg)
+
+            else:
+                log_bulk(log, None, '-- %s [%-5s]' % (info['channel'], info['requested']))
+                return None
+
+
+    # --------------------------------------------------------------------------
+    #
+    @staticmethod
+    def _listener(url, log):
+        '''
+        other than the pubsub listener, the queue listener will not deliver
+        an incoming message to all subscribers, but only to exactly *one*
+        subscriber.  We this perform a round-robin over all known callbacks
+        '''
+
+        assert(url in Getter._callbacks)
+        time.sleep(1)
+
+        try:
+            idx = 0  # round-robin cb index
+            while True:
+
+                # this list is dynamic
+                callbacks = Getter._callbacks[url]['callbacks']
+
+                if not callbacks:
+                    print('no cb')
+                    time.sleep(0.01)
+                    continue
+
+                msg = Getter._get_nowait(url, 500, log)
+
+              # log_bulk(log, msg, '>> msg in listener (%s)' %
+              #         [cb[0].__name__ for cb in Getter._callbacks[url]['callbacks']])
+
+                if msg:
+                    for m in as_list(msg):
+
+                        idx += 1
+                        if idx >= len(callbacks):  # FIXME: lock callbacks
+                            idx = 0
+
+                        cb, _lock = callbacks[idx]
+                      # log.debug('==== %s [%s] <- %s', cb.__name__, idx, m)
+                        if _lock:
+                            with _lock:
+                                cb(as_string(m))
+                        else:
+                            cb(as_string(m))
+
+        except:
+            log.exception('listener died')
+
+    # --------------------------------------------------------------------------
+    #
+    def _start_listener(self):
+
+      # import pprint
+      # self._log.debug(' === X 0 %s: %s : %s', self._channel, self._url,
+      #         pprint.pformat(Getter._callbacks))
+
+        # only start if needed
+        if Getter._callbacks[self._url]['thread']:
+            return
+
+      # self._log.debug(' === X 1 %s', self._channel)
+
+        t = mt.Thread(target=Getter._listener, args=[self._url, self._log])
+        t.daemon = True
+        t.start()
+      # self._log.debug(' === X 2 %s', self._channel)
+
+        Getter._callbacks[self._url]['thread'] = t
+      # self._log.debug(' === X 3 %s', self._channel)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, channel, url, cb=None, log=None):
+        '''
+        When a callback `cb` is specified, then the Getter c'tor will spawn
+        a separate thread which continues to listen on the channel, and the
+        cb is invoked on any incoming message.  The message will be the only
+        argument to the cb.
+        '''
 
         self._channel   = channel
-        self._url       = url
+        self._url       = as_string(url)
         self._lock      = mt.Lock()
-
-        self._uid       = generate_id('%s.get.%s' % (self._channel,
-                                                    '%(counter)04d'), ID_CUSTOM)
         self._log       = log
+        self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
+                                      ID_CUSTOM)
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
@@ -327,6 +475,21 @@ class Getter(object):
         self._q.linger  = _LINGER_TIMEOUT
         self._q.hwm     = _HIGH_WATER_MARK
         self._q.connect(self._url)
+
+        if url not in Getter._callbacks:
+
+            Getter._callbacks[url] = {'socket'   : self._q,
+                                      'channel'  : self._channel,
+                                      'lock'     : mt.Lock(),
+                                      'requested': self._requested,
+                                      'thread'   : None,
+                                      'callbacks': list()}
+        if cb:
+          # self._log.debug('=== init cb 0 %s', cb.__name__)
+            self.subscribe(cb)
+          # self._log.debug('=== init cb 1 %s', cb.__name__)
+        else:
+            self._interactive = True
 
 
     # --------------------------------------------------------------------------
@@ -349,53 +512,102 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
+    def subscribe(self, cb, lock=None):
+
+        # if we need to serve callbacks, then open a thread to watch the socket
+        # and register the callbacks.  If a thread is already runnning on that
+        # channel, just register the callback.
+        #
+        # Note that once a thread is watching a socket, we cannot allow to use
+        # `get()` and `get_nowait()` anymore, as those will interfere with the
+        # thread consuming the messages,
+        #
+        # The given lock (if any) is used to shield concurrent cb invokations.
+        #
+        # FIXME: clean up lock usage - see self._lock
+
+      # self._log.debug(' === S 0 %s', cb.__name__)
+
+        if self._url not in Getter._callbacks:
+
+            Getter._callbacks[self._url] = {'socket'   : self._q,
+                                            'channel'  : self._channel,
+                                            'lock'     : mt.Lock(),
+                                            'requested': self._requested,
+                                            'thread'   : None,
+                                            'callbacks': list()}
+
+        Getter._callbacks[self._url]['callbacks'].append([cb, lock])
+
+      # import pprint
+      # self._log.debug(' === S 1 %s', pprint.pformat(Getter._callbacks))
+
+        self._interactive = False
+        self._start_listener()
+        log_bulk(self._log, cb.__name__, '~~ %s' % self.channel)
+
+      # self._log.debug(' === S 2 %s', cb)
+
+
+    # --------------------------------------------------------------------------
+    #
     def get(self):
+
+        if not self._interactive:
+            raise RuntimeError('invalid get(): callbacks are registered')
 
         if not self._requested:
             req = 'Request %s' % os.getpid()
 
-            with self._lock:
-                no_intr(self._q.send_string, req)
+          # self._log.debug('=== O2 %s  %s  %s', self._lock, self._q, self._requested)
 
-            self._requested = True
+            with self._lock:
+                no_intr(self._q.send, as_bytes(req))
+                self._requested = True
+
             log_bulk(self._log, req, '>> %s [%-5s]'
                                    % (self._channel, self._requested))
 
         with self._lock:
             data = no_intr(self._q.recv)
+            self._requested = False
 
         msg = msgpack.unpackb(data)
-        self._requested = False
         log_bulk(self._log, msg, '-- %s [%-5s]'
                                % (self._channel, self._requested))
 
-        return msg
+        return as_string(msg)
 
 
     # --------------------------------------------------------------------------
     #
     def get_nowait(self, timeout=None):  # timeout in ms
 
-        with self._lock:  # need to protect self._requested
+        if not self._interactive:
+            raise RuntimeError('invalid get(): callbacks are registered')
 
-            if not self._requested:
+        if not self._requested:
 
-                # send the request *once* per recieval (got lock above)
-                req = 'request %s' % os.getpid()
+          # self._log.debug('=== O1 %s  %s  %s', self._lock, self._q, self._requested)
+
+            # send the request *once* per recieval (got lock above)
+            req = 'request %s' % os.getpid()
+
+            with self._lock:  # need to protect self._requested
                 no_intr(self._q.send, as_bytes(req))
-
                 self._requested = True
-                log_bulk(self._log, req, '-> %s [%-5s]'
-                                         % (self._channel, self._requested))
+
+            log_bulk(self._log, req, '-> %s (3) [%-5s]'
+                                     % (self._channel, self._requested))
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
                 data = no_intr(self._q.recv)
+                self._requested = False
 
             msg = msgpack.unpackb(data)
-            self._requested = False
-            log_bulk(self._log, msg, '<- %s [%-5s]'
+            log_bulk(self._log, msg, '<- %s (3) [%-5s]'
                                      % (self._channel, self._requested))
             return as_string(msg)
 
