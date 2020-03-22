@@ -55,7 +55,8 @@ def _atfork_child():
     _singleton_lock = threading.RLock()
 
 
-if 'RADICAL_UTILS_PATCHATFORK' in os.environ:
+# lock cleaning can be disabled by setting RADICAL_UTILS_NO_ATFORK
+if 'RADICAL_UTILS_NO_ATFORK' not in os.environ:
     atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 
