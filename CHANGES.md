@@ -2,6 +2,12 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.2.2 Hotfix Release                                                  2020-03-22
+--------------------------------------------------------------------------------
+
+  - fix atfork default setting
+
+  
 1.2.1 Hotfix Release                                                  2020-03-22
 --------------------------------------------------------------------------------
   
