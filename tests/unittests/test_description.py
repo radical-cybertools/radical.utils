@@ -6,7 +6,7 @@ import radical.utils as ru
 
 # ------------------------------------------------------------------------------
 #
-class TestDescr(ru.Description):
+class _TestDescr(ru.Description):
 
     _schema = {'exe'  : str,
                'procs': int,
@@ -42,8 +42,8 @@ def test_description():
                  '_data': 4,
     }
 
-    td = TestDescr()
-    td = TestDescr(from_dict=from_dict)
+    td = _TestDescr()
+    td = _TestDescr(from_dict=from_dict)
 
     with pytest.raises(ValueError):
         td.verify()

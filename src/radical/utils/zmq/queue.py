@@ -8,11 +8,12 @@ import threading as mt
 
 from .bridge  import Bridge, no_intr, log_bulk
 
+from ..atfork import atfork
+from ..config import Config
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string, as_bytes, as_list
+from ..misc   import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger import Logger
-from ..debug  import get_stacktrace
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -22,6 +23,15 @@ from ..debug  import get_stacktrace
 _LINGER_TIMEOUT    =  250  # ms to linger after close
 _HIGH_WATER_MARK   =    0  # number of messages to buffer before dropping
 _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
+
+
+# ------------------------------------------------------------------------------
+#
+def _atfork_child():
+    Getter._callbacks = dict()                                            # noqa
+
+
+atfork(noop, noop, _atfork_child)
 
 
 # ------------------------------------------------------------------------------
@@ -67,7 +77,7 @@ _DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
 #
 class Queue(Bridge):
 
-    def __init__(self, cfg):
+    def __init__(self, cfg=None, channel=None):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -87,6 +97,22 @@ class Queue(Bridge):
         be wildcards for BRIDGE roles -- the bridge will report the in and out
         addresses as obj.addr_put and obj.addr_get.
         '''
+
+        if cfg and not channel and is_string(cfg):
+            # allow construction with only channel name
+            channel = cfg
+            cfg     = None
+
+        if   cfg    : cfg = Config(cfg=cfg)
+        elif channel: cfg = Config(cfg={'channel': channel})
+        else: raise RuntimeError('Queue needs cfg or channel parameter')
+
+        if not cfg.channel:
+            raise ValueError('no channel name provided for queue')
+
+        if not cfg.uid:
+            cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
+                                  ID_CUSTOM)
 
         super(Queue, self).__init__(cfg)
 
@@ -257,11 +283,11 @@ class Putter(object):
     def __init__(self, channel, url):
 
         self._channel  = channel
-        self._url      = url
+        self._url      = as_string(url)
         self._lock     = mt.Lock()
 
-        self._uid      = generate_id('%s.put.%s' % (self._channel,
-                                                   '%(counter)04d'), ID_CUSTOM)
+        self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
+                                     ID_CUSTOM)
         self._log      = Logger(name=self._uid, ns='radical.utils')
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
@@ -432,11 +458,11 @@ class Getter(object):
         '''
 
         self._channel   = channel
-        self._url       = url
+        self._url       = as_string(url)
         self._lock      = mt.Lock()
         self._log       = log
-        self._uid       = generate_id('%s.get.%s' % (self._channel,
-                                                    '%(counter)04d'), ID_CUSTOM)
+        self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
+                                      ID_CUSTOM)
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
@@ -501,6 +527,15 @@ class Getter(object):
         # FIXME: clean up lock usage - see self._lock
 
       # self._log.debug(' === S 0 %s', cb.__name__)
+
+        if self._url not in Getter._callbacks:
+
+            Getter._callbacks[self._url] = {'socket'   : self._q,
+                                            'channel'  : self._channel,
+                                            'lock'     : mt.Lock(),
+                                            'requested': self._requested,
+                                            'thread'   : None,
+                                            'callbacks': list()}
 
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 

@@ -147,13 +147,13 @@ def test_zmq_queue_cb():
                          })
 
     def get_msg_a(msg):
-        uid, idx = msg.split('.')
+        uid, _ = msg.split('.')
         if uid not in data['get']:
             data['get'][uid] = list()
         data['get'][uid].append(uid)
 
     def get_msg_b(msg):
-        uid, idx = msg.split('.')
+        uid, _ = msg.split('.')
         if uid not in data['get']:
             data['get'][uid] = list()
         data['get'][uid].append(uid)

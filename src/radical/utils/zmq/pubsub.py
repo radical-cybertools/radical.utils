@@ -6,9 +6,11 @@ import threading as mt
 
 from .bridge  import Bridge, no_intr, log_bulk
 
+from ..atfork import atfork
+from ..config import Config
 from ..ids    import generate_id, ID_CUSTOM
 from ..url    import Url
-from ..misc   import get_hostip, as_string, as_bytes, as_list
+from ..misc   import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger import Logger
 
 
@@ -21,6 +23,15 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 
 # ------------------------------------------------------------------------------
 #
+def _atfork_child():
+    Subscriber._callbacks = dict()                                        # noqa
+
+
+atfork(noop, noop, _atfork_child)
+
+
+# ------------------------------------------------------------------------------
+#
 # Notifications between components are based on pubsub channels.  Those channels
 # have different scope (bound to the channel name).  Only one specific topic is
 # predefined: 'state' will be used for unit state updates.
@@ -29,7 +40,23 @@ class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, cfg):
+    def __init__(self, cfg=None, channel=None):
+
+        if cfg and not channel and is_string(cfg):
+            # allow construction with only channel name
+            channel = cfg
+            cfg     = None
+
+        if   cfg    : cfg = Config(cfg=cfg)
+        elif channel: cfg = Config(cfg={'channel': channel})
+        else: raise RuntimeError('PubSub needs cfg or channel parameter')
+
+        if not cfg.channel:
+            raise ValueError('no channel name provided for pubsub')
+
+        if not cfg.uid:
+            cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
+                                  ID_CUSTOM)
 
         super(PubSub, self).__init__(cfg)
 
@@ -167,7 +194,7 @@ class Publisher(object):
     def __init__(self, channel, url, log=None):
 
         self._channel  = channel
-        self._url      = url
+        self._url      = as_string(url)
         self._log      = log
         self._lock     = mt.Lock()
 
@@ -309,7 +336,7 @@ class Subscriber(object):
         '''
 
         self._channel  = channel
-        self._url      = url
+        self._url      = as_string(url)
         self._topic    = as_list(topic)
         self._cb       = cb
         self._log      = log
