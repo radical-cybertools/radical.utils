@@ -103,7 +103,7 @@ class Heartbeat(object):
     #
     def _watch(self):
 
-        # initial heartbeat w ithout delay
+        # initial heartbeat without delay
         if  self._beat_cb:
             self._beat_cb()
 

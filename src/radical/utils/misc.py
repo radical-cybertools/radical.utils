@@ -397,6 +397,9 @@ def as_string(data):
     elif isinstance(data, bytes):
         return bytes.decode(data, 'utf-8')
 
+    elif isinstance(data, ruu.Url):
+        return str(data)
+
     else:
         return data
 
