@@ -512,6 +512,15 @@ class Getter(object):
 
       # self._log.debug(' === S 0 %s', cb.__name__)
 
+        if self._url not in Getter._callbacks:
+
+            Getter._callbacks[self._url] = {'socket'   : self._q,
+                                            'channel'  : self._channel,
+                                            'lock'     : mt.Lock(),
+                                            'requested': self._requested,
+                                            'thread'   : None,
+                                            'callbacks': list()}
+
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 
       # import pprint
