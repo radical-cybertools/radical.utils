@@ -336,11 +336,13 @@ class Putter(object):
     #
     def put(self, msg):
 
-        log_bulk(self._log, msg, '-> %s' % self._channel)
+        self._log.debug('--- put %s', msg)
+      # log_bulk(self._log, msg, '-> %s' % self._channel)
         data = msgpack.packb(msg)
 
         with self._lock:
             no_intr(self._q.send, data)
+        self._log.debug('--- put ok')
 
 
 # ------------------------------------------------------------------------------
@@ -373,9 +375,10 @@ class Getter(object):
                 req = 'request %s' % os.getpid()
                 no_intr(info['socket'].send, as_bytes(req))
                 info['requested'] = True
+                log.debug('--- requested')
 
-                log_bulk(log, req, '-> %s (2) [%-5s]' % (info['channel'],
-                                                         info['requested']))
+              # log_bulk(log, req, '-> %s (2) [%-5s]' % (info['channel'],
+              #                                          info['requested']))
 
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
@@ -384,11 +387,12 @@ class Getter(object):
                 info['requested'] = False
 
                 msg = msgpack.unpackb(data)
-                log_bulk(log, msg, '<- %s (2) [%-5s]' % (info['channel'], info['requested']))
+                log.debug('--- received %s', msg)
+              # log_bulk(log, msg, '<- %s (2) [%-5s]' % (info['channel'], info['requested']))
                 return as_string(msg)
 
             else:
-                log_bulk(log, None, '-- %s [%-5s]' % (info['channel'], info['requested']))
+              # log_bulk(log, None, '-- %s [%-5s]' % (info['channel'], info['requested']))
                 return None
 
 
@@ -405,6 +409,7 @@ class Getter(object):
         assert(url in Getter._callbacks)
         time.sleep(1)
 
+        log.debug('--- start listener')
         try:
             idx = 0  # round-robin cb index
             while True:
@@ -413,7 +418,6 @@ class Getter(object):
                 callbacks = Getter._callbacks[url]['callbacks']
 
                 if not callbacks:
-                    print('no cb')
                     time.sleep(0.01)
                     continue
 
@@ -431,11 +435,13 @@ class Getter(object):
 
                         cb, _lock = callbacks[idx]
                       # log.debug('==== %s [%s] <- %s', cb.__name__, idx, m)
+                        log.debug('--- cb %s', _lock)
                         if _lock:
                             with _lock:
                                 cb(as_string(m))
                         else:
                             cb(as_string(m))
+                        log.debug('--- cb done')
 
         except:
             log.exception('listener died')
