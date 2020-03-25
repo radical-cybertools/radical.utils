@@ -296,15 +296,18 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url):
+    def __init__(self, channel, url, log=None):
 
         self._channel  = channel
         self._url      = as_string(url)
+        self._log      = log
         self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
                                      ID_CUSTOM)
-        self._log      = Logger(name=self._uid, ns='radical.utils')
+        if not self._log:
+            self._log  = Logger(name=self._uid, ns='radical.utils')
+
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
         self._ctx      = zmq.Context()  # rely on GC for destruction
