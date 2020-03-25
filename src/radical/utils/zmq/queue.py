@@ -219,56 +219,72 @@ class Queue(Bridge):
             buf = list()
             while not self._term.is_set():
 
-                # check for incoming messages, and buffer them
-                ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
                 active = False
 
+                # check for incoming messages, and buffer them
+                self._log.debug('--- poll put')
+                ev_put = dict(no_intr(self._poll_put.poll, timeout=1))
+                self._log.debug('--- poll put %s', ev_put)
+
                 if self._put in ev_put:
+                    self._log.debug('--- poll put yes')
 
                     with self._lock:
                         data = no_intr(self._put.recv)
 
                     msgs = msgpack.unpackb(data)
+                    self._log.debug('--- poll put recv %s', msgs)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
+                    self._log.debug('--- poll put recved')
 
                     active = True
-                    log_bulk(self._log, msgs, '>< %s [%d]'
-                                              % (self._uid, len(buf)))
+                  # log_bulk(self._log, msgs, '>< %s [%d]'
+                  #                           % (self._uid, len(buf)))
 
 
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
-                if buf:
+                if not buf:
+                    self._log.debug('--- poll get skip')
+
+                else:
 
                     # check if somebody wants our messages
-                    ev_get = dict(no_intr(self._poll_get.poll,
-                                                   timeout=0))
+                    self._log.debug('--- poll get')
+                    ev_get = dict(no_intr(self._poll_get.poll, timeout=1))
+                    self._log.debug('--- poll get %s', ev_get)
+
                     if self._get in ev_get:
+                        self._log.debug('--- poll get no')
 
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         with self._lock:
                             req = no_intr(self._get.recv)
 
+                        self._log.debug('--- poll get recv %s', msgs)
                         bulk   = buf[:self._bulk_size]
+                        self._log.debug('--- poll get send %s', bulk)
                         data   = msgpack.packb(bulk)
                         active = True
 
                         no_intr(self._get.send, data)
-                        log_bulk(self._log, bulk, '<> %s [%s]'
-                                                % (self._uid, req))
+                      # log_bulk(self._log, bulk, '<> %s [%s]'
+                      #                         % (self._uid, req))
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
+                        self._log.debug('--- poll get sent')
 
                 if not active:
+                    self._log.debug('--- sleep')
                     # let CPU sleep a bit when there is nothing to do
                     # We don't want to use poll timouts since we use two
                     # competing polls and don't want the idle channel slow down
                     # the busy one.
-                    time.sleep(0.01)
+                    time.sleep(0.1)
 
         except  Exception:
             self._log.exception('bridge failed')
