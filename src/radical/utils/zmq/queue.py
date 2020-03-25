@@ -279,7 +279,7 @@ class Queue(Bridge):
                         self._log.debug('--- poll get sent')
 
                 if not active:
-                    self._log.debug('--- sleep')
+                    self._log.debug('--- sleep [%d]', len(buf))
                     # let CPU sleep a bit when there is nothing to do
                     # We don't want to use poll timouts since we use two
                     # competing polls and don't want the idle channel slow down
