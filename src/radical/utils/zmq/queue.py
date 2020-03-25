@@ -257,16 +257,16 @@ class Queue(Bridge):
                     self._log.debug('--- poll get %s', ev_get)
 
                     if self._get in ev_get:
-                        self._log.debug('--- poll get no')
+                        self._log.debug('--- poll get yes')
 
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         with self._lock:
                             req = no_intr(self._get.recv)
 
-                        self._log.debug('--- poll get recv %s', msgs)
+                        self._log.debug('--- poll get send to %s', req)
                         bulk   = buf[:self._bulk_size]
-                        self._log.debug('--- poll get send %s', bulk)
+                        self._log.debug('--- poll get send %d %s', len(bulk), bulk)
                         data   = msgpack.packb(bulk)
                         active = True
 
