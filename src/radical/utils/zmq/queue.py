@@ -1,19 +1,20 @@
 
-import os
 import zmq
 import time
 import msgpack
 
 import threading as mt
 
-from .bridge  import Bridge, no_intr, log_bulk
+from ..atfork  import atfork
+from ..config  import Config
+from ..ids     import generate_id, ID_CUSTOM
+from ..url     import Url
+from ..misc    import get_hostip, is_string, as_string, as_bytes, as_list, noop
+from ..logger  import Logger
+from ..profile import Profiler
 
-from ..atfork import atfork
-from ..config import Config
-from ..ids    import generate_id, ID_CUSTOM
-from ..url    import Url
-from ..misc   import get_hostip, is_string, as_string, as_bytes, as_list, noop
-from ..logger import Logger
+from .bridge   import Bridge
+from .utils    import no_intr, log_bulk, prof_bulk
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -222,64 +223,53 @@ class Queue(Bridge):
                 active = False
 
                 # check for incoming messages, and buffer them
-                self._log.debug('--- poll put')
-                ev_put = dict(no_intr(self._poll_put.poll, timeout=1))
-                self._log.debug('--- poll put %s', ev_put)
+                ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
+                self._prof.prof('poll_put', msg=len(ev_put))
 
                 if self._put in ev_put:
-                    self._log.debug('--- poll put yes')
 
                     with self._lock:
                         data = no_intr(self._put.recv)
 
                     msgs = msgpack.unpackb(data)
-                    self._log.debug('--- poll put recv %s', msgs)
+                    prof_bulk(self._prof, 'poll_put_recv', msgs)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
-                    self._log.debug('--- poll put recved')
 
                     active = True
-                  # log_bulk(self._log, msgs, '>< %s [%d]'
-                  #                           % (self._uid, len(buf)))
 
 
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
                 if not buf:
-                    self._log.debug('--- poll get skip')
+                    self._prof.prof('poll_get_skip')
 
                 else:
 
                     # check if somebody wants our messages
-                    self._log.debug('--- poll get')
-                    ev_get = dict(no_intr(self._poll_get.poll, timeout=1))
-                    self._log.debug('--- poll get %s', ev_get)
+                    ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
+                    self._prof.prof('poll_get', msg=len(ev_get))
 
                     if self._get in ev_get:
-                        self._log.debug('--- poll get yes')
 
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         with self._lock:
                             req = no_intr(self._get.recv)
 
-                        self._log.debug('--- poll get send to %s', req)
                         bulk   = buf[:self._bulk_size]
-                        self._log.debug('--- poll get send %d %s', len(bulk), bulk)
                         data   = msgpack.packb(bulk)
                         active = True
 
                         no_intr(self._get.send, data)
-                      # log_bulk(self._log, bulk, '<> %s [%s]'
-                      #                         % (self._uid, req))
+                        prof_bulk(self._prof, 'poll_get_send', msgs=bulk, msg=req)
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
-                        self._log.debug('--- poll get sent')
 
                 if not active:
-                    self._log.debug('--- sleep [%d]', len(buf))
+                    self._prof.prof('sleep', msg=len(buf))
                     # let CPU sleep a bit when there is nothing to do
                     # We don't want to use poll timouts since we use two
                     # competing polls and don't want the idle channel slow down
@@ -296,17 +286,24 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, log=None):
+    def __init__(self, channel, url, log=None, prof=None):
 
         self._channel  = channel
         self._url      = as_string(url)
         self._log      = log
+        self._prof     = prof
         self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
                                      ID_CUSTOM)
         if not self._log:
             self._log  = Logger(name=self._uid, ns='radical.utils')
+
+        if not self._prof:
+            self._prof = Profiler(name=self._uid, ns='radical.utils')
+
+        if 'hb' in self._uid or 'heartbeat' in self._uid:
+            self._prof.disable()
 
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
@@ -337,15 +334,14 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def put(self, msg):
+    def put(self, msgs):
 
-        self._log.debug('--- put %s', msg)
-      # log_bulk(self._log, msg, '-> %s' % self._channel)
-        data = msgpack.packb(msg)
+      # log_bulk(self._log, msgs, '-> %s' % self._channel)
+        data = msgpack.packb(msgs)
 
         with self._lock:
             no_intr(self._q.send, data)
-        self._log.debug('--- put ok')
+        prof_bulk(self._prof, 'put', msgs)
 
 
 # ------------------------------------------------------------------------------
@@ -363,25 +359,19 @@ class Getter(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _get_nowait(url, timeout, log):  # timeout in ms
+    def _get_nowait(url, timeout, log, prof):  # timeout in ms
 
         info = Getter._callbacks[url]
 
         with info['lock']:
 
-          # log.debug('=== %s  %s  %s', info['lock'], info['socket'],
-          #           info['requested'])
-
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
-                req = 'request %s' % os.getpid()
+                req = 'request %s' % info['uid']
                 no_intr(info['socket'].send, as_bytes(req))
                 info['requested'] = True
-                log.debug('--- requested')
-
-              # log_bulk(log, req, '-> %s (2) [%-5s]' % (info['channel'],
-              #                                          info['requested']))
+                prof.prof('requested')
 
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
@@ -389,20 +379,18 @@ class Getter(object):
                 data = no_intr(info['socket'].recv)
                 info['requested'] = False
 
-                msg = msgpack.unpackb(data)
-                log.debug('--- received %s', msg)
-              # log_bulk(log, msg, '<- %s (2) [%-5s]' % (info['channel'], info['requested']))
-                return as_string(msg)
+                msgs = as_string(msgpack.unpackb(data))
+                prof_bulk(prof, 'recv', msgs)
+                return msgs
 
             else:
-              # log_bulk(log, None, '-- %s [%-5s]' % (info['channel'], info['requested']))
                 return None
 
 
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(url, log):
+    def _listener(url, log, prof):
         '''
         other than the pubsub listener, the queue listener will not deliver
         an incoming message to all subscribers, but only to exactly *one*
@@ -412,7 +400,7 @@ class Getter(object):
         assert(url in Getter._callbacks)
         time.sleep(1)
 
-        log.debug('--- start listener')
+        prof.prof('listen_start')
         try:
             idx = 0  # round-robin cb index
             while True:
@@ -424,10 +412,7 @@ class Getter(object):
                     time.sleep(0.01)
                     continue
 
-                msg = Getter._get_nowait(url, 500, log)
-
-              # log_bulk(log, msg, '>> msg in listener (%s)' %
-              #         [cb[0].__name__ for cb in Getter._callbacks[url]['callbacks']])
+                msg = Getter._get_nowait(url, 500, log, prof)
 
                 if msg:
                     for m in as_list(msg):
@@ -437,14 +422,12 @@ class Getter(object):
                             idx = 0
 
                         cb, _lock = callbacks[idx]
-                      # log.debug('==== %s [%s] <- %s', cb.__name__, idx, m)
-                        log.debug('--- cb %s', _lock)
                         if _lock:
                             with _lock:
                                 cb(as_string(m))
                         else:
                             cb(as_string(m))
-                        log.debug('--- cb done')
+                        prof_bulk(prof, 'cb', m, msg=cb.__name__)
 
         except:
             log.exception('listener died')
@@ -453,28 +436,21 @@ class Getter(object):
     #
     def _start_listener(self):
 
-      # import pprint
-      # self._log.debug(' === X 0 %s: %s : %s', self._channel, self._url,
-      #         pprint.pformat(Getter._callbacks))
-
         # only start if needed
         if Getter._callbacks[self._url]['thread']:
             return
 
-      # self._log.debug(' === X 1 %s', self._channel)
-
-        t = mt.Thread(target=Getter._listener, args=[self._url, self._log])
+        t = mt.Thread(target=Getter._listener,
+                      args=[self._url, self._log, self._prof])
         t.daemon = True
         t.start()
-      # self._log.debug(' === X 2 %s', self._channel)
 
         Getter._callbacks[self._url]['thread'] = t
-      # self._log.debug(' === X 3 %s', self._channel)
 
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, cb=None, log=None):
+    def __init__(self, channel, url, cb=None, log=None, prof=None):
         '''
         When a callback `cb` is specified, then the Getter c'tor will spawn
         a separate thread which continues to listen on the channel, and the
@@ -486,11 +462,18 @@ class Getter(object):
         self._url       = as_string(url)
         self._lock      = mt.Lock()
         self._log       = log
+        self._prof      = prof
         self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
                                       ID_CUSTOM)
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
+
+        if not self._prof:
+            self._prof  = Profiler(name=self._uid, ns='radical.utils')
+
+        if 'hb' in self._uid or 'heartbeat' in self._uid:
+            self._prof.disable()
 
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
@@ -510,9 +493,7 @@ class Getter(object):
                                       'thread'   : None,
                                       'callbacks': list()}
         if cb:
-          # self._log.debug('=== init cb 0 %s', cb.__name__)
             self.subscribe(cb)
-          # self._log.debug('=== init cb 1 %s', cb.__name__)
         else:
             self._interactive = True
 
@@ -551,8 +532,6 @@ class Getter(object):
         #
         # FIXME: clean up lock usage - see self._lock
 
-      # self._log.debug(' === S 0 %s', cb.__name__)
-
         if self._url not in Getter._callbacks:
 
             Getter._callbacks[self._url] = {'socket'   : self._q,
@@ -564,14 +543,8 @@ class Getter(object):
 
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 
-      # import pprint
-      # self._log.debug(' === S 1 %s', pprint.pformat(Getter._callbacks))
-
         self._interactive = False
         self._start_listener()
-        log_bulk(self._log, cb.__name__, '~~ %s' % self.channel)
-
-      # self._log.debug(' === S 2 %s', cb)
 
 
     # --------------------------------------------------------------------------
@@ -582,26 +555,22 @@ class Getter(object):
             raise RuntimeError('invalid get(): callbacks are registered')
 
         if not self._requested:
-            req = 'Request %s' % os.getpid()
-
-          # self._log.debug('=== O2 %s  %s  %s', self._lock, self._q, self._requested)
+            req = 'Request %s' % self._uid
 
             with self._lock:
                 no_intr(self._q.send, as_bytes(req))
                 self._requested = True
 
-            log_bulk(self._log, req, '>> %s [%-5s]'
-                                   % (self._channel, self._requested))
+            self._prof.prof('requested')
 
         with self._lock:
             data = no_intr(self._q.recv)
             self._requested = False
 
-        msg = msgpack.unpackb(data)
-        log_bulk(self._log, msg, '-- %s [%-5s]'
-                               % (self._channel, self._requested))
+        msgs = msgpack.unpackb(data)
+        prof_bulk(self._prof, 'get', msgs)
 
-        return as_string(msg)
+        return as_string(msgs)
 
 
     # --------------------------------------------------------------------------
@@ -613,17 +582,15 @@ class Getter(object):
 
         if not self._requested:
 
-          # self._log.debug('=== O1 %s  %s  %s', self._lock, self._q, self._requested)
-
             # send the request *once* per recieval (got lock above)
-            req = 'request %s' % os.getpid()
+            req = 'request %s' % self._uid
 
             with self._lock:  # need to protect self._requested
                 no_intr(self._q.send, as_bytes(req))
                 self._requested = True
 
-            log_bulk(self._log, req, '-> %s (3) [%-5s]'
-                                     % (self._channel, self._requested))
+            self._prof.prof('requested')
+
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
@@ -631,14 +598,11 @@ class Getter(object):
                 data = no_intr(self._q.recv)
                 self._requested = False
 
-            msg = msgpack.unpackb(data)
-            log_bulk(self._log, msg, '<- %s (3) [%-5s]'
-                                     % (self._channel, self._requested))
-            return as_string(msg)
+            msgs = msgpack.unpackb(data)
+            prof_bulk(self._prof, 'get_nowait', msgs)
+            return as_string(msgs)
 
         else:
-            log_bulk(self._log, None, '-- %s [%-5s]'
-                                      % (self._channel, self._requested))
             return None
 
 

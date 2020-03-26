@@ -1,71 +1,9 @@
 
-import zmq
-import errno
-import msgpack
 
 import threading as mt
 
 from ..logger    import Logger
 from ..profile   import Profiler
-
-
-# --------------------------------------------------------------------------
-#
-# zmq will (rightly) barf at interrupted system calls.  We are able to rerun
-# those calls.
-#
-# This is presumably rare, and repeated interrupts increasingly unlikely.
-# More than, say, 3 point to races or I/O thrashing
-#
-# FIXME: how does that behave wrt. timeouts?  We probably should include
-#        an explicit timeout parameter.
-#
-# kudos: https://gist.github.com/minrk/5258909
-#
-def no_intr(f, *args, **kwargs):
-
-    _max = 3
-    cnt  = 0
-    while True:
-        try:
-            return f(*args, **kwargs)
-
-        except zmq.ContextTerminated:
-            return None    # connect closed or otherwise became unusable
-
-        except zmq.ZMQError as e:
-            if e.errno == errno.EINTR:
-                if cnt > _max:
-                    raise  # interrupted too often - forward exception
-                cnt += 1
-                continue   # interrupted, try again
-            raise          # some other error condition, raise it
-
-
-# ------------------------------------------------------------------------------
-#
-def log_bulk(log, bulk, token):
-
-    if not bulk:
-      # log.debug("%s: None", token)
-        return
-
-    if hasattr(bulk, 'read'):
-        bulk = msgpack.unpack(bulk)
-
-    if not isinstance(bulk, list):
-        bulk = [bulk]
-
-    if isinstance(bulk[0], dict) and 'arg' in bulk[0]:
-        bulk = [e['arg'] for e in bulk]
-
-    if isinstance(bulk[0], dict) and 'uid' in bulk[0]:
-        for e in bulk:
-            log.debug("%s: %s [%s]", token, e['uid'], e.get('state'))
-    else:
-        for e in bulk:
-            log.debug("%s: ?", str(token))
-            log.debug("%s: %s", token, str(e)[0:200])
 
 
 # ------------------------------------------------------------------------------
@@ -87,6 +25,9 @@ class Bridge(object):
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level='DEBUG', path=self._cfg.path)
         self._prof    = Profiler(name=self._uid, path=self._cfg.path)
+
+        if 'hb' in self._uid or 'heartbeat' in self._uid:
+            self._prof.disable()
 
         self._prof.prof('init3', uid=self._uid, msg=self._cfg.path)
         self._log.debug('bridge %s init', self._uid)
