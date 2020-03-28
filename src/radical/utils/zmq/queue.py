@@ -486,7 +486,8 @@ class Getter(object):
 
         if url not in Getter._callbacks:
 
-            Getter._callbacks[url] = {'socket'   : self._q,
+            Getter._callbacks[url] = {'uid'      : self._uid,
+                                      'socket'   : self._q,
                                       'channel'  : self._channel,
                                       'lock'     : mt.Lock(),
                                       'requested': self._requested,
@@ -534,7 +535,8 @@ class Getter(object):
 
         if self._url not in Getter._callbacks:
 
-            Getter._callbacks[self._url] = {'socket'   : self._q,
+            Getter._callbacks[self._url] = {'uid'      : self._uid,
+                                            'socket'   : self._q,
                                             'channel'  : self._channel,
                                             'lock'     : mt.Lock(),
                                             'requested': self._requested,
