@@ -293,9 +293,10 @@ class Subscriber(object):
         try:
             uid    = Subscriber._callbacks.get(url, {}).get('uid')
             lock   = Subscriber._callbacks.get(url, {}).get('lock')
+            term   = Subscriber._callbacks.get(url, {}).get('term')
             socket = Subscriber._callbacks.get(url, {}).get('socket')
 
-            while True:
+            while not term.is_set():
 
                 # this list is dynamic
                 callbacks  = Subscriber._callbacks[url]['callbacks']
@@ -362,6 +363,7 @@ class Subscriber(object):
                                           'socket'   : s,
                                           'channel'  : channel,
                                           'lock'     : mt.Lock(),
+                                          'term'     : mt.Event(),
                                           'thread'   : None,
                                           'callbacks': list()}
 
@@ -405,6 +407,19 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
+    def _stop_listener(self, force=False):
+
+        # only stop listener if no callbacks remain registered (unless forced)
+        if force or not Subscriber._callbacks[self._url]['callbacks']:
+            if  Subscriber._callbacks[self._url]['thread']:
+                Subscriber._callbacks[self._url]['term'  ].set()
+                Subscriber._callbacks[self._url]['thread'].join()
+                Subscriber._callbacks[self._url]['term'  ].unset()
+                Subscriber._callbacks[self._url]['thread'] = None
+
+
+    # --------------------------------------------------------------------------
+    #
     def subscribe(self, topic, cb=None, lock=None):
 
         # if we need to serve callbacks, then open a thread to watch the socket
@@ -429,6 +444,26 @@ class Subscriber(object):
 
         with self._lock:
             no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unsubscribe(self, cb):
+
+        if self._url in Subscriber._callbacks:
+            for _cb, _lock in Subscriber._callbacks[self._url]['callbacks']:
+                if cb == _cb:
+                    Subscriber._callbacks[self._url]['callbacks'].remove([_cb, _lock])
+                    break
+
+        self._stop_listener()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self):
+
+        self._stop_listener(force=True)
 
 
     # --------------------------------------------------------------------------
