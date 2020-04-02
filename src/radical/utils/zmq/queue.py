@@ -14,7 +14,7 @@ from ..logger  import Logger
 from ..profile import Profiler
 
 from .bridge   import Bridge
-from .utils    import no_intr, log_bulk, prof_bulk
+from .utils    import no_intr, prof_bulk
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -336,6 +336,7 @@ class Putter(object):
     #
     def put(self, msgs):
 
+      # from .utils import log_bulk
       # log_bulk(self._log, msgs, '-> %s' % self._channel)
         data = msgpack.packb(msgs)
 

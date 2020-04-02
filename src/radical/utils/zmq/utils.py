@@ -4,7 +4,8 @@ import zmq
 import errno
 import msgpack
 
-import radical.utils as ru
+from ..url  import Url
+from ..misc import as_list
 
 
 # --------------------------------------------------------------------------
@@ -44,7 +45,7 @@ def no_intr(f, *args, **kwargs):
 #
 def get_uids(msgs):
 
-    msgs = ru.as_list(msgs)
+    msgs = as_list(msgs)
     try   : return [str(m.get('uid')) for m in msgs]
     except: return []
 
@@ -87,7 +88,7 @@ def get_channel_url(ep_type, channel=None, url=None):
         # example:
         #   channel `foo`
         #   url     `pubsub://localhost:1234/foo`
-        channel = os.path.basename(ru.Url(url.path))
+        channel = os.path.basename(Url(url.path))
 
     elif not url:
         # get url from environment (`FOO_PUB_URL`) or config file (`foo.cfg`)
@@ -113,7 +114,7 @@ def get_channel_url(ep_type, channel=None, url=None):
     if not channel:
         raise ValueError('no %s channel for URL %s' % (ep_type, url))
 
-    if channel.lower() != ru.Url(url).path.lstrip('/').lower():
+    if channel.lower() != Url(url).path.lstrip('/').lower():
         raise ValueError('%s channel (%s) / url (%s) mismatch'
                         % (ep_type, channel, url))
 
@@ -127,7 +128,7 @@ def log_bulk(log, msgs, token):
     if not msgs:
         return
 
-    msgs = ru.as_list(msgs)
+    msgs = as_list(msgs)
 
     if hasattr(msgs, 'read'):
         msgs = msgpack.unpack(msgs)
