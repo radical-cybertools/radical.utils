@@ -44,10 +44,9 @@ def no_intr(f, *args, **kwargs):
 #
 def get_uids(msgs):
 
-    if isinstance(msgs, list):
-        return set([str(m.get('uid')) for m in msgs])
-    else:
-        return [str(msgs.get('uid'))]
+    msgs = ru.as_list(msgs)
+    try   : return [str(m.get('uid')) for m in msgs]
+    except: return []
 
 
 # ------------------------------------------------------------------------------
