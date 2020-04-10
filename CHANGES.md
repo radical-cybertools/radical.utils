@@ -2,6 +2,12 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.3.0 Release                                                         2020-04-10
+--------------------------------------------------------------------------------
+
+  - improve unit testing
+
+  
 1.2.2 Hotfix Release                                                  2020-03-22
 --------------------------------------------------------------------------------
 
