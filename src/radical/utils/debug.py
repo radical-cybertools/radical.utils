@@ -481,14 +481,14 @@ class DebugHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def unregister_lock(self, name, lock):
+    def unregister_lock(self, name):
         assert(name in self.locks), name
         del(self.locks[name])
 
 
     # --------------------------------------------------------------------------
     #
-    def unregister_rlock(self, name, rlock):
+    def unregister_rlock(self, name):
         assert(name in self.rlocks), name
         del(self.rlocks[name])
 
