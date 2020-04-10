@@ -481,6 +481,20 @@ class DebugHelper(object):
 
     # --------------------------------------------------------------------------
     #
+    def unregister_lock(self, name, lock):
+        assert(name in self.locks), name
+        del(self.locks[name])
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unregister_rlock(self, name, rlock):
+        assert(name in self.rlocks), name
+        del(self.rlocks[name])
+
+
+    # --------------------------------------------------------------------------
+    #
     def fs_block(self, info=None):
         '''
         Dump state, info in barrier file, and wait for it tou be touched or
