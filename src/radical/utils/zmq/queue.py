@@ -561,6 +561,11 @@ class Getter(object):
                                             'thread'   : None,
                                             'callbacks': list()}
 
+        # we allow only one cb per queue getter process at the moment, until we
+        # have more clarity on the RR behavior of concurrent callbacks.
+        if Getter._callbacks[self._url]['callbacks']:
+            raise RuntimeError('multiple callbacks not supported')
+
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 
         self._interactive = False
