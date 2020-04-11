@@ -214,6 +214,12 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
+    def enable(self):  self._enabled = True
+    def disable(self): self._enabled = False
+
+
+    # --------------------------------------------------------------------------
+    #
     def close(self):
 
         try:
@@ -237,14 +243,12 @@ class Profiler(object):
         if not self._enabled: return
         if not self._handle : return
 
-        if self._enabled:
+        if verbose:
+            self.prof("flush")
 
-            if verbose:
-                self.prof("flush")
-
-            # see https://docs.python.org/2/library/stdtypes.html#file.flush
-            self._handle.flush()
-            os.fsync(self._handle.fileno())
+        # see https://docs.python.org/2/library/stdtypes.html#file.flush
+        self._handle.flush()
+        os.fsync(self._handle.fileno())
 
 
     # --------------------------------------------------------------------------
