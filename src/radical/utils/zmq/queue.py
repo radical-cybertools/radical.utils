@@ -14,7 +14,7 @@ from ..logger  import Logger
 from ..profile import Profiler
 
 from .bridge   import Bridge
-from .utils    import no_intr, log_bulk, prof_bulk
+from .utils    import no_intr, prof_bulk
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -337,6 +337,7 @@ class Putter(object):
     #
     def put(self, msgs):
 
+      # from .utils import log_bulk
       # log_bulk(self._log, msgs, '-> %s' % self._channel)
         data = msgpack.packb(msgs)
 
@@ -403,8 +404,9 @@ class Getter(object):
 
         prof.prof('listen_start')
         try:
-            idx = 0  # round-robin cb index
-            while True:
+            term = Getter._callbacks.get(url, {}).get('term')
+            idx  = 0  # round-robin cb index
+            while not term.is_set():
 
                 # this list is dynamic
                 callbacks = Getter._callbacks[url]['callbacks']
@@ -433,6 +435,7 @@ class Getter(object):
         except:
             log.exception('listener died')
 
+
     # --------------------------------------------------------------------------
     #
     def _start_listener(self):
@@ -447,6 +450,19 @@ class Getter(object):
         t.start()
 
         Getter._callbacks[self._url]['thread'] = t
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _stop_listener(self, force=False):
+
+        # only stop listener if no callbacks remain registered (unless forced)
+        if force or not Getter._callbacks[self._url]['callbacks']:
+            if  Getter._callbacks[self._url]['thread']:
+                Getter._callbacks[self._url]['term'  ].set()
+                Getter._callbacks[self._url]['thread'].join()
+                Getter._callbacks[self._url]['term'  ].unset()
+                Getter._callbacks[self._url]['thread'] = None
 
 
     # --------------------------------------------------------------------------
@@ -491,6 +507,7 @@ class Getter(object):
                                       'socket'   : self._q,
                                       'channel'  : self._channel,
                                       'lock'     : mt.Lock(),
+                                      'term'     : mt.Event(),
                                       'requested': self._requested,
                                       'thread'   : None,
                                       'callbacks': list()}
@@ -540,14 +557,40 @@ class Getter(object):
                                             'socket'   : self._q,
                                             'channel'  : self._channel,
                                             'lock'     : mt.Lock(),
+                                            'term'     : mt.Event(),
                                             'requested': self._requested,
                                             'thread'   : None,
                                             'callbacks': list()}
+
+        # we allow only one cb per queue getter process at the moment, until we
+        # have more clarity on the RR behavior of concurrent callbacks.
+        if Getter._callbacks[self._url]['callbacks']:
+            raise RuntimeError('multiple callbacks not supported')
 
         Getter._callbacks[self._url]['callbacks'].append([cb, lock])
 
         self._interactive = False
         self._start_listener()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unsubscribe(self, cb):
+
+        if self._url in Getter._callbacks:
+            for _cb, _lock in Getter._callbacks[self._url]['callbacks']:
+                if cb == _cb:
+                    Getter._callbacks[self._url]['callbacks'].remove([_cb, _lock])
+                    break
+
+        self._stop_listener()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self):
+
+        self._stop_listener(force=True)
 
 
     # --------------------------------------------------------------------------
