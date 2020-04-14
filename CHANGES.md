@@ -2,6 +2,12 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.3.1 Release                                                         2020-04-14
+--------------------------------------------------------------------------------
+
+  - fix listener termination for Queue getter
+
+  
 1.3.0 Release                                                         2020-04-10
 --------------------------------------------------------------------------------
 
