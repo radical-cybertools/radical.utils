@@ -99,7 +99,7 @@ def test_zmq_queue():
     t_c.start()
     t_d.start()
 
-    time.sleep(3)
+    time.sleep(5)
     b.stop()
 
   # uids = list(data.keys())
@@ -168,7 +168,7 @@ def disabled_test_zmq_queue_cb():
     ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
     ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_b)
 
-    time.sleep(0.1)
+    time.sleep(1.0)
 
     A = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
     B = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
@@ -193,7 +193,7 @@ def disabled_test_zmq_queue_cb():
     t_a.start()
     t_b.start()
 
-    time.sleep(1.0)
+    time.sleep(2.0)
     b.stop()
 
   # import pprint
@@ -263,7 +263,7 @@ def test_zmq_queue_cb():
 
     ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
 
-    time.sleep(0.1)
+    time.sleep(1.0)
 
     A = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
     B = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
