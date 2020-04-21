@@ -16,13 +16,11 @@ def test_config():
 
     base = os.path.abspath(os.path.dirname(__file__))
     path = '%s/data/resource_*.json' % base
-    print(path)
+
+    with pytest.raises(ValueError):
+        _ = ru.Config(path='foo', cfg='bar')
 
     cfg1 = ru.Config(name=path)
-    print(type(cfg1))
-
-    import pprint
-    pprint.pprint(cfg1)
 
     assert('bar' == cfg1.yale.query('grace.agent_launch_method'))
     assert('bar' == cfg1['yale']['grace']['agent_launch_method'])
