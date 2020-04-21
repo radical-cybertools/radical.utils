@@ -116,17 +116,23 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None, base=None):
     generate readable but globally unique IDs -- although the level of
     confidence for uniqueness is significantly smaller than for, say UUIDs.
 
+    The ID format per mode is:
+    ID_SIMPLE  = "%(prefix)s.%(counter)04d"
+    ID_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
+    ID_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
+    ID_UUID    = "%(prefix)s.%(uuid)s"
+
     Examples::
 
-        print radical.utils.generate_id('item.')
-        print radical.utils.generate_id('item.')
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE)
-        print radical.utils.generate_id('item.', mode=radical.utils.ID_UUID)
+        print(radical.utils.generate_id('item.'))
+        print(radical.utils.generate_id('item.'))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE))
+        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UUID))
 
     The above will generate the IDs:
 
