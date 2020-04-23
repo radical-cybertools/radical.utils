@@ -21,11 +21,10 @@ TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
 TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 
 
-_cache = {'dir'        : list(),
-          'user'       : None,
-          'pid'        : os.getpid(),
-          'dockerized' : dockerized(),
-          }
+_cache = {'dir'       : list(),
+          'user'      : None,
+          'pid'       : os.getpid(),
+          'dockerized': dockerized()}
 
 
 # ------------------------------------------------------------------------------
@@ -99,7 +98,7 @@ ID_SIMPLE  = 'simple'
 ID_UNIQUE  = 'unique'
 ID_PRIVATE = 'private'
 ID_CUSTOM  = 'custom'
-ID_UUID    = 'uiud'
+ID_UUID    = 'uuid'
 
 
 # ------------------------------------------------------------------------------
@@ -124,29 +123,29 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 
     Examples::
 
-        print(radical.utils.generate_id('item.'))
-        print(radical.utils.generate_id('item.'))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_SIMPLE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UNIQUE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_PRIVATE))
-        print(radical.utils.generate_id('item.', mode=radical.utils.ID_UUID))
+        print(radical.utils.generate_id('item'))
+        print(radical.utils.generate_id('item'))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_SIMPLE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_SIMPLE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_UNIQUE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_UNIQUE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_PRIVATE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_PRIVATE))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_UUID))
 
     The above will generate the IDs:
 
+        item.0000
         item.0001
         item.0002
         item.0003
-        item.0004
+        item.2014.07.30.13.13.44.0000
         item.2014.07.30.13.13.44.0001
-        item.2014.07.30.13.13.44.0002
-        item.cameo.merzky.021342.0001
-        item.cameo.merzky.021342.0002
+        item.cameo.merzky.018375.0000
+        item.cameo.merzky.018375.0001
         item.23cacb7e-0b08-11e5-9f0f-08002716eaa9
 
-    where 'cameo' is the (short) hostname, 'merzky' is the username, and '02134'
+    where 'cameo' is the (short) hostname, 'merzky' is the username, and '18375'
     is 'days since epoch'.  The last element, the counter is unique for each id
     type and item type, and restarts for each session (application process).  In
     the last case though (`ID_PRIVATE`), the counter is reset for every new day,
@@ -179,8 +178,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
 
-    if not prefix or \
-        not isinstance(prefix, str):
+    if not prefix or not isinstance(prefix, str):
         raise TypeError("ID generation expect prefix in basestring type")
 
     template = ""
@@ -210,7 +208,7 @@ def _generate_id(template, prefix, ns=None):
 
     state_dir = _BASE
     if ns:
-        state_dir += '/%s' % ns
+        state_dir = os.path.join(_BASE, ns)
 
     if state_dir not in _cache['dir']:
         try   : os.makedirs(state_dir)
@@ -250,25 +248,33 @@ def _generate_id(template, prefix, ns=None):
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # plain uuid
 
     if '%(day_counter)' in template:
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, days),
-                                          os.O_RDWR | os.O_CREAT)
+        fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, days))
+        fd = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
-        os.lseek(fd, 0, os.SEEK_SET )
+        os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)
         if not data: data = 0
         info['day_counter'] = int(data)
-        os.lseek(fd, 0, os.SEEK_SET )
+        os.lseek(fd, 0, os.SEEK_SET)
         line = "%d\n" % (info['day_counter'] + 1)
         line = str.encode(line)
         os.write(fd, line)
         os.close(fd)
 
     if '%(item_counter)' in template:
-        if '%(item_counter)' in prefix:
-            prefix = prefix % info
 
-        fd = os.open("%s/ru_%s_%s.cnt" % (state_dir, user, prefix),
-                                          os.O_RDWR | os.O_CREAT)
+        # clean up "prefix" to use in file name
+        #  FIXME: extend same procedure for other cases (with regex?)
+        if '%(item_counter)' in prefix:
+            prefix_parts = prefix.split('.')
+            for _idx in range(len(prefix_parts)):
+                if '%(item_counter)' in prefix_parts[_idx]:
+                    prefix_parts[_idx] = 'item_counter'
+                    break
+            prefix = '.'.join(prefix_parts)
+
+        fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, prefix))
+        fd = os.open(fname, os.O_RDWR | os.O_CREAT)
         fcntl.flock(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)
@@ -286,10 +292,6 @@ def _generate_id(template, prefix, ns=None):
     ret = template % info
 
     if '%(' in ret:
-        # import pprint
-        # pprint.pprint(info)
-        # print(template)
-        # print(ret)
         raise ValueError('unknown pattern in template (%s)' % template)
 
     return ret
