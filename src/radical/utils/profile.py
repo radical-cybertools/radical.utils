@@ -52,6 +52,11 @@ NTP_DIFF_WARN_LIMIT = 1.0
 # cache the result.  We use a disk cache which is valid for 1 minute
 NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
 
+# maximum field size allowed by the csv parser.  The larger the number of 
+# entities in the profile, the larger the size of the filed required by the 
+# csv parser. We assume a 64bit C long.
+CSV_FIELD_SIZE_LIMIT = 9223372036854775807
+
 
 def _sync_ntp():
 
@@ -341,6 +346,8 @@ def read_profiles(profiles, sid=None, efilter=None):
     else:
         legacy = False
 
+    # set the maximum field size allowed by the csv parser
+    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
 
   # import resource
   # print('max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024)))
