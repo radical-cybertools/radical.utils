@@ -301,6 +301,7 @@ class Putter(object):
 
         if not self._prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
@@ -487,6 +488,7 @@ class Getter(object):
 
         if not self._prof:
             self._prof  = Profiler(name=self._uid, ns='radical.utils')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()

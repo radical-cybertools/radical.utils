@@ -181,7 +181,7 @@ class PubSub(Bridge):
                 msg = self._pub.recv()
                 self._sub.send(msg)
 
-                self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
+              # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
               # log_bulk(self._log, msg, '<> %s' % self.channel)
 
 
@@ -207,6 +207,7 @@ class Publisher(object):
 
         if not prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
@@ -243,7 +244,7 @@ class Publisher(object):
         assert(isinstance(msg,   dict)), 'invalid message type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
-        self._prof.prof('put', uid=self._uid, msg=msg)
+      # self._prof.prof('put', uid=self._uid, msg=msg)
       # log_bulk(self._log, msg, '-> %s' % self.channel)
 
         btopic = as_bytes(topic.replace(' ', '_'))
@@ -307,7 +308,7 @@ class Subscriber(object):
                     for m in as_list(msg):
                         m = as_string(m)
                         for cb, _lock in callbacks:
-                            prof.prof('call_cb', uid=uid, msg=cb.__name__)
+                          # prof.prof('call_cb', uid=uid, msg=cb.__name__)
                             if _lock:
                                 with _lock:
                                     cb(t, m)
@@ -343,6 +344,7 @@ class Subscriber(object):
 
         if not self._prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
