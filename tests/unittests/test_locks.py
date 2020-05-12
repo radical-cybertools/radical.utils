@@ -25,14 +25,14 @@ def test_locks():
             assert(not l.waits)
             assert(not rl.waits)
 
-    assert(l.name  in ru.debug._debug_helper.locks)
-    assert(rl.name in ru.debug._debug_helper.rlocks)
+    assert(l.name  in ru.debug._debug_helper.locks)                       # noqa
+    assert(rl.name in ru.debug._debug_helper.rlocks)                      # noqa
 
-    ru.debug._debug_helper.unregister_lock(l.name)
-    ru.debug._debug_helper.unregister_rlock(rl.name)
+    ru.debug._debug_helper.unregister_lock(l.name)                        # noqa
+    ru.debug._debug_helper.unregister_rlock(rl.name)                      # noqa
 
-    assert(l.name  not in ru.debug._debug_helper.locks)
-    assert(rl.name not in ru.debug._debug_helper.rlocks)
+    assert(l.name  not in ru.debug._debug_helper.locks)                   # noqa
+    assert(rl.name not in ru.debug._debug_helper.rlocks)                  # noqa
 
 
 # ------------------------------------------------------------------------------
