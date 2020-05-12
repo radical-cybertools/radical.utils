@@ -207,6 +207,7 @@ class Publisher(object):
 
         if not prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
@@ -343,6 +344,7 @@ class Subscriber(object):
 
         if not self._prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
+            self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
