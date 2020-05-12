@@ -224,7 +224,7 @@ class Queue(Bridge):
 
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
-                self._prof.prof('poll_put', msg=len(ev_put))
+              # self._prof.prof('poll_put', msg=len(ev_put))
 
                 if self._put in ev_put:
 
@@ -243,7 +243,8 @@ class Queue(Bridge):
                 # if we don't have any data in the buffer, there is no point in
                 # checking for receivers
                 if not buf:
-                    self._prof.prof('poll_get_skip')
+                    pass
+                  # self._prof.prof('poll_get_skip')
 
                 else:
 
@@ -269,7 +270,7 @@ class Queue(Bridge):
                         del(buf[:self._bulk_size])
 
                 if not active:
-                    self._prof.prof('sleep', msg=len(buf))
+                  # self._prof.prof('sleep', msg=len(buf))
                     # let CPU sleep a bit when there is nothing to do
                     # We don't want to use poll timouts since we use two
                     # competing polls and don't want the idle channel slow down
