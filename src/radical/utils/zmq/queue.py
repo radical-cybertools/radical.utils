@@ -232,7 +232,7 @@ class Queue(Bridge):
                         data = no_intr(self._put.recv)
 
                     msgs = msgpack.unpackb(data)
-                    prof_bulk(self._prof, 'poll_put_recv', msgs)
+                  # prof_bulk(self._prof, 'poll_put_recv', msgs)
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
@@ -257,14 +257,16 @@ class Queue(Bridge):
                         # send up to `bulk_size` messages from the buffer
                         # NOTE: this sends partial bulks on buffer underrun
                         with self._lock:
-                            req = no_intr(self._get.recv)
+                            # the actual req message is ignored - we only care
+                            # about who sent it
+                            req = no_intr(self._get.recv)                 # noqa
 
                         bulk   = buf[:self._bulk_size]
                         data   = msgpack.packb(bulk)
                         active = True
 
                         no_intr(self._get.send, data)
-                        prof_bulk(self._prof, 'poll_get_send', msgs=bulk, msg=req)
+                      # prof_bulk(self._prof, 'poll_get_send', msgs=bulk, msg=req)
 
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
@@ -343,7 +345,7 @@ class Putter(object):
 
         with self._lock:
             no_intr(self._q.send, data)
-        prof_bulk(self._prof, 'put', msgs)
+      # prof_bulk(self._prof, 'put', msgs)
 
 
 # ------------------------------------------------------------------------------
@@ -382,7 +384,7 @@ class Getter(object):
                 info['requested'] = False
 
                 msgs = as_string(msgpack.unpackb(data))
-                prof_bulk(prof, 'recv', msgs)
+              # prof_bulk(prof, 'recv', msgs)
                 return msgs
 
             else:
@@ -430,7 +432,7 @@ class Getter(object):
                                 cb(as_string(m))
                         else:
                             cb(as_string(m))
-                        prof_bulk(prof, 'cb', m, msg=cb.__name__)
+                      # prof_bulk(prof, 'cb', m, msg=cb.__name__)
 
         except:
             log.exception('listener died')
@@ -614,7 +616,7 @@ class Getter(object):
             self._requested = False
 
         msgs = msgpack.unpackb(data)
-        prof_bulk(self._prof, 'get', msgs)
+      # prof_bulk(self._prof, 'get', msgs)
 
         return as_string(msgs)
 
@@ -645,7 +647,7 @@ class Getter(object):
                 self._requested = False
 
             msgs = msgpack.unpackb(data)
-            prof_bulk(self._prof, 'get_nowait', msgs)
+          # prof_bulk(self._prof, 'get_nowait', msgs)
             return as_string(msgs)
 
         else:
