@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
@@ -89,6 +90,15 @@ def test_object_cache():
     assert(_state == 1), "%d" % _state
     time.sleep(0.2)
     assert(_state == 0), "%d" % _state
+
+    assert(oc.rem_obj('foo'              ) is False)
+    assert(oc.rem_obj('foo', ns='unknown') is False)
+
+    # test removal w/o timeout (new singleton instance)
+    del(ru.Singleton._instances[ru.ObjectCache])
+    oc = ru.ObjectCache(timeout=0.0)
+    x  = oc.get_obj('no_timeout', _Test)
+    oc.rem_obj(x)
 
 
 # ------------------------------------------------------------------------------
