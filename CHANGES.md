@@ -2,6 +2,25 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+
+1.4.0 Release                                                         2020-05-12
+--------------------------------------------------------------------------------
+
+  - merge #230: test update
+  - merge #232: documentation fix
+  - merge #233: pep8
+  - merge #234: improve test coverage
+  - merge #235: configurable csv field size limit
+  - add lock unregister
+  - clarify cb semantics
+  - force flush on json write
+  - make bulk logger usable for tests
+  - profiling fix
+  - fix queue debug verbosity
+  - terminate listerer on unsubscribe
+  - travis timeout fix
+
+
 1.3.1 Release                                                         2020-04-14
 --------------------------------------------------------------------------------
 
