@@ -47,6 +47,7 @@ class ObjectCache(object, metaclass=Singleton):
         '''
 
         self._timeout = timeout
+        print(1, timeout, self._timeout)
         self._cache   = dict()
 
 
@@ -73,14 +74,14 @@ class ObjectCache(object, metaclass=Singleton):
 
         with self:
 
-            if  ns not in self._cache:
+            if ns not in self._cache:
                 self._cache[ns] = dict()
             ns_cache = self._cache[ns]
 
 
             oid = str(oid)
 
-            if  oid not in ns_cache:
+            if oid not in ns_cache:
 
                 obj = creator()
 
@@ -110,16 +111,19 @@ class ObjectCache(object, metaclass=Singleton):
 
         with self:
 
-            if  ns not in self._cache:
-                self._cache[ns] = dict()
-            ns_cache = self._cache[ns]
+            if ns not in self._cache:
+                # impossible to find object
+                return False
 
+            ns_cache = self._cache[ns]
 
             for oid in ns_cache:
 
-                if  obj == ns_cache [oid]['obj']:
+                if obj == ns_cache [oid]['obj']:
 
-                    if  self._timeout:
+                    print(self._timeout)
+
+                    if self._timeout:
                         # delay actual removeal by _timeout seconds
                         mt.Timer(self._timeout, self._rem_obj, [oid]).start()
 
@@ -142,14 +146,12 @@ class ObjectCache(object, metaclass=Singleton):
 
         with self:
 
-            if  ns not in self._cache:
-                self._cache[ns] = dict()
+            assert(ns in self._cache)
+
             ns_cache = self._cache[ns]
-
-
             ns_cache [oid]['cnt'] -= 1
 
-            if  ns_cache [oid]['cnt'] == 0:
+            if ns_cache [oid]['cnt'] == 0:
                 ns_cache [oid]['obj'] = None  # free the obj reference
                 ns_cache.pop(oid, None)      # remove the cache entry
 
