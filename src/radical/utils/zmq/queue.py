@@ -250,7 +250,7 @@ class Queue(Bridge):
 
                     # check if somebody wants our messages
                     ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
-                    self._prof.prof('poll_get', msg=len(ev_get))
+                  # self._prof.prof('poll_get', msg=len(ev_get))
 
                     if self._get in ev_get:
 
@@ -373,7 +373,7 @@ class Getter(object):
                 req = 'request %s' % info['uid']
                 no_intr(info['socket'].send, as_bytes(req))
                 info['requested'] = True
-                prof.prof('requested')
+              # prof.prof('requested')
 
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
@@ -607,7 +607,7 @@ class Getter(object):
                 no_intr(self._q.send, as_bytes(req))
                 self._requested = True
 
-            self._prof.prof('requested')
+          # self._prof.prof('requested')
 
         with self._lock:
             data = no_intr(self._q.recv)
@@ -635,7 +635,7 @@ class Getter(object):
                 no_intr(self._q.send, as_bytes(req))
                 self._requested = True
 
-            self._prof.prof('requested')
+          # self._prof.prof('requested')
 
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
