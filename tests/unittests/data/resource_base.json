@@ -1,0 +1,4 @@
+{
+    "agent_scheduler" : "CONTINUOUS",
+    "resource_manager": "SLURM"
+}

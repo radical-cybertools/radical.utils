@@ -7,6 +7,7 @@ __license__   = "MIT"
 
 import os
 import pytest
+
 import radical.utils as ru
 
 
@@ -28,6 +29,8 @@ def test_config():
     assert(None  is cfg1.query('yale.grace.no_launch_method'))
     with pytest.raises(KeyError):
         _ = cfg1['yale']['grace']['no_launch_method']                # noqa F841
+
+    assert('SLURM' == cfg1.yale.grace.resource_manager)
 
     os.environ['FOO'] = 'GSISSH'
 
@@ -51,4 +54,3 @@ if __name__ == '__main__':
 
 
 # ------------------------------------------------------------------------------
-
