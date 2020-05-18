@@ -30,9 +30,12 @@ __license__   = "MIT"
 #
 # The `module` string is interpreted as follows:
 #
-#   m = __import__('module')
-#   sys_config_dir = "%s/configs" % os.path.dirname(m.__file__)
-#   usr_config_dir = "%s/.%s/"    % (os.environ['HOME'], m.replace('.', '/'))
+#   module         = 'module'
+#   module_path    = radical.utils.debug.find_module(module)
+#   usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
+#                    os.environ.get('HOME', '/tmp')
+#   sys_config_dir = '%s/configs'     % (module_path)
+#   usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
 #
 # so the location of the module's `__init__.py` is used to derive the location
 # of the installed system config files, and the module name is used to derive
@@ -46,9 +49,9 @@ __license__   = "MIT"
 # After loading the system level config file, any existing user level config
 # file is merged into it, via
 #
-#   radical.utils.dict_merge(user_cgf, system_cfg, mode='overwrite')
+#   radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
 #
-# so that the user config settings supercede the system config settings.
+# so that the user config settings supersede the system config settings.
 #
 # Both path and name specifiers can contain `*` as wildcard, which is then
 # interpreted as by `glob()`.  If that wildcard exist, then all matching config
@@ -133,6 +136,54 @@ from .dict_mixin import dict_merge
 from .singleton  import Singleton
 
 
+def _dict_values_to_config(data):
+    for k, v in data.items():
+        if isinstance(v, dict):
+            data[k] = Config(cfg=v, expand=False, _internal=True)
+    return data
+
+
+def _get_data_with_origins(file_path):
+    _work_dir = os.path.dirname(file_path)
+
+    # control parameter `_base` contains name of the file (w/o extension)
+    # that is considered as "parent" or "origin" for a full set of parameters
+    # *) 2 top levels are checked: {0: {1: {}}}
+    #
+    # Examples:
+    #       1) {'_base': 'agent_default'}
+    #       2) {'resource_1': {'_base': 'resource_default'}}
+    #          `resource_default` wouldn't have a specific resource name inside
+
+    _data_chain_0 = [read_json(file_path)]
+    while '_base' in _data_chain_0[-1]:
+        _data_chain_0.append(read_json(os.path.join(
+            _work_dir, '%s.json' % _data_chain_0[-1]['_base'])))
+
+    for _idx in range(len(_data_chain_0)):
+        for k in _data_chain_0[_idx]:
+
+            if not isinstance(_data_chain_0[_idx][k], dict):
+                continue
+            elif '_base' not in _data_chain_0[_idx][k]:
+                continue
+
+            _data_chain_1 = [_data_chain_0[_idx][k]]
+            while '_base' in _data_chain_1[-1]:
+                _data_chain_1.append(read_json(os.path.join(
+                    _work_dir, '%s.json' % _data_chain_1[-1]['_base'])))
+
+            _upd_value = dict()
+            while _data_chain_1:
+                dict_merge(_upd_value, _data_chain_1.pop(), policy='overwrite')
+            _data_chain_0[_idx][k] = _upd_value
+
+    output = dict()
+    while _data_chain_0:
+        dict_merge(output, _data_chain_0.pop(), policy='overwrite')
+    return output
+
+
 # ------------------------------------------------------------------------------
 #
 class Config(munch.Munch):
@@ -143,6 +194,7 @@ class Config(munch.Munch):
 
     # --------------------------------------------------------------------------
     #
+    # pylint: disable=super-init-not-called
     def __init__(self, module=None, category=None, name=None, cfg=None,
                        path=None, expand=True, env=None, _internal=False):
         '''
@@ -170,8 +222,8 @@ class Config(munch.Munch):
 
         it would attempt to load (depending on system details):
 
-            /usr/lib/python3/site-packages/radical/pilot/\
-                                                   config/session_mininmal.json
+            /usr/lib/python3/site-packages/\
+                radical/pilot/configs/session_mininmal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
               Keys containing dots are split and interpreted as paths in the
@@ -185,7 +237,11 @@ class Config(munch.Munch):
             raise ValueError('conflicting initializers (path, cfg)')
 
         if path:
-            cfg = read_json(path)
+            cfg = _get_data_with_origins(path)
+
+        if not cfg:
+            # just use config files
+            cfg = dict()
 
         # if a category has dot limited elements and no module is given,
         # interpret the first part as module
@@ -217,10 +273,6 @@ class Config(munch.Munch):
         if category and name.startswith(category + '.'):
             name = name[len(category) + 1:]
 
-        if not cfg:
-            # just use config files
-            cfg = dict()
-
         if name.startswith('/'):
 
             # load config from abs path
@@ -248,7 +300,6 @@ class Config(munch.Munch):
 
             if '*' in fname: starred = True
             else           : starred = False
-            self._tmp = [starred, fname]
 
         else:
             # we can't load a config file - just use the app config
@@ -276,7 +327,7 @@ class Config(munch.Munch):
                     sys_fname += '.json'
 
                 if os.path.isfile(sys_fname):
-                    sys_cfg = read_json(sys_fname)
+                    sys_cfg = _get_data_with_origins(sys_fname)
                     nfiles += 1
 
             if usr_fspec:
@@ -287,7 +338,7 @@ class Config(munch.Munch):
                     usr_fname += '.json'
 
                 if os.path.isfile(usr_fname):
-                    usr_cfg = read_json(usr_fname)
+                    usr_cfg = _get_data_with_origins(usr_fname)
                     nfiles += 1
 
         else:
@@ -303,7 +354,7 @@ class Config(munch.Munch):
                 for sys_fname in glob.glob(sys_fspec):
 
                     base = sys_fname[prefix_len:-postfix_len]
-                    scfg = read_json(sys_fname)
+                    scfg = _get_data_with_origins(sys_fname)
                     sys_cfg[base] = scfg
                     nfiles += 1
 
@@ -315,7 +366,7 @@ class Config(munch.Munch):
                 for usr_fname in glob.glob(usr_fspec):
 
                     base = usr_fname[prefix_len:-postfix_len]
-                    ucfg = read_json(usr_fname)
+                    ucfg = _get_data_with_origins(usr_fname)
                     usr_cfg[base] = ucfg
                     nfiles += 1
 
@@ -329,9 +380,10 @@ class Config(munch.Munch):
             sys_fname = '%s/%s'   % (sys_dir, fname)
             usr_fname = '%s/%s'   % (usr_dir, fname)
 
-            if os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
-            if os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
-
+            if os.path.isfile(sys_fname):
+                sys_cfg = _get_data_with_origins(sys_fname)
+            if os.path.isfile(usr_fname):
+                usr_cfg = _get_data_with_origins(usr_fname)
 
         # merge sys, usr and app cfg before expansion
         cfg_dict = dict()
@@ -340,16 +392,7 @@ class Config(munch.Munch):
         cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
         if cfg_dict:
-
-            # ------------------------------------------------------------------
-            def to_config(data):
-                for k,v in data.items():
-                    if isinstance(v, dict):
-                        data[k] = Config(cfg=v, expand=False, _internal=True)
-                return data
-            # ------------------------------------------------------------------
-
-            self.update(to_config(cfg_dict))
+            self.update(_dict_values_to_config(cfg_dict))
 
         if expand:
             ru_expand_env(self, env=env)
@@ -497,5 +540,3 @@ class DefaultConfig(Config, metaclass=Singleton):
 
 
 # ------------------------------------------------------------------------------
-
-
