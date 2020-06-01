@@ -850,7 +850,11 @@ def get_radical_base(module=None):
         if module.startswith('radical/'):
             module = module[8:]
 
-    base = os.environ.get("RADICAL_BASE_DIR")
+    base = os.environ.get("RADICAL_BASE")
+
+    if not base:
+        # backward compatibility
+        base = os.environ.get("RADICAL_BASE_DIR")
 
     if not base or not os.path.isdir(base):
         base  = os.environ.get("HOME")
