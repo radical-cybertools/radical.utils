@@ -32,11 +32,10 @@ _cache = {'dir'       : list(),
 class _IDRegistry(object, metaclass=Singleton):
     """
     This helper class (which is not exposed to any user of radical.utils)
-    generates a sequence of continous numbers for each known ID prefix.  It is
+    generates a sequence of continuous numbers for each known ID prefix.  It is
     a singleton, and thread safe (assuming that the Singleton metaclass supports
     thread safe construction).
     """
-
 
     # --------------------------------------------------------------------------
     def __init__(self):
@@ -46,7 +45,6 @@ class _IDRegistry(object, metaclass=Singleton):
 
         self._rlock    = threading.RLock()
         self._registry = dict()
-
 
     # --------------------------------------------------------------------------
     def get_counter(self, prefix):
@@ -65,7 +63,6 @@ class _IDRegistry(object, metaclass=Singleton):
             self._registry[prefix] += 1
 
             return ret
-
 
     # --------------------------------------------------------------------------
     def reset_counter(self, prefix, reset_all_others=False):
@@ -171,8 +168,9 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 
     where the `task.*` IDs are unique for the used sid namespace.
 
-    The namespaces are stored under ```$RADICAL_BASE_DIR/.radical/utils/```.
-    If `RADICAL_BASE_DIR` is not set, then `$HOME` is used.
+    The namespaces are stored under ```$RADICAL_BASE/.radical/utils/```.
+    If `RADICAL_BASE` is not set (env variable `RADICAL_BASE_DIR` is used for
+    backward compatibility), then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
@@ -180,8 +178,6 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 
     if not prefix or not isinstance(prefix, str):
         raise TypeError("ID generation expect prefix in basestring type")
-
-    template = ""
 
     if _cache['dockerized'] and mode == ID_PRIVATE:
         mode = ID_UUID
@@ -201,8 +197,8 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 def _generate_id(template, prefix, ns=None):
 
     # FIXME: several of the vars below are constants, and many of them are
-    # rarely used in IDs.  They should be created only once per module instance,
-    # and/or only if needed.
+    #  rarely used in IDs. They should be created only once per module instance,
+    #  and/or only if needed.
 
     global _cache
 
@@ -289,9 +285,9 @@ def _generate_id(template, prefix, ns=None):
     if '%(counter)' in template:
         info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
 
-    ret = template % info
-
-    if '%(' in ret:
+    try:
+        ret = template % info
+    except KeyError:
         raise ValueError('unknown pattern in template (%s)' % template)
 
     return ret
@@ -305,8 +301,8 @@ def reset_id_counters(prefix=None, reset_all_others=False):
         prefix = [prefix]
 
     for p in prefix:
-        _id_registry.reset_counter(p.replace('%', ''), reset_all_others)
-
+        if isinstance(p, str):
+            p = p.replace('%', '')
+        _id_registry.reset_counter(p, reset_all_others)
 
 # ------------------------------------------------------------------------------
-
