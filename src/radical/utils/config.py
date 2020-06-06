@@ -143,45 +143,53 @@ def _dict_values_to_config(data):
     return data
 
 
-def _get_data_with_origins(file_path):
-    _work_dir = os.path.dirname(file_path)
+def _read_cfg_data(file_path, data=None, section=None, **kwargs):
+    """
+    Load configuration parameters from a provided config file that could have
+    nested set of other configs.
 
-    # control parameter `_base` contains name of the file (w/o extension)
-    # that is considered as "parent" or "origin" for a full set of parameters
-    # *) 2 top levels are checked: {0: {1: {}}}
-    #
-    # Examples:
-    #       1) {'_base': 'agent_default'}
-    #       2) {'resource_1': {'_base': 'resource_default'}}
-    #          `resource_default` wouldn't have a specific resource name inside
+    :param file_path: Full path of the config file.
+    :type file_path: str
+    :param data: Config data for recursive processing.
+    :type data: dict/None
+    :param section: Name of the (sub)section that contains `_default` key.
+    :type section: str/None
+    :param kwargs: Key-values for (sub)sections with `_default` key.
+    :type kwargs: dict
+    :return: Full set of configuration parameters.
+    :rtype: dict
+    """
+    # it is assumed that the target config file inherits config files,
+    # which are located in the same directory
+    work_dir = os.path.dirname(file_path)
 
-    _data_chain_0 = [read_json(file_path)]
-    while '_base' in _data_chain_0[-1]:
-        _data_chain_0.append(read_json(os.path.join(
-            _work_dir, '%s.json' % _data_chain_0[-1]['_base'])))
+    if data is None:
+        data = read_json(file_path)
 
-    for _idx in range(len(_data_chain_0)):
-        for k in _data_chain_0[_idx]:
+    if isinstance(data, dict):
+        # [control] parameters `_default` and `_base` are mutually exclusive
 
-            if not isinstance(_data_chain_0[_idx][k], dict):
-                continue
-            elif '_base' not in _data_chain_0[_idx][k]:
-                continue
+        # control parameter `_default` contains the key of the set of parameters
+        # inside the corresponding (sub)section that are used by default
+        if '_default' in data:
+            data = dict(data[kwargs.get(section) or data['_default']])
 
-            _data_chain_1 = [_data_chain_0[_idx][k]]
-            while '_base' in _data_chain_1[-1]:
-                _data_chain_1.append(read_json(os.path.join(
-                    _work_dir, '%s.json' % _data_chain_1[-1]['_base'])))
+        # control parameter `_base` contains name of the file (w/o extension)
+        # that is considered as "parent"/"origin" for a full set of parameters
+        if '_base' in data:
+            data_origin = _read_cfg_data(
+                file_path=os.path.join(work_dir, '%s.json' % data.pop('_base')),
+                data=None,
+                section=section,
+                **kwargs)
+            dict_merge(data_origin, data, policy='overwrite')
+            data = dict(data_origin)
 
-            _upd_value = dict()
-            while _data_chain_1:
-                dict_merge(_upd_value, _data_chain_1.pop(), policy='overwrite')
-            _data_chain_0[_idx][k] = _upd_value
+        for k in data:
+            if isinstance(data[k], dict):
+                data[k] = _read_cfg_data(file_path, data[k], k, **kwargs)
 
-    output = dict()
-    while _data_chain_0:
-        dict_merge(output, _data_chain_0.pop(), policy='overwrite')
-    return output
+    return data
 
 
 # ------------------------------------------------------------------------------
@@ -237,7 +245,7 @@ class Config(munch.Munch):
             raise ValueError('conflicting initializers (path, cfg)')
 
         if path:
-            cfg = _get_data_with_origins(path)
+            cfg = _read_cfg_data(path)
 
         if not cfg:
             # just use config files
@@ -327,7 +335,7 @@ class Config(munch.Munch):
                     sys_fname += '.json'
 
                 if os.path.isfile(sys_fname):
-                    sys_cfg = _get_data_with_origins(sys_fname)
+                    sys_cfg = _read_cfg_data(sys_fname)
                     nfiles += 1
 
             if usr_fspec:
@@ -338,7 +346,7 @@ class Config(munch.Munch):
                     usr_fname += '.json'
 
                 if os.path.isfile(usr_fname):
-                    usr_cfg = _get_data_with_origins(usr_fname)
+                    usr_cfg = _read_cfg_data(usr_fname)
                     nfiles += 1
 
         else:
@@ -354,7 +362,7 @@ class Config(munch.Munch):
                 for sys_fname in glob.glob(sys_fspec):
 
                     base = sys_fname[prefix_len:-postfix_len]
-                    scfg = _get_data_with_origins(sys_fname)
+                    scfg = _read_cfg_data(sys_fname)
                     sys_cfg[base] = scfg
                     nfiles += 1
 
@@ -366,7 +374,7 @@ class Config(munch.Munch):
                 for usr_fname in glob.glob(usr_fspec):
 
                     base = usr_fname[prefix_len:-postfix_len]
-                    ucfg = _get_data_with_origins(usr_fname)
+                    ucfg = _read_cfg_data(usr_fname)
                     usr_cfg[base] = ucfg
                     nfiles += 1
 
@@ -381,9 +389,9 @@ class Config(munch.Munch):
             usr_fname = '%s/%s'   % (usr_dir, fname)
 
             if os.path.isfile(sys_fname):
-                sys_cfg = _get_data_with_origins(sys_fname)
+                sys_cfg = _read_cfg_data(sys_fname)
             if os.path.isfile(usr_fname):
-                usr_cfg = _get_data_with_origins(usr_fname)
+                usr_cfg = _read_cfg_data(usr_fname)
 
         # merge sys, usr and app cfg before expansion
         cfg_dict = dict()

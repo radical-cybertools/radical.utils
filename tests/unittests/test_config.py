@@ -30,7 +30,7 @@ def test_config():
     with pytest.raises(KeyError):
         _ = cfg1['yale']['grace']['no_launch_method']                # noqa F841
 
-    assert('SLURM' == cfg1.yale.grace.resource_manager)
+    assert('SLURM' == cfg1.yale.resource.resource_manager)
 
     os.environ['FOO'] = 'GSISSH'
 

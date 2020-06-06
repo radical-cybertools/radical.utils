@@ -1,7 +1,16 @@
 {
-    "grace": {
-        "_base"              : "resource_base",
+    "resource" : {
+        "_default" : "option_1",
+        "option_1" : {
+            "_base"            : "resource_base"
+        },
+        "option_2" : {
+            "agent_scheduler"  : "CONTINUOUS_opt2",
+            "resource_manager" : "SLURM_opt2"
+        }
+    },
+    "grace"    : {
         # some test key/val
-        "agent_launch_method": "${FOO:bar}"
+        "agent_launch_method"  : "${FOO:bar}"
     }
 }
