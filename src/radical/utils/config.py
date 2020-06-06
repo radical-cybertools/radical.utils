@@ -159,10 +159,6 @@ def _read_cfg_data(file_path, data=None, section=None, **kwargs):
     :return: Full set of configuration parameters.
     :rtype: dict
     """
-    # it is assumed that the target config file inherits config files,
-    # which are located in the same directory
-    work_dir = os.path.dirname(file_path)
-
     if data is None:
         data = read_json(file_path)
 
@@ -177,8 +173,12 @@ def _read_cfg_data(file_path, data=None, section=None, **kwargs):
         # control parameter `_base` contains name of the file (w/o extension)
         # that is considered as "parent"/"origin" for a full set of parameters
         if '_base' in data:
+            # it is assumed that the target config file inherits config files,
+            # which are located in the same directory
             data_origin = _read_cfg_data(
-                file_path=os.path.join(work_dir, '%s.json' % data.pop('_base')),
+                file_path=os.path.join(
+                    os.path.dirname(file_path),
+                    '%s.json' % data.pop('_base')),
                 data=None,
                 section=section,
                 **kwargs)
