@@ -5,6 +5,8 @@ __copyright__ = "Copyright 2012-2013, The SAGA Project"
 __license__   = "MIT"
 
 
+import copy
+
 import radical.utils as ru
 from   radical.utils.contrib.urlparse25 import urljoin
 
@@ -13,7 +15,9 @@ from   radical.utils.contrib.urlparse25 import urljoin
 #
 def test_contrib():
 
-    test_cases = [('http://a/b/c/d', ''                    ),
+    test_cases = [(None,             ''                    ),
+                  ('',               ''                    ),
+                  ('http://a/b/c/d', ''                    ),
                   ('g:h',            'g:h'                 ),
                   ('http:g',         'http://a/b/c/g'      ),
                   ('http:',          'http://a/b/c/d'      ),
@@ -49,10 +53,9 @@ def test_contrib():
 
 
     base = ''
-    for tc in test_cases:
+    for url,check in test_cases:
 
-        url    = tc[0]
-        check  = tc[1]
+        u      = ru.Url(url)
         result = urljoin(base, url)
 
         if check:
@@ -61,6 +64,11 @@ def test_contrib():
         if not base:
             base = result
 
+        if url is None: assert(str(copy.deepcopy(u)) ==     ''), (u, url)
+        else          : assert(str(copy.deepcopy(u)) == str(u)), (u, url)
+
+        assert(bool(u) == bool(url)), (str(u), url, bool(u), bool(url))
+
 
 # -------------------------------------------------------------------------
 #
@@ -68,13 +76,33 @@ def test_url_api():
 
     # test basic functionality for valid schemas
 
-    u1 = ru.Url("ssh://user:pwd@hostname.domain:9999/path")
+    u1 = ru.Url('http://user:pwd@hostname.domain:9999/path?query#fragment')
 
-    assert u1.scheme   == "ssh"
+    assert u1.scheme   == "http"
     assert u1.username == "user"
     assert u1.password == "pwd"
     assert u1.host     == "hostname.domain"
     assert u1.port     == int(9999)
+    assert u1.query    == 'query'
+    assert u1.fragment == 'fragment'
+
+    u2 = ru.Url()
+
+    u2.scheme   = "http"
+    u2.username = "user"
+    u2.password = "pwd"
+    u2.host     = "hostname.domain"
+    u2.port     = int(9999)
+    u2.query    = 'query'
+    u2.fragment = 'fragment'
+
+    assert u2.scheme   == "http"
+    assert u2.username == "user"
+    assert u2.password == "pwd"
+    assert u2.host     == "hostname.domain"
+    assert u2.port     == int(9999)
+    assert u2.query    == 'query'
+    assert u2.fragment == 'fragment'
 
 
 # ------------------------------------------------------------------------------
@@ -159,6 +187,11 @@ def test_url_properties():
 
     url.set_host("thost")
     assert url.get_host()     == "thost"
+
+    url.host = "host"
+    url.port = None
+    assert str(url)           == "scheme://host"
+    assert url.get_port()     == None
 
     url.host = "host"
     url.port = 42
