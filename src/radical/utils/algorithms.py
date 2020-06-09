@@ -7,7 +7,7 @@ from .logger import Logger
 # ------------------------------------------------------------------------------
 #
 def collapse_ranges (ranges):
-    """
+    '''
     Given be a set of ranges (as a set of pairs of floats [start, end] with
     'start <= end'.  This algorithm will then collapse that set into the
     smallest possible set of ranges which cover the same, but not more nor
@@ -28,7 +28,7 @@ def collapse_ranges (ranges):
 
     Termination condition is if only one range is left -- it is also moved to
     the list of final ranges then, and that list is returned.
-    """
+    '''
 
     # FIXME: does tuple and set conversion really add anything?
 
@@ -44,10 +44,14 @@ def collapse_ranges (ranges):
     START = 0
     END   = 1
 
+    for _range in ranges:
+        if _range[START] > _range[END]:
+            _range[START], _range[END] = _range[END], _range[START]
+
     # sort ranges into a copy list, by their start time
     _ranges = sorted(ranges, key=lambda x: x[START])
 
-    # sat 'base' to the earliest range (smallest starting point)
+    # set 'base' to the earliest range (smallest starting point)
     base = _ranges[0]
 
     for _range in _ranges[1:]:
@@ -70,7 +74,7 @@ def collapse_ranges (ranges):
     final.add(tuple(base))
 
     # Return final as list of list in case a mutable type is needed.
-    return [list(b) for b in final]
+    return sorted([list(b) for b in final])
 
 
 # ------------------------------------------------------------------------------
@@ -101,35 +105,62 @@ def range_concurrency(ranges):
     if not ranges:
         return list()
 
-    # we want to sort all range boundaries by value, but also want to remember
-    # if they were start or end
     START = 0
     END   = 1
-    vals  = list()
+
+    t = {0: 'start',
+         1: 'end  '}
+
+    for _range in ranges:
+        if _range[START] > _range[END]:
+            _range[START], _range[END] = _range[END], _range[START]
+
+    # we want to sort all range boundaries by value, but also want to remember
+    # if they were start or end
+    times  = list()
     for idx in range(len(ranges)):
         r = ranges[idx]
-        vals.append([r[0], START])
-        vals.append([r[1], END  ])
+        times.append([r[0], START])
+        times.append([r[1], END  ])
+
+    times.sort()
 
     # go through the sorted list of times, and increase concurrency on `START`,
     # decrease it on `END`.  Make sure we add up all entries for the same value
     # at once.
 
-    # first entry
-    assert(vals[0][1] == START), 'inconsistent ranges'
-    last_val    = vals[0][0]
-    ret         = list()
-    concurrency = 1
-    for val,kind in sorted(vals):
-        if val == last_val:
-            last_val = val
-            if kind == START: concurrency += 1
-            else            : concurrency -= 1
-        else:
-            ret.append([last_val, concurrency])
+    # return a sequence of [timestamp, concurrency] tuples
+    ret = list()
 
-    assert(concurrency == 0), 'inconsistent range structure?'
-    ret.append([last_val, concurrency])
+    # check initial conditions
+    assert(times[0][0] >= 0    ), 'negative time %s'       % times[0]
+    assert(times[0][1] == START), 'inconsistent ranges %s' % ranges
+
+    last_time   = times[0][0]
+    concurrency = 1
+
+    # set zero marker
+    ret.append([last_time, 0])
+
+    # for all range boundaries:
+    #     if time changed:
+    #         store prervious tuple
+    #     if a range STARTed at this time, increase concurrency,
+    #     if a range ENDed   at this time, decrease concurrency,
+    # store trailing tuple
+
+    for time,mode in times[1:]:
+        if time != last_time:
+            ret.append([last_time, concurrency])
+            last_time = time
+
+        if mode == START: concurrency += 1
+        else            : concurrency -= 1
+
+    ret.append([last_time, concurrency])
+
+    assert(concurrency == 0), \
+            'inconsistent range structure? %s : %s : %s' % (ranges, ret, times)
 
     return ret
 
@@ -162,12 +193,12 @@ def partition(space, nparts):
 # ------------------------------------------------------------------------------
 #
 def in_range(value, ranges):
-    """
+    '''
     checks if a float value `value` is in any of the given `ranges`, which are
     assumed to be a list of tuples (or a single tuple) of start end end points
     (floats).
     Returns `True` or `False`.
-    """
+    '''
 
     # is there anythin to check?
     if not ranges or not len(ranges):
@@ -536,7 +567,7 @@ if __name__ == '__main__':
     test_space = list(range(75))
     parts = partition(test_space, 8)
     for part in parts:
-        print("%3d: %s" % (len(part), part))
+        print('%3d: %s' % (len(part), part))
 
 
 # ------------------------------------------------------------------------------
