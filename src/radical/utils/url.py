@@ -79,18 +79,6 @@ class Url(object):
     # --------------------------------------------------------------------------
     #
     ##
-    @rus.takes  ('Url')
-    @rus.returns(str)
-    def __unicode__(self):
-        '''
-        Unicode representation.
-        '''
-
-        return '%s'  %  str(self._urlobj.geturl())
-
-
-    # --------------------------------------------------------------------------
-    #
     @rus.takes  ('Url',
                  ('Url', dict))
     @rus.returns('Url')
@@ -107,7 +95,7 @@ class Url(object):
     ##
     @rus.takes  ('Url')
     @rus.returns(bool)
-    def __nonzero__(self):
+    def __bool__(self):
 
         return bool(str(self))
 
