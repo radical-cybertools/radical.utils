@@ -28,8 +28,10 @@ class Bridge(object):
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
+        else:
+            self._prof.disable()
 
-        self._prof.prof('init3', uid=self._uid, msg=self._cfg.path)
+        self._prof.prof('init', uid=self._uid, msg=self._cfg.path)
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()
