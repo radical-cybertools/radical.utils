@@ -122,20 +122,20 @@ __license__   = "MIT"
 
 import os
 import glob
-import munch
 
 from .debug      import find_module
 from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
 from .json_io    import read_json, write_json
 from .dict_mixin import dict_merge
+from .munch      import Munch
 
 from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class Config(munch.Munch):
+class Config(Munch):
 
     # FIXME: we should cache config files after reading, so that repeated
     #        instance creations do not trigger a new (identical) round of
@@ -177,6 +177,8 @@ class Config(munch.Munch):
               Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
         '''
+
+        Munch.__init__(self)
 
         self._expand = expand
         self._env    = env
@@ -248,7 +250,6 @@ class Config(munch.Munch):
 
             if '*' in fname: starred = True
             else           : starred = False
-            self._tmp = [starred, fname]
 
         else:
             # we can't load a config file - just use the app config
@@ -357,46 +358,6 @@ class Config(munch.Munch):
 
     # --------------------------------------------------------------------------
     #
-    # cfg['foo']        == cfg.foo
-    # cfg['foo']['bar'] == cfg.foo.bar
-    #
-    def __getattr__(self, k):
-        return self.get(k, None)
-
-    def __setattr__(self, k, v):
-
-        if self._expand:
-            ru_expand_env(v, env=self._env)
-
-        if isinstance(v, dict):
-            self[k] = Config(cfg=v, expand=False)
-        else:
-            self[k] = v
-
-
-    # --------------------------------------------------------------------------
-    #
-    # don't list private class attributes (starting with `_`) as dict entries
-    #
-    def __iter__(self):
-        for k in dict.__iter__(self):
-            if str(k)[0] != '_':
-                yield k
-
-    def items(self):
-        for k in dict.__iter__(self):
-            if str(k)[0] != '_':
-                yield k, self[k]
-
-    def keys(self):
-        return [x for x in self]
-
-    def __len__(self):
-        return len(self.keys())
-
-
-    # --------------------------------------------------------------------------
-    #
     def merge(self, cfg, expand=True, env=None, policy='overwrite', log=None):
         '''
         merge the given config into the existing config settings, overwriting
@@ -407,25 +368,6 @@ class Config(munch.Munch):
 
         if expand:
             ru_expand_env(cfg, env=env)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __str__(self):
-        return str(self.as_dict())
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __repr__(self):
-        return str(self)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def as_dict(self):
-
-        return self.toDict()
 
 
     # --------------------------------------------------------------------------
@@ -481,19 +423,24 @@ class DefaultConfig(Config, metaclass=Singleton):
     locations, log levels, profile locations, etc.
     '''
 
+    _schema   = {
+                   'log_lvl'    : str,
+                   'log_tgt'    : str,
+                   'log_dir'    : str,
+                   'report'     : bool,
+                   'report_tgt' : str,
+                   'report_dir' : str,
+                   'profile'    : bool,
+                   'profile_dir': str,
+                 }
+
+
+    # --------------------------------------------------------------------------
+    #
     def __init__(self):
 
-        cfg = {'log_lvl'    : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
-               'log_tgt'    : '${RADICAL_DEFAULT_LOG_TGT:.}',
-               'log_dir'    : '${RADICAL_DEFAULT_LOG_DIR:$PWD}',
-               'report'     : '${RADICAL_DEFAULT_REPORT:TRUE}',
-               'report_tgt' : '${RADICAL_DEFAULT_REPORT_TGT:stderr}',
-               'report_dir' : '${RADICAL_DEFAULT_REPORT_DIR:$PWD}',
-               'profile'    : '${RADICAL_DEFAULT_PROFILE:TRUE}',
-               'profile_dir': '${RADICAL_DEFAULT_PROFILE_DIR:$PWD}',
-               }
-
-        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+        super(DefaultConfig, self).__init__(module='radical.utils.utils',
+                                            name='default')
 
 
 # ------------------------------------------------------------------------------
