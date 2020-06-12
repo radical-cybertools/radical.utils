@@ -23,7 +23,7 @@ class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, from_dict=None):
+    def __init__(self, from_dict=None, schema=None):
         '''
         create a munchified dictionary (tree) from `from_dict`.
 
@@ -52,7 +52,15 @@ class Munch(DictMixin):
               dictionary API.
         '''
 
+        if schema:
+            self._schema = schema
+
+        elif not hasattr(self, '_schema'):
+            self._schema = dict()
+          # raise RuntimeError('class %s has no schema defined' % self.__name__)
+
         self._data = dict()
+
 
         if from_dict:
             self.update(from_dict)
@@ -75,8 +83,13 @@ class Munch(DictMixin):
         return self._data.keys()
 
     def __deepcopy__(self, memo):
-        c = self.__class__(from_dict={k:v for k, v in self.items()})
-        object.__setattr__(c, '_schema', self._schema)
+        '''
+        Note that we do not create the original class type, but return a Munch
+        '''
+        data   = object.__getattribute__(self, '_data')
+        schema = object.__getattribute__(self, '_schema')
+        c      = Munch(from_dict={k:v for k, v in data.items()},
+                       schema=schema)
         return c
 
 
@@ -87,14 +100,18 @@ class Munch(DictMixin):
     #
     def __getattr__(self, k):
 
+        data   = object.__getattribute__(self, '_data')
+        schema = object.__getattribute__(self, '_schema')
+
         # TODO: default values
-        if k == '_data'     : return object.__getattribute__(self, k)
-        if k in self._schema: return self._data.get(k)
-        else                : return self._data[k]
+        if k == '_data': return data
+        if k in schema : return data.get(k)
+        else           : return data[k]
 
     def __setattr__(self, k, v):
-        if k == '_data': return object.__setattr__(self, k, v)
-        else           : self._data[k] = v
+        if   k == '_data'  : return object.__setattr__(self, k, v)
+        elif k == '_schema': return object.__setattr__(self, k, v)
+        else               : self._data[k] = v
 
     def __delattr__(self, k):
         del(self._data[k])
@@ -103,18 +120,20 @@ class Munch(DictMixin):
         return self._data.keys()
 
 
-  # # --------------------------------------------------------------------------
-  # #
-  # def __str__(self):
-  #     return str(self._data)
-  #
-  #
-  # # --------------------------------------------------------------------------
-  # #
-  # def __repr__(self):
-  #     return str(self)
-  #
-  #
+    # --------------------------------------------------------------------------
+    #
+    def __str__(self):
+
+        return str(self._data)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __repr__(self):
+
+        return str(self)
+
+
     # --------------------------------------------------------------------------
     #
     def as_dict(self):
@@ -194,6 +213,9 @@ class Munch(DictMixin):
         Can be overloaded
         '''
         pass
+
+
+# ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
