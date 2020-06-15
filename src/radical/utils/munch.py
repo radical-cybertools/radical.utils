@@ -89,11 +89,12 @@ class Munch(DictMixin):
             return
 
         for k,v in other.items():
-            t = self._schema.get(k)
-            if     isinstance(v, dict) and \
-               not isinstance(t, dict) and \
-                   issubclass(t, Munch):
-                v = t(from_dict=v)
+            if isinstance(v, dict):
+                t = self._schema.get(k)
+                if not t:
+                    t = type(self)
+                if not isinstance(t, dict) and issubclass(t, Munch):
+                    v = t(from_dict=v)
             self[k] = v
 
 
