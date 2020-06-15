@@ -144,21 +144,23 @@ class Config(Munch):
     # --------------------------------------------------------------------------
     #
     def __init__(self, module=None, category=None, name=None, cfg=None,
-                       path=None, expand=True, env=None, _internal=False):
+                       from_dict=None, path=None, expand=True, env=None,
+                       _internal=False):
         '''
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
-        module:   used to determine the module's config file location
-                  - default: `radical.utils`
-        category: name of config to be loaded from module's config path
-        name:     specify a specific configuration to be used
-        cfg:      application configuration to be used for initialization
-        path:     path to app configuration to be used for initialization
-        expand:   enable / disable environment var expansion
-                  - default: True
-        env:      environment dictionary to be used for expansion
-                  - default: `os.environ`
+        module:    used to determine the module's config file location
+                   - default: `radical.utils`
+        category:  name of config to be loaded from module's config path
+        name:      specify a specific configuration to be used
+        path:      path to app config json to be used for initialization
+        cfg:       application config dict to be used for initialization
+        from_dict: alias for cfg,to satisfy base class constructor
+        expand:    enable / disable environment var expansion
+                   - default: True
+        env:       environment dictionary to be used for expansion
+                   - default: `os.environ`
 
         The naming of config files follows this rule:
 
@@ -178,10 +180,18 @@ class Config(Munch):
               configuration hierarchy.
         '''
 
-        Munch.__init__(self)
-
-        self._expand = expand
-        self._env    = env
+        if from_dict:
+            # if we could only overload constuctors by signature... :-/
+            # As it is, we have to emulate that...
+            assert(not module   and
+                   not category and
+                   not name     and
+                   not cfg      and
+                   not path     and
+                   not env      and
+                   not _internal), 'from_dict must be exclusive'
+            Munch.__init__(self, from_dict=from_dict)
+            return
 
         if path and cfg:
             raise ValueError('conflicting initializers (path, cfg)')
@@ -340,17 +350,10 @@ class Config(Munch):
         cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
         cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
-        if cfg_dict:
+        Munch.__init__(self, from_dict=cfg_dict)
+      # Munch.__init__(self)
 
-            # ------------------------------------------------------------------
-            def to_config(data):
-                for k,v in data.items():
-                    if isinstance(v, dict):
-                        data[k] = Config(cfg=v, expand=False, _internal=True)
-                return data
-            # ------------------------------------------------------------------
-
-            self.update(to_config(cfg_dict))
+      # self.update(cfg_dict)
 
         if expand:
             ru_expand_env(self, env=env)

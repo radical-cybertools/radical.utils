@@ -117,6 +117,9 @@ class DictMixin:
     def __repr__(self):
         return repr(dict(list(self.items())))
 
+    def __len__(self):
+        return len(self.keys())
+
 
 # ------------------------------------------------------------------------------
 #

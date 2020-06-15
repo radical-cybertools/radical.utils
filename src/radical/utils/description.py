@@ -47,12 +47,5 @@ class Description(Munch):
         # TODO: setter verification should verify that the property is allowed
 
 
-    # --------------------------------------------------------------------------
-    #
-    def verify(self):
-
-        return super(Description, self).verify(self._schema)
-
-
 # ------------------------------------------------------------------------------
 
