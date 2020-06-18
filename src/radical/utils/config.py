@@ -350,13 +350,10 @@ class Config(Munch):
         cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
         cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
-        Munch.__init__(self, from_dict=cfg_dict)
-      # Munch.__init__(self)
-
-      # self.update(cfg_dict)
-
         if expand:
-            ru_expand_env(self, env=env)
+            cfg_dict = ru_expand_env(cfg_dict, env=env)
+
+        Munch.__init__(self, from_dict=cfg_dict)
 
 
     # --------------------------------------------------------------------------

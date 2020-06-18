@@ -46,8 +46,7 @@ class Munch(DictMixin):
                   values
                   verify
 
-              Underscore names are allowed, but SHOULD *only* be used via the
-              dictionary API.
+              Names with a leading underscore are not supported.
         '''
 
         if schema:
@@ -93,8 +92,13 @@ class Munch(DictMixin):
                 t = self._schema.get(k)
                 if not t:
                     t = type(self)
-                if not isinstance(t, dict) and issubclass(t, Munch):
-                    v = t(from_dict=v)
+                if not isinstance(t, dict):
+                    if (issubclass(type(v), Munch)):
+                        # no need to recast)
+                        pass
+                    elif issubclass(t, Munch):
+                        # cast to expected Munch type
+                        v = t(from_dict=v)
             self[k] = v
 
 
@@ -132,23 +136,34 @@ class Munch(DictMixin):
     #
     def __getattr__(self, k):
 
+        if k.startswith('_'):
+            return object.__getattribute__(self, k)
+
         data   = object.__getattribute__(self, '_data')
         schema = object.__getattribute__(self, '_schema')
 
-        # TODO: default values
-        if k == '_data': return data
-        if k in schema : return data.get(k)
-        else           : return data[k]
+        if k in schema: return data.get(k)
+        else          : return data[k]
+
 
     def __setattr__(self, k, v):
-        if   k == '_data'  : return object.__setattr__(self, k, v)
-        elif k == '_schema': return object.__setattr__(self, k, v)
-        else               : self._data[k] = v
+
+        if   k.startswith('_'):
+            return object.__setattr__(self, k, v)
+
+        self._data[k] = v
+
 
     def __delattr__(self, k):
+
+        if   k.startswith('_'):
+            return object.__delattr__(self, k)
+
         del(self._data[k])
 
+
     def __dir__(self):
+
         return self._data.keys()
 
 
@@ -170,7 +185,16 @@ class Munch(DictMixin):
     #
     def as_dict(self):
 
-        return self._data
+        def _demunch(data):
+            out = dict()
+            for k,v in data.items():
+                if isinstance(v, Munch):
+                    out[k] = _demunch(v.as_dict())
+                else:
+                    out[k] = v
+            return out
+
+        return _demunch(self._data)
 
 
     # --------------------------------------------------------------------------
@@ -235,18 +259,21 @@ class Munch(DictMixin):
         if t in cls._verifier_keys: return cls._verifiers[t](cls, k, v, t)
         if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t)
         if isinstance(t, list)    : return cls._verify_list(k, v, t)
-        print('kvt: ', k, v, t)
         if isinstance(t, dict)    : return cls._verify_dict(k, v, t)
-        if issubclass(t, Munch)   : return v.verify()
+        if issubclass(t, Munch)   : return v.verify(t)
         raise TypeError('%s: no verifier defined for type %s'
                        % (cls.__name__, t))
 
 
-    def verify(self):
+    def verify(self, ctype=None):
+
+        if ctype and not issubclass(type(self), ctype):
+            raise TypeError('class type mismatch: %s >< %s'
+                    % (type(self), ctype))
 
         if self._schema:
             for k, v in self._data.items():
-                if k.startswith('_'):
+                if k.startswith('__'):
                     continue
                 if k not in self._schema:
                     raise TypeError('%s: key %s not in schema'
