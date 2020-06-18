@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import pytest
 import radical.utils as ru
 
@@ -13,16 +12,20 @@ def test_munch():
     # all classes inherit from ru.Config which is also Munch drivate, but
     # provides simpler initialization which we use in these tests.
 
+    # --------------------------------------------------------------------------
+    # empty class
     class Foo(ru.Config):
         _schema = {'one': int,
                    'two': {str: int}}
         pass
 
+    # --------------------------------------------------------------------------
     # plain schema
     class Bar_1(ru.Config):
         _schema = {'one': int,
                    'two': {str: int}}
 
+    # --------------------------------------------------------------------------
     # class whose schema is composed
     class Buz_1(ru.Config):
         _schema = {'foo': int,
@@ -87,7 +90,7 @@ def test_munch():
     with pytest.raises(TypeError):
         r.verify()
 
-
+    # --------------------------------------------------------------------------
     # check if an inherited schema can be extended
     class Buz_2(Buz_1):
         # extend schema: add a type
@@ -117,12 +120,6 @@ def test_munch():
     r = Buz_2(cfg=cfg)
     with pytest.raises(TypeError):
         r.verify()
-
-
-
-# ------------------------------------------------------------------------------
-
-
 
 
 # ------------------------------------------------------------------------------

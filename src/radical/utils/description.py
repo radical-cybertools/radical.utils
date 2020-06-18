@@ -37,7 +37,7 @@ class Description(Munch):
         super(Description, self).__init__(from_dict=from_dict)
 
         if verify_setter:
-            raise NotImplemented('setter verification is not yet implemented')
+            raise NotImplementedError('setter verification not yet implemented')
 
         # TODO: setter verification should be done by attempting to cast the
         #       value to the target type and raising on failure.  Non-trivial

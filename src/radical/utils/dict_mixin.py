@@ -26,9 +26,8 @@ class DictMixin:
 
     # --------------------------------------------------------------------------
     #
-    '''
-    mascerade as dict for `isinstance` calls
-    '''
+    # mascerade as dict for `isinstance` calls
+    #
     @property
     def __class__(self):
         return dict

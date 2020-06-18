@@ -240,9 +240,9 @@ class Munch(DictMixin):
     def _verify_dict(cls, k, v, t):
         t_k = list(t.keys())[0]
         t_v = list(t.values())[0]
-        return { cls._verify_kvt(_k, _k, t_k)
-               : cls._verify_kvt(_k, _v, t_v)
-                 for _k, _v in v.items()}
+        return {cls._verify_kvt(_k, _k, t_k) :
+                cls._verify_kvt(_k, _v, t_v)
+                    for _k, _v in v.items()}
 
     _verifiers = {
             int  : _verify_int.__func__,
