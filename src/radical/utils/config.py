@@ -193,7 +193,7 @@ class Config(Munch):
                    not path     and
                    not env      and
                    not _internal), 'from_dict must be exclusive'
-            Munch.__init__(self, from_dict=from_dict)
+            super().__init__(from_dict=from_dict)
             return
 
         if path and cfg:
@@ -356,7 +356,7 @@ class Config(Munch):
         if expand:
             cfg_dict = ru_expand_env(cfg_dict, env=env)
 
-        Munch.__init__(self, from_dict=cfg_dict)
+        super().__init__(from_dict=cfg_dict)
 
 
     # --------------------------------------------------------------------------
