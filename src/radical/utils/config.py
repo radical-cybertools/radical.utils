@@ -30,9 +30,12 @@ __license__   = "MIT"
 #
 # The `module` string is interpreted as follows:
 #
-#   m = __import__('module')
-#   sys_config_dir = "%s/configs" % os.path.dirname(m.__file__)
-#   usr_config_dir = "%s/.%s/"    % (os.environ['HOME'], m.replace('.', '/'))
+#   module         = 'module'
+#   module_path    = radical.utils.debug.find_module(module)
+#   usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
+#                    os.environ.get('HOME', '/tmp')
+#   sys_config_dir = '%s/configs'     % (module_path)
+#   usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
 #
 # so the location of the module's `__init__.py` is used to derive the location
 # of the installed system config files, and the module name is used to derive
@@ -40,15 +43,15 @@ __license__   = "MIT"
 #
 # For example, the module `radical.utils` will have the following config dirs:
 #
-#   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
-#   usr_config_dir = /home/merzky/.radical/utils/
+#   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs
+#   usr_config_dir = /home/merzky/.radical/utils/configs
 #
 # After loading the system level config file, any existing user level config
 # file is merged into it, via
 #
-#   radical.utils.dict_merge(user_cgf, system_cfg, mode='overwrite')
+#   radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
 #
-# so that the user config settings supercede the system config settings.
+# so that the user config settings supersede the system config settings.
 #
 # Both path and name specifiers can contain `*` as wildcard, which is then
 # interpreted as by `glob()`.  If that wildcard exist, then all matching config
@@ -91,7 +94,7 @@ __license__   = "MIT"
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
-#   '${RADICAL_UTILS_ENV:default_value}
+#   '${RADICAL_UTILS_ENV:default_value}'
 #
 # which will be replaced by
 #
@@ -156,7 +159,7 @@ class Config(Munch):
         name:      specify a specific configuration to be used
         path:      path to app config json to be used for initialization
         cfg:       application config dict to be used for initialization
-        from_dict: alias for cfg,to satisfy base class constructor
+        from_dict: alias for cfg, to satisfy base class constructor
         expand:    enable / disable environment var expansion
                    - default: True
         env:       environment dictionary to be used for expansion
@@ -172,8 +175,8 @@ class Config(Munch):
 
         it would attempt to load (depending on system details):
 
-            /usr/lib/python3/site-packages/radical/pilot/\
-                                                   config/session_mininmal.json
+            /usr/lib/python3/site-packages/\
+                 radical/pilot/configs/session_mininmal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
               Keys containing dots are split and interpreted as paths in the
@@ -181,7 +184,7 @@ class Config(Munch):
         '''
 
         if from_dict:
-            # if we could only overload constuctors by signature... :-/
+            # if we could only overload constructors by signature... :-/
             # As it is, we have to emulate that...
             assert(not module   and
                    not category and
@@ -190,7 +193,7 @@ class Config(Munch):
                    not path     and
                    not env      and
                    not _internal), 'from_dict must be exclusive'
-            Munch.__init__(self, from_dict=from_dict)
+            super().__init__(from_dict=from_dict)
             return
 
         if path and cfg:
@@ -198,6 +201,10 @@ class Config(Munch):
 
         if path:
             cfg = read_json(path)
+
+        if not cfg:
+            # just use config files
+            cfg = dict()
 
         # if a category has dot limited elements and no module is given,
         # interpret the first part as module
@@ -228,10 +235,6 @@ class Config(Munch):
 
         if category and name.startswith(category + '.'):
             name = name[len(category) + 1:]
-
-        if not cfg:
-            # just use config files
-            cfg = dict()
 
         if name.startswith('/'):
 
@@ -353,7 +356,7 @@ class Config(Munch):
         if expand:
             cfg_dict = ru_expand_env(cfg_dict, env=env)
 
-        Munch.__init__(self, from_dict=cfg_dict)
+        super().__init__(from_dict=cfg_dict)
 
 
     # --------------------------------------------------------------------------

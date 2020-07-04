@@ -187,9 +187,9 @@ class Munch(DictMixin):
 
         def _demunch(data):
             out = dict()
-            for k,v in data.items():
+            for k, v in data.items():
                 if isinstance(v, Munch):
-                    out[k] = _demunch(v.as_dict())
+                    out[k] = v.as_dict()
                 else:
                     out[k] = v
             return out
