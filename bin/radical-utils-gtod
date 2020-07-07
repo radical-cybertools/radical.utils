@@ -1,9 +1,11 @@
 #!/bin/sh
 
-if test -z "$EPOCHREALTIME"
+nsec=$(date +%N | cut -c 1-6)
+
+if test -z "$nsec"
 then
     python3 -c 'import time; print("%.6f" % time.time())'
 else
-    echo ${EPOCHREALTIME:0:17}
+    echo "$(date +%s).$nsec"
 fi
 
