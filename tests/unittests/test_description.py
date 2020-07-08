@@ -89,6 +89,36 @@ def test_description():
 
 # ------------------------------------------------------------------------------
 #
+def test_inheritance():
+
+    class _TestDescrWithDefaults(ru.Description):
+
+        _schema = {
+            'i245': [str]
+        }
+        _defaults = {
+            'i245': []
+        }
+
+        def __init__(self, from_dict=None):
+
+            ru.Description.__init__(self, from_dict=self._defaults)
+          # if from_dict:
+          #     self.update(from_dict)
+
+
+    def test_description_with_defaults():
+
+        td = _TestDescrWithDefaults()
+        assert(not td.i245)
+        td.i245.append('foo')
+        assert(td.i245 == ['foo'])
+        td = _TestDescrWithDefaults()
+        assert (not td.i245), td.i245
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_description()
