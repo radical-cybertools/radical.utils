@@ -11,6 +11,8 @@
 #   - optional runtime type checking
 #
 
+import copy
+
 from .misc       import as_list, as_tuple
 from .dict_mixin import DictMixin
 
@@ -58,7 +60,7 @@ class Munch(DictMixin):
 
         self._data = dict()
 
-        self.update(from_dict)
+        self.update(copy.deepcopy(from_dict))
 
 
     # --------------------------------------------------------------------------
