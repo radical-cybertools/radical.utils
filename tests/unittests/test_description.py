@@ -19,6 +19,7 @@ class _TestDescr(ru.Description):
                '_foo' : str,
                '_data': str,
                'unset': int,
+               'i245' : [str],
     }
 
     def _verify(self):
@@ -40,6 +41,7 @@ def test_description():
                  'pop'  : [3.4, '3'],
                  '_foo' : ['bar'],
                  '_data': 4,
+                 'i245' : [],
     }
 
     td = _TestDescr()
@@ -79,6 +81,10 @@ def test_description():
     import copy
     c = copy.deepcopy(td)
     assert(c.as_dict() == td.as_dict())
+
+    td.i245.append('foo')
+    td = _TestDescr()
+    assert(not td.i245), td.i245
 
 
 # ------------------------------------------------------------------------------
