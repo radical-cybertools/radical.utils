@@ -43,14 +43,23 @@ def split_dburl(dburl, default_dburl=None):
     path = url.path
     user = url.username
     pwd  = url.password
-    ssl  = False
+
+    query_options = {'ssl': False}
 
     if 'ssl' in url.schema.split('+'):
-        ssl = True
+        query_options['ssl'] = True
         url.schema = 'mongodb'
 
     if not host:
         host = 'localhost'
+
+    if url.query:
+        from urllib.parse import parse_qsl
+        # get dict query from url.query (str)
+        q = dict(parse_qsl(url.query))
+        # control of which options are transferred
+        query_options['tlsAllowInvalidCertificates'] = bool(
+            q.get('tlsAllowInvalidCertificates', '0').lower() in ['true', '1'])
 
     if  path.startswith('/'):
         path = path[1:]
@@ -75,7 +84,7 @@ def split_dburl(dburl, default_dburl=None):
     if  dbname == '.':
         dbname = None
 
-    return [host, port, dbname, cname, pname, user, pwd, ssl]
+    return [host, port, dbname, cname, pname, user, pwd, query_options]
 
 
 # ------------------------------------------------------------------------------
@@ -98,9 +107,9 @@ def mongodb_connect(dburl, default_dburl=None):
         raise ImportError(msg) from e
 
     [host, port, dbname, cname, pname,
-           user, pwd,    ssl] = split_dburl(dburl, default_dburl)
+           user, pwd,    options] = split_dburl(dburl, default_dburl)
 
-    mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
+    mongo = pymongo.MongoClient(host=host, port=port, **options)
     db    = None
 
     if  dbname:
