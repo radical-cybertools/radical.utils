@@ -38,12 +38,13 @@ def split_dburl(dburl, default_dburl=None):
     if 'mongodb' not in url.schema.split('+'):
         raise ValueError("expected 'mongodb[+ssl]://' url, not '%s'" % dburl)
 
-    host = url.host
-    port = url.port
-    path = url.path
-    user = url.username
-    pwd  = url.password
-    ssl  = False
+    host  = url.host
+    port  = url.port
+    path  = url.path
+    user  = url.username
+    pwd   = url.password
+    query = url.query
+    ssl   = False
 
     if 'ssl' in url.schema.split('+'):
         ssl = True
@@ -51,6 +52,9 @@ def split_dburl(dburl, default_dburl=None):
 
     if not host:
         host = 'localhost'
+
+    if not query:
+        query = ''
 
     if  path.startswith('/'):
         path = path[1:]
@@ -75,7 +79,7 @@ def split_dburl(dburl, default_dburl=None):
     if  dbname == '.':
         dbname = None
 
-    return [host, port, dbname, cname, pname, user, pwd, ssl]
+    return [host, port, dbname, cname, pname, user, pwd, ssl, query]
 
 
 # ------------------------------------------------------------------------------
@@ -98,9 +102,19 @@ def mongodb_connect(dburl, default_dburl=None):
         raise ImportError(msg) from e
 
     [host, port, dbname, cname, pname,
-           user, pwd,    ssl] = split_dburl(dburl, default_dburl)
+           user, pwd,    ssl,   query] = split_dburl(dburl, default_dburl)
 
-    mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl)
+    options = {}
+    if query:
+        from urllib.parse import parse_qsl
+        # convert query format from str to dict
+        query = dict(parse_qsl(query))
+        # control of which options are transferred
+        from distutils.util import strtobool
+        options['tlsAllowInvalidCertificates'] = \
+            bool(strtobool(query.get('tlsAllowInvalidCertificates')))
+
+    mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl, **options)
     db    = None
 
     if  dbname:
