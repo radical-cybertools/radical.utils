@@ -38,23 +38,28 @@ def split_dburl(dburl, default_dburl=None):
     if 'mongodb' not in url.schema.split('+'):
         raise ValueError("expected 'mongodb[+ssl]://' url, not '%s'" % dburl)
 
-    host  = url.host
-    port  = url.port
-    path  = url.path
-    user  = url.username
-    pwd   = url.password
-    query = url.query
-    ssl   = False
+    host = url.host
+    port = url.port
+    path = url.path
+    user = url.username
+    pwd  = url.password
+
+    query_options = {'ssl': False}
 
     if 'ssl' in url.schema.split('+'):
-        ssl = True
+        query_options['ssl'] = True
         url.schema = 'mongodb'
 
     if not host:
         host = 'localhost'
 
-    if not query:
-        query = ''
+    if url.query:
+        from urllib.parse import parse_qsl
+        # get dict query from url.query (str)
+        q = dict(parse_qsl(url.query))
+        # control of which options are transferred
+        query_options['tlsAllowInvalidCertificates'] = bool(
+            q.get('tlsAllowInvalidCertificates', '0').lower() in ['true', '1'])
 
     if  path.startswith('/'):
         path = path[1:]
@@ -79,7 +84,7 @@ def split_dburl(dburl, default_dburl=None):
     if  dbname == '.':
         dbname = None
 
-    return [host, port, dbname, cname, pname, user, pwd, ssl, query]
+    return [host, port, dbname, cname, pname, user, pwd, query_options]
 
 
 # ------------------------------------------------------------------------------
@@ -102,19 +107,9 @@ def mongodb_connect(dburl, default_dburl=None):
         raise ImportError(msg) from e
 
     [host, port, dbname, cname, pname,
-           user, pwd,    ssl,   query] = split_dburl(dburl, default_dburl)
+           user, pwd,    options] = split_dburl(dburl, default_dburl)
 
-    options = {}
-    if query:
-        from urllib.parse import parse_qsl
-        # convert query format from str to dict
-        query = dict(parse_qsl(query))
-        # control of which options are transferred
-        from distutils.util import strtobool
-        options['tlsAllowInvalidCertificates'] = \
-            bool(strtobool(query.get('tlsAllowInvalidCertificates', 'False')))
-
-    mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl, **options)
+    mongo = pymongo.MongoClient(host=host, port=port, **options)
     db    = None
 
     if  dbname:
