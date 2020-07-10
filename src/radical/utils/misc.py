@@ -112,7 +112,7 @@ def mongodb_connect(dburl, default_dburl=None):
         # control of which options are transferred
         from distutils.util import strtobool
         options['tlsAllowInvalidCertificates'] = \
-            bool(strtobool(query.get('tlsAllowInvalidCertificates')))
+            bool(strtobool(query.get('tlsAllowInvalidCertificates', 'False')))
 
     mongo = pymongo.MongoClient(host=host, port=port, ssl=ssl, **options)
     db    = None
