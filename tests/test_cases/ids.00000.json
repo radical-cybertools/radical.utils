@@ -1,0 +1,60 @@
+[
+    {
+        "input"  : {"prefix"             : "a"},
+        "result" : {"id"                 : "a.0000"}
+    },
+    {
+        "input"  : {"prefix"             : "a",
+                    "mode"               : "simple"},
+        "result" : {"id"                 : "a.0001"}
+    },
+    {
+        "input"  : {"prefix"             : "b",
+                    "mode"               : "unique"},
+        "result" : {"id_end"             : ".0000"}
+    },
+    {
+        "input"  : {"prefix"             : "b",
+                    "mode"               : "unique"},
+        "result" : {"id_end"             : ".0001"}
+    },
+    {
+        "input"  : {"prefix"             : "c",
+                    "mode"               : "uuid"},
+        "result" : {}
+    },
+    {
+        "input"  : {"prefix"             : "d",
+                    "mode"               : "private"},
+        "result" : {"file_name_template" : "ru_%(user)s_%(day_counter)s.cnt"}
+    },
+    {
+        "input"  : {"prefix"             : "d.%(day_counter)06d",
+                    "mode"               : "custom"},
+        "result" : {"file_name_template" : "ru_%(user)s_%(day_counter)s.cnt"}
+    },
+    {
+        "input"  : {"prefix"             : "e.%(item_counter)04d",
+                    "mode"               : "custom",
+                    "ns"                 : "id_e"},
+        "result" : {"file_name_template" : "ru_%(user)s_e.item_counter.cnt"}
+    },
+    {
+        "input"  : {"prefix"             : null},
+        "result" : {"exception"          : "TypeError"}
+    },
+    {
+        "input"  : {"prefix"             : 1},
+        "result" : {"exception"          : "TypeError"}
+    },
+    {
+        "input"  : {"prefix"             : "f",
+                    "mode"               : "UNKNOWN"},
+        "result" : {"exception"          : "ValueError"}
+    },
+    {
+        "input"  : {"prefix"             : "g.%(unknown_counter)04d",
+                    "mode"               : "custom"},
+        "result" : {"exception"          : "ValueError"}
+    }
+]
