@@ -948,6 +948,11 @@ def script_2_func(fpath):
     run that script via `exec`.  It will be ensured that `__name__` is set to
     `__main__`, and that any arguments passed to the callable are passed on as
     `sys.argv`.
+
+    Example:
+
+        my_func = ru.script_2_func('/tmp/my_script.py')
+        my_func('-f foo -b bar'.split())
     '''
 
     with open(fpath, 'r') as fin:
