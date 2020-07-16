@@ -8,6 +8,7 @@ __license__   = "MIT"
 import os
 import copy
 import pytest
+import tempfile
 
 import radical.utils as ru
 
@@ -196,6 +197,31 @@ def test_expand_env():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_script_2_func():
+
+    # create a temp script to convert and run
+    [tmpfile, tmpname] = tempfile.mkstemp()
+    os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
+
+if __name__ == '__main__':
+    import os,sys
+    os.system('echo "%%s OK" >> %s' %% (sys.argv[1]))
+""" % tmpname))
+
+    # create a method handle from the tmp script, and call it
+    func = ru.script_2_func(tmpname)
+    func(['foo'])
+
+    # check if the action was performed
+    with open(tmpname, 'r') as fin:
+        data = fin.read()
+
+    assert(data.endswith('OK\n')), tmpname
+    os.unlink(tmpname)
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -206,6 +232,7 @@ if __name__ == "__main__":
     test_sh_callout_async()
     test_get_env_ns()
     test_expand_env()
+    test_script_2_func()
 
 
 # ------------------------------------------------------------------------------

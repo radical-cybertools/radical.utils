@@ -939,4 +939,35 @@ def noop(*args, **kwargs):
 
 
 # ------------------------------------------------------------------------------
+#
+def script_2_func(fpath):
+
+    with open(fpath, 'r') as fin:
+        code = fin.read()
+
+    # remove the shebang
+    if code.startswith('#!'):
+        # find end of first line, and cut there
+        idx  = code.index('\n')
+        code = code[idx:]
+
+    # ensure that 'if __name__ == '__main__' works
+    code = '__name__ = "__main__"\n\n' + code
+
+    # create closure which can be used to call the code
+    def ret(args=None):
+        # if args are given, ensure that sys.argv gets set
+        args = as_list(args)
+        tmp_code  = '\nimport sys\n'
+        tmp_code += 'sys.argv = ["dummy"] + %s\n' % args
+        tmp_code += code
+
+        # exec the resulting code
+        exec(tmp_code)
+
+    # return that new callable
+    return ret
+
+
+# ------------------------------------------------------------------------------
 
