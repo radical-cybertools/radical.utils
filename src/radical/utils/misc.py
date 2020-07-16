@@ -946,14 +946,16 @@ def script_2_func(fpath):
     This method accepts a single parameter `fpath` which is expected to point to
     a file containing a self-sufficient Python script.  The script will be read
     and stored, and a function handle will be returned which, upon calling, will
-    run that script via `exec`.  It will be ensured that `__name__` is set to
-    `__main__`, and that any arguments passed to the callable are passed on as
-    `sys.argv`.
+    run that script in the currect Python interpreter`.  It will be ensured that
+    `__name__` is set to `__main__`, and that any arguments passed to the
+    callable are passed on as `sys.argv`.  A single list argument is also
+    allowed which is interpreted as argument list.
 
     Example:
 
         my_func = ru.script_2_func('/tmp/my_script.py')
-        my_func('-f foo -b bar'.split())
+        my_func('-f', 'foo', '-b', 'bar')
+        my_func('-f foo -b bar'.split())   # equivalent
 
     NOTE: calling the returned function handle will change `sys.argv` for the
           current Python interpreter.
@@ -964,7 +966,10 @@ def script_2_func(fpath):
     mod    = importlib.util.module_from_spec(spec)
 
     def ret(*argv):
-        sys.argv = ['dummy'] + list(argv)
+        args = list(argv)
+        if len(args) == 1 and isinstance(argv[0], list):
+            args = list(argv[0])
+        sys.argv = ['dummy'] + args
         loader.exec_module(mod)
 
     return ret

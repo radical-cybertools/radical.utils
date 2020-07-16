@@ -204,27 +204,39 @@ def test_script_2_func():
     [tmpfile, tmpname] = tempfile.mkstemp()
     os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
 
-BAR = 'bar'
+BUZ = 'buz'
 
-def get_bar():
-    return BAR
+def get_buz():
+    return BUZ
 
 if __name__ == '__main__':
     import os,sys
-    os.system('echo "%%s %%s OK" >> %s' %% (sys.argv[1], get_bar()))
+    os.system('echo "%%s %%s %%s OK" > %s.out' %% (sys.argv[1], sys.argv[2],
+                                                   get_buz()))
 
 """ % tmpname))
 
     # create a method handle from the tmp script, and call it
     func = ru.script_2_func(tmpname)
-    func('foo')
 
-    # check if the action was performed
-    with open(tmpname, 'r') as fin:
+
+    func('foo bar'.split())
+    with open(tmpname + '.out', 'r') as fin:
         data = fin.read()
 
-    assert(data.endswith('foo bar OK\n')), tmpname
+    assert(data.endswith('foo bar buz OK\n')), tmpname
+
+
+    func('foo', 'bar')
+    # check if the action was performed
+    with open(tmpname + '.out', 'r') as fin:
+        data = fin.read()
+
+    assert(data.endswith('foo bar buz OK\n')), tmpname
+
+
     os.unlink(tmpname)
+    os.unlink(tmpname + '.out')
 
 
 # ------------------------------------------------------------------------------
