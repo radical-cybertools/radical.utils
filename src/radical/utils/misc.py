@@ -941,6 +941,14 @@ def noop(*args, **kwargs):
 # ------------------------------------------------------------------------------
 #
 def script_2_func(fpath):
+    '''
+    This method accepts a single parameter `fpath` which is expected to point to
+    a file containing a self-sufficient Python script.  The script will be read
+    and stored, and a function handle will be returned which, upon calling, will
+    run that script via `exec`.  It will be ensured that `__name__` is set to
+    `__main__`, and that any arguments passed to the callable are passed on as
+    `sys.argv`.
+    '''
 
     with open(fpath, 'r') as fin:
         code = fin.read()
@@ -955,11 +963,10 @@ def script_2_func(fpath):
     code = '__name__ = "__main__"\n\n' + code
 
     # create closure which can be used to call the code
-    def ret(args=None):
+    def ret(*argv):
         # if args are given, ensure that sys.argv gets set
-        args = as_list(args)
         tmp_code  = '\nimport sys\n'
-        tmp_code += 'sys.argv = ["dummy"] + %s\n' % args
+        tmp_code += 'sys.argv = ["dummy"] + %s\n' % list(argv)
         tmp_code += code
 
         # exec the resulting code
