@@ -8,6 +8,7 @@ __license__   = "MIT"
 import os
 import copy
 import pytest
+import tempfile
 
 import radical.utils as ru
 
@@ -196,6 +197,49 @@ def test_expand_env():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_script_2_func():
+
+    # create a temp script to convert and run
+    [tmpfile, tmpname] = tempfile.mkstemp()
+    os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
+
+BUZ = 'buz'
+
+def get_buz():
+    return BUZ
+
+if __name__ == '__main__':
+    import os,sys
+    os.system('echo "%%s %%s %%s OK" > %s.out' %% (sys.argv[1], sys.argv[2],
+                                                   get_buz()))
+
+""" % tmpname))
+
+    # create a method handle from the tmp script, and call it
+    func = ru.script_2_func(tmpname)
+
+
+    func('foo bar'.split())
+    with open(tmpname + '.out', 'r') as fin:
+        data = fin.read()
+
+    assert(data.endswith('foo bar buz OK\n')), tmpname
+
+
+    func('foo', 'bar')
+    # check if the action was performed
+    with open(tmpname + '.out', 'r') as fin:
+        data = fin.read()
+
+    assert(data.endswith('foo bar buz OK\n')), tmpname
+
+
+    os.unlink(tmpname)
+    os.unlink(tmpname + '.out')
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -206,6 +250,7 @@ if __name__ == "__main__":
     test_sh_callout_async()
     test_get_env_ns()
     test_expand_env()
+    test_script_2_func()
 
 
 # ------------------------------------------------------------------------------
