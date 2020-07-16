@@ -203,21 +203,21 @@ def test_script_2_func():
     # create a temp script to convert and run
     [tmpfile, tmpname] = tempfile.mkstemp()
     os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
-
+BAR = 'bar'
 if __name__ == '__main__':
     import os,sys
-    os.system('echo "%%s OK" >> %s' %% (sys.argv[1]))
+    os.system('echo "%%s %%s OK" >> %s' %% (sys.argv[1], BAR))
 """ % tmpname))
 
     # create a method handle from the tmp script, and call it
     func = ru.script_2_func(tmpname)
-    func(['foo'])
+    func('foo')
 
     # check if the action was performed
     with open(tmpname, 'r') as fin:
         data = fin.read()
 
-    assert(data.endswith('OK\n')), tmpname
+    assert(data.endswith('foo bar OK\n')), tmpname
     os.unlink(tmpname)
 
 
