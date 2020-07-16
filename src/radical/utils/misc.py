@@ -8,6 +8,7 @@ import socket
 import tarfile
 import datetime
 import tempfile
+import importlib
 import itertools
 import netifaces
 
@@ -953,31 +954,19 @@ def script_2_func(fpath):
 
         my_func = ru.script_2_func('/tmp/my_script.py')
         my_func('-f foo -b bar'.split())
+
+    NOTE: calling the returned function handle will change `sys.argv` for the
+          current Python interpreter.
     '''
 
-    with open(fpath, 'r') as fin:
-        code = fin.read()
+    loader = importlib.machinery.SourceFileLoader('__main__', fpath)
+    spec   = importlib.util.spec_from_loader(loader.name, loader)
+    mod    = importlib.util.module_from_spec(spec)
 
-    # remove the shebang
-    if code.startswith('#!'):
-        # find end of first line, and cut there
-        idx  = code.index('\n')
-        code = code[idx:]
-
-    # ensure that 'if __name__ == '__main__' works
-    code = '__name__ = "__main__"\n\n' + code
-
-    # create closure which can be used to call the code
     def ret(*argv):
-        # if args are given, ensure that sys.argv gets set
-        tmp_code  = '\nimport sys\n'
-        tmp_code += 'sys.argv = ["dummy"] + %s\n' % list(argv)
-        tmp_code += code
+        sys.argv = ['dummy'] + list(argv)
+        loader.exec_module(mod)
 
-        # exec the resulting code
-        exec(tmp_code)
-
-    # return that new callable
     return ret
 
 

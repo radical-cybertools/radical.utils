@@ -203,10 +203,16 @@ def test_script_2_func():
     # create a temp script to convert and run
     [tmpfile, tmpname] = tempfile.mkstemp()
     os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
+
 BAR = 'bar'
+
+def get_bar():
+    return BAR
+
 if __name__ == '__main__':
     import os,sys
-    os.system('echo "%%s %%s OK" >> %s' %% (sys.argv[1], BAR))
+    os.system('echo "%%s %%s OK" >> %s' %% (sys.argv[1], get_bar()))
+
 """ % tmpname))
 
     # create a method handle from the tmp script, and call it
