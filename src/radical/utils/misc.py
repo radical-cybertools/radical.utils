@@ -961,9 +961,86 @@ def script_2_func(fpath):
           current Python interpreter.
     '''
 
+    prefix  = []
+    postfix = []
+
+
+    with open(fpath, 'r') as fin:
+        code_lines = fin.readlines()
+
+    # ensure that 'if __name__ == '__main__' works
+    prefix  += '__name__ = "__main__"\n\n'
+
+    # capture globals
+    prefix.append('global _RU_stdout\n')
+    prefix.append('global _RU_stderr\n')
+    prefix.append('global _RU_except\n')
+
+    # redirect stdout and stderr to be captured in global string vars
+    prefix.append('from io import StringIO\n')
+    prefix.append('_RU_oldout  = sys.stdout\n')
+    prefix.append('_RU_olderr  = sys.stderr\n')
+    prefix.append('sys.stdout  = _RU_stdout = StringIO()\n\n')
+    prefix.append('sys.stderr  = _RU_stderr = StringIO()\n\n')
+
+    # wrap the code in a try/exec to capture exit codes and failures
+    prefix.append('_RU_except = None\n')
+    prefix.append('try:\n')
+
+    postfix.append('except Exception as e:\n')
+    postfix.append('    _RU_except = str(e)\n')
+
+    postfix.append('sys.stdout = _RU_oldout\n')
+    postfix.append('sys.stderr = _RU_olderr\n')
+
+    # examine _RU_stdout.getvalue()
+
+    # indentation of all code lines which go into the try/except
+    code_lines = ['    ' + line for line in code_lines]
+
+    # create closure which can be used to call the code
+    def ret(*argv):
+
+        if len(argv) == 1 and isinstance(argv[0], list):
+            argv = list(argv[0])
+
+        # if args are given, ensure that sys.argv gets set
+        if argv:
+            # indent - this is within try/catch
+            prefix.append('    import sys\n')
+            prefix.append('    sys.argv = ["dummy"] + %s\n' % str(argv))
+
+        global _RU_stdout
+        global _RU_stderr
+        global _RU_except
+
+        _RU_stdout = None
+        _RU_stderr = None
+        _RU_except = None
+
+        tmp_code = ''.join(prefix)   \
+                 + ''.join(code_lines) \
+                 + ''.join(postfix)
+
+        # exec the resulting code, ensure to pass globals
+        exec(tmp_code, globals())
+
+        return _RU_stdout.getvalue(), _RU_stderr.getvalue(), _RU_except
+
+    # return that new callable
+    return ret
+
+    # --------------------------------------------------------------------------
+
+
+    # we want to capture stdout, stderr and return code of the called method.
+    # To do so, we create a temporary copy of the file to load and wrap the
+    # complete code into the following construct:
+
     loader = importlib.machinery.SourceFileLoader('__main__', fpath)
     spec   = importlib.util.spec_from_loader(loader.name, loader)
     mod    = importlib.util.module_from_spec(spec)
+    code   = loader.get_code(mod.__name__)
 
     def ret(*argv):
         args = list(argv)
