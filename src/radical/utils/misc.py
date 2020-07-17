@@ -975,6 +975,7 @@ def script_2_func(fpath):
     prefix.append('global _RU_stdout\n')
     prefix.append('global _RU_stderr\n')
     prefix.append('global _RU_except\n')
+    prefix.append('global _RU_exit\n')
 
     # redirect stdout and stderr to be captured in global string vars
     prefix.append('from io import StringIO\n')
@@ -989,6 +990,10 @@ def script_2_func(fpath):
 
     postfix.append('except Exception as e:\n')
     postfix.append('    _RU_except = str(e)\n')
+    postfix.append('    _RU_exit   = 1\n')
+    postfix.append('except SystemExit as e:\n')
+    postfix.append('    _RU_except = "SystemExit"\n')
+    postfix.append('    _RU_exit   = e.code\n')
 
     postfix.append('sys.stdout = _RU_oldout\n')
     postfix.append('sys.stderr = _RU_olderr\n')
@@ -1008,7 +1013,7 @@ def script_2_func(fpath):
         if argv:
             # indent - this is within try/catch
             prefix.append('    import sys\n')
-            prefix.append('    sys.argv = ["dummy"] + %s\n' % str(argv))
+            prefix.append('    sys.argv = ["dummy"] + %s\n' % str(list(argv)))
 
         global _RU_stdout
         global _RU_stderr
@@ -1025,31 +1030,27 @@ def script_2_func(fpath):
         # exec the resulting code, ensure to pass globals
         exec(tmp_code, globals())
 
-        return _RU_stdout.getvalue(), _RU_stderr.getvalue(), _RU_except
+        return _RU_stdout.getvalue(), _RU_stderr.getvalue(), \
+               _RU_except, _RU_exit
 
     # return that new callable
     return ret
 
-    # --------------------------------------------------------------------------
-
-
-    # we want to capture stdout, stderr and return code of the called method.
-    # To do so, we create a temporary copy of the file to load and wrap the
-    # complete code into the following construct:
-
-    loader = importlib.machinery.SourceFileLoader('__main__', fpath)
-    spec   = importlib.util.spec_from_loader(loader.name, loader)
-    mod    = importlib.util.module_from_spec(spec)
-    code   = loader.get_code(mod.__name__)
-
-    def ret(*argv):
-        args = list(argv)
-        if len(args) == 1 and isinstance(argv[0], list):
-            args = list(argv[0])
-        sys.argv = ['dummy'] + args
-        loader.exec_module(mod)
-
-    return ret
+  # # --------------------------------------------------------------------------
+  #
+  # loader = importlib.machinery.SourceFileLoader('__main__', fpath)
+  # spec   = importlib.util.spec_from_loader(loader.name, loader)
+  # mod    = importlib.util.module_from_spec(spec)
+  # code   = loader.get_code(mod.__name__)
+  #
+  # def ret(*argv):
+  #     args = list(argv)
+  #     if len(args) == 1 and isinstance(argv[0], list):
+  #         args = list(argv[0])
+  #     sys.argv = ['dummy'] + args
+  #     loader.exec_module(mod)
+  #
+  # return ret
 
 
 # ------------------------------------------------------------------------------

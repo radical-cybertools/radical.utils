@@ -217,6 +217,8 @@ if __name__ == '__main__':
     sys.stderr.write('world')
     os.system('echo "%%s %%s %%s OK" > %s.out' %% (sys.argv[1], sys.argv[2],
                                                    get_buz()))
+    if sys.argv[2] == 'exit':
+        exit(2)
     raise ValueError('oops')
 
 """ % tmpname))
@@ -224,23 +226,27 @@ if __name__ == '__main__':
     # create a method handle from the tmp script, and call it
     func = ru.script_2_func(tmpname)
 
-    out, err, ret = func('foo bar'.split())
+    out, err, ret, ec = func('foo bar'.split())
     assert(out == 'hello\n')
     assert(err == 'world')
     assert(ret == 'oops')
+    assert(ec  == 1)
 
     with open(tmpname + '.out', 'r') as fin:
         data = fin.read()
-
     assert(data.endswith('foo bar buz OK\n')), tmpname
 
+    os.unlink(tmpname + '.out')
 
-    func('foo', 'bar')
-    # check if the action was performed
+    out, err, ret, ec = func('foo', 'exit')
+    assert(out == 'hello\n')
+    assert(err == 'world')
+    assert(ret == 'SystemExit')
+    assert(ec  == 2)
+
     with open(tmpname + '.out', 'r') as fin:
         data = fin.read()
-
-    assert(data.endswith('foo bar buz OK\n')), tmpname
+    assert(data.endswith('foo exit buz OK\n')), tmpname
 
     os.unlink(tmpname)
     os.unlink(tmpname + '.out')
