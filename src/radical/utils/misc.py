@@ -1018,10 +1018,12 @@ def script_2_func(fpath):
         global _RU_stdout
         global _RU_stderr
         global _RU_except
+        global _RU_exit
 
         _RU_stdout = None
         _RU_stderr = None
         _RU_except = None
+        _RU_exit   = None
 
         tmp_code = ''.join(prefix)   \
                  + ''.join(code_lines) \
