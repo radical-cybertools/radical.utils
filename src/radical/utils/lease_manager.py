@@ -210,7 +210,7 @@ class LeaseManager(object):
                 pool['objects'].remove(obj)
 
             except Exception as e:
-                self._log.exception('Could not remove lease object: %s', e)
+                self._log.warn('Could not remove lease object: %s', e)
 
             return obj
 
