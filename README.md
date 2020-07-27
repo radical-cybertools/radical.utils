@@ -1,43 +1,28 @@
+# RADICAL-Utils
 
 [![Build Status](https://travis-ci.org/radical-cybertools/radical.utils.svg?branch=devel)](https://travis-ci.org/radical-cybertools/radical.utils)
 
-Package radical.utils
-=====================
+RADICAL-Utils (RU) is a Python package, which contains shared code and tools for
+various [RADICAL-Cybertools](https://radical-cybertools.github.io) projects.
 
-This Python package contains shared code and tools for various [Radical
-Group](http://radical.rutgers.edu) projects. Sometimes we call it the Radical
-Kitchen Sink.  
+## Documentation
 
-The package is compatible with Python 3.6 and later versions.
+Package description and usage examples are available here - 
+https://radicalutils.readthedocs.io/en/stable/ (**under development**)
 
+## Repository code
 
-License
--------
+The `master` branch generally reflects the RADICAL-Utils release on 
+[PyPI](https://pypi.org/project/radical.utils/).
+
+The `devel` branch (and any other branches than master, for that matter)
+may not correspond to the published documentation, and specifically may have
+dependencies which need to be resolved manually.
+
+## License
 
 This software is released under the
 [MIT License](http://opensource.org/licenses/MIT).
 
-Parts of the module (radical.utils.atfork) are licensed under the [Apache-v2.0
-license](http://www.apache.org/licenses/).
-
-
-Installation
-------------
-
-You can install the latest radical.utils directly from
-[PyPi](https://pypi.python.org/pypi/radical.utils/):
-
-    pip install --upgrade radical.utils
-
-If you want to use radical.utils in your own project, include it in your
-`setup.py` file:
-
-    'install_requires': ['radical.utils']
-
-
-Documentation
--------------
-
-Documentation can be found at
-[ReadTheDocs](https://radicalutils.readthedocs.io/).
-
+Parts of the module (`radical.utils.atfork`) are licensed under the 
+[Apache-v2.0 license](http://www.apache.org/licenses/).
