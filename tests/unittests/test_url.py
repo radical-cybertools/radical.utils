@@ -191,7 +191,7 @@ def test_url_properties():
     url.host = "host"
     url.port = None
     assert str(url)           == "scheme://host"
-    assert url.get_port()     == None
+    assert url.get_port()     is None
 
     url.host = "host"
     url.port = 42

@@ -20,18 +20,18 @@ def test_metric_expand():
                              'ru.MSG  ': 'cancel_pilot'     },
                             {'ru.EVENT': 'bootstrap_0_stop' }]}
 
-    d_out = {'total'     : [{        1 : 'bootstrap_0_start'},
-                            {        1 : 'bootstrap_0_stop' }],
-             'boot'      : [{        1 : 'bootstrap_0_start'},
-                            {        1 : 'sync_rel'         }],
-             'setup_1'   : [{        1 : 'sync_rel'         },
-                            {        5 : 'PMGR_ACTIVE'      }],
-             'ignore'    : [{        5 : 'PMGR_ACTIVE'      },
-                            {        1 : 'cmd'              ,
-                                     6 : 'cancel_pilot'     }],
-             'term'      : [{        1 : 'cmd'              ,
-                                     6 : 'cancel_pilot'     },
-                            {        1 : 'bootstrap_0_stop' }]}
+    d_out = {'total'     : [{1         : 'bootstrap_0_start'},
+                            {1         : 'bootstrap_0_stop' }],
+             'boot'      : [{1         : 'bootstrap_0_start'},
+                            {1         : 'sync_rel'         }],
+             'setup_1'   : [{1         : 'sync_rel'         },
+                            {5         : 'PMGR_ACTIVE'      }],
+             'ignore'    : [{5         : 'PMGR_ACTIVE'      },
+                            {1         : 'cmd'              ,
+                             6         : 'cancel_pilot'     }],
+             'term'      : [{1         : 'cmd'              ,
+                             6         : 'cancel_pilot'     },
+                            {1         : 'bootstrap_0_stop' }]}
 
     assert(ru.metric_expand(d_in) == d_out)
 
