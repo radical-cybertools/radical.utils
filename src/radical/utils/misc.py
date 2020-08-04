@@ -685,6 +685,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # sequence types: list, set, tuple - but not string
     elif is_seq(data):
+        print('=== enum:', type(data), data)
 
         for idx, elem in enumerate(data):
             data[idx] = expand_env(elem, env, ignore_missing)

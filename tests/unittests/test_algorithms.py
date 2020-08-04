@@ -65,24 +65,31 @@ def test_collapse_ranges():
         # zero test
         [[],
          []],
+
         # basic test (unit)
         [[[1, 2], [3, 4]],
          [[1, 2], [3, 4]]],
+
         # range overlap -> combination
         [[[1, 2], [2, 3], [3, 4]],
          [[1, 4]]],
+
         # range repetition
         [[[1, 2], [2, 3], [1, 4]],
          [[1, 4]]],
+
         # complex results
         [[[1, 2], [2, 3], [4, 5], [7, 8]],
          [[1, 3], [4, 5], [7, 8]]],
+
         # range inversion
         [[[2, 1], [2, 3], [4, 5], [8, 7]],
          [[1, 3], [4, 5], [7, 8]]],
+
         # test zero range
         [[[1, 1], [7, 7], [7, 8]],
          [[1, 1], [7, 8]]],
+
         # range sorting
         [[[7, 8], [2, 1], [2, 3], [4, 5]],
          [[1, 3], [4, 5], [7, 8]]]
@@ -100,27 +107,35 @@ def test_range_concurrency():
         # zero test
         [[],
          []],
+
         # basic test (unit)
         [[[1, 2]],
          [[1, 0], [1, 1], [2, 0]]],
+
         # basic test (unit)
         [[[1, 2], [3, 4]],
          [[1, 0], [1, 1], [2, 0], [3, 1], [4, 0]]],
+
         # range overlap -> combination
         [[[1, 2], [2, 3], [3, 4]],
          [[1, 0], [1, 1], [2, 1], [3, 1], [4, 0]]],
+
         # range repetition
         [[[1, 2], [2, 3], [1, 4]],
          [[1, 0], [1, 2], [2, 2], [3, 1], [4, 0]]],
+
         # complex results
         [[[1, 2], [2, 3], [4, 5], [7, 8]],
          [[1, 0], [1, 1], [2, 1], [3, 0], [4, 1], [5, 0], [7, 1], [8, 0]]],
+
         # range inversion
         [[[2, 1], [2, 3], [4, 5], [8, 7]],
          [[1, 0], [1, 1], [2, 1], [3, 0], [4, 1], [5, 0], [7, 1], [8, 0]]],
+
         # test zero range
         [[[1, 1], [7, 7], [7, 8]],
          [[1, 0], [1, 0], [7, 1], [8, 0]]],
+
         # range sorting
         [[[7, 8], [2, 1], [2, 3], [4, 5]],
          [[1, 0], [1, 1], [2, 1], [3, 0], [4, 1], [5, 0], [7, 1], [8, 0]]]
@@ -140,15 +155,15 @@ if __name__ == '__main__':
     test_range_concurrency()
 
 
-  # import pprofile
-  # profiler = pprofile.Profile()
-  #
-  # with profiler:
-  #     try:
-  #         test_lazy_bisect()
-  #     except:
-  #         pass
-  #
+    import pprofile
+    profiler = pprofile.Profile()
+
+    with profiler:
+        try:
+            test_lazy_bisect()
+        except:
+            pass
+
   # profiler.print_stats()
 
 
