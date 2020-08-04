@@ -407,6 +407,9 @@ class Reporter(object):
     #
     def progress_tgt(self, tgt=None, label=None):
 
+        if not self._enabled:
+            return
+
         if label:
             front = '%-6s: ' % label
         else:
@@ -423,6 +426,9 @@ class Reporter(object):
     # --------------------------------------------------------------------------
     #
     def progress_done(self):
+        
+        if not self._enabled:
+            return
 
         self._prog_tgt = None
         self._prog_cnt = 0
