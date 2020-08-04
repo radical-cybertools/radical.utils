@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# pylint: disable=protected-access
+
 import pytest
 import radical.utils as ru
 
