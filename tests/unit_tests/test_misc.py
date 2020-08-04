@@ -8,6 +8,7 @@ __license__   = "MIT"
 import os
 import copy
 import pytest
+import tempfile
 
 import radical.utils as ru
 
@@ -196,6 +197,62 @@ def test_expand_env():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_script_2_func():
+
+    biz = '?'
+
+    # create a temp script to convert and run
+    [tmpfile, tmpname] = tempfile.mkstemp()
+    os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
+
+BUZ = 'buz'
+
+def get_buz():
+    return BUZ
+
+if __name__ == '__main__':
+    import os,sys
+    print('hello')
+    sys.stderr.write('world')
+    os.system('echo "%%s %%s %%s OK" > %s.out' %% (sys.argv[1], sys.argv[2],
+                                                   get_buz()))
+    if sys.argv[2] == 'exit':
+        exit(2)
+    raise ValueError('oops')
+
+""" % tmpname))
+
+    # create a method handle from the tmp script, and call it
+    func = ru.script_2_func(tmpname)
+
+    out, err, ret, ec = func('foo bar'.split())
+    assert(out == 'hello\n')
+    assert(err == 'world')
+    assert(ret == 'oops')
+    assert(ec  == 1)
+
+    with open(tmpname + '.out', 'r') as fin:
+        data = fin.read()
+    assert(data.endswith('foo bar buz OK\n')), tmpname
+
+    os.unlink(tmpname + '.out')
+
+    out, err, ret, ec = func('foo', 'exit')
+    assert(out == 'hello\n')
+    assert(err == 'world')
+    assert(ret == 'SystemExit')
+    assert(ec  == 2)
+
+    with open(tmpname + '.out', 'r') as fin:
+        data = fin.read()
+    assert(data.endswith('foo exit buz OK\n')), tmpname
+
+    os.unlink(tmpname)
+    os.unlink(tmpname + '.out')
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -206,6 +263,7 @@ if __name__ == "__main__":
     test_sh_callout_async()
     test_get_env_ns()
     test_expand_env()
+    test_script_2_func()
 
 
 # ------------------------------------------------------------------------------

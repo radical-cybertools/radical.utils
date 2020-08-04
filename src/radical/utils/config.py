@@ -30,9 +30,12 @@ __license__   = "MIT"
 #
 # The `module` string is interpreted as follows:
 #
-#   m = __import__('module')
-#   sys_config_dir = "%s/configs" % os.path.dirname(m.__file__)
-#   usr_config_dir = "%s/.%s/"    % (os.environ['HOME'], m.replace('.', '/'))
+#   module         = 'module'
+#   module_path    = radical.utils.debug.find_module(module)
+#   usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
+#                    os.environ.get('HOME', '/tmp')
+#   sys_config_dir = '%s/configs'     % (module_path)
+#   usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
 #
 # so the location of the module's `__init__.py` is used to derive the location
 # of the installed system config files, and the module name is used to derive
@@ -40,15 +43,15 @@ __license__   = "MIT"
 #
 # For example, the module `radical.utils` will have the following config dirs:
 #
-#   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs/
-#   usr_config_dir = /home/merzky/.radical/utils/
+#   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs
+#   usr_config_dir = /home/merzky/.radical/utils/configs
 #
 # After loading the system level config file, any existing user level config
 # file is merged into it, via
 #
-#   radical.utils.dict_merge(user_cgf, system_cfg, mode='overwrite')
+#   radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
 #
-# so that the user config settings supercede the system config settings.
+# so that the user config settings supersede the system config settings.
 #
 # Both path and name specifiers can contain `*` as wildcard, which is then
 # interpreted as by `glob()`.  If that wildcard exist, then all matching config
@@ -91,7 +94,7 @@ __license__   = "MIT"
 # Towards `os.environ` completion, we support the following syntax in all string
 # *values* (not keys):
 #
-#   '${RADICAL_UTILS_ENV:default_value}
+#   '${RADICAL_UTILS_ENV:default_value}'
 #
 # which will be replaced by
 #
@@ -122,20 +125,20 @@ __license__   = "MIT"
 
 import os
 import glob
-import munch
 
 from .debug      import find_module
 from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
 from .json_io    import read_json, write_json
 from .dict_mixin import dict_merge
+from .munch      import Munch
 
 from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class Config(munch.Munch):
+class Config(Munch):
 
     # FIXME: we should cache config files after reading, so that repeated
     #        instance creations do not trigger a new (identical) round of
@@ -144,21 +147,23 @@ class Config(munch.Munch):
     # --------------------------------------------------------------------------
     #
     def __init__(self, module=None, category=None, name=None, cfg=None,
-                       path=None, expand=True, env=None, _internal=False):
+                       from_dict=None, path=None, expand=True, env=None,
+                       _internal=False):
         '''
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
-        module:   used to determine the module's config file location
-                  - default: `radical.utils`
-        category: name of config to be loaded from module's config path
-        name:     specify a specific configuration to be used
-        cfg:      application configuration to be used for initialization
-        path:     path to app configuration to be used for initialization
-        expand:   enable / disable environment var expansion
-                  - default: True
-        env:      environment dictionary to be used for expansion
-                  - default: `os.environ`
+        module:    used to determine the module's config file location
+                   - default: `radical.utils`
+        category:  name of config to be loaded from module's config path
+        name:      specify a specific configuration to be used
+        path:      path to app config json to be used for initialization
+        cfg:       application config dict to be used for initialization
+        from_dict: alias for cfg, to satisfy base class constructor
+        expand:    enable / disable environment var expansion
+                   - default: True
+        env:       environment dictionary to be used for expansion
+                   - default: `os.environ`
 
         The naming of config files follows this rule:
 
@@ -170,22 +175,36 @@ class Config(munch.Munch):
 
         it would attempt to load (depending on system details):
 
-            /usr/lib/python3/site-packages/radical/pilot/\
-                                                   config/session_mininmal.json
+            /usr/lib/python3/site-packages/\
+                 radical/pilot/configs/session_mininmal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
               Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
         '''
 
-        self._expand = expand
-        self._env    = env
+        if from_dict:
+            # if we could only overload constructors by signature... :-/
+            # As it is, we have to emulate that...
+            assert(not module   and
+                   not category and
+                   not name     and
+                   not cfg      and
+                   not path     and
+                   not env      and
+                   not _internal), 'from_dict must be exclusive'
+            super().__init__(from_dict=from_dict)
+            return
 
         if path and cfg:
             raise ValueError('conflicting initializers (path, cfg)')
 
         if path:
             cfg = read_json(path)
+
+        if not cfg:
+            # just use config files
+            cfg = dict()
 
         # if a category has dot limited elements and no module is given,
         # interpret the first part as module
@@ -217,10 +236,6 @@ class Config(munch.Munch):
         if category and name.startswith(category + '.'):
             name = name[len(category) + 1:]
 
-        if not cfg:
-            # just use config files
-            cfg = dict()
-
         if name.startswith('/'):
 
             # load config from abs path
@@ -248,7 +263,6 @@ class Config(munch.Munch):
 
             if '*' in fname: starred = True
             else           : starred = False
-            self._tmp = [starred, fname]
 
         else:
             # we can't load a config file - just use the app config
@@ -339,60 +353,10 @@ class Config(munch.Munch):
         cfg_dict = dict_merge(cfg_dict, usr_cfg, policy='overwrite')
         cfg_dict = dict_merge(cfg_dict, app_cfg, policy='overwrite')
 
-        if cfg_dict:
-
-            # ------------------------------------------------------------------
-            def to_config(data):
-                for k,v in data.items():
-                    if isinstance(v, dict):
-                        data[k] = Config(cfg=v, expand=False, _internal=True)
-                return data
-            # ------------------------------------------------------------------
-
-            self.update(to_config(cfg_dict))
-
         if expand:
-            ru_expand_env(self, env=env)
+            cfg_dict = ru_expand_env(cfg_dict, env=env)
 
-
-    # --------------------------------------------------------------------------
-    #
-    # cfg['foo']        == cfg.foo
-    # cfg['foo']['bar'] == cfg.foo.bar
-    #
-    def __getattr__(self, k):
-        return self.get(k, None)
-
-    def __setattr__(self, k, v):
-
-        if self._expand:
-            ru_expand_env(v, env=self._env)
-
-        if isinstance(v, dict):
-            self[k] = Config(cfg=v, expand=False)
-        else:
-            self[k] = v
-
-
-    # --------------------------------------------------------------------------
-    #
-    # don't list private class attributes (starting with `_`) as dict entries
-    #
-    def __iter__(self):
-        for k in dict.__iter__(self):
-            if str(k)[0] != '_':
-                yield k
-
-    def items(self):
-        for k in dict.__iter__(self):
-            if str(k)[0] != '_':
-                yield k, self[k]
-
-    def keys(self):
-        return [x for x in self]
-
-    def __len__(self):
-        return len(self.keys())
+        super().__init__(from_dict=cfg_dict)
 
 
     # --------------------------------------------------------------------------
@@ -407,25 +371,6 @@ class Config(munch.Munch):
 
         if expand:
             ru_expand_env(cfg, env=env)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __str__(self):
-        return str(self.as_dict())
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __repr__(self):
-        return str(self)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def as_dict(self):
-
-        return self.toDict()
 
 
     # --------------------------------------------------------------------------
@@ -481,19 +426,24 @@ class DefaultConfig(Config, metaclass=Singleton):
     locations, log levels, profile locations, etc.
     '''
 
+    _schema   = {
+                   'log_lvl'    : str,
+                   'log_tgt'    : str,
+                   'log_dir'    : str,
+                   'report'     : bool,
+                   'report_tgt' : str,
+                   'report_dir' : str,
+                   'profile'    : bool,
+                   'profile_dir': str,
+                 }
+
+
+    # --------------------------------------------------------------------------
+    #
     def __init__(self):
 
-        cfg = {'log_lvl'    : '${RADICAL_DEFAULT_LOG_LVL:ERROR}',
-               'log_tgt'    : '${RADICAL_DEFAULT_LOG_TGT:.}',
-               'log_dir'    : '${RADICAL_DEFAULT_LOG_DIR:$PWD}',
-               'report'     : '${RADICAL_DEFAULT_REPORT:TRUE}',
-               'report_tgt' : '${RADICAL_DEFAULT_REPORT_TGT:stderr}',
-               'report_dir' : '${RADICAL_DEFAULT_REPORT_DIR:$PWD}',
-               'profile'    : '${RADICAL_DEFAULT_PROFILE:TRUE}',
-               'profile_dir': '${RADICAL_DEFAULT_PROFILE_DIR:$PWD}',
-               }
-
-        super(DefaultConfig, self).__init__(module='radical.utils', cfg=cfg)
+        super(DefaultConfig, self).__init__(module='radical.utils.utils',
+                                            name='default')
 
 
 # ------------------------------------------------------------------------------

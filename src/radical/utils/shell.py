@@ -108,7 +108,7 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
 
             cmd = cmd.strip()
 
-            self._in_c  = bool(stdin)                # flag stdin capture
+            self._in_c  = bool(stdin)                # flag stdin  capture
             self._out_c = bool(stdout)               # flag stdout capture
             self._err_c = bool(stderr)               # flag stderr capture
 
