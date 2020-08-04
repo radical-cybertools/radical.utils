@@ -287,8 +287,8 @@ def _generate_id(template, prefix, ns=None):
 
     try:
         ret = template % info
-    except KeyError:
-        raise ValueError('unknown pattern in template (%s)' % template)
+    except KeyError as e:
+        raise ValueError('unknown pattern in template (%s)' % template) from e
 
     return ret
 

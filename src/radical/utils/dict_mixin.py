@@ -26,6 +26,15 @@ class DictMixin:
 
     # --------------------------------------------------------------------------
     #
+    # mascerade as dict for `isinstance` calls
+    #
+    @property
+    def __class__(self):
+        return dict
+
+
+    # --------------------------------------------------------------------------
+    #
     # first level definitions should be implemented by the sub-class
     #
     def __getitem__(self, key):
@@ -106,6 +115,9 @@ class DictMixin:
 
     def __repr__(self):
         return repr(dict(list(self.items())))
+
+    def __len__(self):
+        return len(self.keys())
 
 
 # ------------------------------------------------------------------------------
