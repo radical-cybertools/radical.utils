@@ -52,8 +52,8 @@ NTP_DIFF_WARN_LIMIT = 1.0
 # cache the result.  We use a disk cache which is valid for 1 minute
 NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
 
-# maximum field size allowed by the csv parser.  The larger the number of 
-# entities in the profile, the larger the size of the filed required by the 
+# maximum field size allowed by the csv parser.  The larger the number of
+# entities in the profile, the larger the size of the filed required by the
 # csv parser. We assume a 64bit C long.
 CSV_FIELD_SIZE_LIMIT = 9223372036854775807
 
@@ -180,7 +180,7 @@ class Profiler(object):
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
         self._handle = open("%s/%s.prof" % (self._path, self._name), 'a',
-                            buffering=1)
+                            buffering=1024)
 
         # write header and time normalization info
         if self._handle:

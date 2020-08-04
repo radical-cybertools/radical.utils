@@ -36,7 +36,7 @@ def test_zmq_queue():
                          'log_level': 'error',
                          'path'     : '/tmp/',
                          'sid'      : 'test_sid',
-                         'bulk_size': 0,
+                         'bulk_size': 50,
                          'stall_hwm': 1,
                         })
 
@@ -47,11 +47,11 @@ def test_zmq_queue():
     assert(b.addr_in  == b.addr_put)
     assert(b.addr_out == b.addr_get)
 
-    A = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
-    B = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
-
     C = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get))
     D = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get))
+
+    A = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
+    B = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
 
     data = dict()
 
@@ -70,19 +70,23 @@ def test_zmq_queue():
         putter.put({'src' : uid,
                     'idx' : None})
 
-
     def work_get(getter, uid):
 
         data[uid] = list()
         done      = False
+        n         = 0
         while not done:
             msgs = getter.get()
             for msg in msgs:
                 msg = ru.as_string(msg)
                 if msg['idx'] is None:
+                    final = True
                     done = True
-                    break
-                data[uid].append(msg['src'])
+                else:
+                    data[uid].append(msg['src'])
+                    n += 1
+
+        getter.stop()
 
     t_a = mt.Thread(target=work_put, args=[A, 'A', c_a, 0.010])
     t_b = mt.Thread(target=work_put, args=[B, 'B', c_b, 0.005])
@@ -99,7 +103,7 @@ def test_zmq_queue():
     t_c.start()
     t_d.start()
 
-    time.sleep(5)
+    time.sleep(3)
     b.stop()
 
   # uids = list(data.keys())
@@ -165,10 +169,12 @@ def disabled_test_zmq_queue_cb():
     assert(b.addr_in  == b.addr_put)
     assert(b.addr_out == b.addr_get)
 
-    ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
-    ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_b)
+    time.sleep(2.0)
 
-    time.sleep(1.0)
+    g_1 = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
+    g_1 = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_b)
+
+    time.sleep(2.0)
 
     A = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
     B = ru.zmq.Putter(channel=cfg['channel'], url=str(b.addr_put))
@@ -195,6 +201,9 @@ def disabled_test_zmq_queue_cb():
 
     time.sleep(2.0)
     b.stop()
+
+    g_1.stop()
+    g_2.stop()
 
   # import pprint
   # pprint.pprint(data)
