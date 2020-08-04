@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-__author__    = "Radical.Utils Development Team (Andre Merzky, Ole Weidner)"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
-
+#!/usr/bin/env python3
 
 import os
 import pytest

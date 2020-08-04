@@ -45,8 +45,8 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
             if timeout:
                 try:
                     pid = pid_q.get(timeout=timeout)
-                except queue.Empty:
-                    raise RuntimeError('daemon startup timed out')
+                except queue.Empty as e:
+                    raise RuntimeError('daemon startup timed out') from e
 
             else:
                 pid = pid_q.get()
@@ -58,12 +58,12 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
             return pid
 
     except OSError as e:
-        raise RuntimeError("Fork failed: %d (%s)\n"
-                          % (e.errno, e.strerror))
+        raise RuntimeError(
+            'Fork failed: %d (%s)\n' % (e.errno, e.strerror)) from e
 
     except Exception as e:
-        raise RuntimeError("Failed to start daemon: %d (%s)\n"
-                          % (e.errno, e.strerror))
+        raise RuntimeError(
+            'Failed to start daemon: %d (%s)\n' % (e.errno, e.strerror)) from e
 
 
     # decouple from parent process group

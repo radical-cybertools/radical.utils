@@ -30,7 +30,7 @@ def read_json(fname):
             return parse_json(f.read())
 
         except ValueError as e:
-            raise ValueError('error parsing %s: %s' % (fname, e))
+            raise ValueError('error parsing %s: %s' % (fname, e)) from e
 
 
 # ------------------------------------------------------------------------------

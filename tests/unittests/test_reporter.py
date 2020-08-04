@@ -46,12 +46,12 @@ def test_reporter():
     rep.idle(mode='start')
     for _ in range(3):
         rep.idle()
-        time.sleep(0.3)
+        time.sleep(0.03)
     rep.idle(color='ok', c='.')
     rep.idle(color='error', c='.')
     for _ in range(3):
         rep.idle()
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     rep.idle(mode='stop')
     rep.ok('>>done\n')
