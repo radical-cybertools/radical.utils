@@ -15,7 +15,7 @@ OVERWRITE = 'overwrite'
 
 # ------------------------------------------------------------------------------
 #
-class DictMixin:
+class DictMixin(dict):
     '''
     Mixin defining all dictionary methods for classes that already have
     a minimum dictionary interface including getitem, setitem, delitem,
@@ -24,13 +24,13 @@ class DictMixin:
     dictionary.
     '''
 
-    # --------------------------------------------------------------------------
-    #
-    # mascerade as dict for `isinstance` calls
-    #
-    @property
-    def __class__(self):
-        return dict
+  # # --------------------------------------------------------------------------
+  # #
+  # # mascerade as dict for `isinstance` calls
+  # #
+  # @property
+  # def __class__(self):
+  #     return dict
 
 
     # --------------------------------------------------------------------------

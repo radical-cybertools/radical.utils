@@ -17,7 +17,7 @@ class _TestDescr(ru.Description):
                'post' : (str, ),
                'meta' : None,
                'items': [int],
-               'pop'  : [int],
+               'post' : [int],
                '_foo' : str,
                '_data': str,
                'unset': int,
@@ -40,7 +40,7 @@ def test_description():
                  'post' : False,
                  'meta' : 3.4,
                  'items': [3.4, '3'],
-                 'pop'  : [3.4, '3'],
+                 'post' : [3.4, '3'],
                  '_foo' : ['bar'],
                  '_data': 4,
                  'i245' : [],
@@ -59,8 +59,8 @@ def test_description():
     assert(isinstance(td.procs, int))
     assert(isinstance(td.env,   dict))
     assert(isinstance(td.pre,   list))
-    assert(isinstance(td.pop,   list))
-  # assert(isinstance(td._foo,  str)), td._foo                                     # noqa
+    assert(isinstance(td.post,  list)), td.post
+  # assert(isinstance(td._foo,  str)), td._foo                            # noqa
 
     assert(isinstance(td['_data'], str))
     assert(isinstance(td['items'], list))
@@ -71,8 +71,7 @@ def test_description():
     assert(td.procs    == 3)
     assert(td.env      == {'3': 4})
     assert(td.pre      == ['True'])
-    assert(td.post     == ('False',))
-    assert(td.pop      == [3, 3])
+    assert(td.post     == [3, 3])
   # assert(td._foo     == "['bar']")                                      # noqa
 
     assert(td['_data'] == '4')
