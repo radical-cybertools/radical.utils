@@ -361,64 +361,6 @@ class Config(Munch):
         super().__init__(from_dict=cfg_dict)
 
 
-    # --------------------------------------------------------------------------
-    #
-    def merge(self, cfg, expand=True, env=None, policy='overwrite', log=None):
-        '''
-        merge the given config into the existing config settings, overwriting
-        any values which already existed
-        '''
-
-        dict_merge(self, cfg, policy=policy, log=log)
-
-        if expand:
-            ru_expand_env(cfg, env=env)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def write(self, fname):
-
-        write_json(self.as_dict(), fname)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def query(self, key, default=None):
-        '''
-        For a query like
-
-            config.query('some.path.to.key', 'foo')
-
-        this method behaves like:
-
-            config['some']['path']['to'].get('key', default='foo')
-        '''
-
-        if is_string(key): elems = key.split('.')
-        else             : elems = key
-
-        if not elems:
-            raise ValueError('empty key on query')
-
-        pos  = self
-        path = list()
-        for elem in elems:
-
-            if not isinstance(pos, dict):
-                raise KeyError('no such key [%s]' % '.'.join(path))
-
-            if elem in pos: pos = pos[elem]
-            else          : pos = None
-
-            path.append(elem)
-
-        if pos is None:
-            pos = default
-
-        return pos
-
-
 # ------------------------------------------------------------------------------
 #
 class DefaultConfig(Config, metaclass=Singleton):
