@@ -14,7 +14,10 @@
 import copy
 
 from .misc       import as_list, as_tuple
-from .dict_mixin import DictMixin
+from .misc       import is_string
+from .misc       import expand_env as ru_expand_env
+from .dict_mixin import DictMixin, dict_merge
+from .json_io    import read_json, write_json
 
 
 # ------------------------------------------------------------------------------
@@ -144,8 +147,10 @@ class Munch(DictMixin):
         data   = object.__getattribute__(self, '_data')
         schema = object.__getattribute__(self, '_schema')
 
-        if k in schema: return data.get(k)
-        else          : return data[k]
+      # return data.get(k)
+        if   not  schema: return data.get(k)
+        elif k in schema: return data.get(k)
+        else            : return data[k]
 
 
     def __setattr__(self, k, v):
@@ -290,6 +295,85 @@ class Munch(DictMixin):
         Can be overloaded
         '''
         pass
+
+
+
+    # --------------------------------------------------------------------------
+    #
+    def merge(self, src, expand=True, env=None, policy='overwrite', log=None):
+        '''
+        merge the given munch into the existing config settings, overwriting
+        any values which already existed
+        '''
+
+        if expand:
+            # NOTE: expansion is done on reference, not copy
+            ru_expand_env(src, env=env)
+
+        dict_merge(self, src, policy=policy, log=log)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def write(self, fname):
+
+        write_json(self.as_dict(), fname)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def query(self, key, default=None):
+        '''
+        For a query like
+
+            munch.query('some.path.to.key', 'foo')
+
+        this method behaves like:
+
+            munch['some']['path']['to'].get('key', default='foo')
+        '''
+
+        if is_string(key): elems = key.split('.')
+        else             : elems = key
+
+        if not elems:
+            raise ValueError('empty key on query')
+
+        pos  = self
+        path = list()
+        for elem in elems:
+
+            if not isinstance(pos, dict):
+                raise KeyError('no such key [%s]' % '.'.join(path))
+
+            if elem in pos: pos = pos[elem]
+            else          : pos = None
+
+            path.append(elem)
+
+        if pos is None:
+            pos = default
+
+        return pos
+
+
+# ------------------------------------------------------------------------------
+#
+def demunch(src):
+    '''
+    iterate given dictionary and apply `Munch.as_dict()` to all munch type
+    values, and return the result (effectively a shallow copy).
+    '''
+    tgt = dict()
+    for k, v in src.items():
+        if isinstance(v, Munch):
+            tgt[k] = v.as_dict()
+        elif isinstance(v, dict):
+            tgt[k] = demunch(v)
+        else:
+            tgt[k] = v
+
+    return tgt
 
 
 # ------------------------------------------------------------------------------
