@@ -3,6 +3,23 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.0 Release                                                         2020-08-05
+--------------------------------------------------------------------------------
+
+  - add default config
+  - config inheritance
+  - munch implementation / improvements / type checking
+  - add several tests
+  - depend on radical.gtod
+  - documentation
+  - implement metric_expand
+  - line buffering is now multiprocess-safe for high-frequency writes
+  - revert to exec, capture stdio, exceptions
+  - travis- and pylint-related updates
+  - apply exception chaining
+  - sets min python version to 3.6
+
+
 1.4.0 Release                                                         2020-05-12
 --------------------------------------------------------------------------------
 
