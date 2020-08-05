@@ -672,12 +672,14 @@ def expand_env(data, env=None, ignore_missing=True):
     floats if they are formatted that way and contain no other characters.
     '''
 
+    from .munch    import Munch
+
     # no data: None, empty dict / sequence / string
     if not data:
         return data
 
     # dict type
-    elif isinstance(data, dict):
+    elif isinstance(data, (dict, Munch)):
 
         for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)
@@ -685,7 +687,6 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # sequence types: list, set, tuple - but not string
     elif is_seq(data):
-        print('=== enum:', type(data), data)
 
         for idx, elem in enumerate(data):
             data[idx] = expand_env(elem, env, ignore_missing)

@@ -196,6 +196,8 @@ class Config(Munch):
             super().__init__(from_dict=from_dict)
             return
 
+        super().__init__()
+
         if path and cfg:
             raise ValueError('conflicting initializers (path, cfg)')
 
