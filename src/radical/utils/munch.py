@@ -144,8 +144,10 @@ class Munch(DictMixin):
         data   = object.__getattribute__(self, '_data')
         schema = object.__getattribute__(self, '_schema')
 
-        if k in schema: return data.get(k)
-        else          : return data[k]
+        return data.get(k)
+        if   not  schema: return data.get(k)
+        elif k in schema: return data.get(k)
+        else            : return data[k]
 
 
     def __setattr__(self, k, v):
