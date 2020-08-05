@@ -154,21 +154,6 @@ def read(*rnames):
 
 
 # ------------------------------------------------------------------------------
-# FIXME: pip3 bug: binaries files cannot be installed into bin.
-# NOTE : disable to avoid stupid/inconsequrntial bwheel error
-# # compile gtod
-# try:
-#     compiler = new_compiler(verbose=1)
-#     objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-#     exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-# except:
-#     with open('bin/radical-utils-gtod', 'w') as fout:
-#         fout.write('#!/usr/bin/env python\n'
-#                    'import time\n'
-#                    'print time.time()\n')
-#     os.chmod('bin/radical-utils-gtod', 0o755)
-
-# ------------------------------------------------------------------------------
 # check python version, should be >= 3.6
 if sys.hexversion < 0x03060000:
     raise RuntimeError('ERROR: %s requires Python 3.6 or newer' % name)
@@ -221,7 +206,6 @@ setup_args = {
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-env.sh',
-                          # 'bin/radical-utils-gtod',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.json.sh',
@@ -240,6 +224,7 @@ setup_args = {
                             'colorama',
                             'netifaces',
                             'setproctitle',
+                            'radical.gtod',
                            ],
     'tests_require'      : ['pytest',
                             'pylint',
