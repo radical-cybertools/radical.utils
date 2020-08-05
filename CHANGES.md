@@ -3,7 +3,7 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
-1.5.0 Release                                                         2020-08-05
+1.5.1 Release                                                         2020-08-05
 --------------------------------------------------------------------------------
 
   - add default config
