@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-__author__    = 'RADICAL Team'
-__email__     = 'radical@rutgers.edu'
-__copyright__ = 'Copyright 2013-19, RADICAL Research, Rutgers University'
+__author__    = 'RADICAL-Cybertools Team'
+__email__     = 'info@radical-cybertools.org'
+__copyright__ = 'Copyright 2013-20, The RADICAL-Cybertools Team'
 __license__   = 'MIT'
-
 
 ''' Setup script, only usable via pip. '''
 
@@ -15,7 +14,6 @@ import glob
 import shutil
 
 import subprocess as sp
-
 
 from setuptools import setup, find_namespace_packages
 
@@ -137,13 +135,7 @@ def get_version(_mod_root):
         return _version_base, _version_detail, _sdist_name
 
     except Exception as e:
-        raise RuntimeError('Could not extract/set version: %s' % e)
-
-
-# ------------------------------------------------------------------------------
-# check python version. we need >= 3.5
-if  sys.hexversion < 0x03050000:
-    raise RuntimeError('%s requires Python 3.x (3.5 or higher)' % name)
+        raise RuntimeError('Could not extract/set version: %s' % e) from e
 
 
 # ------------------------------------------------------------------------------
@@ -162,25 +154,9 @@ def read(*rnames):
 
 
 # ------------------------------------------------------------------------------
-# FIXME: pip3 bug: binaries files cannot be installed into bin.
-# NOTE : disable to avoid stupid/inconsequrntial bwheel error
-# # compile gtod
-# try:
-#     compiler = new_compiler(verbose=1)
-#     objs = compiler.compile(sources=['src/radical/utils/gtod.c'])
-#     exe  = compiler.link_executable(objs, 'bin/radical-utils-gtod')
-# except:
-#     with open('bin/radical-utils-gtod', 'w') as fout:
-#         fout.write('#!/usr/bin/env python\n'
-#                    'import time\n'
-#                    'print time.time()\n')
-#     os.chmod('bin/radical-utils-gtod', 0o755)
-
-
-# ------------------------------------------------------------------------------
-#
-if  sys.hexversion < 0x03050000:
-    raise RuntimeError('ERROR: %s requires Python 3.5 or newer' % name)
+# check python version, should be >= 3.6
+if sys.hexversion < 0x03060000:
+    raise RuntimeError('ERROR: %s requires Python 3.6 or newer' % name)
 
 
 # ------------------------------------------------------------------------------
@@ -197,7 +173,7 @@ setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
     'version'            : version,
-    'description'        : 'Utilities for RADICAL CybertoolsProjects',
+    'description'        : 'Utilities for RADICAL-Cybertools projects',
   # 'long_description'   : (read('README.md') + '\n\n' + read('CHANGES.md')),
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
@@ -206,7 +182,7 @@ setup_args = {
     'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
     'license'            : 'MIT',
     'keywords'           : 'radical utils',
-    'python_requires'    : '>=3.5',
+    'python_requires'    : '>=3.6',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -214,7 +190,7 @@ setup_args = {
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Utilities',
         'Topic :: System :: Distributed Computing',
         'Topic :: Scientific/Engineering',
@@ -229,7 +205,6 @@ setup_args = {
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
-                          # 'bin/radical-utils-gtod',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.json.sh',
@@ -248,6 +223,7 @@ setup_args = {
                             'colorama',
                             'netifaces',
                             'setproctitle',
+                            'radical.gtod',
                            ],
     'tests_require'      : ['pytest',
                             'pylint',

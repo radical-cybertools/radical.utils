@@ -200,6 +200,8 @@ def test_expand_env():
 #
 def test_script_2_func():
 
+    biz = '?'
+
     # create a temp script to convert and run
     [tmpfile, tmpname] = tempfile.mkstemp()
     os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
@@ -211,29 +213,40 @@ def get_buz():
 
 if __name__ == '__main__':
     import os,sys
+    print('hello')
+    sys.stderr.write('world')
     os.system('echo "%%s %%s %%s OK" > %s.out' %% (sys.argv[1], sys.argv[2],
                                                    get_buz()))
+    if sys.argv[2] == 'exit':
+        exit(2)
+    raise ValueError('oops')
 
 """ % tmpname))
 
     # create a method handle from the tmp script, and call it
     func = ru.script_2_func(tmpname)
 
+    out, err, ret, ec = func('foo bar'.split())
+    assert(out == 'hello\n')
+    assert(err == 'world')
+    assert(ret == 'oops')
+    assert(ec  == 1)
 
-    func('foo bar'.split())
     with open(tmpname + '.out', 'r') as fin:
         data = fin.read()
-
     assert(data.endswith('foo bar buz OK\n')), tmpname
 
+    os.unlink(tmpname + '.out')
 
-    func('foo', 'bar')
-    # check if the action was performed
+    out, err, ret, ec = func('foo', 'exit')
+    assert(out == 'hello\n')
+    assert(err == 'world')
+    assert(ret == 'SystemExit')
+    assert(ec  == 2)
+
     with open(tmpname + '.out', 'r') as fin:
         data = fin.read()
-
-    assert(data.endswith('foo bar buz OK\n')), tmpname
-
+    assert(data.endswith('foo exit buz OK\n')), tmpname
 
     os.unlink(tmpname)
     os.unlink(tmpname + '.out')

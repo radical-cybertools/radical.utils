@@ -2,7 +2,7 @@
 
 # this script expects the output of `radical-stack` as input file (first
 # argument), and will then create a respective virtualenv in the given location
-# (second argtument)
+# (second argument)
 
 # ------------------------------------------------------------------------------
 #
@@ -73,15 +73,15 @@ source virtualenv ve_test
 
 mod               repo                                                    branch  commit tag
 radical.utils     https://github.com/radical-cybertools/radical.utils.git     devel          titan
-saga-python       https://github.com/radical-cybertools/saga-python.git       devel          titan
+radical.saga      https://github.com/radical-cybertools/radical.saga.git      devel          titan
 radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     devel          titan
 radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
 
 installed:
-python            : 2.7.12+
+python            : 3.6+
 virtualenv        : /home/merzky/radical/radical.utils/ve_test
 radical.utils     : titan@HEAD-detached-at-titan
-saga-python       : titan@HEAD-detached-at-titan
+radical.saga      : titan@HEAD-detached-at-titan
 radical.pilot     : titan@HEAD-detached-at-titan
 radical.analytics : v0.1-113-gb032808@devel
 --------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ fi
 
 if test -z "$stack$branch$tag"
 then
-    usage 'missing stack file or branch'
+    usage "missing stack file or branch"
 fi
 
 
@@ -143,7 +143,7 @@ else
     printf "tag @ branch requested: $tag@$branch\n"
 fi
 
-printf "ve location  requested: $veloc\n\n"
+printf "ve location requested: $veloc\n\n"
 
 
 # ------------------------------------------------------------------------------
@@ -200,7 +200,7 @@ then
     then
         if test -z "$python" 
         then
-            conda create -y -p "$veloc" python=2.7 >> $log 2>&1
+            conda create -y -p "$veloc" python=3.6 >> $log 2>&1
         else
             conda create -y -p "$veloc" python="&python" >> $log 2>&1
         fi
@@ -213,14 +213,14 @@ then
         fi
     fi
 else
-    printf "check  virtualenv $veloc\n"
+    printf "check virtualenv $veloc\n"
     test -d $veloc || echo "ve invalid!" || exit 1
 fi
 
 printf "source virtualenv $veloc\n\n"
 if ! test -z "$conda"
 then
-    source activate "$veloc/"
+    eval "$(conda shell.bash hook)"; conda activate "$veloc/"
 else
     . "$veloc/bin/activate"
 fi
@@ -236,18 +236,14 @@ printf "%-20s  %-60s  %-30s %-30s %s\n" "mod" "repo" "branch" "commit" "tag"
 #
 if ! test -z "$stack"
 then
-  # for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
-    for mod in 'radical.utils' 'saga' 'radical.pilot' 'radical.analytics'
+  # for mod in 'radical.utils' 'radical.saga' 'radical.pilot' 'radical.analytics'
+    for mod in 'radical.utils' 'radical.saga' 'radical.pilot' 'radical.analytics'
     do
         info=$(cat $stack | grep -e "^$mod" | tail -n 1)
         if test -z "$info"
         then
             echo "skip $mod"
         else
-            if test "$mod" = "saga"
-            then
-                mod='saga-python'
-            fi
             repo="https://github.com/radical-cybertools/$mod.git"
 
             spec=$(  echo "$info" | cut -f 2 -d ':' | xargs echo)
@@ -260,13 +256,9 @@ then
     done
 
 else
-  # for mod in 'radical.utils' 'radical.saga' 'saga' 'radical.pilot' 'radical.analytics'
-    for mod in 'radical.utils' 'saga' 'radical.pilot' 'radical.analytics'
+  # for mod in 'radical.utils' 'radical.saga' 'radical.pilot' 'radical.analytics'
+    for mod in 'radical.utils' 'radical.saga' 'radical.pilot' 'radical.analytics'
     do
-        if test "$mod" = "saga"
-        then
-            mod='saga-python'
-        fi
         repo="https://github.com/radical-cybertools/$mod.git"
 
         install "$mod" "$repo" "$branch" "$tag" "$commit"
@@ -279,7 +271,7 @@ cd $cwd
 # verify
 if ! test -e "$veloc/bin/radical-stack"
 then
-    print 'installation incomplete (no radical-stack)'
+    printf "installation incomplete (no radical-stack)"
     exit 1
 else
     printf "\ninstalled:\n"

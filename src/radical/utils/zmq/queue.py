@@ -217,6 +217,10 @@ class Queue(Bridge):
 
         try:
 
+            self.nin  = 0
+            self.nout = 0
+            self.last = 0
+
             buf = list()
             while not self._term.is_set():
 
@@ -236,6 +240,9 @@ class Queue(Bridge):
 
                     if isinstance(msgs, list): buf += msgs
                     else                     : buf.append(msgs)
+
+                    if isinstance(msgs, list): self.nin += len(msgs)
+                    else                     : self.nin += 1
 
                     active = True
 
@@ -268,6 +275,9 @@ class Queue(Bridge):
                         no_intr(self._get.send, data)
                       # prof_bulk(self._prof, 'poll_get_send', msgs=bulk, msg=req)
 
+                        self.nout += len(bulk)
+                        self.last  = time.time()
+
                         # remove sent messages from buffer
                         del(buf[:self._bulk_size])
 
@@ -281,6 +291,10 @@ class Queue(Bridge):
 
         except  Exception:
             self._log.exception('bridge failed')
+
+    def stop(self):
+        print('===', self.uid, self.nin, self.nout, self.last)
+        Bridge.stop(self)
 
 
 # ------------------------------------------------------------------------------
