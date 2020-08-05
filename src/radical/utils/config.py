@@ -127,9 +127,8 @@ import os
 import glob
 
 from .debug      import find_module
-from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
-from .json_io    import read_json, write_json
+from .json_io    import read_json
 from .dict_mixin import dict_merge
 from .munch      import Munch
 
