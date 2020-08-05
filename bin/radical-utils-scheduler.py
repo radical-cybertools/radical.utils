@@ -13,8 +13,8 @@ import radical.utils as ru
 try:
     # make pylint happy - this is optional code
     from Xlib import X, display, Xutil
-except ImportError as e:
-    raise RuntimeError('need Xlib module to work') from e
+except ImportError as exc:
+    raise RuntimeError('need Xlib module to work') from exc
 
 
 

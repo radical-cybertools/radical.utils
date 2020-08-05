@@ -8,6 +8,7 @@ import socket
 import tarfile
 import datetime
 import tempfile
+import importlib
 import itertools
 import netifaces
 
@@ -684,6 +685,7 @@ def expand_env(data, env=None, ignore_missing=True):
 
     # sequence types: list, set, tuple - but not string
     elif is_seq(data):
+        print('=== enum:', type(data), data)
 
         for idx, elem in enumerate(data):
             data[idx] = expand_env(elem, env, ignore_missing)
@@ -945,6 +947,122 @@ def mktar(tarname, fnames=None, data=None):
 #
 def noop(*args, **kwargs):
     return None
+
+
+# ------------------------------------------------------------------------------
+#
+def script_2_func(fpath):
+    '''
+    This method accepts a single parameter `fpath` which is expected to point to
+    a file containing a self-sufficient Python script.  The script will be read
+    and stored, and a function handle will be returned which, upon calling, will
+    run that script in the currect Python interpreter`.  It will be ensured that
+    `__name__` is set to `__main__`, and that any arguments passed to the
+    callable are passed on as `sys.argv`.  A single list argument is also
+    allowed which is interpreted as argument list.
+
+    Example:
+
+        my_func = ru.script_2_func('/tmp/my_script.py')
+        my_func('-f', 'foo', '-b', 'bar')
+        my_func('-f foo -b bar'.split())   # equivalent
+
+    NOTE: calling the returned function handle will change `sys.argv` for the
+          current Python interpreter.
+    '''
+
+    prefix  = []
+    postfix = []
+
+
+    with open(fpath, 'r') as fin:
+        code_lines = fin.readlines()
+
+    # ensure that 'if __name__ == '__main__' works
+    prefix  += '__name__ = "__main__"\n\n'
+
+    # capture globals
+    prefix.append('global _RU_stdout\n')
+    prefix.append('global _RU_stderr\n')
+    prefix.append('global _RU_except\n')
+    prefix.append('global _RU_exit\n')
+
+    # redirect stdout and stderr to be captured in global string vars
+    prefix.append('from io import StringIO\n')
+    prefix.append('_RU_oldout  = sys.stdout\n')
+    prefix.append('_RU_olderr  = sys.stderr\n')
+    prefix.append('sys.stdout  = _RU_stdout = StringIO()\n\n')
+    prefix.append('sys.stderr  = _RU_stderr = StringIO()\n\n')
+
+    # wrap the code in a try/exec to capture exit codes and failures
+    prefix.append('_RU_except = None\n')
+    prefix.append('try:\n')
+
+    postfix.append('except Exception as e:\n')
+    postfix.append('    _RU_except = str(e)\n')
+    postfix.append('    _RU_exit   = 1\n')
+    postfix.append('except SystemExit as e:\n')
+    postfix.append('    _RU_except = "SystemExit"\n')
+    postfix.append('    _RU_exit   = e.code\n')
+
+    postfix.append('sys.stdout = _RU_oldout\n')
+    postfix.append('sys.stderr = _RU_olderr\n')
+
+    # examine _RU_stdout.getvalue()
+
+    # indentation of all code lines which go into the try/except
+    code_lines = ['    ' + line for line in code_lines]
+
+    # create closure which can be used to call the code
+    def ret(*argv):
+
+        if len(argv) == 1 and isinstance(argv[0], list):
+            argv = list(argv[0])
+
+        # if args are given, ensure that sys.argv gets set
+        if argv:
+            # indent - this is within try/catch
+            prefix.append('    import sys\n')
+            prefix.append('    sys.argv = ["dummy"] + %s\n' % str(list(argv)))
+
+        global _RU_stdout
+        global _RU_stderr
+        global _RU_except
+        global _RU_exit
+
+        _RU_stdout = None
+        _RU_stderr = None
+        _RU_except = None
+        _RU_exit   = None
+
+        tmp_code = ''.join(prefix)   \
+                 + ''.join(code_lines) \
+                 + ''.join(postfix)
+
+        # exec the resulting code, ensure to pass globals
+        exec(tmp_code, globals())
+
+        return _RU_stdout.getvalue(), _RU_stderr.getvalue(), \
+               _RU_except, _RU_exit
+
+    # return that new callable
+    return ret
+
+  # # --------------------------------------------------------------------------
+  #
+  # loader = importlib.machinery.SourceFileLoader('__main__', fpath)
+  # spec   = importlib.util.spec_from_loader(loader.name, loader)
+  # mod    = importlib.util.module_from_spec(spec)
+  # code   = loader.get_code(mod.__name__)
+  #
+  # def ret(*argv):
+  #     args = list(argv)
+  #     if len(args) == 1 and isinstance(argv[0], list):
+  #         args = list(argv[0])
+  #     sys.argv = ['dummy'] + args
+  #     loader.exec_module(mod)
+  #
+  # return ret
 
 
 # ------------------------------------------------------------------------------

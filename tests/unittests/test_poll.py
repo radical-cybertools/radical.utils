@@ -18,9 +18,9 @@ def test_poll():
 
         sp[0].close()
         sp[1].send(b'foo')
-        time.sleep(1)
+        time.sleep(0.1)
         sp[1].send(b'bar')
-        time.sleep(2)
+        time.sleep(0.2)
         sp[1].close()
         return
 
