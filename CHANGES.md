@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.2 Hotfix Release                                                  2020-08-05
+--------------------------------------------------------------------------------
+
+  - fix dict inheritance
+  
+
 1.5.1 Release                                                         2020-08-05
 --------------------------------------------------------------------------------
 
