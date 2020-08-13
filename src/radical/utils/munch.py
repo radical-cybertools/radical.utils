@@ -17,7 +17,7 @@ from .misc       import as_list, as_tuple
 from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
 from .dict_mixin import DictMixin, dict_merge
-from .json_io    import read_json, write_json
+from .json_io    import write_json
 
 
 # ------------------------------------------------------------------------------
