@@ -92,19 +92,23 @@ class Munch(DictMixin):
         if not other:
             return
 
-        for k,v in other.items():
+        for k, v in other.items():
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
                     t = type(self)
                 if not isinstance(t, dict):
-                    if (issubclass(type(v), Munch)):
-                        # no need to recast)
+                    if issubclass(type(v), Munch):
+                        # no need to recast
                         pass
                     elif issubclass(t, Munch):
                         # cast to expected Munch type
                         v = t(from_dict=v)
-            self[k] = v
+
+            if self._data.get(k) and issubclass(type(v), Munch):
+                self[k].merge(v, expand=False)
+            else:
+                self[k] = v
 
 
     # --------------------------------------------------------------------------
