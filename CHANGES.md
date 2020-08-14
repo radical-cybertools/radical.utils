@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.3 Hotfix Release                                                  2020-08-14
+--------------------------------------------------------------------------------
+
+  - fix recursive munch initialization
+
+
 1.5.2 Hotfix Release                                                  2020-08-05
 --------------------------------------------------------------------------------
 
