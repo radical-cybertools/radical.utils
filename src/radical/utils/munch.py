@@ -17,7 +17,7 @@ from .misc       import as_list, as_tuple
 from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
 from .dict_mixin import DictMixin, dict_merge
-from .json_io    import read_json, write_json
+from .json_io    import write_json
 
 
 # ------------------------------------------------------------------------------
@@ -92,19 +92,23 @@ class Munch(DictMixin):
         if not other:
             return
 
-        for k,v in other.items():
+        for k, v in other.items():
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
                     t = type(self)
                 if not isinstance(t, dict):
-                    if (issubclass(type(v), Munch)):
-                        # no need to recast)
+                    if issubclass(type(v), Munch):
+                        # no need to recast
                         pass
                     elif issubclass(t, Munch):
                         # cast to expected Munch type
                         v = t(from_dict=v)
-            self[k] = v
+
+            if self._data.get(k) and issubclass(type(v), Munch):
+                self[k].merge(v, expand=False)
+            else:
+                self[k] = v
 
 
     # --------------------------------------------------------------------------

@@ -200,8 +200,6 @@ def test_expand_env():
 #
 def test_script_2_func():
 
-    biz = '?'
-
     # create a temp script to convert and run
     [tmpfile, tmpname] = tempfile.mkstemp()
     os.write(tmpfile, ru.as_bytes("""#!/usr/bin/env python3
