@@ -9,7 +9,7 @@ import radical.utils as ru
 def test_munch():
     # note that test_description.py also tests large parts of the Munch class in
     # a non-hierarchical setup.  This test is focused on inheritance: note that
-    # all classes inherit from ru.Config which is also Munch drivate, but
+    # all classes inherit from ru.Config which is also Munch derivative, but
     # provides simpler initialization which we use in these tests.
 
     # --------------------------------------------------------------------------
@@ -124,10 +124,55 @@ def test_munch():
 
 # ------------------------------------------------------------------------------
 #
+def test_munch_update():
+
+    # --------------------------------------------------------------------------
+    # plain schema
+    class Bar_1(ru.Munch):
+        _schema = {'one': int,
+                   'two': {str: int}}
+
+    # --------------------------------------------------------------------------
+    # class whose schema is composed
+    class Buz_1(ru.Munch):
+        _schema = {'foo': int,
+                   'bar': Bar_1}
+
+    # --------------------------------------------------------------------------
+    # class whose schema is composed and has default values
+    class Foo_1(ru.Munch):
+        _schema   = {'buz': Buz_1}
+        _defaults = {'buz': {'foo': 0,
+                             'bar': {'one': 1,
+                                     'two': {'sub-two': 2}}}}
+
+        def __init__(self, from_dict=None):
+            super().__init__(from_dict=self._defaults)
+            if from_dict:
+                self.update(from_dict)
+
+    f = Foo_1()
+    assert(f.buz.foo == 0)
+    assert(f.buz.bar.two['sub-two'] == 2)
+
+    f = Foo_1({'buz': {'foo': 3,
+                       'bar': {'one': 11}}})
+    assert(f.buz.bar.one == 11)
+    assert(f.buz.bar.two['sub-two'] == 2)
+
+    f = Foo_1({'buz': {'foo': 3,
+                       'bar': {'one': 0,
+                               'two': {2: 22}}}})
+    f.verify()  # method `verify` convert int into str according to the scheme
+    assert(f.buz.bar.two['2'] == 22)
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_munch()
-
+    test_munch_update()
 
 # ------------------------------------------------------------------------------
 
