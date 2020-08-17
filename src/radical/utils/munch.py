@@ -26,7 +26,7 @@ class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, from_dict=None, schema=None):
+    def __init__(self, from_dict=None, schema=None, defaults=None):
         '''
         create a munchified dictionary (tree) from `from_dict`.
 
@@ -63,7 +63,13 @@ class Munch(DictMixin):
 
         self._data = dict()
 
-        self.update(copy.deepcopy(from_dict))
+        if defaults:
+            self.update(defaults)
+
+        elif hasattr(self, '_defaults'):
+            self.update(self._defaults)
+
+        self.update(from_dict)
 
 
     # --------------------------------------------------------------------------
