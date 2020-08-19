@@ -64,10 +64,10 @@ class Munch(DictMixin):
         self._data = dict()
 
         if defaults:
-            self.update(defaults)
+            self.update(copy.deepcopy(defaults))
 
         elif hasattr(self, '_defaults'):
-            self.update(self._defaults)
+            self.update(copy.deepcopy(self._defaults))
 
         self.update(from_dict)
 
@@ -99,7 +99,6 @@ class Munch(DictMixin):
             return
 
         for k, v in other.items():
-            v = copy.deepcopy(v)
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
@@ -107,10 +106,7 @@ class Munch(DictMixin):
                 if isinstance(t, type) and \
                         issubclass(t, Munch) and not issubclass(type(v), Munch):
                     # cast to expected Munch type
-                    options = {'from_dict': v}
-                    if self._data.get(k):
-                        options['defaults'] = self[k]
-                    v = t(**options)
+                    v = t(from_dict=v, defaults=self._data.get(k))
             self[k] = v
 
 
@@ -136,7 +132,7 @@ class Munch(DictMixin):
         # Munch-based type then `verify` method will raise TypeError exception
         #
         # attrs `_defaults` and `_data` will be deepcopied in `update` method
-        return type(self)(from_dict=self._data)
+        return type(self)(from_dict=copy.deepcopy(self._data))
 
 
     # --------------------------------------------------------------------------
