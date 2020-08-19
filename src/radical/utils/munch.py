@@ -99,22 +99,19 @@ class Munch(DictMixin):
             return
 
         for k, v in other.items():
+            v = copy.deepcopy(v)
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
                     t = type(self)
-                if not isinstance(t, dict):
-                    if issubclass(type(v), Munch):
-                        # no need to recast
-                        pass
-                    elif issubclass(t, Munch):
-                        # cast to expected Munch type
-                        v = t(from_dict=v)
-
-            if self._data.get(k) and issubclass(type(v), Munch):
-                self[k].merge(v, expand=False)
-            else:
-                self[k] = v
+                if isinstance(t, type) and \
+                        issubclass(t, Munch) and not issubclass(type(v), Munch):
+                    # cast to expected Munch type
+                    options = {'from_dict': v}
+                    if self._data.get(k):
+                        options['defaults'] = self[k]
+                    v = t(**options)
+            self[k] = v
 
 
     # --------------------------------------------------------------------------
@@ -134,14 +131,12 @@ class Munch(DictMixin):
         return self._data.keys()
 
     def __deepcopy__(self, memo):
-        '''
-        Note that we do not create the original class type, but return a Munch
-        '''
-        data   = object.__getattribute__(self, '_data')
-        schema = object.__getattribute__(self, '_schema')
-        c      = Munch(from_dict={k:v for k, v in data.items()},
-                       schema=schema)
-        return c
+        # should return a new instance of the same type, not an original Munch,
+        # otherwise if an instance of Munch-based has an attribute of another
+        # Munch-based type then `verify` method will raise TypeError exception
+        #
+        # attrs `_defaults` and `_data` will be deepcopied in `update` method
+        return type(self)(from_dict=self._data)
 
 
     # --------------------------------------------------------------------------
@@ -157,7 +152,6 @@ class Munch(DictMixin):
         data   = object.__getattribute__(self, '_data')
         schema = object.__getattribute__(self, '_schema')
 
-      # return data.get(k)
         if   not  schema: return data.get(k)
         elif k in schema: return data.get(k)
         else            : return data[k]
