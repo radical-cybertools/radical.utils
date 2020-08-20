@@ -149,9 +149,6 @@ def test_munch_update():
                              'bar': {'one': 1,
                                      'two': {'sub-two': 2}}}}
 
-        def __init__(self, from_dict=None, defaults=None):
-            super().__init__(from_dict=from_dict, defaults=defaults)
-
     # --------------------------------------------------------------------------
     f = Foo_1()
     assert (f.buz.foo == 0)
@@ -166,13 +163,10 @@ def test_munch_update():
     f = Foo_1({'buz': {'foo': 3,
                        'bar': {'one': 0,
                                'two': {2: 22}}}})
-    f.verify()  # method `verify` convert int into str according to the scheme
+    f.verify()  # method `verify` convert int into str according to the schema
     assert (f.buz.bar.two['2'] == 22)
 
     f = Foo_1()
-    # default values from Foo_1 class
-    assert (f.buz.bar['two'] == {'sub-two': 2})
-    assert (f.buz.bar['one'] == 1)
     b = Bar_1()
     f.update({'buz': {'bar': b}})
     # default values from Bar_1 class

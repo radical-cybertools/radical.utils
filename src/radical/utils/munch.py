@@ -26,7 +26,7 @@ class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, from_dict=None, schema=None, defaults=None):
+    def __init__(self, from_dict=None):
         '''
         create a munchified dictionary (tree) from `from_dict`.
 
@@ -54,19 +54,13 @@ class Munch(DictMixin):
               Names with a leading underscore are not supported.
         '''
 
-        if schema:
-            self._schema = schema
-
-        elif not hasattr(self, '_schema'):
+        if not hasattr(self, '_schema'):
             self._schema = dict()
           # raise RuntimeError('class %s has no schema defined' % self.__name__)
 
         self._data = dict()
 
-        if defaults:
-            self.update(copy.deepcopy(defaults))
-
-        elif hasattr(self, '_defaults'):
+        if hasattr(self, '_defaults'):
             self.update(copy.deepcopy(self._defaults))
 
         self.update(from_dict)
@@ -106,7 +100,8 @@ class Munch(DictMixin):
                 if isinstance(t, type) and \
                         issubclass(t, Munch) and not issubclass(type(v), Munch):
                     # cast to expected Munch type
-                    v = t(from_dict=v, defaults=self._data.get(k))
+                    self._data.setdefault(k, t()).update(v)
+                    continue
             self[k] = v
 
 
@@ -130,8 +125,6 @@ class Munch(DictMixin):
         # should return a new instance of the same type, not an original Munch,
         # otherwise if an instance of Munch-based has an attribute of another
         # Munch-based type then `verify` method will raise TypeError exception
-        #
-        # attrs `_defaults` and `_data` will be deepcopied in `update` method
         return type(self)(from_dict=copy.deepcopy(self._data))
 
 
