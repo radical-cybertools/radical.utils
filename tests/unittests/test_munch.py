@@ -129,8 +129,11 @@ def test_munch_update():
     # --------------------------------------------------------------------------
     # plain schema
     class Bar_1(ru.Munch):
-        _schema = {'one': int,
-                   'two': {str: int}}
+        _schema   = {'one'  : int,
+                     'two'  : {str: int},
+                     'three': [str]}
+        _defaults = {'two'  : {'two-default': 0},
+                     'three': [3, 3, 3]}
 
     # --------------------------------------------------------------------------
     # class whose schema is composed
@@ -146,25 +149,30 @@ def test_munch_update():
                              'bar': {'one': 1,
                                      'two': {'sub-two': 2}}}}
 
-        def __init__(self, from_dict=None):
-            super().__init__(from_dict=self._defaults)
-            if from_dict:
-                self.update(from_dict)
-
+    # --------------------------------------------------------------------------
     f = Foo_1()
-    assert(f.buz.foo == 0)
-    assert(f.buz.bar.two['sub-two'] == 2)
+    assert (f.buz.foo == 0)
+    assert (f.buz.bar.two['sub-two'] == 2)
+    assert (f.buz.bar.three == [3, 3, 3])
 
     f = Foo_1({'buz': {'foo': 3,
                        'bar': {'one': 11}}})
-    assert(f.buz.bar.one == 11)
-    assert(f.buz.bar.two['sub-two'] == 2)
+    assert (f.buz.bar.one == 11)
+    assert (f.buz.bar.two['sub-two'] == 2)
 
     f = Foo_1({'buz': {'foo': 3,
                        'bar': {'one': 0,
                                'two': {2: 22}}}})
-    f.verify()  # method `verify` convert int into str according to the scheme
-    assert(f.buz.bar.two['2'] == 22)
+    f.verify()  # method `verify` convert int into str according to the schema
+    assert (f.buz.bar.two['2'] == 22)
+
+    f = Foo_1()
+    b = Bar_1()
+    f.update({'buz': {'bar': b}})
+    # default values from Bar_1 class
+    assert (f.buz.bar.three == [3, 3, 3])
+    assert (f.buz.bar['two'] == {'two-default': 0})
+    assert (f.buz.bar.get('one') is None)
 
 
 # ------------------------------------------------------------------------------
