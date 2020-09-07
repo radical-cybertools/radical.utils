@@ -31,9 +31,6 @@ class Description(Munch):
     #
     def __init__(self, from_dict=None, verify_setter=False):
 
-        if not hasattr(self, '_schema'):
-            raise RuntimeError('class %s has no schema defined' % self.__name__)
-
         super(Description, self).__init__(from_dict=from_dict)
 
         if verify_setter:
