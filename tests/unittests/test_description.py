@@ -96,9 +96,7 @@ def test_inheritance():
         _defaults = {'i245': [   ]}
 
         def __init__(self, from_dict=None):
-
-            ru.Description.__init__(self, from_dict=self._defaults)
-
+            ru.Description.__init__(self, from_dict=from_dict)
 
     # --------------------------------------------------------------------------
     td = _Test()
