@@ -3,6 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.4 Release                                                         2020-09-14
+--------------------------------------------------------------------------------
+
+  - fixed `ru.munch.update`  and `ru.munch.deepcopy`
+  - uniform handling of munch schema and defaults
+ 
+
 1.5.3 Hotfix Release                                                  2020-08-14
 --------------------------------------------------------------------------------
 
