@@ -24,7 +24,8 @@ def _cmd(cmd):
 
     _, _, ret = ru.sh_callout(cmd)
 
-    return not bool(ret)
+    if ret == 0: return True
+    else       : return False
 
 
 # ------------------------------------------------------------------------------
@@ -45,6 +46,7 @@ def test_profiler():
         prof.prof('foo')
         prof.prof('bar', uid='baz')
         prof.prof('buz', ts=now)
+        prof.flush()
 
         assert(os.path.isfile(fname))
 
@@ -114,6 +116,7 @@ def test_env():
             prof  = ru.Profiler(name=pname, ns='radical.utils.test',
                                 path='/tmp/')
             prof.prof('foo')
+            prof.flush()
 
             assert(res == os.path.isfile(fname))
             assert(res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s'

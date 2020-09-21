@@ -22,11 +22,38 @@ from .json_io    import write_json
 
 # ------------------------------------------------------------------------------
 #
+# def demunch(data):
+# 
+#     out = dict()
+#     for k, v in data.items():
+#         if isinstance(v, Munch): out[k] = v.as_dict()
+#         else                   : out[k] = v
+#     return out
+# 
+# 
+# ------------------------------------------------------------------------------
+#
+def demunch(src):
+    '''
+    iterate given dictionary and apply `Munch.as_dict()` to all munch type
+    values, and return the result (effectively a shallow copy).
+    '''
+    tgt = dict()
+    for k, v in src.items():
+        if   isinstance(v, Munch): tgt[k] = v.as_dict()
+        elif isinstance(v, dict) : tgt[k] = demunch(v)
+        else                     : tgt[k] = v
+    return tgt
+
+
+
+# ------------------------------------------------------------------------------
+#
 class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, from_dict=None, schema=None):
+    def __init__(self, from_dict=None):
         '''
         create a munchified dictionary (tree) from `from_dict`.
 
@@ -54,16 +81,16 @@ class Munch(DictMixin):
               Names with a leading underscore are not supported.
         '''
 
-        if schema:
-            self._schema = schema
-
-        elif not hasattr(self, '_schema'):
+        if not hasattr(self, '_schema'):
             self._schema = dict()
           # raise RuntimeError('class %s has no schema defined' % self.__name__)
 
         self._data = dict()
 
-        self.update(copy.deepcopy(from_dict))
+        if hasattr(self, '_defaults'):
+            self.update(copy.deepcopy(self._defaults))
+
+        self.update(from_dict)
 
 
     # --------------------------------------------------------------------------
@@ -97,18 +124,12 @@ class Munch(DictMixin):
                 t = self._schema.get(k)
                 if not t:
                     t = type(self)
-                if not isinstance(t, dict):
-                    if issubclass(type(v), Munch):
-                        # no need to recast
-                        pass
-                    elif issubclass(t, Munch):
-                        # cast to expected Munch type
-                        v = t(from_dict=v)
-
-            if self._data.get(k) and issubclass(type(v), Munch):
-                self[k].merge(v, expand=False)
-            else:
-                self[k] = v
+                if isinstance(t, type) and \
+                        issubclass(t, Munch) and not issubclass(type(v), Munch):
+                    # cast to expected Munch type
+                    self._data.setdefault(k, t()).update(v)
+                    continue
+            self[k] = v
 
 
     # --------------------------------------------------------------------------
@@ -128,14 +149,10 @@ class Munch(DictMixin):
         return self._data.keys()
 
     def __deepcopy__(self, memo):
-        '''
-        Note that we do not create the original class type, but return a Munch
-        '''
-        data   = object.__getattribute__(self, '_data')
-        schema = object.__getattribute__(self, '_schema')
-        c      = Munch(from_dict={k:v for k, v in data.items()},
-                       schema=schema)
-        return c
+        # should return a new instance of the same type, not an original Munch,
+        # otherwise if an instance of Munch-based has an attribute of another
+        # Munch-based type then `verify` method will raise TypeError exception
+        return type(self)(from_dict=copy.deepcopy(self._data))
 
 
     # --------------------------------------------------------------------------
@@ -151,7 +168,6 @@ class Munch(DictMixin):
         data   = object.__getattribute__(self, '_data')
         schema = object.__getattribute__(self, '_schema')
 
-      # return data.get(k)
         if   not  schema: return data.get(k)
         elif k in schema: return data.get(k)
         else            : return data[k]
@@ -196,16 +212,7 @@ class Munch(DictMixin):
     #
     def as_dict(self):
 
-        def _demunch(data):
-            out = dict()
-            for k, v in data.items():
-                if isinstance(v, Munch):
-                    out[k] = v.as_dict()
-                else:
-                    out[k] = v
-            return out
-
-        return _demunch(self._data)
+        return demunch(self._data)
 
 
     # --------------------------------------------------------------------------
@@ -359,25 +366,6 @@ class Munch(DictMixin):
             pos = default
 
         return pos
-
-
-# ------------------------------------------------------------------------------
-#
-def demunch(src):
-    '''
-    iterate given dictionary and apply `Munch.as_dict()` to all munch type
-    values, and return the result (effectively a shallow copy).
-    '''
-    tgt = dict()
-    for k, v in src.items():
-        if isinstance(v, Munch):
-            tgt[k] = v.as_dict()
-        elif isinstance(v, dict):
-            tgt[k] = demunch(v)
-        else:
-            tgt[k] = v
-
-    return tgt
 
 
 # ------------------------------------------------------------------------------
