@@ -22,6 +22,33 @@ from .json_io    import write_json
 
 # ------------------------------------------------------------------------------
 #
+# def demunch(data):
+# 
+#     out = dict()
+#     for k, v in data.items():
+#         if isinstance(v, Munch): out[k] = v.as_dict()
+#         else                   : out[k] = v
+#     return out
+# 
+# 
+# ------------------------------------------------------------------------------
+#
+def demunch(src):
+    '''
+    iterate given dictionary and apply `Munch.as_dict()` to all munch type
+    values, and return the result (effectively a shallow copy).
+    '''
+    tgt = dict()
+    for k, v in src.items():
+        if   isinstance(v, Munch): tgt[k] = v.as_dict()
+        elif isinstance(v, dict) : tgt[k] = demunch(v)
+        else                     : tgt[k] = v
+    return tgt
+
+
+
+# ------------------------------------------------------------------------------
+#
 class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
@@ -185,16 +212,7 @@ class Munch(DictMixin):
     #
     def as_dict(self):
 
-        def _demunch(data):
-            out = dict()
-            for k, v in data.items():
-                if isinstance(v, Munch):
-                    out[k] = v.as_dict()
-                else:
-                    out[k] = v
-            return out
-
-        return _demunch(self._data)
+        return demunch(self._data)
 
 
     # --------------------------------------------------------------------------
@@ -348,25 +366,6 @@ class Munch(DictMixin):
             pos = default
 
         return pos
-
-
-# ------------------------------------------------------------------------------
-#
-def demunch(src):
-    '''
-    iterate given dictionary and apply `Munch.as_dict()` to all munch type
-    values, and return the result (effectively a shallow copy).
-    '''
-    tgt = dict()
-    for k, v in src.items():
-        if isinstance(v, Munch):
-            tgt[k] = v.as_dict()
-        elif isinstance(v, dict):
-            tgt[k] = demunch(v)
-        else:
-            tgt[k] = v
-
-    return tgt
 
 
 # ------------------------------------------------------------------------------
