@@ -30,21 +30,7 @@ from .json_io    import write_json
 #         else                   : out[k] = v
 #     return out
 # 
-# 
-# ------------------------------------------------------------------------------
 #
-def demunch(src):
-    '''
-    iterate given dictionary and apply `Munch.as_dict()` to all munch type
-    values, and return the result (effectively a shallow copy).
-    '''
-    tgt = dict()
-    for k, v in src.items():
-        if   isinstance(v, Munch): tgt[k] = v.as_dict()
-        elif isinstance(v, dict) : tgt[k] = demunch(v)
-        else                     : tgt[k] = v
-    return tgt
-
 
 
 # ------------------------------------------------------------------------------
@@ -175,7 +161,7 @@ class Munch(DictMixin):
 
     def __setattr__(self, k, v):
 
-        if   k.startswith('_'):
+        if k.startswith('_'):
             return object.__setattr__(self, k, v)
 
         self._data[k] = v
@@ -183,7 +169,7 @@ class Munch(DictMixin):
 
     def __delattr__(self, k):
 
-        if   k.startswith('_'):
+        if k.startswith('_'):
             return object.__delattr__(self, k)
 
         del(self._data[k])
@@ -210,9 +196,28 @@ class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def as_dict(self):
+    @classmethod
+    def _demunch_value(cls, v):
+        return v.as_dict() if isinstance(v, Munch) else cls.demunch(v)
 
-        return demunch(self._data)
+    @classmethod
+    def demunch(cls, src):
+        '''
+        iterate given object and apply `Munch.as_dict()` to all munch type
+        values, and return the result (effectively a shallow copy).
+        '''
+        if isinstance(src, dict):
+            tgt = dict(map(lambda x: (x, cls._demunch_value(src[x])), src))
+        elif isinstance(src, list):
+            tgt = list(map(lambda x: cls._demunch_value(x), src))
+        elif isinstance(src, tuple):
+            tgt = tuple(map(lambda x: cls._demunch_value(x), src))
+        else:
+            tgt = src
+        return tgt
+
+    def as_dict(self):
+        return self.demunch(self._data)
 
 
     # --------------------------------------------------------------------------
@@ -367,6 +372,10 @@ class Munch(DictMixin):
 
         return pos
 
+
+# ------------------------------------------------------------------------------
+
+demunch = Munch.demunch
 
 # ------------------------------------------------------------------------------
 

@@ -177,10 +177,49 @@ def test_munch_update():
 
 # ------------------------------------------------------------------------------
 #
+def test_demunch():
+
+    # --------------------------------------------------------------------------
+    #
+    class Bar_1(ru.Munch):
+        _schema = {'bars': list}
+
+    # --------------------------------------------------------------------------
+    #
+    class Buz_1(ru.Munch):
+        _schema = {'foo': int,
+                   'bar': Bar_1,
+                   'buz': tuple}
+
+    # --------------------------------------------------------------------------
+
+    b = Bar_1({'bars': ['bar_1', Bar_1({'bars': [1, 2, 3]})]})
+    b_dict = b.as_dict()
+    assert isinstance(b_dict,            dict)
+    assert not isinstance(b_dict,        Bar_1)
+    assert isinstance(b_dict['bars'],    list)
+    assert isinstance(b_dict['bars'][1], dict)
+    assert b_dict['bars'][0] == 'bar_1'
+    assert len(b_dict['bars'][1]['bars']) == 3
+
+    b = Buz_1({'foo': 3, 'bar': Bar_1({'bars': [3, 2, 1]}), 'buz': tuple([5])})
+    b_dict = b.as_dict()
+    assert isinstance(b_dict,                dict)
+    assert isinstance(b_dict['bar'],         dict)
+    assert isinstance(b_dict['bar']['bars'], list)
+    assert isinstance(b_dict['buz'],         tuple)
+    assert not isinstance(b_dict['bar'],     Bar_1)
+    assert b_dict['foo'] == 3
+    assert b_dict['buz'][0] == 5
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_munch()
     test_munch_update()
+    test_demunch()
 
 # ------------------------------------------------------------------------------
 
