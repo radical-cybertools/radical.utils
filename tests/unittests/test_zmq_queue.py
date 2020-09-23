@@ -80,7 +80,6 @@ def test_zmq_queue():
             for msg in msgs:
                 msg = ru.as_string(msg)
                 if msg['idx'] is None:
-                    final = True
                     done = True
                 else:
                     data[uid].append(msg['src'])
@@ -172,7 +171,7 @@ def disabled_test_zmq_queue_cb():
     time.sleep(2.0)
 
     g_1 = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
-    g_1 = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_b)
+    g_2 = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_b)
 
     time.sleep(2.0)
 
