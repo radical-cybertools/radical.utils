@@ -48,7 +48,6 @@ def demunch_timing():
     b = Buz_1({'buzz': [{k: str(k) for k in range(1000)}]})
     print('Has dict with 1000 elements         : ',
           timeit.timeit(lambda: b.as_dict(), number=1000))
-    print(b.as_dict())
 
 
 if __name__ == '__main__':
