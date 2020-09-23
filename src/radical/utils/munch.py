@@ -207,11 +207,11 @@ class Munch(DictMixin):
         values, and return the result (effectively a shallow copy).
         '''
         if isinstance(src, dict):
-            tgt = dict(map(lambda x: (x, cls._demunch_value(src[x])), src))
+            tgt = {k: cls._demunch_value(v) for k, v in src.items()}
         elif isinstance(src, list):
-            tgt = list(map(lambda x: cls._demunch_value(x), src))
+            tgt = [cls._demunch_value(x) for x in src]
         elif isinstance(src, tuple):
-            tgt = tuple(map(lambda x: cls._demunch_value(x), src))
+            tgt = tuple([cls._demunch_value(x) for x in src])
         else:
             tgt = src
         return tgt

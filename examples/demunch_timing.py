@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=unnecessary-lambda
 
 import timeit
 
@@ -43,6 +44,11 @@ def demunch_timing():
     buz_1 = Buz_1({'buzz': [bar_1] * 1000})
     print('Has list with 1000 ru.Munch elements: ',
           timeit.timeit(lambda: ru.demunch(buz_1), number=1000))
+
+    b = Buz_1({'buzz': [{k: str(k) for k in range(1000)}]})
+    print('Has dict with 1000 elements         : ',
+          timeit.timeit(lambda: b.as_dict(), number=1000))
+    print(b.as_dict())
 
 
 if __name__ == '__main__':
