@@ -68,7 +68,8 @@ def get_version(paths=None):
         # check if there is also an SDIST near the version_path
         sdist_path = version_path.replace('/VERSION', '/SDIST')
         try:
-            sdist_name = open(sdist_path).read().strip()
+            with open(sdist_path) as fh:
+                sdist_name = fh.read().strip()
         except Exception as e:
             # ignore missing SDIST file
             pass
