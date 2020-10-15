@@ -243,19 +243,26 @@ def _generate_id(template, prefix, ns=None):
     if '%(host)' in template: info['host'] = socket.gethostname()  # localhost
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # plain uuid
 
-    if '%(day_counter)' in template:
-        fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, days))
-        fd = os.open(fname, os.O_RDWR | os.O_CREAT)
-        fcntl.flock(fd, fcntl.LOCK_EX)
+    def _read_file_counter(name):
+        fd = os.open(name, os.O_RDWR | os.O_CREAT)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        except OSError:
+            # fcntl.flock might cause OSError: [Errno 524] Unknown error 524
+            # (the case for Theta@ALCF)
+            fcntl.lockf(fd, fcntl.LOCK_EX)
         os.lseek(fd, 0, os.SEEK_SET)
         data = os.read(fd, 256)
-        if not data: data = 0
-        info['day_counter'] = int(data)
+        if not data: output = 0
+        else       : output = int(data)
         os.lseek(fd, 0, os.SEEK_SET)
-        line = "%d\n" % (info['day_counter'] + 1)
-        line = str.encode(line)
-        os.write(fd, line)
+        os.write(fd, str.encode("%d\n" % (output + 1)))
         os.close(fd)
+        return output
+
+    if '%(day_counter)' in template:
+        fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, days))
+        info['day_counter'] = _read_file_counter(fname)
 
     if '%(item_counter)' in template:
 
@@ -270,17 +277,7 @@ def _generate_id(template, prefix, ns=None):
             prefix = '.'.join(prefix_parts)
 
         fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, prefix))
-        fd = os.open(fname, os.O_RDWR | os.O_CREAT)
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        os.lseek(fd, 0, os.SEEK_SET)
-        data = os.read(fd, 256)
-        if not data: data = 0
-        info['item_counter'] = int(data)
-        os.lseek(fd, 0, os.SEEK_SET)
-        line = "%d\n" % (info['item_counter'] + 1)
-        line = str.encode(line)
-        os.write(fd, line)
-        os.close(fd)
+        info['item_counter'] = _read_file_counter(fname)
 
     if '%(counter)' in template:
         info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))
