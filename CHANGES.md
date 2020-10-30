@@ -3,6 +3,19 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.7 Release                                                         2020-20-30
+--------------------------------------------------------------------------------
+
+  - added method `fcntl.lockf` in case of exception for `fcntl.flock` 
+  - extend demunching for ru.Munch 
+  - implement unit test for profile enable / disable 
+  - less profiles on zmq 
+  - line buffering is not multiprocess-safe for high-frequency writes 
+  - reduce profiler noise 
+  - support "%(rank)d" for ru.ids 
+  - updates related to pylint/flake8 and cleanup 
+
+
 1.5.4 Release                                                         2020-09-14
 --------------------------------------------------------------------------------
 
