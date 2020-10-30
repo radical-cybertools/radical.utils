@@ -24,7 +24,15 @@ TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
 _cache = {'dir'       : list(),
           'user'      : None,
           'pid'       : os.getpid(),
-          'dockerized': dockerized()}
+          'dockerized': dockerized(),
+          'rank'      : None}
+
+if _cache['rank'] is None: _cache['rank'] = os.environ.get('PMIX_RANK')
+if _cache['rank'] is None: _cache['rank'] = os.environ.get('PMI_RANK')
+if _cache['rank'] is None: _cache['rank'] = os.environ.get('OMPI_COMM_WORLD_RANK')
+
+if _cache['rank'] is None: _cache['rank'] = 0
+else                     : _cache['rank'] = int(_cache['rank'])
 
 
 # ------------------------------------------------------------------------------
@@ -238,6 +246,7 @@ def _generate_id(template, prefix, ns=None):
     info['date'        ] = "%04d.%02d.%02d" % (now.year, now.month,  now.day)
     info['time'        ] = "%02d.%02d.%02d" % (now.hour, now.minute, now.second)
     info['pid'         ] = _cache['pid']
+    info['rank'        ] = _cache['rank']
 
     # the following ones are time consuming, and only done when needed
     if '%(host)' in template: info['host'] = socket.gethostname()  # localhost
@@ -284,6 +293,7 @@ def _generate_id(template, prefix, ns=None):
 
     try:
         ret = template % info
+
     except KeyError as e:
         raise ValueError('unknown pattern in template (%s)' % template) from e
 
