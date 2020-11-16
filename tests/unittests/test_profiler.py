@@ -80,15 +80,16 @@ def test_enable():
         prof.prof('bar')
         prof.enable()
         prof.prof('buz')
+        prof.flush()
 
         assert(os.path.isfile(fname))
 
         def _grep(pat):
             return _cmd('grep -e "%s" %s' % (pat, fname))
 
-        assert(    _grep('foo'))
-        assert(not _grep('bar'))
-        assert(    _grep('buz'))
+        assert     _grep('foo')
+        assert not _grep('bar')
+        assert     _grep('buz')
 
     finally:
         try   : del(os.environ['RADICAL_PROFILE'])
