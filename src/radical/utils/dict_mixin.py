@@ -85,8 +85,8 @@ class DictMixin(dict):
         for _, v in self.items():
             yield v
 
-    def values(self):
-        return list(self.values())
+  # def values(self):
+  #     return list(self.values())
 
     def clear(self):
         for key in list(self.keys()):
