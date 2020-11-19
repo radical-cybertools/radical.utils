@@ -188,11 +188,11 @@ class PluginManager(object):
                     spec   = imp.spec_from_file_location(modname, pfile)
                     plugin = imp.module_from_spec(spec)
                     spec.loader.exec_module(plugin)
-#
 
                     # get plugin details from description
                     ptype  = plugin.PLUGIN_DESCRIPTION.get('type',        None)
                     pname  = plugin.PLUGIN_DESCRIPTION.get('name',        None)
+                    pclass = plugin.PLUGIN_DESCRIPTION.get('class',       None)
                     pvers  = plugin.PLUGIN_DESCRIPTION.get('version',     None)
                     pdescr = plugin.PLUGIN_DESCRIPTION.get('description', None)
 
@@ -203,6 +203,10 @@ class PluginManager(object):
 
                     if not pname:
                         self._log.error('no plugin name in %s' % pshort)
+                        continue
+
+                    if not pclass:
+                        self._log.error('no plugin class in %s' % pshort)
                         continue
 
                     if not pvers:
@@ -222,7 +226,8 @@ class PluginManager(object):
                         self._log.warn('overloading plugin %s' % pshort)
 
                     self._plugins[ptype][pname] = {
-                        'class'      : plugin.PLUGIN_CLASS,
+                        'plugin'     : plugin,
+                        'class'      : pclass,
                         'type'       : ptype,
                         'name'       : pname,
                         'version'    : pvers,
@@ -297,8 +302,13 @@ class PluginManager(object):
             raise LookupError('No such plugin name %s (type: %s) in %s'
                     % (pname, ptype, list(self._plugins[ptype].keys())))
 
+
+        plugin = self._plugins[ptype][pname]['plugin']
+        pclass = self._plugins[ptype][pname]['class']
+        pinst  = getattr(plugin, pclass)()
+
         # create new plugin instance
-        return self._plugins[ptype][pname]['class']()
+        return pinst
 
 
     # --------------------------------------------------------------------------
