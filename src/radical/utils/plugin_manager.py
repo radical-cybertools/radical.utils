@@ -166,6 +166,7 @@ class PluginManager(object):
 
                 modname = os.path.splitext(os.path.basename(pfile))[0]
                 try:
+                    # load and register the plugin
                     loader = imp_loader.SourceFileLoader(modname, pfile)
                     spec   = imp.spec_from_loader(loader.name, loader)
                     plugin = imp.module_from_spec(spec)
