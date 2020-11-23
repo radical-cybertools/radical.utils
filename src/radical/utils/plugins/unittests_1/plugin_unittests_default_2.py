@@ -11,6 +11,7 @@ import radical.utils as ru
 PLUGIN_DESCRIPTION = {
     'type'       : 'unittests_1',
     'name'       : 'default_2',
+    'class'      : 'PLUGIN_CLASS',
     'version'    : '0.1',
     'description': 'this is an empty test which basically does nothing.'
 }
@@ -31,7 +32,7 @@ class PLUGIN_CLASS(object, metaclass=ru.Singleton):
     def __init__(self):
 
         if PLUGIN_CLASS._created:
-            assert(False), 'singleton plugin should not get created twice'
+            assert(False), 'singleton plugin created twice'
 
         PLUGIN_CLASS._created = True
 

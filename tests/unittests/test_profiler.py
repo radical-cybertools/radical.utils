@@ -66,6 +66,40 @@ def test_profiler():
 
 # ------------------------------------------------------------------------------
 #
+def test_enable():
+
+    pname = 'ru.%d'        % os.getpid()
+    fname = '/tmp/%s.prof' % pname
+
+    try:
+        os.environ['RADICAL_PROFILE'] = 'True'
+        prof = ru.Profiler(name=pname, ns='radical.utils', path='/tmp/')
+
+        prof.prof('foo')
+        prof.disable()
+        prof.prof('bar')
+        prof.enable()
+        prof.prof('buz')
+        prof.flush()
+
+        assert(os.path.isfile(fname))
+
+        def _grep(pat):
+            return _cmd('grep -e "%s" %s' % (pat, fname))
+
+        assert     _grep('foo')
+        assert not _grep('bar')
+        assert     _grep('buz')
+
+    finally:
+        try   : del(os.environ['RADICAL_PROFILE'])
+        except: pass
+        try   : os.unlink(fname)
+        except: pass
+
+
+# ------------------------------------------------------------------------------
+#
 def test_env():
     '''
     Print out some messages with different log levels
@@ -134,6 +168,7 @@ if __name__ == '__main__':
 
     test_profiler()
     test_env()
+    test_enable()
 
 
 # ------------------------------------------------------------------------------

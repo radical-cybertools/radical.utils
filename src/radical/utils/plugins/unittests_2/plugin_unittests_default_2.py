@@ -7,10 +7,11 @@ __license__   = 'MIT'
 # ------------------------------------------------------------------------------
 #
 PLUGIN_DESCRIPTION = {
-    'type'        : 'unittests_2',
-    'name'        : 'default_2',
-    'version'     : '0.1',
-    'description' : 'this is a test which basically does nothing.'
+    'type'       : 'unittests_2',
+    'name'       : 'default_2',
+    'class'      : 'PLUGIN_CLASS',
+    'version'    : '0.1',
+    'description': 'this is a test which basically does nothing.'
 }
 
 
@@ -32,7 +33,7 @@ class PLUGIN_CLASS(object):
     #
     def init(self, *args):
 
-        assert(self._args is None), 'plugin should get created twice'
+        assert(self._args is None), 'plugin created twice'
         self._args = args
 
 
