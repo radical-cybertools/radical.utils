@@ -9,7 +9,7 @@ import sys
 import glob
 import pprint
 
-from importlib  import util as imp, machinery as imp_loader
+from importlib  import util as imp
 
 from .singleton import Singleton
 from .logger    import Logger
@@ -164,13 +164,29 @@ class PluginManager(object):
                 else:
                     seen.append(pshort)
 
-                modname = os.path.splitext(os.path.basename(pfile))[0]
+                # modname for 'load_source' needs to be unique, otherwise global
+                # vars in the plugin file (such as, aehm, PLUGIN_DESCRIPTION)
+                # will be overwritten by the next plugin load.
+                pmodname = '%s.plugins.%s' % (self._namespace,
+                                   os.path.basename(os.path.dirname(pfile)))
+                modname  = '%s.%s' % (pmodname,
+                                   os.path.splitext(os.path.basename(pfile))[0])
                 try:
                     # load and register the plugin
-                    loader = imp_loader.SourceFileLoader(modname, pfile)
-                    spec   = imp.spec_from_loader(loader.name, loader)
+                    # modname is unique and correct -- but load_source raises
+                    # a RuntimeWarning, because, apparently, the plugin's parent
+                    # module cannot be found.  In fact, the parent is a proper
+                    # python module, and it loads fine via 'import' -- but it is
+                    # is not imported before, load_source doesn't like that.
+                    # Well, the parent module actually SHOULD NOT be imported --
+                    # but we do it here anyways to silence the warning.  Thanks
+                    # python...
+                    __import__(pmodname)
+
+                    # now load the plugin proper
+                    spec   = imp.spec_from_file_location(modname, pfile)
                     plugin = imp.module_from_spec(spec)
-                    loader.exec_module(plugin)
+                    spec.loader.exec_module(plugin)
 
                     # get plugin details from description
                     ptype  = plugin.PLUGIN_DESCRIPTION.get('type',        None)
