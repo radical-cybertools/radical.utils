@@ -503,6 +503,9 @@ def combine_profiles(profs):
     c_end    = 0       # counter for profile closing tag
     accuracy = 0       # max uncorrected clock deviation
 
+    if len(profs) == 1:
+        return list(profs.values())[0], accuracy
+
     # first get all absolute and relative timestamp sync from the profiles,
     # for all hosts
     for pname, prof in profs.items():

@@ -93,7 +93,7 @@ def test_inheritance():
     class _Test(ru.Description):
 
         _schema   = {'i245': [str]}
-        _defaults = {'i245': [   ]}
+        _defaults = {'i245': []   }
 
         def __init__(self, from_dict=None):
             ru.Description.__init__(self, from_dict=from_dict)

@@ -148,7 +148,7 @@ class Munch(DictMixin):
 
     def __setattr__(self, k, v):
 
-        if   k.startswith('_'):
+        if k.startswith('_'):
             return object.__setattr__(self, k, v)
 
         self._data[k] = v
@@ -156,7 +156,7 @@ class Munch(DictMixin):
 
     def __delattr__(self, k):
 
-        if   k.startswith('_'):
+        if k.startswith('_'):
             return object.__delattr__(self, k)
 
         del(self._data[k])
@@ -183,18 +183,28 @@ class Munch(DictMixin):
 
     # --------------------------------------------------------------------------
     #
+    @classmethod
+    def _demunch_value(cls, v):
+        return v.as_dict() if isinstance(v, Munch) else cls.demunch(v)
+
+    @classmethod
+    def demunch(cls, src):
+        '''
+        iterate given object and apply `Munch.as_dict()` to all munch type
+        values, and return the result (effectively a shallow copy).
+        '''
+        if isinstance(src, dict):
+            tgt = {k: cls._demunch_value(v) for k, v in src.items()}
+        elif isinstance(src, list):
+            tgt = [cls._demunch_value(x) for x in src]
+        elif isinstance(src, tuple):
+            tgt = tuple([cls._demunch_value(x) for x in src])
+        else:
+            tgt = src
+        return tgt
+
     def as_dict(self):
-
-        def _demunch(data):
-            out = dict()
-            for k, v in data.items():
-                if isinstance(v, Munch):
-                    out[k] = v.as_dict()
-                else:
-                    out[k] = v
-            return out
-
-        return _demunch(self._data)
+        return self.demunch(self._data)
 
 
     # --------------------------------------------------------------------------
@@ -351,23 +361,8 @@ class Munch(DictMixin):
 
 
 # ------------------------------------------------------------------------------
-#
-def demunch(src):
-    '''
-    iterate given dictionary and apply `Munch.as_dict()` to all munch type
-    values, and return the result (effectively a shallow copy).
-    '''
-    tgt = dict()
-    for k, v in src.items():
-        if isinstance(v, Munch):
-            tgt[k] = v.as_dict()
-        elif isinstance(v, dict):
-            tgt[k] = demunch(v)
-        else:
-            tgt[k] = v
 
-    return tgt
-
+demunch = Munch.demunch
 
 # ------------------------------------------------------------------------------
 

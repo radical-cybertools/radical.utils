@@ -154,17 +154,19 @@ if __name__ == '__main__':
     test_collapse_ranges()
     test_range_concurrency()
 
+    try:
+        import pprofile
+        profiler = pprofile.Profile()
+    except ImportError:
+        pass
+    else:
+        with profiler:
+            try:
+                test_lazy_bisect()
+            except:
+                pass
 
-    import pprofile
-    profiler = pprofile.Profile()
-
-    with profiler:
-        try:
-            test_lazy_bisect()
-        except:
-            pass
-
-  # profiler.print_stats()
+      # profiler.print_stats()
 
 
 # ------------------------------------------------------------------------------
