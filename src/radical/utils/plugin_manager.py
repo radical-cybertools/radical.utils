@@ -9,7 +9,7 @@ import sys
 import glob
 import pprint
 
-from importlib  import util as imp, machinery as imp_loader
+from importlib  import util as imp
 
 from .singleton import Singleton
 from .logger    import Logger
@@ -82,9 +82,8 @@ class PluginManager(object):
 
     The plugin code consists of two parts:  a plugin description, and a plugin
     class.  The description is a module level dictionary named
-    `PLUGIN_DESCRIPTION`, the plugin class must be named `PLUGIN_CLASS`, and
-    must have a class constructor `__init__(*args, **kwargs)` to create plugin
-    instances for further use.
+    `PLUGIN_DESCRIPTION`, the plugin class must have a class constructor
+    `__init__(*args, **kwargs)` to create plugin instances for further use.
 
     At this point, we leave the definition of the exact plugin signatures open,
     but expect that to be more strictly defined per plugin type in the future.
@@ -164,13 +163,16 @@ class PluginManager(object):
                 else:
                     seen.append(pshort)
 
-                modname = os.path.splitext(os.path.basename(pfile))[0]
                 try:
-                    # load and register the plugin
-                    loader = imp_loader.SourceFileLoader(modname, pfile)
-                    spec   = imp.spec_from_loader(loader.name, loader)
+                    modname = '%s.plugins.%s.%s' % (
+                                self._namespace,
+                                os.path.basename(os.path.dirname(pfile)),
+                                os.path.splitext(os.path.basename(pfile))[0])
+
+                    # now load the plugin proper
+                    spec   = imp.spec_from_file_location(modname, pfile)
                     plugin = imp.module_from_spec(spec)
-                    loader.exec_module(plugin)
+                    spec.loader.exec_module(plugin)
 
                     # get plugin details from description
                     ptype  = plugin.PLUGIN_DESCRIPTION.get('type',        None)
