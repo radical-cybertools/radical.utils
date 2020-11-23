@@ -82,9 +82,8 @@ class PluginManager(object):
 
     The plugin code consists of two parts:  a plugin description, and a plugin
     class.  The description is a module level dictionary named
-    `PLUGIN_DESCRIPTION`, the plugin class must be named `PLUGIN_CLASS`, and
-    must have a class constructor `__init__(*args, **kwargs)` to create plugin
-    instances for further use.
+    `PLUGIN_DESCRIPTION`, the plugin class must have a class constructor
+    `__init__(*args, **kwargs)` to create plugin instances for further use.
 
     At this point, we leave the definition of the exact plugin signatures open,
     but expect that to be more strictly defined per plugin type in the future.
@@ -164,35 +163,21 @@ class PluginManager(object):
                 else:
                     seen.append(pshort)
 
-                # modname for 'load_source' needs to be unique, otherwise global
-                # vars in the plugin file (such as, aehm, PLUGIN_DESCRIPTION)
-                # will be overwritten by the next plugin load.
-                pmodname = '%s.plugins.%s' % (self._namespace,
-                                   os.path.basename(os.path.dirname(pfile)))
-                modname  = '%s.%s' % (pmodname,
-                                   os.path.splitext(os.path.basename(pfile))[0])
                 try:
-                    # load and register the plugin
-
-                    # modname is unique and correct -- but load_source raises
-                    # a RuntimeWarning, because, apparently, the plugin's parent
-                    # module cannot be found.  In fact, the parent is a proper
-                    # python module, and it loads fine via 'import' -- but it is
-                    # is not imported before, load_source doesn't like that.
-                    # Well, the parent module actually SHOULD NOT be imported --
-                    # but we do it here anyways to silence the warning.  Thanks
-                    # python...
-                    __import__(pmodname)
+                    modname = '%s.plugins.%s.%s' % (
+                                self._namespace,
+                                os.path.basename(os.path.dirname(pfile)),
+                                os.path.splitext(os.path.basename(pfile))[0])
 
                     # now load the plugin proper
                     spec   = imp.spec_from_file_location(modname, pfile)
                     plugin = imp.module_from_spec(spec)
                     spec.loader.exec_module(plugin)
-#
 
                     # get plugin details from description
                     ptype  = plugin.PLUGIN_DESCRIPTION.get('type',        None)
                     pname  = plugin.PLUGIN_DESCRIPTION.get('name',        None)
+                    pclass = plugin.PLUGIN_DESCRIPTION.get('class',       None)
                     pvers  = plugin.PLUGIN_DESCRIPTION.get('version',     None)
                     pdescr = plugin.PLUGIN_DESCRIPTION.get('description', None)
 
@@ -203,6 +188,10 @@ class PluginManager(object):
 
                     if not pname:
                         self._log.error('no plugin name in %s' % pshort)
+                        continue
+
+                    if not pclass:
+                        self._log.error('no plugin class in %s' % pshort)
                         continue
 
                     if not pvers:
@@ -222,7 +211,8 @@ class PluginManager(object):
                         self._log.warn('overloading plugin %s' % pshort)
 
                     self._plugins[ptype][pname] = {
-                        'class'      : plugin.PLUGIN_CLASS,
+                        'plugin'     : plugin,
+                        'class'      : pclass,
                         'type'       : ptype,
                         'name'       : pname,
                         'version'    : pvers,
@@ -297,8 +287,13 @@ class PluginManager(object):
             raise LookupError('No such plugin name %s (type: %s) in %s'
                     % (pname, ptype, list(self._plugins[ptype].keys())))
 
+
+        plugin = self._plugins[ptype][pname]['plugin']
+        pclass = self._plugins[ptype][pname]['class']
+        pinst  = getattr(plugin, pclass)()
+
         # create new plugin instance
-        return self._plugins[ptype][pname]['class']()
+        return pinst
 
 
     # --------------------------------------------------------------------------
