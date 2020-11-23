@@ -82,9 +82,8 @@ class PluginManager(object):
 
     The plugin code consists of two parts:  a plugin description, and a plugin
     class.  The description is a module level dictionary named
-    `PLUGIN_DESCRIPTION`, the plugin class must be named `PLUGIN_CLASS`, and
-    must have a class constructor `__init__(*args, **kwargs)` to create plugin
-    instances for further use.
+    `PLUGIN_DESCRIPTION`, the plugin class must have a class constructor
+    `__init__(*args, **kwargs)` to create plugin instances for further use.
 
     At this point, we leave the definition of the exact plugin signatures open,
     but expect that to be more strictly defined per plugin type in the future.
