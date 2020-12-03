@@ -104,7 +104,7 @@ class Future(mt.Thread):
     #
     def wait(self, timeout=None):
 
-        if self.isAlive():
+        if self.is_alive():
             self.join(timeout=timeout)
 
 
