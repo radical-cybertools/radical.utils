@@ -1,6 +1,8 @@
 
 import re
 import os
+import hashlib
+import tempfile
 
 import radical.utils as ru
 
@@ -10,13 +12,12 @@ import radical.utils as ru
 # shell escaping:
 BLACKLIST  = ['PS1', 'LS_COLORS', '_']
 
-# Identical task `pre_exec_env` settings will result in the same environment
-# settings, so we cache those environments here.  We rely on a hash to ensure
-# `pre_exec_env` identity.  Note that this assumes that settings do not depend
-# on, say, the unit ID or similar, which needs very clear and prominent
-# documentation.  Caching can be turned off by adding a unique noop string to
-# the `pre_exec_env` list - but we probably also add a config flag if that
-# becomes a common issue.
+# Identical task `pre` settings will result in the same environment settings, so
+# we cache those environments here.  We rely on a hash to ensure `pre` identity.
+# Note that this assumes that settings do not depend on, say, the unit ID or
+# similar, which needs very clear and prominent documentation.  Caching can be
+# turned off by adding a unique noop string to the `pre` list - but we probably
+# also add a config flag if that becomes a common issue.
 _env_cache = dict()
 
 
@@ -74,16 +75,16 @@ def env_read(fname):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(base, remove=None, pre_exec_env=None, tgt=None):
+def env_prep(src, rem=None, pre=None, tgt=None):
     '''
-    create a shell script which restores the environment specified in `base` (a
-    dict).  While doing so, ensure that all env variables *not* defined in base
-    but defined in `remove` (dict) are unset.  Also ensure that all commands
+    create a shell script which restores the environment specified in `src` (a
+    dict).  While doing so, ensure that all env variables *not* defined in src
+    but defined in `rem` (list) are unset.  Also ensure that all commands
     provided in `pre_exec_env` (list of strings) are executed after these
     settings.
 
     Once the shell script is created, run it and dump the resulting env, then
-    read it back via `env_read()` and rerturn the resulting env dict - that can
+    read it back via `env_read()` and return the resulting env dict - that can
     then be used for process fork/execve to run a process is the thus defined
     environment.
 
@@ -97,82 +98,95 @@ def env_prep(base, remove=None, pre_exec_env=None, tgt=None):
 
     global _env_cache
 
-    # if not explicit `remove` env is given, then remove superfluous keys
-    # defined in the current env
-    if  remove is None:
-        remove = os.environ
+    # defined in the current os env
+    if  rem is None:
+        rem = list(os.environ.keys())
 
-    # empty pre_exec_env settings are ok - just ensure correct type
-    pre_exec_env = ru.as_list(pre_exec_env)
+    # empty pre settings are ok - just ensure correct type
+    pre = ru.as_list(pre)
 
     # cache lookup
-    cache_key = str(base) + str(remove) + str(pre_exec_env)
-    if cache_key in _env_cache:
+    cache_key = str(src) + str(rem) + str(pre)
+    cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
+    if cache_md5 in _env_cache:
 
-        cache_env = _env_cache[cache_key]
+        cache_env = _env_cache[cache_md5]
 
     else:
         # cache miss
 
         # Write a temporary shell script which
         #
-        #   - unsets all variables which are not defined in `base` but are defined
-        #     in the `remove` env dict;
+        #   - unsets all variables which are not defined in `src` but are defined
+        #     in the `rem` env dict;
         #   - unset all blacklisted vars;
-        #   - sets all variables defined in the `base` env dict;
-        #   - runs the `pre_exec_env` commands given;
+        #   - sets all variables defined in the `src` env dict;
+        #   - runs the `pre` commands given;
         #   - dumps the resulting env in a temporary file;
         #
-        # Then run that command and read the resulting env back into a dict to
+        # Then run that script and read the resulting env back into a dict to
         # return.  If `tgt` is specified, then also create a file at the given
         # name and fill it with `unset` and `tgt` statements to recreate that
         # specific environment: any shell sourcing that `tgt` file thus activates
         # the environment thus prepared.
         #
         # FIXME: better tmp file names to avoid collisions
-        #
-        with open('./env.sh', 'w') as fout:
 
-            fout.write('\n# unset\n')
-            for k in remove:
-                if k not in base:
+        tmp_file, tmp_name = tempfile.mkstemp()
+
+        # use a file object to simplify byte conversion
+        fout = os.fdopen(tmp_file, 'w')
+        try:
+            if rem:
+                fout.write('\n# unset\n')
+                for k in rem:
+                    if k not in src:
+                        fout.write('unset %s\n' % k)
+                fout.write('\n')
+
+            if BLACKLIST:
+                fout.write('# blacklist\n')
+                for k in BLACKLIST:
                     fout.write('unset %s\n' % k)
-            fout.write('\n')
+                fout.write('\n')
 
-            fout.write('# blacklist\n')
-            for k in BLACKLIST:
-                fout.write('unset %s\n' % k)
-            fout.write('\n')
+            if src:
+                fout.write('# export\n')
+                for k, v in src.items():
+                    # FIXME: shell quoting for value
+                    if k not in BLACKLIST:
+                        fout.write("export %s='%s'\n" % (k, v))
+                fout.write('\n')
 
-            fout.write('# export\n')
-            for k, v in base.items():
-                # FIXME: shell quoting for value
-                if k not in BLACKLIST:
-                    fout.write("export %s='%s'\n" % (k, v))
-            fout.write('\n')
+            if pre:
+                fout.write('# pre\n')
+                for cmd in pre:
+                    fout.write('%s\n' % cmd)
+                fout.write('\n')
 
-            fout.write('# pre_exec_env\n')
-            for cmd in pre_exec_env:
-                fout.write('%s\n' % cmd)
-            fout.write('\n')
+        finally:
+            fout.close()
 
-        os.system('/bin/sh -c ". ./env.sh && env | sort > ./tmp.env"')
-        env = env_read('./tmp.env')
+        cmd = '/bin/sh -c ". %s && env | sort > %s.env"' % (tmp_name, tmp_name)
+        os.system(cmd)
+        env = env_read('%s.env' % tmp_name)
+        os.unlink(tmp_name)
 
-        _env_cache[cache_key] = env
+        _env_cache[cache_md5] = env
 
 
     # if `tgt` is specified, create a script with that name which unsets the
     # same names as in the tmp script above, and exports all vars from the
-    # resulting env from above
+    # resulting env from above (thus storing the *results* of the pre_exec'ed
+    # env, not the env and pre_exec directives themselves).
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if tgt:
         with open(tgt, 'w') as fout:
 
             fout.write('\n# unset\n')
-            for k in remove:
-                if k not in base:
+            for k in rem:
+                if k not in src:
                     fout.write('unset %s\n' % k)
             fout.write('\n')
 
