@@ -42,9 +42,16 @@ env_dump(){
     # well, the shell implementation below will simply ignore any lines which do
     # not start with a valid key.
 
-    tgt=$1; shift
+    tgt=''
+    while ! test -z "$1"; do
+        case "$1" in
+            -t) tgt="u$2"; shift 1 ;;
+            * ) echo "invalid option $1"; return 1
+        esac
+    done
 
-    env | sort > $tgt
+    test -z "$tgt" && env | sort
+    test -z "$tgt" && env | sort > $tgt
 }
 
 
@@ -52,12 +59,25 @@ env_dump(){
 #
 env_prep(){
 
-    # Write a shell script to `tgt` which
+    src=''
+    tgt=''
+    rem=''
+    pre=''
+    while ! test -z "$1"; do
+        case "$1" in
+            -s) src="$2"      ; shift 2 ;;
+            -t) tgt="$2"      ; shift 2 ;;
+            -r) rem="$2"      ; shift 2 ;;
+            * ) pre="$pre$1\n"; shift 1 ;;
+        esac
+    done
+
+    # Write a shell script to `tgt` (default: stdout) which
     #
-    #   - unsets all variables which are not defined in `base` but are defined
-    #     in the `remove` env dict;
+    #   - unsets all variables which are not defined in `src` but are defined
+    #     in the `rem` env;
     #   - unset all blacklisted vars;
-    #   - sets all variables defined in the `base` env dict;
+    #   - sets all variables defined in the `src` env;
     #   - runs the `pre_exec_env` commands given;
     #
     # The resulting shell script can be sourced to activate the resulting
@@ -66,63 +86,79 @@ env_prep(){
     # simply creates the described shell script.
 
 
-    base=$1;   shift
-    remove=$1; shift
-    tgt=$1;    shift
-    # all remaining args are interpreted as `pre_exec_env`
+    if test -z "$src"
+    then
+        echo "missing 'src' to prepare env from"
+        return 1
+    fi
 
-
-    # get keys from `base` environment dump
-    base_keys=$( cat "$base" \
+    # get keys from `src` environment dump
+    src_keys=$( cat "$src" \
                | sort \
                | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
                | cut -f1 -d=
                )
 
-    if ! test -z "$remove"
+    if ! test -z "$rem"
     then
-        # get keys from `remove` environment dump
-        rem_keys=$( cat "$remove" \
+        # get keys from `rem` environment dump
+        rem_keys=$( cat "$rem" \
                   | sort \
                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
                   | cut -f1 -d=
                   )
     fi
 
-    # unset all keys which are in `remove` but not in `base`
-    printf "\n# unset\n" > $tgt
-    for k in $rem_keys
-    do
-        grep -e "^$k=" $base >/dev/null || echo "unset '$k'" >> $tgt
-    done
-
-
-    # unset all blacklisted keys
-    printf "\n# blacklist\n" >> $tgt
-    for k in $BLACKLIST
-    do
-        echo "unset '$k'" >> $tgt
-    done
-
-
-    # export all keys from `base`
-    printf "\n# export\n" >> $tgt
-    for k in $base_keys
-    do
-        # exclude blacklisted keys
-        if ! expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
+    _prep(){
+        # unset all keys which are in `rem` but not in `src`
+        if ! test -z "$rem_keys"
         then
-            bv=$(grep -e "^$k=" $base | cut -f 2- -d= | sed -e 's/"/\\"/g')
-            echo "export $k=\"$bv\"" >> $tgt
+            printf "\n# unset\n"
+            for k in $rem_keys
+            do
+                grep -e "^$k=" $src >/dev/null || echo "unset '$k'"
+            done
         fi
-    done
 
-    # run all remaining arguments as `pre_exec` commands
-    printf "\n# pre_exec_env\n" >> $tgt
-    for pe in "$@"
-    do
-        echo "$pe" >> $tgt
-    done
+        # unset all blacklisted keys
+        if ! test -z "$BLACKLIST"
+        then
+            printf "\n# blacklist\n"
+            for k in $BLACKLIST
+            do
+                echo "unset '$k'"
+            done
+        fi
+
+
+        # export all keys from `src`
+        printf "\n# export\n"
+        for k in $src_keys
+        do
+            # exclude blacklisted keys
+            if ! expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
+            then
+                bv=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
+                echo "export $k=\"$bv\""
+            fi
+        done
+
+        # run all remaining arguments as `pre_exec` commands
+        if ! test -z "$pre"
+        then
+            printf "\n# pre_exec_env\n"
+            for pe in "$pre"
+            do
+                printf "$pe"
+            done
+            printf "\n"
+        fi
+    }
+
+    env=$(_prep)
+
+    test -z "$tgt" && echo "$env"
+    test -z "$tgt" || echo "$env" > $tgt
 }
 
 
