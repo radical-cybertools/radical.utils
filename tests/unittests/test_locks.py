@@ -3,6 +3,7 @@
 # pylint: disable=protected-access
 
 import os
+os.environ['RADICAL_DEBUG']        = 'True'
 os.environ['RADICAL_DEBUG_HELPER'] = 'True'
 
 import radical.utils as ru
