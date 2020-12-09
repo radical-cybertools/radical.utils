@@ -3,6 +3,7 @@
 # pylint: disable=protected-access
 
 import os
+os.environ['RADICAL_DEBUG_HELPER'] = 'True'
 
 import radical.utils as ru
 
@@ -13,8 +14,6 @@ def test_locks():
     '''
     Test debug lock wrappers
     '''
-
-    os.environ['RADICAL_DEBUG'] = 'True'
 
     l  = ru.Lock()
     rl = ru.RLock(name='bar')
