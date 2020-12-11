@@ -96,7 +96,7 @@ class Munch(DictMixin):
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
-                    t = type(self)
+                    t = Munch
                 if isinstance(t, type) and \
                         issubclass(t, Munch) and not issubclass(type(v), Munch):
                     # cast to expected Munch type
