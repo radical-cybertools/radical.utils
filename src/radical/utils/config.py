@@ -139,6 +139,8 @@ from .singleton  import Singleton
 #
 class Config(Munch):
 
+    _self_default = True
+
     # FIXME: we should cache config files after reading, so that repeated
     #        instance creations do not trigger a new (identical) round of
     #        parsing.

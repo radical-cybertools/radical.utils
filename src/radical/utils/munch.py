@@ -13,7 +13,6 @@
 
 import copy
 
-from .config     import Config
 from .misc       import as_list, as_tuple
 from .misc       import is_string
 from .misc       import expand_env as ru_expand_env
@@ -24,6 +23,8 @@ from .json_io    import write_json
 # ------------------------------------------------------------------------------
 #
 class Munch(DictMixin):
+
+    _self_default = False
 
     # --------------------------------------------------------------------------
     #
@@ -97,10 +98,8 @@ class Munch(DictMixin):
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
-                    if type(self) == type(Config):
-                        t = Config
-                    else:
-                        t = Munch
+                    if self._self_default: t = type(self)
+                    else                 : t = Munch
                 if isinstance(t, type) and \
                         issubclass(t, Munch) and not issubclass(type(v), Munch):
                     # cast to expected Munch type
