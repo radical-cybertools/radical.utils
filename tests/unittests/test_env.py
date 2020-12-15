@@ -16,19 +16,19 @@ def test_prep_env():
     try   : del(os.environ['TEST'])
     except: pass
 
-    src = dict(os.environ)
-    ret = ru.env_prep(src)
-    only_src, only_ret, changed = ru.env_diff(src, ret)
+    env = dict(os.environ)
+    ret = ru.env_prep(env)
+    only_env, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed), changed
 
-    src = dict(os.environ)
+    env = dict(os.environ)
 
     os.environ['FOO'] = 'foo'
-    src       ['BAR'] = 'bar'
+    env       ['BAR'] = 'bar'
 
-    ret = ru.env_prep(src=src, tgt='/tmp/test.env')
-    only_src, only_ret, changed = ru.env_diff(src, ret)
+    ret = ru.env_prep(environment=env, script_path='/tmp/test.env')
+    only_env, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed),  changed
 
