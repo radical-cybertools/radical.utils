@@ -37,6 +37,11 @@ def test_config():
     cfg4 = ru.Config(name=path, env=env)
     assert('baz' == cfg4.query('yale.grace.agent_launch_method'))
 
+    # test `cls._self_default` flag
+    cfg5 = ru.Config(from_dict={'foo_0': {'foo_1': {'foo2': 'bar'}}})
+    assert('bar' == cfg5.foo_0.foo_1.foo2)
+    assert(isinstance(cfg5.foo_0.foo_1, ru.Config))
+
 
 # ------------------------------------------------------------------------------
 #
