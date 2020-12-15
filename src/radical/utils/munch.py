@@ -24,6 +24,8 @@ from .json_io    import write_json
 #
 class Munch(DictMixin):
 
+    _self_default = False
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, from_dict=None):
@@ -96,7 +98,8 @@ class Munch(DictMixin):
             if isinstance(v, dict):
                 t = self._schema.get(k)
                 if not t:
-                    t = type(self)
+                    if self._self_default: t = type(self)
+                    else                 : t = Munch
                 if isinstance(t, type) and \
                         issubclass(t, Munch) and not issubclass(type(v), Munch):
                     # cast to expected Munch type
