@@ -174,6 +174,27 @@ def test_munch_update():
     assert (f.buz.bar['two'] == {'two-default': 0})
     assert (f.buz.bar.get('one') is None)
 
+    # test `cls._self_default` flag (for method `update`)
+
+    # --------------------------------------------------------------------------
+    # cls._self_default is False
+    class Bar_2a(ru.Munch):
+        _self_default = False
+
+    # --------------------------------------------------------------------------
+    # cls._self_default is True
+    class Bar_2b(ru.Munch):
+        _self_default = True
+
+    # --------------------------------------------------------------------------
+    bar = Bar_2a(from_dict={'foo_0': {'foo_1': {'foo2': 'bar'}}})
+    assert (not isinstance(bar.foo_0, Bar_2a))
+    assert (isinstance(bar.foo_0.foo_1, ru.Munch))
+
+    bar = Bar_2b(from_dict={'foo_0': {'foo_1': {'foo2': 'bar'}}})
+    assert (isinstance(bar.foo_0, Bar_2b))
+    assert (issubclass(type(bar.foo_0.foo_1), ru.Munch))
+
 
 # ------------------------------------------------------------------------------
 #
