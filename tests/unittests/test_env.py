@@ -19,6 +19,8 @@ def test_prep_env():
     env = dict(os.environ)
     ret = ru.env_prep(env)
     only_env, only_ret, changed = ru.env_diff(env, ret)
+    if 'XPC_SERVICE_NAME' in ret:
+        del(ret['XPC_SERVICE_NAME'])
     assert(not only_ret), only_ret
     assert(not changed), changed
 
@@ -28,6 +30,8 @@ def test_prep_env():
     env       ['BAR'] = 'bar'
 
     ret = ru.env_prep(environment=env, script_path='/tmp/test.env')
+    if 'XPC_SERVICE_NAME' in ret:
+        del(ret['XPC_SERVICE_NAME'])
     only_env, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed),  changed

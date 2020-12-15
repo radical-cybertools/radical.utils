@@ -11,7 +11,7 @@ from .shell import sh_callout
 # we know that some env vars are not worth preserving.  We explicitly exclude
 # those which are common to have complex syntax and need serious caution on
 # shell escaping:
-BLACKLIST  = ['PS1', 'LS_COLORS', '_']
+BLACKLIST  = ['PS1', 'LS_COLORS', '_', 'SHLVL']
 
 # Identical task `pre_exec` settings will result in the same environment
 # settings, so we cache those environments here.  We rely on a hash to ensure
