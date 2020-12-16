@@ -40,13 +40,13 @@ def test_prep_env():
     assert(not only_ret), only_ret
     assert(not changed),  changed
 
-    out, err, ret = ru.sh_callout('export BZZ=x; . /tmp/test.env; echo $BZZ',
+    out, _, ret = ru.sh_callout('export BZZ=x; . /tmp/test.env; echo $BZZ',
                                   shell=True)
     out = out.strip()
     assert(not out), out
     assert(not ret), ret
 
-    out, err, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
+    out, _, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
                                   shell=True)
     out = out.strip()
     assert(out == 'bar'), out
