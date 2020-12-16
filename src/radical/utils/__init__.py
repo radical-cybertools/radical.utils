@@ -1,4 +1,7 @@
 
+# allow star import, unused symbols
+# flake8: noqa
+
 __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
