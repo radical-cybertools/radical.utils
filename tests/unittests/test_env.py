@@ -8,6 +8,9 @@ import os
 
 import radical.utils as ru
 
+# test environment specific
+BLACKLIST_LOCAL_SYS = ['XPC_SERVICE_NAME']
+
 
 # ------------------------------------------------------------------------------
 #
@@ -16,37 +19,36 @@ def test_prep_env():
     try   : del(os.environ['TEST'])
     except: pass
 
+    # clean `os.environ`
+    for env_name in BLACKLIST_LOCAL_SYS:
+        if env_name in os.environ:
+            del os.environ[env_name]
+
     env = dict(os.environ)
     ret = ru.env_prep(env)
-    only_env, only_ret, changed = ru.env_diff(env, ret)
-    if 'XPC_SERVICE_NAME' in ret:
-        del(ret['XPC_SERVICE_NAME'])
+    _, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed), changed
 
     env = dict(os.environ)
 
-    os.environ['FOO'] = 'foo'
+    os.environ['BZZ'] = 'foo'
     env       ['BAR'] = 'bar'
 
     ret = ru.env_prep(environment=env, script_path='/tmp/test.env')
-    if 'XPC_SERVICE_NAME' in ret:
-        del(ret['XPC_SERVICE_NAME'])
-    only_env, only_ret, changed = ru.env_diff(env, ret)
+    _, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed),  changed
 
-    out, err, ret = ru.sh_callout('export FOO=x; . /tmp/test.env; echo $FOO',
+    out, _, ret = ru.sh_callout('export BZZ=x; . /tmp/test.env; echo $BZZ',
                                   shell=True)
     out = out.strip()
-    err = err.strip()
     assert(not out), out
     assert(not ret), ret
 
-    out, err, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
+    out, _, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
                                   shell=True)
     out = out.strip()
-    err = err.strip()
     assert(out == 'bar'), out
     assert(not ret), ret
 
