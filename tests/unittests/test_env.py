@@ -11,6 +11,7 @@ import radical.utils as ru
 # test environment specific
 BLACKLIST_LOCAL_SYS = ['XPC_SERVICE_NAME']
 
+
 # ------------------------------------------------------------------------------
 #
 def test_prep_env():
@@ -25,31 +26,29 @@ def test_prep_env():
 
     env = dict(os.environ)
     ret = ru.env_prep(env)
-    only_env, only_ret, changed = ru.env_diff(env, ret)
+    _, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed), changed
 
     env = dict(os.environ)
 
-    os.environ['FOO'] = 'foo'
+    os.environ['BZZ'] = 'foo'
     env       ['BAR'] = 'bar'
 
     ret = ru.env_prep(environment=env, script_path='/tmp/test.env')
-    only_env, only_ret, changed = ru.env_diff(env, ret)
+    _, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed),  changed
 
-    out, err, ret = ru.sh_callout('export FOO=x; . /tmp/test.env; echo $FOO',
+    out, err, ret = ru.sh_callout('export BZZ=x; . /tmp/test.env; echo $BZZ',
                                   shell=True)
     out = out.strip()
-    err = err.strip()
     assert(not out), out
     assert(not ret), ret
 
     out, err, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
                                   shell=True)
     out = out.strip()
-    err = err.strip()
     assert(out == 'bar'), out
     assert(not ret), ret
 
