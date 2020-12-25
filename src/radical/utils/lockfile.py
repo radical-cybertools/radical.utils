@@ -4,7 +4,8 @@ import os
 import time
 import fcntl
 
-from .misc import as_bytes
+from .misc  import as_bytes
+from .debug import get_caller_name
 
 
 # ------------------------------------------------------------------------------
@@ -68,7 +69,7 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
-    def acquire(self, timeout=None):
+    def acquire(self, timeout=None, owner=None):
 
         if self._fd:
             raise RuntimeError('cannot call open twice')
@@ -101,9 +102,31 @@ class Lockfile(object):
 
             time.sleep(0.1)
 
-
         if not self._fd:
-            raise RuntimeError('failed to lock %s' % self._fname)
+            raise RuntimeError('failed to lock %s (%s)' % (self._fname,
+                                                           self.get_owner()))
+
+        if not owner:
+            owner = get_caller_name()
+
+        os.write(self._fd, as_bytes(owner))
+        os.fsync(self._fd)
+
+
+
+    # --------------------------------------------------------------------------
+    #
+    def get_owner(self):
+
+        if not os.path.isfile(self._fname):
+            return None
+
+        try:
+            with open(self._fname, 'r') as fin:
+                return(fin.read())
+
+        except:
+            return 'unknown'
 
 
     # --------------------------------------------------------------------------
@@ -114,6 +137,7 @@ class Lockfile(object):
             raise ValueError('lockfile is not open')
 
         os.close(self._fd)
+        self._owner = None
 
 
     # --------------------------------------------------------------------------
