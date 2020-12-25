@@ -196,7 +196,7 @@ class Lockfile(object):
         '''
 
         if not self._fd:
-            raise ValueError('lockfile is not open')
+            raise RuntimeError('lockfile is not open')
 
         if self._delete:
             os.unlink(self._fname)
@@ -227,7 +227,7 @@ class Lockfile(object):
         '''
 
         if not self._fd:
-            raise ValueError('lockfile is not open')
+            raise RuntimeError('lockfile is not open')
 
         return os.write(self._fd, as_bytes(data))
 
@@ -251,7 +251,7 @@ class Lockfile(object):
         '''
 
         if not self._fd:
-            raise ValueError('lockfile is not open')
+            raise RuntimeError('lockfile is not open')
 
         return os.lseek(self._fd, pos, how)
 
