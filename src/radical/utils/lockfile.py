@@ -25,6 +25,10 @@ class Lockfile(object):
     waiting for a lock owned by another process or thread - the call will return
     'unknown' otherwise.
 
+    Note that the file offset is not shared between owner of the lock file
+    - a newly acquired lock on the file should prompt a seek to the desired
+    file location (the initial offset is '0').
+
     Example:
 
         with ru.Lockfile(fname) as fd0:
@@ -149,14 +153,11 @@ class Lockfile(object):
             raise RuntimeError('failed to lock %s (%s)' % (self._fname,
                                                            self.get_owner()))
 
-        if not owner:
-            owner = get_caller_name()
-
         if self._delete:
-            os.write(self._fd, as_bytes(owner))
+            if owner: os.write(self._fd, as_bytes(owner))
+            else    : os.write(self._fd, as_bytes(get_caller_name()))
 
         os.fsync(self._fd)
-
 
 
     # --------------------------------------------------------------------------
