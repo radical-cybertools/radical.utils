@@ -844,14 +844,7 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def get_ns_base(ns, module=None):
-
-    return get_radical_base(ns=ns, module=module)
-
-
-# ------------------------------------------------------------------------------
-#
-def get_radical_base(module=None, ns='radical'):
+def get_radical_base(module=None):
     '''
     Several parts of the RCT stack store state on the file system.  This should
     usually be under `$HOME/.radical` - but that location is not always
@@ -862,9 +855,17 @@ def get_radical_base(module=None, ns='radical'):
     be appended.  The resulting dir is created (if it does not exist), and the
     name is returned.  Any `.` (dot) characters in `module` are replaced by
     slashes.  Leading `radical/` element is removed.
+    '''
 
-    The optional parameter `ns` allows to apply the same mechanism to name
-    spaces othet than `radical`.
+    return get_base(ns='radical', module=module)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_base(ns, module=None):
+    '''
+    A generic version of `get_radical_base` which queries the base for any
+    namespace `ns`
     '''
 
     ns_low = ns.lower()
