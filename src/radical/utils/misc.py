@@ -844,7 +844,14 @@ def dockerized():
 
 # ------------------------------------------------------------------------------
 #
-def get_radical_base(module=None):
+def get_ns_base(ns, module=None):
+
+    return get_radical_base(ns=ns, module=module)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_radical_base(module=None, ns='radical'):
     '''
     Several parts of the RCT stack store state on the file system.  This should
     usually be under `$HOME/.radical` - but that location is not always
@@ -855,18 +862,24 @@ def get_radical_base(module=None):
     be appended.  The resulting dir is created (if it does not exist), and the
     name is returned.  Any `.` (dot) characters in `module` are replaced by
     slashes.  Leading `radical/` element is removed.
+
+    The optional parameter `ns` allows to apply the same mechanism to name
+    spaces othet than `radical`.
     '''
+
+    ns_low = ns.lower()
+    ns_up  = ns.upper()
 
     if module:
         module = module.replace('.', '/')
-        if module.startswith('radical/'):
+        if module.startswith('%s/' % ns_low):
             module = module[8:]
 
-    base = os.environ.get("RADICAL_BASE")
+    base = os.environ.get("%s_BASE")
 
     if not base:
         # backward compatibility
-        base = os.environ.get("RADICAL_BASE_DIR")
+        base = os.environ.get("%s_BASE_DIR" % ns_up)
 
     if not base or not os.path.isdir(base):
         base  = os.environ.get("HOME")
@@ -877,8 +890,8 @@ def get_radical_base(module=None):
     if not base or not os.path.isdir(base):
         base  = os.getcwd()
 
-    if module: base += '/.radical/%s/' % module
-    else     : base += '/.radical/'
+    if module: base += '/.%s/%s/' % (ns_low, module)
+    else     : base += '/.%s/'    %  ns_low
 
     rec_makedir(base)
 
