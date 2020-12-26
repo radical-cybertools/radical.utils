@@ -15,6 +15,15 @@ from .         import url       as ruu
 from .modules  import import_module
 from .ru_regex import ReString
 
+# ------------------------------------------------------------------------------
+#
+# globals
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
+
 
 # ------------------------------------------------------------------------------
 #
