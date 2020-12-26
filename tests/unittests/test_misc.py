@@ -40,8 +40,6 @@ def test_round_to_base():
     assert(ru.round_to_base(34.5, 20) == 40)
 
 
-
-
 # ------------------------------------------------------------------------------
 #
 def test_round_upper_bound():
@@ -277,7 +275,6 @@ def test_base():
     assert(base[0] == '/'), base
     base  = base.rstrip('/')
     assert(base == '/tmp/bar/buz/.foo'), base
-
 
 
 # ------------------------------------------------------------------------------

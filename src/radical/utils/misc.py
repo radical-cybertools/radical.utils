@@ -8,7 +8,6 @@ import socket
 import tarfile
 import datetime
 import tempfile
-import importlib
 import itertools
 import netifaces
 
@@ -1064,6 +1063,8 @@ def script_2_func(fpath):
     return ret
 
   # # --------------------------------------------------------------------------
+  #
+  # import importlib
   #
   # loader = importlib.machinery.SourceFileLoader('__main__', fpath)
   # spec   = importlib.util.spec_from_loader(loader.name, loader)
