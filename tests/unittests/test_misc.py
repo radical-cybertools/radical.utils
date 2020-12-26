@@ -254,16 +254,16 @@ if __name__ == '__main__':
 
 # ------------------------------------------------------------------------------
 #
-def test_ns_base():
+def test_base():
 
-    base = ru.get_ns_base('foo')
+    base = ru.get_base('foo')
     assert(base), base
     assert(base[0] == '/'), base
     base  = base.rstrip('/')
     elems = base.split('/')
     assert(elems[-1] == '.foo'), elems
 
-    base = ru.get_ns_base(ns='foo', module='bar')
+    base = ru.get_base(ns='foo', module='bar')
     assert(base), base
     assert(base[0] == '/'), base
     base  = base.rstrip('/')
@@ -272,8 +272,7 @@ def test_ns_base():
     assert(elems[-1] == 'bar'), elems
 
     os.environ['FOO_BASE'] = '/tmp/bar/buz'
-    print('==', os.environ.get('FOO_BASE'))
-    base = ru.get_ns_base('foo')
+    base = ru.get_base('foo')
     assert(base), base
     assert(base[0] == '/'), base
     base  = base.rstrip('/')
@@ -293,7 +292,7 @@ if __name__ == "__main__":
     test_get_env_ns()
     test_expand_env()
     test_script_2_func()
-    test_ns_base()
+    test_base()
 
 
 # ------------------------------------------------------------------------------
