@@ -40,6 +40,8 @@ def test_round_to_base():
     assert(ru.round_to_base(34.5, 20) == 40)
 
 
+
+
 # ------------------------------------------------------------------------------
 #
 def test_round_upper_bound():
@@ -251,6 +253,35 @@ if __name__ == '__main__':
 
 
 # ------------------------------------------------------------------------------
+#
+def test_ns_base():
+
+    base = ru.get_ns_base('foo')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    elems = base.split('/')
+    assert(elems[-1] == '.foo'), elems
+
+    base = ru.get_ns_base(ns='foo', module='bar')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    elems = base.split('/')
+    assert(elems[-2] == '.foo'), elems
+    assert(elems[-1] == 'bar'), elems
+
+    os.environ['FOO_BASE'] = '/tmp/bar/buz'
+    print('==', os.environ.get('FOO_BASE'))
+    base = ru.get_ns_base('foo')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    assert(base == '/tmp/bar/buz/.foo'), base
+
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -262,6 +293,7 @@ if __name__ == "__main__":
     test_get_env_ns()
     test_expand_env()
     test_script_2_func()
+    test_ns_base()
 
 
 # ------------------------------------------------------------------------------

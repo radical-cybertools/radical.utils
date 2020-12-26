@@ -875,19 +875,19 @@ def get_radical_base(module=None, ns='radical'):
         if module.startswith('%s/' % ns_low):
             module = module[8:]
 
-    base = os.environ.get("%s_BASE")
+    base = os.environ.get("%s_BASE" % ns_up)
 
     if not base:
         # backward compatibility
         base = os.environ.get("%s_BASE_DIR" % ns_up)
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("HOME")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("PWD")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.getcwd()
 
     if module: base += '/.%s/%s/' % (ns_low, module)
