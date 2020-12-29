@@ -57,7 +57,7 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, fname, delete=False, *args, *kwargs):
+    def __init__(self, fname, delete=False, *args, *8kwargs):
         '''
         The `args` and `kwargs` arguments are passed to `acquire()` when used in
         a `with Lockfile():` clause:
