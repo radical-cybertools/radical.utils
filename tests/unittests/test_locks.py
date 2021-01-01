@@ -4,8 +4,6 @@
 
 import os
 
-import radical.utils as ru
-
 
 # ------------------------------------------------------------------------------
 #
@@ -14,7 +12,10 @@ def test_locks():
     Test debug lock wrappers
     '''
 
-    os.environ['RADICAL_DEBUG'] = 'True'
+    os.environ['RADICAL_DEBUG']        = 'True'
+    os.environ['RADICAL_DEBUG_HELPER'] = 'True'
+
+    import radical.utils as ru
 
     l  = ru.Lock()
     rl = ru.RLock(name='bar')
