@@ -1,4 +1,7 @@
 
+# allow star import, unused symbols
+# flake8: noqa
+
 __author__    = "Radical.Utils Development Team"
 __copyright__ = "Copyright 2013, RADICAL@Rutgers"
 __license__   = "MIT"
@@ -38,6 +41,7 @@ from .shell          import sh_callout, sh_callout_bg, sh_callout_async
 from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
+from .env            import env_prep, env_read, env_read_lines, env_diff
 
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter

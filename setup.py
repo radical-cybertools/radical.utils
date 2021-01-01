@@ -206,6 +206,7 @@ setup_args = {
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
+                            'bin/radical-utils-env.sh',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.sh.py',
