@@ -3,13 +3,14 @@ import os
 import sys
 import glob
 
+from .misc    import as_list
 from .shell   import sh_callout
 from .modules import import_module
 
 
 # ------------------------------------------------------------------------------
 #
-def stack():
+def stack(ns='radical'):
     '''
     returns a dict with information about the currently active python
     interpreter and all radical modules (incl. version details)
@@ -21,39 +22,43 @@ def stack():
                         'pythonpath' : os.environ.get('PYTHONPATH',  ''),
                         'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
                                        os.environ.get('CONDA_DEFAULT_ENV','')},
-           'radical' : dict()
           }
 
-    import radical
-    path = radical.__path__
-    if isinstance(path, list):
-        path = path[0]
+    for namespace in as_list(ns):
 
-    if isinstance(path, str):
-        rpath = path
-    else:
-        rpath = path._path                               # pylint: disable=W0212
+        ret[namespace] = dict()
 
-    if isinstance(rpath, list):
-        rpath = rpath[0]
+        ns_mod = import_module(namespace)
+        path   = ns_mod.__path__
+        print(path)
+        if isinstance(path, list):
+            path = path[0]
 
-    for mpath in glob.glob('%s/*' % rpath):
+        if isinstance(path, str):
+            rpath = path
+        else:
+            rpath = path._path                               # pylint: disable=W0212
 
-        if os.path.isdir(mpath):
+        if isinstance(rpath, list):
+            rpath = rpath[0]
 
-            mbase = os.path.basename(mpath)
-            mname = 'radical.%s' % mbase
+        for mpath in glob.glob('%s/*' % rpath):
 
-            if mbase.startswith('_'):
-                continue
+            if os.path.isdir(mpath):
 
-            try:
-                ret['radical'][mname] = import_module(mname).version_detail
-            except Exception as e:
-                if 'RADICAL_DEBUG' in os.environ:
-                    ret['radical'][mname] = str(e)
-                else:
-                    ret['radical'][mname] = '?'
+                mbase = os.path.basename(mpath)
+                mname = '%s.%s' % (namespace, mbase)
+
+                if mbase.startswith('_'):
+                    continue
+
+                try:
+                    ret[namespace][mname] = import_module(mname).version_detail
+                except Exception as e:
+                    if 'RADICAL_DEBUG' in os.environ:
+                        ret[namespace][mname] = str(e)
+                    else:
+                        ret[namespace][mname] = '?'
 
     return ret
 
