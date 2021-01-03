@@ -757,55 +757,6 @@ def expand_env(data, env=None, ignore_missing=True):
 
 # ------------------------------------------------------------------------------
 #
-def stack():
-    '''
-    returns a dict with information about the currently active python
-    interpreter and all radical modules (incl. version details)
-    '''
-
-    ret = {'sys'     : {'python'     : sys.version.split()[0],
-                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
-                                       os.environ.get('CONDA_DEFAULT_ENV','')},
-           'radical' : dict()
-          }
-
-    import radical
-    path = radical.__path__
-    if isinstance(path, list):
-        path = path[0]
-
-    if isinstance(path, str):
-        rpath = path
-    else:
-        rpath = path._path                               # pylint: disable=W0212
-
-    if isinstance(rpath, list):
-        rpath = rpath[0]
-
-    for mpath in glob.glob('%s/*' % rpath):
-
-        if os.path.isdir(mpath):
-
-            mbase = os.path.basename(mpath)
-            mname = 'radical.%s' % mbase
-
-            if mbase.startswith('_'):
-                continue
-
-            try:
-                ret['radical'][mname] = import_module(mname).version_detail
-            except Exception as e:
-                if 'RADICAL_DEBUG' in os.environ:
-                    ret['radical'][mname] = str(e)
-                else:
-                    ret['radical'][mname] = '?'
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-#
 def get_size(obj, seen=None, strict=False):
 
     size   = sys.getsizeof(obj)
