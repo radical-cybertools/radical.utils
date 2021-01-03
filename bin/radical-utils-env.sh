@@ -143,8 +143,8 @@ env_prep(){
                 bv=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
                 echo "export $k=\"$bv\""
             fi
-        printf "\n"
         done
+        printf "\n"
 
         # run all remaining arguments as `pre_exec` commands
         if ! test -z "$pre"
