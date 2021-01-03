@@ -30,7 +30,6 @@ def stack(ns='radical'):
 
         ns_mod = import_module(namespace)
         path   = ns_mod.__path__
-        print(path)
         if isinstance(path, list):
             path = path[0]
 
