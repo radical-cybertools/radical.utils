@@ -57,7 +57,7 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, fname, delete=False, *args, **kwargs):
+    def __init__(self, fname, *args, **kwargs):
         '''
         The `args` and `kwargs` arguments are passed to `acquire()` when used in
         a `with Lockfile():` clause:
@@ -67,9 +67,16 @@ class Lockfile(object):
 
         '''
 
+        kwargs.setdefault('delete', False)
+
         self._fname   = fname
         self._fd      = None
-        self._delete  = delete
+
+        if 'delete' in kwargs:
+            self._delete = kwargs['delete']
+            del(kwargs['delete'])
+        else:
+            self._delete = False
 
         self._args    = args
         self._kwargs  = kwargs
