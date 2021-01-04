@@ -90,7 +90,7 @@ def test_lockfile_ok():
         try:
             with lock(timeout=timeout):
                 time.sleep(delay)
-        except TimeoutError as e:
+        except TimeoutError:
             sys.exit(2)
 
 
@@ -124,7 +124,7 @@ def test_lockfile_nok():
         try:
             with lock(timeout=timeout):
                 time.sleep(delay)
-        except TimeoutError as e:
+        except TimeoutError:
             sys.exit(2)
 
 
@@ -158,7 +158,7 @@ def test_lockfile_delete():
         try:
             with lock(timeout=timeout):
                 time.sleep(delay)
-        except TimeoutError as e:
+        except TimeoutError:
             sys.exit(2)
 
 
