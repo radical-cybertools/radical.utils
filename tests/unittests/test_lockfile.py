@@ -3,15 +3,11 @@
 import os
 import sys
 import time
-import errno
 import pytest
 
 
 import multiprocessing as mp
 import radical.utils   as ru
-
-
-import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
