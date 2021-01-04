@@ -172,17 +172,17 @@ class Lockfile(object):
     def get_owner(self):
         '''
         If the lockfile was created with `delete=True`, then the name of the
-        method which successfully calles `acquire()` is strored in the file.
+        method which successfully calles `acquire()` is stored in the file.
         That name can then be retrieved by any other process or thread which
         attempts to lock the same file.  Otherwise this method returns
         'unknown'.
         '''
 
-        if not self._delete:
-            return 'unknown'
-
         if not os.path.isfile(self._fname):
             return None
+
+        if not self._delete:
+            return 'unknown'
 
         try:
             with open(self._fname, 'r') as fin:
