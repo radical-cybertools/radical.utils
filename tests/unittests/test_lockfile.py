@@ -128,7 +128,8 @@ def test_lockfile_nok():
             sys.exit(2)
 
 
-    p1 = mp.Process(target=get_lock, args=[0.0, 0.3])
+    p1 = mp.Process(target=get_lock, args=[0.0, 0.5])
+    time.sleep(0.1)
     p2 = mp.Process(target=get_lock, args=[0.1, 0.0])
 
     p1.start()
@@ -139,7 +140,6 @@ def test_lockfile_nok():
 
     assert(p1.exitcode == 0)
     assert(p2.exitcode == 2)
-
 
     try:
         os.unlink(fname)
