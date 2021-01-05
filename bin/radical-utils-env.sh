@@ -88,8 +88,10 @@ env_prep(){
 
     if test -z "$src"
     then
-        echo "missing 'src' to prepare env from"
-        return 1
+        echo "missing 'src' -- prepare env from current env"
+        tmp=$(mktemp)
+        env > "$tmp"
+        src="$tmp"
     fi
 
     # get keys from `src` environment dump
@@ -157,8 +159,10 @@ env_prep(){
 
     env=$(_prep)
 
-    test -z "$tgt" && echo "$env"
-    test -z "$tgt" || echo "$env" > $tgt
+    test -z "$tgt" && echo  "$env"
+    test -z "$tgt" || echo  "$env" > $tgt
+
+    test -z "$tmp" || rm -f "$tmp"
 }
 
 
