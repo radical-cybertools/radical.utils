@@ -10,15 +10,28 @@ import multiprocessing as mp
 import radical.utils   as ru
 
 
+def _get_lock(fname, delay, timeout, duration):
+    lock = ru.Lockfile(fname, delete=True)
+    try:
+        time.sleep(delay)
+        with lock(timeout=timeout):
+            time.sleep(duration)
+            sys.exit(1)
+    except TimeoutError:
+        sys.exit(2)
+    except RuntimeError:
+        sys.exit(3)
+
+
 # ------------------------------------------------------------------------------
 #
 def test_lockfile():
 
     fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
 
-    with ru.Lockfile(fname) as fd0:
+    with ru.Lockfile(fname, owner='foo') as fd0:
         assert(fd0)
-        assert(fd0.get_owner() == 'unknown')
+        assert(fd0.get_owner() == 'foo'), fd0.get_owner()
         fd0.write('test 0\n')
 
     with ru.Lockfile(fname) as fd1:
@@ -85,18 +98,8 @@ def test_lockfile_ok():
 
     fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
 
-    def get_lock(delay, timeout):
-        lock = ru.Lockfile(fname)
-        try:
-            with lock(timeout=timeout):
-                time.sleep(delay)
-                sys.exit(1)
-        except TimeoutError:
-            sys.exit(2)
-
-
-    p1 = mp.Process(target=get_lock, args=[0.0, 0.1])
-    p2 = mp.Process(target=get_lock, args=[0.3, 0.0])
+    p1 = mp.Process(target=_get_lock, args=[fname, 0.0, 0.0, 0.2])
+    p2 = mp.Process(target=_get_lock, args=[fname, 0.1, 0.3, 0.0])
 
     p1.start()
     p2.start()
@@ -104,8 +107,8 @@ def test_lockfile_ok():
     p1.join()
     p2.join()
 
-    assert(p1.exitcode == 1)
-    assert(p2.exitcode == 2)
+    assert(p1.exitcode == 1), p1.exitcode
+    assert(p2.exitcode == 1), p2.exitcode
 
 
     try:
@@ -120,18 +123,27 @@ def test_lockfile_nok():
 
     fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
 
-    def get_lock(delay, timeout):
-        lock = ru.Lockfile(fname)
+    if True:
+
+        p1 = mp.Process(target=_get_lock, args=[fname, 0.0, 0.0, 0.5])
+        p2 = mp.Process(target=_get_lock, args=[fname, 0.1, 0.1, 0.1])
+
+        p1.start()
+        p2.start()
+
+        p1.join()
+        p2.join()
+
+        assert(p1.exitcode == 1), p1.exitcode
+        assert(p2.exitcode == 2), p2.exitcode
+
         try:
-            with lock(timeout=timeout):
-                time.sleep(delay)
-                sys.exit(1)
-        except TimeoutError:
-            sys.exit(2)
+            os.unlink(fname)
+        except:
+            pass
 
-
-    p1 = mp.Process(target=get_lock, args=[0.0, 0.5])
-    p2 = mp.Process(target=get_lock, args=[0.1, 0.0])
+    p1 = mp.Process(target=_get_lock, args=[fname, 0.0, 0.0, 0.5])
+    p2 = mp.Process(target=_get_lock, args=[fname, 0.1, 0.0, 0.0])
 
     p1.start()
     p2.start()
@@ -139,8 +151,8 @@ def test_lockfile_nok():
     p1.join()
     p2.join()
 
-    assert(p1.exitcode == 1)
-    assert(p2.exitcode == 2)
+    assert(p1.exitcode == 1), p1.exitcode
+    assert(p2.exitcode == 3), p2.exitcode
 
     try:
         os.unlink(fname)
@@ -154,21 +166,14 @@ def test_lockfile_delete():
 
     fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
 
-    def get_lock(delay, timeout):
-        lock = ru.Lockfile(fname, delete=True)
-        try:
-            with lock(timeout=timeout):
-                time.sleep(delay)
-        except TimeoutError:
-            sys.exit(2)
-
-
-    p1 = mp.Process(target=get_lock, args=[0.0, 0.3])
+    p1 = mp.Process(target=_get_lock, args=[fname, 0.0, 0.0, 0.5])
     p1.start()
-    p1.join()
+    time.sleep(0.1)
+    assert(os.path.isfile(fname))
 
-    assert(p1.exitcode == 0)
+    p1.join()
     assert(not os.path.isfile(fname))
+    assert(p1.exitcode == 1)
 
     try:
         os.unlink(fname)
@@ -182,6 +187,9 @@ if __name__ == '__main__':
 
     test_lockfile()
     test_lockfile_timer()
+    test_lockfile_ok()
+    test_lockfile_nok()
+    test_lockfile_delete()
 
 # ------------------------------------------------------------------------------
 

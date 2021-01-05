@@ -3,10 +3,11 @@
 import os
 import time
 import errno
-import fcntl
 
-from .misc  import as_bytes
-from .debug import get_caller_name
+import threading as mt
+
+from .misc   import as_bytes
+from .debug  import get_caller_name
 
 
 # ------------------------------------------------------------------------------
@@ -31,29 +32,72 @@ class Lockfile(object):
 
     Example:
 
-        with ru.Lockfile(fname) as fd0:
-            assert(fd0)
-            fd0.write('test 0\n')
+        with ru.Lockfile(fname) as lf0:
+            lf0.write('test 0\n')
 
-        with ru.Lockfile(fname) as fd1:
-            assert(fd1)
-            fd1.lseek(0, os.SEEK_SET)
-            fd1.write('test 1\n')
+        with ru.Lockfile(fname) as lf1:
+            lf1.lseek(0, os.SEEK_SET)
+            lf1.write('test 1\n')
 
-        with ru.Lockfile(fname) as fd2:
-            assert(fd2)
-            fd2.lseek(0, os.SEEK_END)
-            fd2.write('test 2\n')
+        with ru.Lockfile(fname) as lf2:
+            lf2.lseek(0, os.SEEK_END)
+            lf2.write('test 2\n')
 
-            # this would raise a RuntimeError
-          # with ru.Lockfile(fname) as fd3:
-          #     fd3.lseek(0, os.SEEK_END)
-          #     fd3.write('test 3\n')
+            # raises a RuntimeError, as we won't be able to acquire the lock
+            with ru.Lockfile(fname) as lf3:
+                lf3.lseek(0, os.SEEK_END)
+                lf3.write('test 3\n')
 
         with open(fname, 'r') as fin:
             data = fin.read()
             assert(data == 'test 1\ntest 2\n')
+
+    Example:
+
+        lf1 = ru.Lockfile(fname)
+        lf2 = ru.Lockfile(fname)
+
+        with lf1:
+            lf1.write('test 0')
+
+            with lf2(timeout=3):
+                # we won't reach this, the `with` above will time out and raise
+                lf2.write('test 0')
+
+
+    Implementation:
+
+    The implementation relies on cooperative locking: a process or thread which
+    uses this API to lock a file will create a temporary file in the same
+    directory (filename: `.<filename>.<pid>.<counter>` where `counter` is
+    a process singleton).  On lock acquisition, we will attempt to create
+    a symbolic link to the file `<filename>.lck`, which will only succeed if no
+    other process or thread holds that lock.  On `release`, that symbolic gets
+    removed; on object destruction, the temporary file gets removed.
+
+    The private file will contain the name of the owner.  Any other process or
+    thread can follow the `.<filename>.lck` symlink, open the link's target
+    file, and read the name of the owner.  No attempt is made to avoid races
+    between failure to acquire the lockfile and querying the current owner, so
+    that information is not reliable, but intented to be an informative help for
+    debugging and tracing purposes.
+
+    Example:
+        lf1 = ru.Lockfile(fname)
+        lf2 = ru.Lockfile(fname)
+
+        with lf1:
+            lf1.write('test 0')
+
+            try:
+                lf2.acquire()  # timeout == None == 0.0
+            except RuntimeError:
+                print('lock is held by %s' % lf2.get_owner())
     '''
+
+    _counter = 0
+    _lock    = mt.Lock()
+
 
     # --------------------------------------------------------------------------
     #
@@ -62,8 +106,8 @@ class Lockfile(object):
         The `args` and `kwargs` arguments are passed to `acquire()` when used in
         a `with Lockfile():` clause:
 
-            with ru.Lockfile(fname, timeout=3) as flock:
-                flock.write(data)
+            with ru.Lockfile(fname, timeout=3) as lockfile:
+                lockfile.write(data)
 
         '''
 
@@ -80,6 +124,22 @@ class Lockfile(object):
 
         self._args    = args
         self._kwargs  = kwargs
+
+        # create a tempfile to be used for lock acquisition
+        with Lockfile._lock:
+            cnt = Lockfile._counter
+            Lockfile._counter += 1
+
+
+        fname_base = os.path.basename(self._fname)
+        fname_dir  = os.path.dirname(self._fname)
+
+        self._lck  = '%s/%s.lck'    % (fname_dir, fname_base)
+        self._tmp  = '%s/.%s.%d.%d' % (fname_dir, fname_base, os.getpid(), cnt)
+
+        # make sure our tmp file exists
+        with open(self._tmp, 'w') as fout:
+            fout.write('%s\n' % get_caller_name())
 
 
     # --------------------------------------------------------------------------
@@ -123,73 +183,82 @@ class Lockfile(object):
         then that string will be passed to any other method which tries to
         acquire this lockfile while it is locked (see `get_owner()`).  If not
         specified, the `owner` string is set to `ru.get_caller_name()`.
+
+        timeout:
+            < 0 : wait forever
+              0 : try locking once and raise `RuntimeError` on failure
+            > 0 : try for that many seconds, and raise `TimeoutError` on failure
+            None: same as 0
+
         '''
+
+        if timeout is None:
+            timeout = 0.0
 
         if self._fd:
             raise RuntimeError('cannot call open twice')
 
+        # pre-emptively record who wants to acquire the lock
+        if not owner:
+            owner = get_caller_name()
+
+        with open(self._tmp, 'w') as fout:
+            fout.write('%s\n' % owner)
+
         start = time.time()
         while True:
+            # attempt to link self._tmp to self._lck.  Once that succeeds, open
+            # the self._fnmame for read/write.
 
             try:
-                fd  = os.open(self._fname, os.O_RDWR | os.O_CREAT)
-                ret = fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                os.symlink(self._tmp, self._lck)
+                break  # link succeeded, we have the lock
 
-                if not ret:
-                    self._fd = fd
-                    break  # fd should be valid and locked
+            # if self._lck exists the above `link` will raise, and we try
+            # again after a bit.  All other errors are fatal
+            except OSError as e:
+                if not e.errno == errno.EEXIST:
+                    raise
 
-                else:  # try again
-                    os.close(fd)
+                if timeout == 0.0:
+                    raise RuntimeError('failed to lock %s (%s)'
+                                       % (self._fname, self.get_owner()))
 
-            except IOError:
+                elif timeout > 0:
+                    now = time.time()
+                    if now - start > timeout:
+                        raise TimeoutError(errno.ETIME, 'lock timeout for %s ()'
+                                           % self._fname, self.get_owner())
                 # try again
-                pass
+                time.sleep(0.1)  # FIXME: granulatiy?
+                continue
 
-            if timeout is None:
-                break  # stop trying
-
-            now = time.time()
-            if now - start > timeout:
-                raise TimeoutError(errno.ETIME, 'lock timeout for %s ()' %
-                                                self._fname, self.get_owner())
-
-            time.sleep(0.1)
-
-        if not self._fd:
-            raise RuntimeError('failed to lock %s (%s)' % (self._fname,
-                                                           self.get_owner()))
-
-        if self._delete:
-            if owner: os.write(self._fd, as_bytes(owner))
-            else    : os.write(self._fd, as_bytes(get_caller_name()))
-
-        os.fsync(self._fd)
+        # the link succeeded, so open the file and break
+        self._fd = os.open(self._fname, os.O_RDWR | os.O_CREAT)
 
 
     # --------------------------------------------------------------------------
     #
     def get_owner(self):
         '''
-        If the lockfile was created with `delete=True`, then the name of the
-        method which successfully calles `acquire()` is stored in the file.
-        That name can then be retrieved by any other process or thread which
-        attempts to lock the same file.  Otherwise this method returns
-        'unknown'.
+        That name of the current owner of the lockfile can be retrieved by any
+        other process or thread which attempts to lock the same file.  This
+        method returns `None` if the file is not currently locked.
+
+        Note: this method may race against lock acquisition / release, and the
+              information returned may be outdated.
         '''
 
-        if not os.path.isfile(self._fname):
-            return None
-
-        if not self._delete:
-            return 'unknown'
-
         try:
-            with open(self._fname, 'r') as fin:
-                return(fin.read())
+            with open(self._lck, 'r') as fin:
+                # strip newline
+                return(fin.readline()[:-1])
 
-        except:
-            return 'unknown'
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                return None
+            else:
+                return 'unknown'
 
 
     # --------------------------------------------------------------------------
@@ -205,10 +274,15 @@ class Lockfile(object):
         if not self._fd:
             raise RuntimeError('lockfile is not open')
 
+        # release the file handle
+        os.close(self._fd)
+        self._fd = None
+
         if self._delete:
             os.unlink(self._fname)
 
-        os.close(self._fd)
+        # release the lock
+        os.unlink(self._lck)
 
 
     # --------------------------------------------------------------------------
