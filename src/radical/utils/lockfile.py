@@ -217,18 +217,18 @@ class Lockfile(object):
             # if self._lck exists the above `link` will raise, and we try
             # again after a bit.  All other errors are fatal
             except OSError as e:
+
+                # pylint: disable=W0707
                 if not e.errno == errno.EEXIST:
                     raise
 
                 if timeout == 0.0:
-                    # pylint: disable=W0707
                     raise RuntimeError('failed to lock %s (%s)'
                                        % (self._fname, self.get_owner()))
 
                 elif timeout > 0:
                     now = time.time()
                     if now - start > timeout:
-                        # pylint: disable=W0707
                         raise TimeoutError(errno.ETIME, 'lock timeout for %s ()'
                                            % self._fname, self.get_owner())
                 # try again
