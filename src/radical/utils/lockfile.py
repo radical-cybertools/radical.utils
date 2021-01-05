@@ -221,12 +221,14 @@ class Lockfile(object):
                     raise
 
                 if timeout == 0.0:
+                    # pylint: disable=W0707
                     raise RuntimeError('failed to lock %s (%s)'
                                        % (self._fname, self.get_owner()))
 
                 elif timeout > 0:
                     now = time.time()
                     if now - start > timeout:
+                        # pylint: disable=W0707
                         raise TimeoutError(errno.ETIME, 'lock timeout for %s ()'
                                            % self._fname, self.get_owner())
                 # try again
