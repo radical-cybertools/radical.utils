@@ -1,20 +1,25 @@
 
 import os
 import sys
-import glob
 import time
 import errno
 import socket
 import tarfile
 import datetime
 import tempfile
-import importlib
 import itertools
 import netifaces
 
 from .         import url       as ruu
-from .modules  import import_module
 from .ru_regex import ReString
+
+
+# ------------------------------------------------------------------------------
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
 
 
 # ------------------------------------------------------------------------------
@@ -992,7 +997,7 @@ def script_2_func(fpath):
                  + ''.join(postfix)
 
         # exec the resulting code, ensure to pass globals
-        exec(tmp_code, globals())
+        exec(tmp_code, globals())                        # pylint: disable=W0122
 
         return _RU_stdout.getvalue(), _RU_stderr.getvalue(), \
                _RU_except, _RU_exit
