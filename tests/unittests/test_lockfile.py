@@ -13,8 +13,8 @@ import radical.utils   as ru
 fname = '/tmp/ru.test.lockfile.%s' % os.getpid()
 
 
-def _get_lock(fname, delay, timeout, duration):
-    lock = ru.Lockfile(fname, delete=True)
+def _get_lock(_fname, delay, timeout, duration):
+    lock = ru.Lockfile(_fname, delete=True)
     try:
         time.sleep(delay)
         with lock(timeout=timeout):
