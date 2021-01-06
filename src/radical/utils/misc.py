@@ -1,20 +1,35 @@
 
 import os
 import sys
-import glob
 import time
 import errno
 import socket
 import tarfile
 import datetime
 import tempfile
-import importlib
 import itertools
 import netifaces
 
 from .url      import Url
-from .modules  import import_module
 from .ru_regex import ReString
+
+
+# ------------------------------------------------------------------------------
+#
+# globals
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
+
+
+# ------------------------------------------------------------------------------
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
 
 
 # ------------------------------------------------------------------------------
@@ -407,7 +422,7 @@ def as_string(data):
     elif isinstance(data, bytes):
         return bytes.decode(data, 'utf-8')
 
-    elif isinstance(data, ruu.Url):
+    elif isinstance(data, Url):
         return str(data)
 
     else:
@@ -757,55 +772,6 @@ def expand_env(data, env=None, ignore_missing=True):
 
 # ------------------------------------------------------------------------------
 #
-def stack():
-    '''
-    returns a dict with information about the currently active python
-    interpreter and all radical modules (incl. version details)
-    '''
-
-    ret = {'sys'     : {'python'     : sys.version.split()[0],
-                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
-                                       os.environ.get('CONDA_DEFAULT_ENV','')},
-           'radical' : dict()
-          }
-
-    import radical
-    path = radical.__path__
-    if isinstance(path, list):
-        path = path[0]
-
-    if isinstance(path, str):
-        rpath = path
-    else:
-        rpath = path._path                               # pylint: disable=W0212
-
-    if isinstance(rpath, list):
-        rpath = rpath[0]
-
-    for mpath in glob.glob('%s/*' % rpath):
-
-        if os.path.isdir(mpath):
-
-            mbase = os.path.basename(mpath)
-            mname = 'radical.%s' % mbase
-
-            if mbase.startswith('_'):
-                continue
-
-            try:
-                ret['radical'][mname] = import_module(mname).version_detail
-            except Exception as e:
-                if 'RADICAL_DEBUG' in os.environ:
-                    ret['radical'][mname] = str(e)
-                else:
-                    ret['radical'][mname] = '?'
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-#
 def get_size(obj, seen=None, strict=False):
 
     size   = sys.getsizeof(obj)
@@ -857,28 +823,42 @@ def get_radical_base(module=None):
     slashes.  Leading `radical/` element is removed.
     '''
 
+    return get_base(ns='radical', module=module)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_base(ns, module=None):
+    '''
+    A generic version of `get_radical_base` which queries the base for any
+    namespace `ns`
+    '''
+
+    ns_low = ns.lower()
+    ns_up  = ns.upper()
+
     if module:
         module = module.replace('.', '/')
-        if module.startswith('radical/'):
-            module = module[8:]
+        if module.startswith('%s/' % ns_low):
+            module = module[len(ns_low) + 1:]
 
-    base = os.environ.get("RADICAL_BASE")
+    base = os.environ.get("%s_BASE" % ns_up)
 
     if not base:
         # backward compatibility
-        base = os.environ.get("RADICAL_BASE_DIR")
+        base = os.environ.get("%s_BASE_DIR" % ns_up)
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("HOME")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("PWD")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.getcwd()
 
-    if module: base += '/.radical/%s/' % module
-    else     : base += '/.radical/'
+    if module: base += '/.%s/%s/' % (ns_low, module)
+    else     : base += '/.%s/'    %  ns_low
 
     rec_makedir(base)
 
@@ -1041,7 +1021,7 @@ def script_2_func(fpath):
                  + ''.join(postfix)
 
         # exec the resulting code, ensure to pass globals
-        exec(tmp_code, globals())
+        exec(tmp_code, globals())                        # pylint: disable=W0122
 
         return _RU_stdout.getvalue(), _RU_stderr.getvalue(), \
                _RU_except, _RU_exit
@@ -1050,6 +1030,8 @@ def script_2_func(fpath):
     return ret
 
   # # --------------------------------------------------------------------------
+  #
+  # import importlib
   #
   # loader = importlib.machinery.SourceFileLoader('__main__', fpath)
   # spec   = importlib.util.spec_from_loader(loader.name, loader)

@@ -42,6 +42,7 @@ from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
 from .env            import env_prep, env_read, env_read_lines, env_diff
+from .stack          import stack
 
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
