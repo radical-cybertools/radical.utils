@@ -20,7 +20,7 @@ class StackTestClass(TestCase):
     #
     @classmethod
     def setUpClass(cls):
-        ns_mod               = ru.import_module('radical')
+        ns_mod              = ru.import_module('radical')
         cls._radical_ns_dir = ns_mod.__path__._path[0]
         # create a directory inside "radical" namespace (false package)
         ru.rec_makedir(cls._radical_ns_dir + '/dummy')
