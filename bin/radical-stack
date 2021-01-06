@@ -4,33 +4,26 @@ import sys
 
 import radical.utils as ru
 
-verbose = False
-if len(sys.argv) > 1 and sys.argv[1] == '-v':
-    verbose = True
+namespaces = sys.argv[1:]
+if not namespaces:
+    namespaces = ['radical']
 
-stack = ru.stack()
+stack = ru.stack(namespaces)
 
 print()
 for key in sorted(stack['sys'].keys()):
     print('  %-20s : %s' % (key, stack['sys'][key]))
 print()
 
-for key in sorted(stack['radical'].keys()):
+for ns in stack:
+    if ns == 'sys':
+        continue
 
-    if verbose:
-        # get pip info for latest version available
-        out, _, _ = ru.sh_callout('python -m pip search %s' % key)
-        idx0 = out.find('(')
-        idx1 = out.find(')')
-        out  = out[idx0 + 1:idx1]
+    for key in sorted(stack[ns].keys()):
 
-        print('  %-20s : %-50s  (latest release: %s)'
-             % (key, stack['radical'][key], out))
+        print('  %-20s : %s' % (key, stack[ns][key]))
 
-    else:
-        print('  %-20s : %s' % (key, stack['radical'][key]))
-
-print()
+    print()
 
 # ------------------------------------------------------------------------------
 

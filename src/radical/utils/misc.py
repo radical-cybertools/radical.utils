@@ -1,7 +1,6 @@
 
 import os
 import sys
-import glob
 import time
 import errno
 import socket
@@ -12,12 +11,19 @@ import itertools
 import netifaces
 
 from .         import url       as ruu
-from .modules  import import_module
 from .ru_regex import ReString
 
 # ------------------------------------------------------------------------------
 #
 # globals
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
+
+
+# ------------------------------------------------------------------------------
 #
 _RU_stdout = None
 _RU_stderr = None
@@ -765,55 +771,6 @@ def expand_env(data, env=None, ignore_missing=True):
 
 # ------------------------------------------------------------------------------
 #
-def stack():
-    '''
-    returns a dict with information about the currently active python
-    interpreter and all radical modules (incl. version details)
-    '''
-
-    ret = {'sys'     : {'python'     : sys.version.split()[0],
-                        'pythonpath' : os.environ.get('PYTHONPATH',  ''),
-                        'virtualenv' : os.environ.get('VIRTUAL_ENV', '') or
-                                       os.environ.get('CONDA_DEFAULT_ENV','')},
-           'radical' : dict()
-          }
-
-    import radical
-    path = radical.__path__
-    if isinstance(path, list):
-        path = path[0]
-
-    if isinstance(path, str):
-        rpath = path
-    else:
-        rpath = path._path                               # pylint: disable=W0212
-
-    if isinstance(rpath, list):
-        rpath = rpath[0]
-
-    for mpath in glob.glob('%s/*' % rpath):
-
-        if os.path.isdir(mpath):
-
-            mbase = os.path.basename(mpath)
-            mname = 'radical.%s' % mbase
-
-            if mbase.startswith('_'):
-                continue
-
-            try:
-                ret['radical'][mname] = import_module(mname).version_detail
-            except Exception as e:
-                if 'RADICAL_DEBUG' in os.environ:
-                    ret['radical'][mname] = str(e)
-                else:
-                    ret['radical'][mname] = '?'
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-#
 def get_size(obj, seen=None, strict=False):
 
     size   = sys.getsizeof(obj)
@@ -1063,7 +1020,7 @@ def script_2_func(fpath):
                  + ''.join(postfix)
 
         # exec the resulting code, ensure to pass globals
-        exec(tmp_code, globals())
+        exec(tmp_code, globals())                        # pylint: disable=W0122
 
         return _RU_stdout.getvalue(), _RU_stderr.getvalue(), \
                _RU_except, _RU_exit
