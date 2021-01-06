@@ -251,6 +251,33 @@ if __name__ == '__main__':
 
 
 # ------------------------------------------------------------------------------
+#
+def test_base():
+
+    base = ru.get_base('foo')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    elems = base.split('/')
+    assert(elems[-1] == '.foo'), elems
+
+    base = ru.get_base(ns='foo', module='foo.bar')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    elems = base.split('/')
+    assert(elems[-2] == '.foo'), elems
+    assert(elems[-1] == 'bar'), elems
+
+    os.environ['FOO_BASE'] = '/tmp/bar/buz'
+    base = ru.get_base('foo')
+    assert(base), base
+    assert(base[0] == '/'), base
+    base  = base.rstrip('/')
+    assert(base == '/tmp/bar/buz/.foo'), base
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -262,6 +289,7 @@ if __name__ == "__main__":
     test_get_env_ns()
     test_expand_env()
     test_script_2_func()
+    test_base()
 
 
 # ------------------------------------------------------------------------------
