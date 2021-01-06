@@ -87,16 +87,16 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(environment, unset=None, pre_exec=None, script_path=None):
+def env_prep(source=None, target=None, remove=None, pre_exec=None):
     '''
-    create a shell script which restores the environment specified in
-    `environment` (a dict).  While doing so, ensure that all env variables
-    *not* defined in `environment` but defined in `unset` (list) are unset.
-    Also ensure that all commands provided in `pre_exec_env` (list of strings)
-    are executed after these settings.
+    Create a shell script which restores the environment specified in `source`
+    environment (dict).  While doing so, ensure that all env variables *not*
+    defined in `source` but defined in `remove` (list) are unset.  Also ensure
+    that all commands provided in `pre_exec` (list) are executed after these
+    settings.
 
     Once the shell script is created, run it and dump the resulting env, then
-    read it back via `env_read_*()` and return the resulting env dict - that
+    read it back via `env_read()` and return the resulting env dict - that
     can then be used for process fork/execve to run a process is the thus
     defined environment.
 
@@ -104,22 +104,24 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
     set of parameters will simply return a previously cached environment if it
     exists.
 
-    If `script_path` is given, a shell script will be created in the given
-    location so that shell commands can source it and restore the specified
-    environment.
+    If `target` is given, a shell script will be created in the given location
+    so that shell commands can source it and restore the specified environment.
     '''
 
     global _env_cache
 
-    # defined in the current os env
-    if  unset is None:
-        unset = list(os.environ.keys())
+    # defaults
+    if source   is None: source   = os.environ
+    if remove   is None: remove   = list()
+    if pre_exec is None: pre_exec = list()
 
     # empty `pre_exec` settings are ok - just ensure correct type
     pre_exec = as_list(pre_exec)
 
     # cache lookup
-    cache_key = str(environment) + str(unset) + str(pre_exec)
+    cache_key = str(sorted(source.items())) \
+              + str(sorted(remove)) \
+              + str(sorted(pre_exec))
     cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
 
     if cache_md5 in _env_cache:
@@ -130,31 +132,28 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
 
         # Write a temporary shell script which
         #
-        #   - unsets all variables which are not defined in `environment`
-        #     but are defined in the `unset` list;
+        #   - unsets all variables which are not defined in `source`
+        #     but are defined in the `remove` list;
         #   - unset all blacklisted vars;
-        #   - sets all variables defined in the `environment` env dict;
+        #   - sets all variables defined in the `source` env dict;
         #   - runs the `pre_exec` commands given;
         #   - dumps the resulting env in a temporary file;
         #
         # Then run that script and read the resulting env back into a dict to
-        # return.  If `script_path` is specified, then also create a file at
-        # the given name and fill it with `unset` and `script_path` statements
-        # to recreate that specific environment: any shell sourcing that
-        # `script_path` file thus activates the environment thus prepared.
-        #
-        # FIXME: better tmp file names to avoid collisions
-
+        # return.  If `target` is specified, then also create a file at the
+        # given name and fill it with `unset` and `export` statements to
+        # recreate that specific environment: any shell sourcing that `target`
+        # file thus activates the environment we just prepared.
         tmp_file, tmp_name = tempfile.mkstemp()
 
         # use a file object to simplify byte conversion
         fout = os.fdopen(tmp_file, 'w')
         try:
             fout.write('\n')
-            if unset:
+            if remove:
                 fout.write('# unset\n')
-                for k in unset:
-                    if k not in environment:
+                for k in remove:
+                    if k not in source:
                         fout.write('unset %s\n' % k)
                 fout.write('\n')
 
@@ -164,9 +163,9 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
                     fout.write('unset %s\n' % k)
                 fout.write('\n')
 
-            if environment:
+            if source:
                 fout.write('# export\n')
-                for k, v in environment.items():
+                for k, v in source.items():
                     # FIXME: shell quoting for value
                     if k not in BLACKLIST:
                         fout.write("export %s='%s'\n" % (k, v))
@@ -193,18 +192,18 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
         _env_cache[cache_md5] = env
 
 
-    # if `script_path` is specified, create a script with that name which unsets
-    # the same names as in the tmp script above, and exports all vars from the
+    # if `target` is specified, create a script with that name which unsets the
+    # same names as in the tmp script above, and exports all vars from the
     # resulting env from above (thus storing the *results* of the pre_exec'ed
     # env, not the env and pre_exec directives themselves).
     #
     # FIXME: files could also be cached and re-used (copied or linked)
-    if script_path:
-        with open(script_path, 'w') as fout:
+    if target:
+        with open(target, 'w') as fout:
 
             fout.write('\n# unset\n')
-            for k in unset:
-                if k not in environment:
+            for k in remove:
+                if k not in source:
                     fout.write('unset %s\n' % k)
             fout.write('\n')
 
