@@ -261,7 +261,7 @@ def test_base():
     elems = base.split('/')
     assert(elems[-1] == '.foo'), elems
 
-    base = ru.get_base(ns='foo', module='bar')
+    base = ru.get_base(ns='foo', module='foo.bar')
     assert(base), base
     assert(base[0] == '/'), base
     base  = base.rstrip('/')

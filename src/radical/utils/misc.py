@@ -882,7 +882,7 @@ def get_base(ns, module=None):
     if module:
         module = module.replace('.', '/')
         if module.startswith('%s/' % ns_low):
-            module = module[8:]
+            module = module[len(ns_low) + 1:]
 
     base = os.environ.get("%s_BASE" % ns_up)
 
