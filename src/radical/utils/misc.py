@@ -8,13 +8,21 @@ import socket
 import tarfile
 import datetime
 import tempfile
-import importlib
 import itertools
 import netifaces
 
 from .         import url       as ruu
 from .modules  import import_module
 from .ru_regex import ReString
+
+# ------------------------------------------------------------------------------
+#
+# globals
+#
+_RU_stdout = None
+_RU_stderr = None
+_RU_except = None
+_RU_exit   = None
 
 
 # ------------------------------------------------------------------------------
@@ -857,28 +865,42 @@ def get_radical_base(module=None):
     slashes.  Leading `radical/` element is removed.
     '''
 
+    return get_base(ns='radical', module=module)
+
+
+# ------------------------------------------------------------------------------
+#
+def get_base(ns, module=None):
+    '''
+    A generic version of `get_radical_base` which queries the base for any
+    namespace `ns`
+    '''
+
+    ns_low = ns.lower()
+    ns_up  = ns.upper()
+
     if module:
         module = module.replace('.', '/')
-        if module.startswith('radical/'):
-            module = module[8:]
+        if module.startswith('%s/' % ns_low):
+            module = module[len(ns_low) + 1:]
 
-    base = os.environ.get("RADICAL_BASE")
+    base = os.environ.get("%s_BASE" % ns_up)
 
     if not base:
         # backward compatibility
-        base = os.environ.get("RADICAL_BASE_DIR")
+        base = os.environ.get("%s_BASE_DIR" % ns_up)
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("HOME")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.environ.get("PWD")
 
-    if not base or not os.path.isdir(base):
+    if not base:
         base  = os.getcwd()
 
-    if module: base += '/.radical/%s/' % module
-    else     : base += '/.radical/'
+    if module: base += '/.%s/%s/' % (ns_low, module)
+    else     : base += '/.%s/'    %  ns_low
 
     rec_makedir(base)
 
@@ -1050,6 +1072,8 @@ def script_2_func(fpath):
     return ret
 
   # # --------------------------------------------------------------------------
+  #
+  # import importlib
   #
   # loader = importlib.machinery.SourceFileLoader('__main__', fpath)
   # spec   = importlib.util.spec_from_loader(loader.name, loader)
