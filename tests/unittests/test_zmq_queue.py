@@ -87,8 +87,8 @@ def test_zmq_queue():
 
         getter.stop()
 
-    t_a = mt.Thread(target=work_put, args=[A, 'A', c_a, 0.010])
-    t_b = mt.Thread(target=work_put, args=[B, 'B', c_b, 0.005])
+    t_a = mt.Thread(target=work_put, args=[A, 'A', c_a, 0.02])
+    t_b = mt.Thread(target=work_put, args=[B, 'B', c_b, 0.01])
     t_c = mt.Thread(target=work_get, args=[C, 'C'])
     t_d = mt.Thread(target=work_get, args=[D, 'D'])
 
@@ -287,8 +287,8 @@ def test_zmq_queue_cb():
             idx += 1
             data['put'][uid].append(uid)
 
-    t_a = mt.Thread(target=work_put, args=[A, 'A', c_a, 0.010])
-    t_b = mt.Thread(target=work_put, args=[B, 'B', c_b, 0.005])
+    t_a = mt.Thread(target=work_put, args=[A, 'A', c_a, 0.02])
+    t_b = mt.Thread(target=work_put, args=[B, 'B', c_b, 0.01])
 
     t_a.daemon = True
     t_b.daemon = True
