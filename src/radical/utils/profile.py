@@ -4,7 +4,7 @@ import csv
 import time
 
 from   .ids     import get_radical_base
-from   .misc    import as_string
+from   .misc    import as_string, as_list
 from   .misc    import get_env_ns      as ru_get_env_ns
 from   .misc    import get_hostname    as ru_get_hostname
 from   .misc    import get_hostip      as ru_get_hostip
@@ -233,7 +233,7 @@ class Profiler(object):
 
             if self._enabled and self._handle:
                 self.prof("END")
-                self.flush(verbose=False)
+                self.flush()
                 self._handle.close()
                 self._handle = None
 
@@ -243,7 +243,7 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
-    def flush(self, verbose=True):
+    def flush(self, verbose=False):
 
         if not self._enabled: return
         if not self._handle : return
@@ -274,15 +274,12 @@ class Profiler(object):
         if msg   is None: msg   = ''
 
         # if uid is a list, then recursively call self.prof for each uid given
-        if isinstance(uid, list):
-            for _uid in uid:
-                self.prof(event=event, uid=_uid, state=state, msg=msg,
-                          ts=ts, comp=comp, tid=tid)
-            return
+        for _uid in as_list(uid):
 
-        data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
-                % (ts, event, comp, tid, uid, state, msg)
-        self._handle.write(data)
+            data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
+                    % (ts, event, comp, tid, _uid, state, msg)
+            self._handle.write(data)
+            self._handle.flush()
 
 
     # --------------------------------------------------------------------------
