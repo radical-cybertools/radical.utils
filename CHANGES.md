@@ -3,6 +3,21 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.9 Release                                                         2021-01-18
+--------------------------------------------------------------------------------
+
+  - test additions and fixes
+  - add python path to stack info
+  - tools for environment capture, merge and setup (py and sh)
+  - fix config-munchification
+  - Fix profiler data flushing
+  - get lockfile owner
+  - github actions for radical.utils
+  - generic version of `get_radical_base` for arbitrary name spaces
+  - move locking mechanism to symlinks
+  - remove verbose option from radical-stack
+
+
 1.5.8 Release                                                         2020-11-23
 --------------------------------------------------------------------------------
 
