@@ -3,9 +3,6 @@ import os
 import csv
 import time
 
-import threading as mt
-
-
 from .ids     import get_radical_base
 from .misc    import as_string, as_list
 from .misc    import get_env_ns      as ru_get_env_ns
@@ -14,41 +11,6 @@ from .misc    import get_hostip      as ru_get_hostip
 from .threads import get_thread_name as ru_get_thread_name
 from .config  import DefaultConfig
 from .atfork  import atfork
-
-
-# ------------------------------------------------------------------------------
-#
-# the profiler is not using threads and is generally threadsafe (all write ops
-# should be atomic) - but alas Python threadlocks I/O streams, and those locks
-# can still deadlock after fork
-#
-#   - https://bugs.python.org/issue6721
-#   - https://bugs.python.org/issue40399
-#
-# We thus have to close/reopen the prof file handle after fork.  This creates
-# a but of a mess as we not have to maintain a global list of profiler instances
-# to clean up after fork... :-/
-#
-_profilers = list()
-def _atfork_prepare():
-    pass
-
-
-def _atfork_parent():
-    pass
-
-
-def _atfork_child():
-    global _profilers
-    for prof, fname in _profilers:
-        prof._handle = open(fname, 'a', buffering=1024)
-
-
-# lock cleaning can be disabled by setting RADICAL_UTILS_NO_ATFORK
-if 'RADICAL_UTILS_NO_ATFORK' not in os.environ:
-    atfork(_atfork_prepare, _atfork_parent, _atfork_child)
-
-
 
 
 # ------------------------------------------------------------------------------
@@ -142,8 +104,43 @@ def _sync_ntp():
 
 # ------------------------------------------------------------------------------
 #
+# the profiler is not using threads and is generally threadsafe (all write ops
+# should be atomic) - but alas Python threadlocks I/O streams, and those locks
+# can still deadlock after fork
+#
+#   - https://bugs.python.org/issue6721
+#   - https://bugs.python.org/issue40399
+#
+# We thus have to close/reopen the prof file handle after fork.  This creates
+# a bit of a mess as we not have to maintain a global list of profiler instances
+# to clean up after fork... :-/
+#
+_profilers = list()
+
+
+def _atfork_prepare():
+    pass
+
+
+def _atfork_parent():
+    pass
+
+
+def _atfork_child():
+    global _profilers
+    for prof, fname in _profilers:
+        prof._handle = open(fname, 'a', buffering=1024)
+
+
+# lock cleaning can be disabled by setting RADICAL_UTILS_NO_ATFORK
+if 'RADICAL_UTILS_NO_ATFORK' not in os.environ:
+    atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+
+
+# ------------------------------------------------------------------------------
+#
 class Profiler(object):
-    """
+    '''
     This class is really just a persistent file handle with a convenience call
     (prof()) to write lines timestamped events.  Any profiling intelligence must
     be applied when reading and evaluating the created profiles.  the following
@@ -172,16 +169,16 @@ class Profiler(object):
 
     If either is present in the environemnt, the profile is enabled (the value
     of the setting is ignored).
-    """
+    '''
 
     fields  = ['time', 'event', 'comp', 'thread', 'uid', 'state', 'msg']
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, ns=None, path=None):
-        """
+        '''
         Open the file handle, sync the clock, and write timestam_zero
-        """
+        '''
 
         ru_def = DefaultConfig()
 
@@ -220,7 +217,7 @@ class Profiler(object):
         # performance wise - but will not do an `fsync()` after writes, so OS
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
-        fname = "%s/%s.prof" % (self._path, self._name)
+        fname = '%s/%s.prof' % (self._path, self._name)
         self._handle = open(fname, 'a', buffering=1024)
 
         # register for cleanup after fork
@@ -230,11 +227,11 @@ class Profiler(object):
 
         # write header and time normalization info
         if self._handle:
-            self._handle.write("#%s\n" % (','.join(Profiler.fields)))
-            self._handle.write("%.7f,%s,%s,%s,%s,%s,%s\n" %
+            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
+            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
                            (self.timestamp(), 'sync_abs', self._name,
                             ru_get_thread_name(), '', '',
-                            "%s:%s:%s:%s:%s" % (ru_get_hostname(),
+                            '%s:%s:%s:%s:%s' % (ru_get_hostname(),
                                                 ru_get_hostip(),
                                                 self._ts_zero,
                                                 self._ts_abs,
@@ -278,7 +275,7 @@ class Profiler(object):
                 return
 
             if self._enabled and self._handle:
-                self.prof("END")
+                self.prof('END')
                 self.flush()
                 self._handle.close()
                 self._handle = None
@@ -295,7 +292,7 @@ class Profiler(object):
         if not self._handle : return
 
         if verbose:
-            self.prof("flush")
+            self.prof('flush')
 
         # see https://docs.python.org/2/library/stdtypes.html#file.flush
         self._handle.flush()
@@ -322,7 +319,7 @@ class Profiler(object):
         # if uid is a list, then recursively call self.prof for each uid given
         for _uid in as_list(uid):
 
-            data = "%.7f,%s,%s,%s,%s,%s,%s\n" \
+            data = '%.7f,%s,%s,%s,%s,%s,%s\n' \
                     % (ts, event, comp, tid, _uid, state, msg)
             self._handle.write(data)
             self._handle.flush()
@@ -331,9 +328,9 @@ class Profiler(object):
     # --------------------------------------------------------------------------
     #
     def _timestamp_init(self):
-        """
+        '''
         return a tuple of [system time, absolute time]
-        """
+        '''
 
         # retrieve absolute timestamp from an external source
         #
@@ -368,7 +365,7 @@ def timestamp():
 # ------------------------------------------------------------------------------
 #
 def read_profiles(profiles, sid=None, efilter=None):
-    """
+    '''
     We read all profiles as CSV files and parse them.  For each profile,
     we back-calculate global time (epoch) from the synch timestamps.
 
@@ -380,7 +377,7 @@ def read_profiles(profiles, sid=None, efilter=None):
                  }
 
     Filters apply on *substring* matches!
-    """
+    '''
 
     legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
 
@@ -516,7 +513,7 @@ def read_profiles(profiles, sid=None, efilter=None):
 # ------------------------------------------------------------------------------
 #
 def combine_profiles(profs):
-    """
+    '''
     We merge all profiles and sort by time.
 
     This routine expects all profiles to have a synchronization time stamp.
@@ -537,7 +534,7 @@ def combine_profiles(profs):
     written at the exact same time).
 
     The method returnes the combined profile and accuracy, as tuple.
-    """
+    '''
 
     syncs    = dict()  # profiles which have relative time refs
     t_host   = dict()  # time offset per host
@@ -632,8 +629,8 @@ def combine_profiles(profs):
 
         for sync_abs in syncs[pname]['abs']:
 
+            # https://github.com/radical-cybertools/radical.analytics/issues/20
             if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
-                # https://github.com/radical-cybertools/radical.analytics/issues/20
               # print('unsynced profile %s [%s]' % (pname, sync_abs))
                 continue
 
@@ -735,16 +732,16 @@ def combine_profiles(profs):
 # ------------------------------------------------------------------------------
 #
 def clean_profile(profile, sid, state_final=None, state_canceled=None):
-    """
-    This method will prepare a profile for consumption in radical.analytics.  It
-    performs the following actions:
+    '''
+    This method will prepare a profile for consumption in radical.analytics.
+    It performs the following actions:
 
       - makes sure all events have a `ename` entry
       - remove all state transitions to `CANCELLED` if a different final state
         is encountered for the same uid
       - assignes the session uid to all events without uid
       - makes sure that state transitions have an `ename` set to `state`
-    """
+    '''
 
     entities = dict()  # things which have a uid
 
