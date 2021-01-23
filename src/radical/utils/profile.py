@@ -3,13 +3,52 @@ import os
 import csv
 import time
 
-from   .ids     import get_radical_base
-from   .misc    import as_string, as_list
-from   .misc    import get_env_ns      as ru_get_env_ns
-from   .misc    import get_hostname    as ru_get_hostname
-from   .misc    import get_hostip      as ru_get_hostip
-from   .threads import get_thread_name as ru_get_thread_name
-from   .config  import DefaultConfig
+import threading as mt
+
+
+from .ids     import get_radical_base
+from .misc    import as_string, as_list
+from .misc    import get_env_ns      as ru_get_env_ns
+from .misc    import get_hostname    as ru_get_hostname
+from .misc    import get_hostip      as ru_get_hostip
+from .threads import get_thread_name as ru_get_thread_name
+from .config  import DefaultConfig
+from .atfork  import atfork
+
+
+# ------------------------------------------------------------------------------
+#
+# the profiler is not using threads and is generally threadsafe (all write ops
+# should be atomic) - but alas Python threadlocks I/O streams, and those locks
+# can still deadlock after fork
+#
+#   - https://bugs.python.org/issue6721
+#   - https://bugs.python.org/issue40399
+#
+# We thus have to close/reopen the prof file handle after fork.  This creates
+# a but of a mess as we not have to maintain a global list of profiler instances
+# to clean up after fork... :-/
+#
+_profilers = list()
+def _atfork_prepare():
+    pass
+
+
+def _atfork_parent():
+    pass
+
+
+def _atfork_child():
+    global _profilers
+    for prof, fname in _profilers:
+        prof._handle = open(fname, 'a', buffering=1024)
+
+
+# lock cleaning can be disabled by setting RADICAL_UTILS_NO_ATFORK
+if 'RADICAL_UTILS_NO_ATFORK' not in os.environ:
+    atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+
+
 
 
 # ------------------------------------------------------------------------------
@@ -58,6 +97,8 @@ NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
 CSV_FIELD_SIZE_LIMIT = 9223372036854775807
 
 
+# ------------------------------------------------------------------------------
+#
 def _sync_ntp():
 
     # read from disk cache
@@ -179,8 +220,13 @@ class Profiler(object):
         # performance wise - but will not do an `fsync()` after writes, so OS
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
-        self._handle = open("%s/%s.prof" % (self._path, self._name), 'a',
-                            buffering=1024)
+        fname = "%s/%s.prof" % (self._path, self._name)
+        self._handle = open(fname, 'a', buffering=1024)
+
+        # register for cleanup after fork
+        global _profilers
+        _profilers.append([self, fname])
+
 
         # write header and time normalization info
         if self._handle:
