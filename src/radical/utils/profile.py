@@ -106,13 +106,13 @@ def _sync_ntp():
 #
 # the profiler is not using threads and is generally threadsafe (all write ops
 # should be atomic) - but alas Python threadlocks I/O streams, and those locks
-# can still deadlock after fork
+# can still deadlock after fork:
 #
 #   - https://bugs.python.org/issue6721
 #   - https://bugs.python.org/issue40399
 #
 # We thus have to close/reopen the prof file handle after fork.  This creates
-# a bit of a mess as we not have to maintain a global list of profiler instances
+# a bit of a mess as we now have to maintain a global list of profiler instances
 # to clean up after fork... :-/
 #
 _profilers = list()
