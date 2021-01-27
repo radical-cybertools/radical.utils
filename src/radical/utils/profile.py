@@ -132,9 +132,7 @@ def _atfork_child():
         prof._handle = open(fname, 'a', buffering=1024)
 
 
-# lock cleaning can be disabled by setting RADICAL_UTILS_NO_ATFORK
-if 'RADICAL_UTILS_NO_ATFORK' not in os.environ:
-    atfork(_atfork_prepare, _atfork_parent, _atfork_child)
+atfork(_atfork_prepare, _atfork_parent, _atfork_child)
 
 
 # ------------------------------------------------------------------------------
