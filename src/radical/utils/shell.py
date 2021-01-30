@@ -102,10 +102,11 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
     #       python applications.
     assert(False), 'this is broken for python apps'
 
-    if not env: env = os.environ
-
+    if not env:
+        env = os.environ
 
     # --------------------------------------------------------------------------
+    #
     class _P(object):
         '''
         internal representation of a process
@@ -159,11 +160,13 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
                 raise RuntimeError('stdin not captured')
             return self._in_q
 
+
         @property
         def stdout(self):
             if not self._out_c:
                 raise RuntimeError('stdout not captured')
             return self._out_q
+
 
         @property
         def stderr(self):
@@ -178,16 +181,20 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
                 raise RuntimeError('stdout not recorded')
             return self._out_f.name
 
+
         @property
         def stderr_filename(self):
             if not self._err_f:
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
 
+
         def kill(self):
             self._proc.terminate()
 
+
         # ----------------------------------------------------------------------
+        #
         def _watch(self):
 
             poller = select.poll()
