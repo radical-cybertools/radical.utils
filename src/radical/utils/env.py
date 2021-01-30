@@ -25,6 +25,18 @@ _env_cache = dict()
 
 # ------------------------------------------------------------------------------
 #
+def _unquote(data):
+
+    while data.startswith("'") and data.endswith("'"):
+        data = data[1:-1]
+    while data.startswith('"') and data.endswith('"'):
+        data = data[1:-1]
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
 def env_eval(fname):
     '''
     helper to create a dictionary with the env settings in the specified file
@@ -52,11 +64,7 @@ def env_eval(fname):
                 del(env[k])
             elif cmd == 'export':
                 k,v = spec.split('=', 1)
-                while v.startswith("'") and v.endswith("'"):
-                    v = v[1:-1]
-                while v.startswith('"') and v.endswith('"'):
-                    v = v[1:-1]
-                env[k] = v
+                env[k] = _unquote(v)
 
     return env
 
