@@ -79,8 +79,13 @@ def test_env_read():
 def test_env_eval():
 
     fname = '/tmp/env.%d' % os.getpid()
-    os.system('/bin/sh -c "env | sed -e \\"s/^/export /g\\" > %s"' % fname)
     try:
+        cmd   = "sh -c \"env " \
+                "| sed -e \\\"s/^/export /\\\" "\
+                "| sed -e \\\"s/=/='/\\\" " \
+                "| sed -e \\\"s/$/'/\\\" "\
+                "> %s\"" % fname
+        os.system(cmd)
         env = ru.env_eval(fname)
 
         for k,v in env.items():

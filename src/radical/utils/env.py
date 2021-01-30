@@ -62,7 +62,7 @@ def env_eval(fname):
                 del(env[k])
             elif cmd == 'export':
                 k,v = spec.split('=', 1)
-                env[k] = _unquote(v)
+                env[k] = v
 
     return env
 
