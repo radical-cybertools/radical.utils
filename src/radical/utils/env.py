@@ -25,6 +25,44 @@ _env_cache = dict()
 
 # ------------------------------------------------------------------------------
 #
+def env_eval(fname):
+    '''
+    helper to create a doctionary with the env settings in the specified file
+    which contains `unset` and `export` directives
+    '''
+
+    env = dict()
+    with open(fname, 'r') as fin:
+
+        for line in fin.readlines():
+
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith('#'):
+                continue
+
+            cmd, spec = line.split(' ', 1)
+            if cmd == 'unset':
+                k = spec.strip()
+                if k not in env:
+                    continue
+                del(env[k])
+            elif cmd == 'export':
+                k,v = spec.split('=', 1)
+                while v.startswith("'") and v.endswith("'"):
+                    v = v[1:-1]
+                while v.startswith('"') and v.endswith('"'):
+                    v = v[1:-1]
+                env[k] = v
+
+    return env
+
+
+# ------------------------------------------------------------------------------
+#
 def env_read(fname):
     '''
     helper to parse environment from a file: this method parses the output of
@@ -153,23 +191,30 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
             fout.write('\n')
             if unset:
                 fout.write('# unset\n')
-                for k in unset:
+                for k in sorted(unset):
                     if k not in environment:
                         fout.write('unset %s\n' % k)
                 fout.write('\n')
 
             if BLACKLIST:
                 fout.write('# blacklist\n')
-                for k in BLACKLIST:
+                for k in sorted(BLACKLIST):
                     fout.write('unset %s\n' % k)
                 fout.write('\n')
 
             if environment:
                 fout.write('# export\n')
-                for k, v in environment.items():
+                for k in sorted(environment.keys()):
                     # FIXME: shell quoting for value
-                    if k not in BLACKLIST:
-                        fout.write("export %s='%s'\n" % (k, v))
+                    if k in BLACKLIST:
+                        continue
+                    v = environment[k]
+                    if "'" in v:
+                        # use double quotes, quote existing double quotes
+                        v = '"%s"' % v.replace('"', '\\"')
+                    else:
+                        v = "'%s'" % v
+                    fout.write("export %s=%s\n" % (k, v))
                 fout.write('\n')
 
             if pre_exec:
@@ -181,7 +226,7 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
         finally:
             fout.close()
 
-        cmd = '/bin/sh -c ". %s && env | sort"' % tmp_name
+        cmd = '/bin/sh -c ". %s && /usr/bin/env | /usr/bin/sort"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
         if ret:
@@ -203,20 +248,25 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
         with open(script_path, 'w') as fout:
 
             fout.write('\n# unset\n')
-            for k in unset:
+            for k in sorted(unset):
                 if k not in environment:
                     fout.write('unset %s\n' % k)
             fout.write('\n')
 
             fout.write('# blacklist\n')
-            for k in BLACKLIST:
+            for k in sorted(BLACKLIST):
                 fout.write('unset %s\n' % k)
             fout.write('\n')
 
             fout.write('# export\n')
-            for k, v in env.items():
-                # FIXME: shell quoting for value
-                fout.write("export %s='%s'\n" % (k, v))
+            for k in sorted(env.keys()):
+                v = env[k]
+                if "'" in v:
+                    # use double quotes, quote existing double quotes
+                    v = '"%s"' % v.replace('"', '\\"')
+                else:
+                    v = "'%s'" % v
+                fout.write("export %s=%s\n" % (k, v))
             fout.write('\n')
 
     return env
