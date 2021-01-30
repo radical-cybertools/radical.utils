@@ -27,10 +27,8 @@ _env_cache = dict()
 #
 def _unquote(data):
 
-    while data.startswith("'") and data.endswith("'"):
-        data = data[1:-1]
-    while data.startswith('"') and data.endswith('"'):
-        data = data[1:-1]
+    if   data.startswith("'") and data.endswith("'"): data = data[1:-1]
+    elif data.startswith('"') and data.endswith('"'): data = data[1:-1]
 
     return data
 

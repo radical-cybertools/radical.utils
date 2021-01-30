@@ -78,8 +78,6 @@ def test_env_read():
 #
 def test_env_eval():
 
-    unquote = ru.env._unquote
-
     fname = '/tmp/env.%d' % os.getpid()
     os.system('/bin/sh -c "env | sed -e \\"s/^/export /g\\" > %s"' % fname)
     try:
@@ -87,11 +85,11 @@ def test_env_eval():
 
         for k,v in env.items():
             if k not in ru.env.BLACKLIST:
-                assert(unquote(os.environ[k]) == unquote(v))
+                assert(os.environ[k] == v)
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
-                assert(unquote(env[k]) == unquote(v))
+                assert(env[k] == v)
 
     finally:
         try   : os.unlink(fname)
