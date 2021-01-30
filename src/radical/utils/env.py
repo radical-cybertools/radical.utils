@@ -27,7 +27,7 @@ _env_cache = dict()
 #
 def env_eval(fname):
     '''
-    helper to create a doctionary with the env settings in the specified file
+    helper to create a dictionary with the env settings in the specified file
     which contains `unset` and `export` directives
     '''
 

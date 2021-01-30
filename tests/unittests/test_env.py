@@ -14,7 +14,7 @@ BLACKLIST_LOCAL_SYS = ['XPC_SERVICE_NAME']
 
 # ------------------------------------------------------------------------------
 #
-def test_prep_env():
+def test_env_prep():
 
     try   : del(os.environ['TEST'])
     except: pass
@@ -55,9 +55,54 @@ def test_prep_env():
 
 # ------------------------------------------------------------------------------
 #
+def test_env_read():
+
+    fname = '/tmp/env.%d' % os.getpid()
+    os.system('/bin/sh -c "env > %s"' % fname)
+    try:
+        env = ru.env_read(fname)
+
+        for k,v in env.items():
+            assert(os.environ[k] == v)
+
+        for k,v in os.environ.items():
+            if k not in ru.env.BLACKLIST:
+                assert(env[k] == v)
+
+    finally:
+        try   : os.unlink(fname)
+        except: pass
+
+
+# ------------------------------------------------------------------------------
+#
+def test_env_eval():
+
+    fname = '/tmp/env.%d' % os.getpid()
+    os.system('/bin/sh -c "env | sed -e \\"s/^/export /g\\" > %s"' % fname)
+    try:
+        env = ru.env_eval(fname)
+
+        for k,v in env.items():
+            if k not in ru.env.BLACKLIST:
+                assert(os.environ[k] == v)
+
+        for k,v in os.environ.items():
+            if k not in ru.env.BLACKLIST:
+                assert(env[k] == v)
+
+    finally:
+        try   : os.unlink(fname)
+        except: pass
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
-    test_prep_env()
+    test_env_prep()
+    test_env_read()
+    test_env_eval()
 
 
 # ------------------------------------------------------------------------------
