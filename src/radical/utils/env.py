@@ -132,7 +132,8 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(environment, unset=None, pre_exec=None, script_path=None):
+def env_prep(environment, unset=None, pre_exec=None, inject=None,
+                          script_path=None):
     '''
     create a shell script which restores the environment specified in
     `environment` (a dict).  While doing so, ensure that all env variables
@@ -152,6 +153,11 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
     If `script_path` is given, a shell script will be created in the given
     location so that shell commands can source it and restore the specified
     environment.
+
+    Any commands given in 'inject' will be part of the cached script, and will
+    thus *not* be executed when preparing the env, but *will* be executed
+    whenever the prepared shell script is sources.  The returned env dictionary
+    will thus *not* include the effects of those injected commands.
     '''
 
     global _env_cache
@@ -275,6 +281,12 @@ def env_prep(environment, unset=None, pre_exec=None, script_path=None):
                     v = "'%s'" % v
                 fout.write("export %s=%s\n" % (k, v))
             fout.write('\n')
+
+            if inject:
+                fout.write('# env_prep commands\n')
+                for cmd in inject:
+                    fout.write('%s\n' % cmd)
+                fout.write('\n')
 
     return env
 
