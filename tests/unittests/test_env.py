@@ -90,7 +90,7 @@ def test_env_eval():
 
         for k,v in env.items():
             if k not in ru.env.BLACKLIST:
-                assert(os.environ[k] == v)
+                assert(os.environ[k] == v), [os.environ[k], v]
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
