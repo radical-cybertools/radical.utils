@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.5.12 Release                                                        2021-02-02
+--------------------------------------------------------------------------------
+
+  - make profiler fork-save
+
+
 1.5.9 Release                                                         2021-01-18
 --------------------------------------------------------------------------------
 
