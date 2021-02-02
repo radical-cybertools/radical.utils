@@ -132,7 +132,7 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(environment, unset=None, pre_exec=None, inject=None,
+def env_prep(environment, unset=None, pre_exec=None, cmds=None,
                           script_path=None):
     '''
     create a shell script which restores the environment specified in
@@ -154,7 +154,7 @@ def env_prep(environment, unset=None, pre_exec=None, inject=None,
     location so that shell commands can source it and restore the specified
     environment.
 
-    Any commands given in 'inject' will be part of the cached script, and will
+    Any commands given in 'cmds' will be part of the cached script, and will
     thus *not* be executed when preparing the env, but *will* be executed
     whenever the prepared shell script is sources.  The returned env dictionary
     will thus *not* include the effects of those injected commands.
@@ -282,9 +282,9 @@ def env_prep(environment, unset=None, pre_exec=None, inject=None,
                 fout.write("export %s=%s\n" % (k, v))
             fout.write('\n')
 
-            if inject:
+            if cmds:
                 fout.write('# env_prep commands\n')
-                for cmd in inject:
+                for cmd in cmds:
                     fout.write('%s\n' % cmd)
                 fout.write('\n')
 
