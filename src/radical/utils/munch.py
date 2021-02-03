@@ -60,10 +60,18 @@ class Munch(DictMixin):
             self._schema = dict()
           # raise RuntimeError('class %s has no schema defined' % self.__name__)
 
+        if hasattr(self, '_schema_extend'):
+            extend = object.__getattribute__(self, '_schema_extend')
+            self._schema.update(extend)
+
         self._data = dict()
 
         if hasattr(self, '_defaults'):
             self.update(copy.deepcopy(self._defaults))
+
+        if hasattr(self, '_defaults_extend'):
+            extend = object.__getattribute__(self, '_defaults_extend')
+            self._data.update(copy.deepcopy(extend))
 
         self.update(from_dict)
 
