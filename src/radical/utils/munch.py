@@ -1,4 +1,6 @@
 
+# pylint: disable=raise-missing-from
+
 # ------------------------------------------------------------------------------
 #
 # We provide a base class for all kinds of dict-like data objects in the RCT
