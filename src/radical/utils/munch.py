@@ -71,7 +71,7 @@ class Munch(DictMixin):
             self.update(copy.deepcopy(self._defaults))
 
         if hasattr(self, '_defaults_extend'):
-            self._data.update(copy.deepcopy(self._defaults_extend))
+            self.update(copy.deepcopy(self._defaults_extend))
 
         self.update(from_dict)
 
