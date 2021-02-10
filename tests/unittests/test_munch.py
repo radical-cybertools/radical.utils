@@ -213,8 +213,11 @@ def test_munch_inherit():
     # class whose schema is composed
     class Bar(Foo):
         _schema_extend   = {'four': int,
-                            'five': float}
-        _defaults_extend = {'four': 42}
+                            'five': float,
+                            'six' : Foo}
+        _defaults_extend = {'four': 42,
+                            'six' : {'one'  : 1,
+                                     'three': [33, 33]}}
 
     # --------------------------------------------------------------------------
     b = Bar()
@@ -224,6 +227,8 @@ def test_munch_inherit():
     assert (b.three              == [3, 3, 3])
     assert (b.four               == 42), b.four
     assert (b.five               is None)
+    assert (b.six.one            == 1)
+    assert (b.six.three[1]       == 33)
 
 
 # ------------------------------------------------------------------------------
