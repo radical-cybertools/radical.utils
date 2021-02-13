@@ -2,6 +2,7 @@
 import os
 import csv
 import time
+from types import FrameType
 
 from .ids     import get_radical_base
 from .misc    import as_string, as_list
@@ -57,6 +58,14 @@ NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
 # entities in the profile, the larger the size of the filed required by the
 # csv parser. We assume a 64bit C long.
 CSV_FIELD_SIZE_LIMIT = 9223372036854775807
+
+
+_t_prev = time.time()
+def tdiff(msg):
+    global _t_prev
+    now = time.time()
+    print('RU %10.2f  :  %s' % (now - _t_prev, msg))
+    _t_prev = now
 
 
 # ------------------------------------------------------------------------------
@@ -361,148 +370,63 @@ def timestamp():
 
 # ------------------------------------------------------------------------------
 #
-def read_profiles(profiles, sid=None, efilter=None):
+def read_profiles(profiles, sid=None):
     '''
-    We read all profiles as CSV files and parse them.  For each profile,
-    we back-calculate global time (epoch) from the synch timestamps.
-
-    The caller can provide a filter of the following structure
-
-        filter = {ru.EVENT: ['event 1', 'event 2', ...],
-                  ru.MSG  : ['msg 1',   'msg 2',   ...],
-                  ...
-                 }
-
-    Filters apply on *substring* matches!
+    Use `datatables.fread` to read the CVS profiles into data tables.
+    The `time` column is auto-converted to float.  The resulting tables
+    are converted into pandas data frames.
     '''
 
-    legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
+    tdiff('read reset')
+    from datatable import dt, fread
 
-    if legacy and legacy.lower() not in ['no', 'false']:
-        legacy = True
-    else:
-        legacy = False
+    dt.options.progress.enabled = True
 
-    # set the maximum field size allowed by the csv parser
-    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
+  # columns = ['time'    , 'event' , 'comp', 'thread',    'uid',  'state',    'msg']
+    columns = [dt.float64, dt.str32,   None,     None, dt.str32, dt.str32, dt.str32]
+    names   = {'C0' : 'time',
+               'C1' : 'event',
+             # 'C2' : 'comp',
+             # 'C3' : 'thread',
+               'C2' : 'uid',
+               'C3' : 'state',
+               'C4' : 'msg'}
 
-  # import resource
-  # print('max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024)))
+    ret = dict()
+    for pname in profiles:
+        tdiff('read  %s' % pname)
+        table = fread(pname, columns=columns, na_strings=[''], fill=True,)
 
-    # FIXME: we correct one pesky profile entry, which is exactly 1.000 in an
-    #        otherwise ntp-aligned profile - see [1].  In this case we use the
-    #        previous timestamp (if available)
-    #
-    #    [1] https://github.com/radical-cybertools/radical.pilot/issues/1117
+        if not table.nrows:
+            continue
 
-    if not efilter:
-        efilter = dict()
+        table.names = names
+        table['entity'] = str()
+        tdiff('table read %s' % pname)
 
-    ret     = dict()
-    last    = list()
-    skipped = 0
+      # for i in range(table.nrows):
+      #     import sys
+      #     sys.stdout.write('.')
+      #     sys.stdout.flush()
+      #     uid = table[i, 2]
+      #     if uid:
+      #         if '.' in uid:
+      #             etype, _ = uid.split('.', 1)
+      #         else:
+      #             etype = uid
+      #     else:
+      #         etype = 'session'
+      #
+      #     table[i, 5] = etype
 
-    for prof in profiles:
+      # if table.nrows > 3:
+      #     print(table)
 
-        with open(prof, 'r') as csvfile:
+        tdiff('table fix %s' % pname)
+        ret[pname] = table
+        tdiff('frame %s' % pname)
 
-            ret[prof] = list()
-            reader    = csv.reader(csvfile)
-
-            try:
-                for raw in reader:
-
-                    # we keep the raw data around for error checks
-                    row = list(raw)
-
-                  # if 'bootstrap_1' in row:
-                  #     print()
-                  #     print(row)
-
-                    # skip header
-                    if row[TIME].startswith('#'):
-                        skipped += 1
-                        continue
-
-                    # make room in the row for entity type etc.
-                    row.extend([None] * (PROF_KEY_MAX - len(row)))
-
-                    row[TIME] = float(row[TIME])
-
-                    # we derive entity type from the uid -- but funnel
-                    # some cases into 'session' as a catch-all type
-                    uid = row[UID]
-                    if uid:
-                        row[ENTITY] = uid.split('.',1)[0]
-                    else:
-                        row[ENTITY] = 'session'
-                        row[UID]    = sid
-
-                    # we should have no unset (ie. None) fields left - otherwise
-                    # the profile was likely not correctly closed.
-                    if None in row:
-                        if legacy:
-                            comp, tid = row[1].split(':', 1)
-                            new_row = [None] * PROF_KEY_MAX
-                            new_row[TIME        ] = row[0]
-                            new_row[EVENT       ] = row[4]
-                            new_row[COMP        ] = comp
-                            new_row[TID         ] = tid
-                            new_row[UID         ] = row[2]
-                            new_row[STATE       ] = row[3]
-                            new_row[MSG         ] = row[5]
-
-                            uid = new_row[UID]
-                            if uid:
-                                new_row[ENTITY] = uid.split('.',1)[0]
-                            else:
-                                new_row[ENTITY] = 'session'
-                                new_row[UID]    = sid
-
-                            row = new_row
-
-                    if None in row:
-                        print('row invalid [%s]: %s' % (prof, raw))
-                        continue
-                      # raise ValueError('row invalid [%s]: %s' % (prof, row))
-
-                    # apply the filter.  We do that after adding the entity
-                    # field above, as the filter might also apply to that.
-                    skip = False
-                    for field, pats in efilter.items():
-                        for pattern in pats:
-                            if row[field] in pattern:
-                                skip = True
-                                break
-                        if skip:
-                            continue
-
-                    # fix rp issue 1117 (see FIXME above)
-                    if row[TIME] == 1.0 and last:
-                        row[TIME] = last[TIME]
-
-                    if not skip:
-                        ret[prof].append(row)
-
-                    last = row
-
-                  # print(' --- %-30s -- %-30s ' % (row[STATE], row[MSG]))
-                  # if 'bootstrap_1' in row:
-                  #     print(row)
-                  #     print()
-                  #     print('TIME    : %s' % row[TIME  ])
-                  #     print('EVENT   : %s' % row[EVENT ])
-                  #     print('COMP    : %s' % row[COMP  ])
-                  #     print('TID     : %s' % row[TID   ])
-                  #     print('UID     : %s' % row[UID   ])
-                  #     print('STATE   : %s' % row[STATE ])
-                  #     print('ENTITY  : %s' % row[ENTITY])
-                  #     print('MSG     : %s' % row[MSG   ])
-
-            except:
-                raise
-              # print('skip remainder of %s' % prof)
-              # continue
+    tdiff('read done')
 
     return ret
 
@@ -513,216 +437,110 @@ def combine_profiles(profs):
     '''
     We merge all profiles and sort by time.
 
-    This routine expects all profiles to have a synchronization time stamp.
-    Two kinds of sync timestamps are supported: absolute (`sync_abs`) and
-    relative (`sync_rel`).
+    This routine expects all profiles to have a synchronization time stamp
+    (`sync_abs`) We expect one such absolute timestamp to be available per host
+    (the first profile entry will contain host information).  All timestamps
+    from the same host will be corrected by the respectively determined NTP
+    offset.  We define an 'accuracy' measure which is the maximum difference of
+    clock correction offsets across all hosts.  All time stamps are then
+    0-aligned, so that the smalles timestamp in the returned data frame is 0.0.
 
-    Time syncing is done based on 'sync_abs' timestamps.  We expect one such
-    absolute timestamp to be available per host (the first profile entry will
-    contain host information).  All timestamps from the same host will be
-    corrected by the respectively determined NTP offset.  We define an
-    'accuracy' measure which is the maximum difference of clock correction
-    offsets across all hosts.
-
-    The `sync_rel` timestamps are expected to occur in pairs, one for a profile
-    with no other sync timestamp, and one profile which has
-    a `sync_abs`timestamp.  In that case, the time correction from the latter is
-    transfered to the former (the two time stamps are considered to have been
-    written at the exact same time).
-
-    The method returnes the combined profile and accuracy, as tuple.
+    The method returnes the combined profiles (a single pandas data frame)
+    and accuracy, as tuple.
     '''
 
+    from datatable import dt
+
+    tdiff('combine start')
     syncs    = dict()  # profiles which have relative time refs
     t_host   = dict()  # time offset per host
-    p_glob   = list()  # global profile
     t_min    = None    # absolute starting point of profiled session
-    c_end    = 0       # counter for profile closing tag
     accuracy = 0       # max uncorrected clock deviation
 
-    if len(profs) == 1:
-        return list(profs.values())[0], accuracy
-
-    # first get all absolute and relative timestamp sync from the profiles,
-    # for all hosts
-    for pname, prof in profs.items():
-
-        sync_abs = list()
-        sync_rel = list()
-
-        syncs[pname] = {'rel' : sync_rel,
-                        'abs' : sync_abs}
-
-        if not len(prof):
-            continue
-
-        for entry in prof:
-            if entry[EVENT] == 'sync_abs': sync_abs.append(entry)
-            if entry[EVENT] == 'sync_rel': sync_rel.append(entry)
-
-        # we can have any number of sync_rel's - but if we find none, we expect
-        # a sync_abs
-        if not sync_rel and not sync_abs:
-            print('unsynced     %s' % pname)
-
-        syncs[pname] = {'rel' : sync_rel,
-                        'abs' : sync_abs}
-
+    # we expect exactly one `sync_abs` event per profile - all additional ones are
+    # ignored.  This implies that all events in that profile originate on the
+    # same host.  Not that `sync_abs` is always the first event in a profile, we
+    # can thus use it to determine t_min
   # for pname, prof in profs.items():
-  #     if prof:
-  #         print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
+  #
+  #     tdiff('sync start %s' % pname)
+  #     # add an `entity` column to each profile table
+  #     prof['entity'] = str()
+  #
+  #     t_off = 0.0
+  #
+  #     if not prof.nrows:
+  #       # print('WARNING: skip empty profile %s' % pname)
+  #         syncs[pname] = t_off
+  #         continue
+  #
+  #     sync = prof.iloc[0]
+  #   # print(sync)
+  #   # print('==', sync[EVENT])
+  #   # print()
+  #
+  #     if t_min is None: t_min =     sync[TIME]
+  #     else            : t_min = min(sync[TIME], t_min)
+  #
+  #     if sync[EVENT] != 'sync_abs':
+  #       # print('WARNING: unsynced   profile %s' % pname)
+  #         pass
+  #
+  #     else:
+  #         host, ip, t_sys, t_ntp, t_mode = sync[MSG].split(':')
+  #
+  #         host_id = '%s:%s' % (host, ip)
+  #         t_off   = float(t_sys) - float(t_ntp)
+  #
+  #         syncs[pname] = t_off
+  #
+  #         if t_mode == 'sys':
+  #           # print('sys synced profile (%s)' % t_mode)
+  #             pass
+  #
+  #         else:
+  #             # determine the correction for the given host
+  #             if host_id not in t_host:
+  #                 t_host[host_id] = t_off
+  #
+  #             else:
+  #                 diff = t_off - t_host[host_id]
+  #                 accuracy = max(accuracy, diff)
+  #
+  #                 # allow *some* amount of inconsistency before warning
+  #                 if diff > NTP_DIFF_WARN_LIMIT:
+  #                     print('conflicting time sync for %-45s (%15s): '
+  #                           '%10.2f - %10.2f = %5.2f'
+  #                        % (pname, host_id, t_off, t_host[host_id], diff))
+  #                     continue
+  #     tdiff('sync stop  %s' % pname)
+  #
+  # # apply t_min and t_off correction to all events
+  # for pname, prof in profs.items():
+  #
+  #     if not prof.nrows:
+  #         continue
+  #
+  #     t_fix = syncs[pname] - t_min
+  #     prof.time += t_fix
+  #
+  #     end = prof.loc[prof['event'] == 'END']
+  #     if not end.nrows:
+  #       # print('WARNING: profile "%s" not correctly closed.' % pname)
+  #         pass
 
-    for pname, prof in profs.items():
+    # combine, sort by time and return
+    # FIXME
 
-        if not len(prof):
-          # print('empty        %s' % pname)
-            continue
+    tdiff('concat start')
+    p_glob = dt.rbind(*(list(profs.values())))
+  # p_glob = pandas.concat(profs.values())
+    tdiff('concat')
+  # p_glob.drop_duplicates(inplace=True)
+  # tdiff('dedup')
+    p_glob.sort('time')
+    tdiff('sort')
 
-        # if we have only sync_rel(s), then find the offset by the corresponding
-        # sync_rel in the other profiles, and determine the offset to use.  Use
-        # the first sync_rel that results in an offset, and only complain if
-        # none is found.
-        offset       = None
-        offset_event = None
-        if syncs[pname]['abs']:
-            offset = 0.0
-
-        else:
-            for sync_rel in syncs[pname]['rel']:
-                for _pname in syncs:
-
-                    if _pname == pname:
-                        continue
-
-                    for _sync_rel in syncs[_pname]['rel']:
-                        if _sync_rel[MSG] == sync_rel[MSG]:
-                            offset        = _sync_rel[TIME] - sync_rel[TIME]
-                            offset_event  = syncs[_pname]['abs'][0]
-
-                    if offset:
-                        break
-
-                if offset:
-                    break
-
-        if offset is None:
-            print('no rel sync  %s' % pname)
-            continue
-
-      # print('sync profile %-100s : %20.3fs' % (pname, offset))
-        for event in prof:
-            event[TIME] += offset
-
-        # if we have an offset event, we append it to the profile.  This
-        # basically transplants an sync_abs event into a sync_rel profile
-        if offset_event:
-          # print('transplant sync_abs to %s: %s' % (pname, offset_event))
-            prof.append(offset_event)
-            syncs[pname]['abs'].append(offset_event)
-
-    # all profiles are rel-synced here.  Now we look at sync_abs values to align
-    # across hosts and to determine accuracy.
-    for pname in syncs:
-
-        for sync_abs in syncs[pname]['abs']:
-
-            # https://github.com/radical-cybertools/radical.analytics/issues/20
-            if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
-              # print('unsynced profile %s [%s]' % (pname, sync_abs))
-                continue
-
-            t_prof = sync_abs[TIME]
-
-            host, ip, t_sys, t_ntp, t_mode = sync_abs[MSG].split(':')
-            host_id = '%s:%s' % (host, ip)
-
-            if t_min: t_min = min(t_min, t_prof)
-            else    : t_min = t_prof
-
-            if t_mode == 'sys':
-              # print('sys synced profile (%s)' % t_mode)
-                continue
-
-            # determine the correction for the given host
-            t_sys = float(t_sys)
-            t_ntp = float(t_ntp)
-            t_off = t_sys - t_ntp
-
-            if  host_id in t_host and \
-                t_host[host_id] != t_off:
-
-                diff = t_off - t_host[host_id]
-                accuracy = max(accuracy, diff)
-
-                # we allow for *some* amount of inconsistency before warning
-                if diff > NTP_DIFF_WARN_LIMIT:
-                    print('conflicting time sync for %-45s (%15s): '
-                          '%10.2f - %10.2f = %5.2f'
-                        % (pname.split('/')[-1], host_id, t_off,
-                           t_host[host_id], diff))
-                    continue
-
-            t_host[host_id] = t_off
-
-
-    unsynced = set()
-    # now that we can align clocks for all hosts, apply that correction to all
-    # profiles
-    for pname, prof in profs.items():
-
-        if not len(prof):
-          # print('empty prof: %s' % pname)
-            continue
-
-        if not syncs[pname]['abs']:
-            print('no sync_abs event: %s' % prof[0])
-            continue
-
-        sync_abs = syncs[pname]['abs'][0]
-
-      # print(MSG)
-      # print(sync_abs)
-      # print(sync_abs[MSG])
-      # print(sync_abs[MSG].split(':'))
-        host, ip, _, _, _ = sync_abs[MSG].split(':')
-        host_id = '%s:%s' % (host, ip)
-        if host_id in t_host:
-            t_off = t_host[host_id]
-        else:
-            unsynced.add(host_id)
-            t_off = 0.0
-
-        t_0 = sync_abs[TIME]
-        t_0 -= t_min
-
-        # correct profile timestamps
-        for row in prof:
-
-            row[TIME] -= t_min
-            row[TIME] -= t_off
-
-          # print(row[EVENT],)
-            # count closing entries
-            if row[EVENT] == 'END':
-                c_end += 1
-
-        # add profile to global one
-        p_glob += prof
-
-      # if prof:
-      #     print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
-
-        # Check for proper closure of profiling files
-        if c_end == 0:
-            print('WARNING: profile "%s" not correctly closed.' % pname)
-      # elif c_end > 1:
-      #     print('WARNING: profile "%s" closed %d times.' % (pname, c_end))
-
-    # sort by time and return
-    p_glob = sorted(p_glob[:], key=lambda k: k[TIME])
-
-  # print('check        %-100s: %s' % ('t_min', p_glob[0][TIME]))
-  # print('check        %-100s: %s' % ('t_max', p_glob[-1][TIME]))
     return p_glob, accuracy
 
 
@@ -740,80 +558,38 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
       - makes sure that state transitions have an `ename` set to `state`
     '''
 
-    entities = dict()  # things which have a uid
+    import numpy as np
 
-    if not state_final:
-        state_final = []
-    elif not isinstance(state_final, list):
-        state_final = [state_final]
+    tdiff('clean start')
+    state_final = as_list(state_final)
 
-    for event in profile:
+    # replace all NaN with ''
+    profile['uid'].replace(np.nan, '')
+    tdiff('replace nan')
 
-        uid   = event[UID  ]
-        state = event[STATE]
-        name  = event[EVENT]
+    # 'advance' events are renamed to `state`
+    profile['event'].replace('advance', 'state')
+    tdiff('replace advance')
 
-        # we derive entity_type from the uid -- but funnel
-        # some cases into the session
-        if uid:
-            event[ENTITY] = uid.split('.',1)[0]
-        else:
-            event[ENTITY] = 'session'
-            event[UID]    = sid
-            uid = sid
+    # use sid as uid if that is not defined
+    profile['uid'].replace('', sid)
+    tdiff('replace ""')
 
-        if uid not in entities:
-            entities[uid] = dict()
-            entities[uid]['states'] = dict()
-            entities[uid]['events'] = list()
+    # extract entity type from uid
+    etype = profile['uid'].str.split('.', n=1, expand=True)
+    profile['entity'] = etype[0]
+    tdiff('add entity')
 
-        if name == 'advance':
+    # `etype` for session id is `session` (not `rp.session`)
+    profile['entity'].replace('rp', 'session', inplace=True)
+    tdiff('replace rp')
 
-            # this is a state progression
-            assert(state), 'cannot advance w/o state'
-            assert(uid),   'cannot advance w/o uid'
+    # FIXME: duplicated final events are ignored right now
 
-            # this is a state transition event
-            event[EVENT] = 'state'
-
-            skip = False
-            if state in state_final and state != state_canceled:
-
-                # a final state other than CANCELED will cancel any previous
-                # CANCELED state.
-                if  state_canceled and \
-                    state_canceled in entities[uid]['states']:
-                    del(entities[uid]['states'][state_canceled])
-
-                # vice-versa, we will not add CANCELED if a final
-                # state already exists:
-                if  state_canceled and \
-                    state_canceled == state:
-                    if any([s in entities[uid]['states']
-                              for s in state_final]):
-                        skip = True
-                        continue
-
-            if state in entities[uid]['states']:
-                # ignore duplicated recordings of state transitions
-                skip = True
-                continue
-              # raise ValueError('double state (%s) for %s' % (state, uid))
-
-            if not skip:
-                entities[uid]['states'][state] = event
-
-        entities[uid]['events'].append(event)
-
-
-    # we have evaluated, cleaned and sorted all events -- now we recreate
-    # a clean profile out of them
-    ret = list()
-    for entity in list(entities.values()):
-        ret += entity['events']
-
-    # sort by time and return
-    ret = sorted(ret[:], key=lambda k: k[TIME])
+    # convert to list of tuples
+    # FIXME: this should be DFs all the way down...
+    ret = list(profile.to_records(index=False))
+    tdiff('as list')
 
     return ret
 
