@@ -225,7 +225,6 @@ class Profiler(object):
 
         # write header and time normalization info
         if self._handle:
-            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
             self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
                            (self.timestamp(), 'sync_abs', self._name,
                             ru_get_thread_name(), '', '',
