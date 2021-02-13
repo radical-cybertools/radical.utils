@@ -178,13 +178,16 @@ class Profiler(object):
         Open the file handle, sync the clock, and write timestam_zero
         '''
 
+        # list of registered events
+        self._registry = list()
+
         ru_def = DefaultConfig()
 
         if not ns:
             ns = name
 
         # check if this profile is enabled via an env variable
-        self._enabled = ru_get_env_ns('profile', ns)
+        self._enabled  = ru_get_env_ns('profile', ns)
 
         if  self._enabled is None:
             self._enabled = ru_def.get('profile')
@@ -305,6 +308,10 @@ class Profiler(object):
 
         if not self._enabled: return
         if not self._handle : return
+
+        # do nothing for events which are not registered (optional)
+        if self._registry and event not in self._registry:
+            return
 
         if ts    is None: ts    = self.timestamp()
         if comp  is None: comp  = self._name
