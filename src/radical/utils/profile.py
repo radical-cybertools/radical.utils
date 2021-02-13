@@ -4,11 +4,10 @@ import csv
 import time
 
 from .ids     import get_radical_base
-from .misc    import as_string, as_list
+from .misc    import as_string
 from .misc    import get_env_ns      as ru_get_env_ns
 from .misc    import get_hostname    as ru_get_hostname
 from .misc    import get_hostip      as ru_get_hostip
-from .threads import get_thread_name as ru_get_thread_name
 from .config  import DefaultConfig
 from .atfork  import atfork
 
@@ -20,26 +19,10 @@ from .atfork  import atfork
 #
 TIME         = 0  # time of event (float, seconds since epoch)  mandatory
 EVENT        = 1  # event ID (string)                           mandatory
-COMP         = 2  # component which recorded the event          mandatory
-TID          = 3  # uid of thread involved                      optional
-UID          = 4  # uid of entity involved                      optional
-STATE        = 5  # state of entity involved                    optional
-MSG          = 6  # message describing the event                optional
-ENTITY       = 7  # type of entity involved                     optional
-PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
+ENTITY       = 2  # type of entity involved                     optional
+UID          = 3  # uid of entity involved                      optional
+MSG          = 4  # message describing the event                optional
 
-# Note that `ENTITY` is not written to the profile, but rather derived from the
-# UID when reading the profiles.
-
-# A previous incarnation of this class stored CSVs with the following columns:
-#
-# TIME       = 0  # time of event (float, seconds since epoch)  mandatory
-# COMP       = 2  # component which recorded the event          mandatory
-# TID        = 3  # uid of thread involved                      optional
-# UID        = 4  # uid of entity involved                      optional
-# STATE      = 5  # state of entity involved                    optional
-# EVENT      = 1  # event ID (string)                           mandatory
-# MSG        = 6  # message describing the event                optional
 
 # ------------------------------------------------------------------------------
 #
@@ -53,23 +36,18 @@ NTP_DIFF_WARN_LIMIT = 1.0
 # cache the result.  We use a disk cache which is valid for 1 minute
 NTP_CACHE_TIMEOUT = 60  # disk cache is valid for 60 seconds
 
-# maximum field size allowed by the csv parser.  The larger the number of
-# entities in the profile, the larger the size of the filed required by the
-# csv parser. We assume a 64bit C long.
-CSV_FIELD_SIZE_LIMIT = 9223372036854775807
-
 
 # ------------------------------------------------------------------------------
 #
 def _sync_ntp():
 
     # read from disk cache
+    t_now = time.time()
     try:
         with open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
             data  = as_string(fin.read()).split()
             t_sys = float(data[0])
             t_ntp = float(data[1])
-            t_now = time.time()
 
     except:
         t_sys = None
@@ -144,20 +122,17 @@ class Profiler(object):
     be applied when reading and evaluating the created profiles.  the following
     fields are defined for each event:
 
-        time : mandatory, float,  time in seconds since epoch
-        event: mandatory, string, short, unique name of event to be recorded
-        comp : optional,  string, name of component where the event originates
-        tid  : optional,  string, current thread id (name)
-        uid  : optional,  string, ID of entity involved (when available)
-        state: optional,  string, state of entity involved, if applicable
-        msg  : optional,  string, free for message describing the event
+        time  : mandatory, float,  time in seconds since epoch
+        event : mandatory, string, short, unique name of event to be recorded
+        entity: optional,  string, type of entity involved (when available)
+        uid   : optional,  string, ID   of entity involved (when available)
+        msg   : optional,  string, message describing the event (optional)
 
     Strings MUST NOT contain commas.  Otherwise they are encouraged to be formed
     as `[a-z][0-9a-z_.]*'. `msg` are free-form, but the inhibition of comma
     holds.  We propose to limit the sum of strings to about 256 characters -
     this will guarantee atomic writes on most OS's, w/o additional locking
-    overheads.  Less than 100 charcters makes the profiles almost
-    human-readable.
+    overheads.
 
     The profile is enabled by setting environment variables.  For a profiler
     named `radical.utils`, the following env variables will be evaluated:
@@ -169,7 +144,7 @@ class Profiler(object):
     of the setting is ignored).
     '''
 
-    fields  = ['time', 'event', 'comp', 'thread', 'uid', 'state', 'msg']
+    fields  = ['time', 'event', 'entity', 'uid', 'msg']
 
     # --------------------------------------------------------------------------
     #
@@ -226,23 +201,20 @@ class Profiler(object):
         _profilers.append([self, fname])
 
 
-        # write header and time normalization info
-        if self._handle:
-            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
-                           (self.timestamp(), 'sync_abs', self._name,
-                            ru_get_thread_name(), '', '',
-                            '%s:%s:%s:%s:%s' % (ru_get_hostname(),
-                                                ru_get_hostip(),
-                                                self._ts_zero,
-                                                self._ts_abs,
-                                                self._ts_mode)))
+        # write time normalization info
+        self.prof(event='sync',
+                  msg='%s:%s:%s:%s:%s' % (ru_get_hostname(),
+                                          ru_get_hostip(),
+                                          self._ts_zero,
+                                          self._ts_abs,
+                                          self._ts_mode))
 
 
     # --------------------------------------------------------------------------
     #
     def __del__(self):
 
-      # self.close()
+        self.close()
         pass
 
 
@@ -274,6 +246,10 @@ class Profiler(object):
             if not self._enabled:
                 return
 
+            if not self._handle:
+                self._enabled = False
+                return
+
             if self._enabled and self._handle:
                 self.prof('END')
                 self.flush()
@@ -288,11 +264,8 @@ class Profiler(object):
     #
     def flush(self, verbose=False):
 
-        if not self._enabled: return
-        if not self._handle : return
-
-        if verbose:
-            self.prof('flush')
+        if not self._enabled:
+            return
 
         # see https://docs.python.org/2/library/stdtypes.html#file.flush
         self._handle.flush()
@@ -303,30 +276,19 @@ class Profiler(object):
     #
     # FIXME: reorder args to reflect tupleorder (breaks API)
     #
-    def prof(self, event, uid=None, state=None, msg=None, ts=None, comp=None,
-                   tid=None):
+    def prof(self, event, entity='', uid='', msg='', ts=None):
 
-        if not self._enabled: return
-        if not self._handle : return
+        if not self._enabled:
+            return
 
         # do nothing for events which are not registered (optional)
         if self._registry and event not in self._registry:
             return
 
-        if ts    is None: ts    = self.timestamp()
-        if comp  is None: comp  = self._name
-        if tid   is None: tid   = ru_get_thread_name()
-        if uid   is None: uid   = ''
-        if state is None: state = ''
-        if msg   is None: msg   = ''
+        if ts is None:
+            ts = self.timestamp()
 
-        # if uid is a list, then recursively call self.prof for each uid given
-        for _uid in as_list(uid):
-
-            data = '%.7f,%s,%s,%s,%s,%s,%s\n' \
-                    % (ts, event, comp, tid, _uid, state, msg)
-            self._handle.write(data)
-            self._handle.flush()
+        self._handle.write('%.7f,%s,%s,%s,%s\n' % (ts, event, entity, uid, msg))
 
 
     # --------------------------------------------------------------------------
@@ -345,11 +307,9 @@ class Profiler(object):
             return [ts_sys, ts_ntp, 'ntp']
 
         except:
-            pass
-
-        # on any errors, we fall back to system time
-        t = time.time()
-        return [t,t, 'sys']
+            # on any errors, we fall back to system time
+            t_sys = time.time()
+            return [t_sys, t_sys, 'sys']
 
 
     # --------------------------------------------------------------------------
@@ -383,16 +343,6 @@ def read_profiles(profiles, sid=None, efilter=None):
     Filters apply on *substring* matches!
     '''
 
-    legacy = os.environ.get('RADICAL_ANALYTICS_LEGACY_PROFILES', False)
-
-    if legacy and legacy.lower() not in ['no', 'false']:
-        legacy = True
-    else:
-        legacy = False
-
-    # set the maximum field size allowed by the csv parser
-    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
-
   # import resource
   # print('max RSS       : %20d MB' % (resource.getrusage(1)[2]/(1024)))
 
@@ -420,53 +370,8 @@ def read_profiles(profiles, sid=None, efilter=None):
                 for raw in reader:
 
                     # we keep the raw data around for error checks
-                    row = list(raw)
-
-                  # if 'bootstrap_1' in row:
-                  #     print()
-                  #     print(row)
-
-                    # skip header
-                    if row[TIME].startswith('#'):
-                        skipped += 1
-                        continue
-
-                    # make room in the row for entity type etc.
-                    row.extend([None] * (PROF_KEY_MAX - len(row)))
-
+                    row       = list(raw)
                     row[TIME] = float(row[TIME])
-
-                    # we derive entity type from the uid -- but funnel
-                    # some cases into 'session' as a catch-all type
-                    uid = row[UID]
-                    if uid:
-                        row[ENTITY] = uid.split('.',1)[0]
-                    else:
-                        row[ENTITY] = 'session'
-                        row[UID]    = sid
-
-                    # we should have no unset (ie. None) fields left - otherwise
-                    # the profile was likely not correctly closed.
-                    if None in row:
-                        if legacy:
-                            comp, tid = row[1].split(':', 1)
-                            new_row = [None] * PROF_KEY_MAX
-                            new_row[TIME        ] = row[0]
-                            new_row[EVENT       ] = row[4]
-                            new_row[COMP        ] = comp
-                            new_row[TID         ] = tid
-                            new_row[UID         ] = row[2]
-                            new_row[STATE       ] = row[3]
-                            new_row[MSG         ] = row[5]
-
-                            uid = new_row[UID]
-                            if uid:
-                                new_row[ENTITY] = uid.split('.',1)[0]
-                            else:
-                                new_row[ENTITY] = 'session'
-                                new_row[UID]    = sid
-
-                            row = new_row
 
                     if None in row:
                         print('row invalid [%s]: %s' % (prof, raw))
@@ -520,22 +425,12 @@ def combine_profiles(profs):
     '''
     We merge all profiles and sort by time.
 
-    This routine expects all profiles to have a synchronization time stamp.
-    Two kinds of sync timestamps are supported: absolute (`sync_abs`) and
-    relative (`sync_rel`).
-
-    Time syncing is done based on 'sync_abs' timestamps.  We expect one such
+    Time syncing is done based on 'sync' timestamps.  We expect one such
     absolute timestamp to be available per host (the first profile entry will
     contain host information).  All timestamps from the same host will be
     corrected by the respectively determined NTP offset.  We define an
     'accuracy' measure which is the maximum difference of clock correction
     offsets across all hosts.
-
-    The `sync_rel` timestamps are expected to occur in pairs, one for a profile
-    with no other sync timestamp, and one profile which has
-    a `sync_abs`timestamp.  In that case, the time correction from the latter is
-    transfered to the former (the two time stamps are considered to have been
-    written at the exact same time).
 
     The method returnes the combined profile and accuracy, as tuple.
     '''
@@ -545,7 +440,7 @@ def combine_profiles(profs):
     p_glob   = list()  # global profile
     t_min    = None    # absolute starting point of profiled session
     c_end    = 0       # counter for profile closing tag
-    accuracy = 0       # max uncorrected clock deviation
+    accuracy = 0.0     # max uncorrected clock deviation
 
     if len(profs) == 1:
         return list(profs.values())[0], accuracy
@@ -554,26 +449,13 @@ def combine_profiles(profs):
     # for all hosts
     for pname, prof in profs.items():
 
-        sync_abs = list()
-        sync_rel = list()
-
-        syncs[pname] = {'rel' : sync_rel,
-                        'abs' : sync_abs}
+        syncs[pname] = list()
 
         if not len(prof):
             continue
 
         for entry in prof:
-            if entry[EVENT] == 'sync_abs': sync_abs.append(entry)
-            if entry[EVENT] == 'sync_rel': sync_rel.append(entry)
-
-        # we can have any number of sync_rel's - but if we find none, we expect
-        # a sync_abs
-        if not sync_rel and not sync_abs:
-            print('unsynced     %s' % pname)
-
-        syncs[pname] = {'rel' : sync_rel,
-                        'abs' : sync_abs}
+            if entry[EVENT] == 'sync': syncs[pname].append(entry)
 
   # for pname, prof in profs.items():
   #     if prof:
@@ -585,62 +467,20 @@ def combine_profiles(profs):
           # print('empty        %s' % pname)
             continue
 
-        # if we have only sync_rel(s), then find the offset by the corresponding
-        # sync_rel in the other profiles, and determine the offset to use.  Use
-        # the first sync_rel that results in an offset, and only complain if
-        # none is found.
-        offset       = None
-        offset_event = None
-        if syncs[pname]['abs']:
-            offset = 0.0
-
-        else:
-            for sync_rel in syncs[pname]['rel']:
-                for _pname in syncs:
-
-                    if _pname == pname:
-                        continue
-
-                    for _sync_rel in syncs[_pname]['rel']:
-                        if _sync_rel[MSG] == sync_rel[MSG]:
-                            offset        = _sync_rel[TIME] - sync_rel[TIME]
-                            offset_event  = syncs[_pname]['abs'][0]
-
-                    if offset:
-                        break
-
-                if offset:
-                    break
-
-        if offset is None:
-            print('no rel sync  %s' % pname)
-            continue
-
-      # print('sync profile %-100s : %20.3fs' % (pname, offset))
-        for event in prof:
-            event[TIME] += offset
-
-        # if we have an offset event, we append it to the profile.  This
-        # basically transplants an sync_abs event into a sync_rel profile
-        if offset_event:
-          # print('transplant sync_abs to %s: %s' % (pname, offset_event))
-            prof.append(offset_event)
-            syncs[pname]['abs'].append(offset_event)
-
-    # all profiles are rel-synced here.  Now we look at sync_abs values to align
+    # all profiles are rel-synced here.  Now we look at `sync` values to align
     # across hosts and to determine accuracy.
     for pname in syncs:
 
-        for sync_abs in syncs[pname]['abs']:
+        for sync in syncs[pname]:
 
             # https://github.com/radical-cybertools/radical.analytics/issues/20
-            if not sync_abs[MSG] or ':' not in sync_abs[MSG]:
-              # print('unsynced profile %s [%s]' % (pname, sync_abs))
+            if not sync[MSG] or ':' not in sync[MSG]:
+              # print('unsynced profile %s [%s]' % (pname, sync))
                 continue
 
-            t_prof = sync_abs[TIME]
+            t_prof = sync[TIME]
 
-            host, ip, t_sys, t_ntp, t_mode = sync_abs[MSG].split(':')
+            host, ip, t_sys, t_ntp, t_mode = sync[MSG].split(':')
             host_id = '%s:%s' % (host, ip)
 
             if t_min: t_min = min(t_min, t_prof)
@@ -681,17 +521,13 @@ def combine_profiles(profs):
           # print('empty prof: %s' % pname)
             continue
 
-        if not syncs[pname]['abs']:
-            print('no sync_abs event: %s' % prof[0])
+        if not syncs[pname]:
+            print('unsynced %s' % pname)
             continue
 
-        sync_abs = syncs[pname]['abs'][0]
+        sync = syncs[pname][0]
 
-      # print(MSG)
-      # print(sync_abs)
-      # print(sync_abs[MSG])
-      # print(sync_abs[MSG].split(':'))
-        host, ip, _, _, _ = sync_abs[MSG].split(':')
+        host, ip, _, _, _ = sync[MSG].split(':')
         host_id = '%s:%s' % (host, ip)
         if host_id in t_host:
             t_off = t_host[host_id]
@@ -699,7 +535,7 @@ def combine_profiles(profs):
             unsynced.add(host_id)
             t_off = 0.0
 
-        t_0 = sync_abs[TIME]
+        t_0 = sync[TIME]
         t_0 -= t_min
 
         # correct profile timestamps
@@ -740,99 +576,19 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
     This method will prepare a profile for consumption in radical.analytics.
     It performs the following actions:
 
-      - makes sure all events have a `ename` entry
-      - remove all state transitions to `CANCELLED` if a different final state
-        is encountered for the same uid
       - assignes the session uid to all events without uid
-      - makes sure that state transitions have an `ename` set to `state`
+      - sort by time
     '''
 
-    entities = dict()  # things which have a uid
-
-    if not state_final:
-        state_final = []
-    elif not isinstance(state_final, list):
-        state_final = [state_final]
-
+    ret = list()
     for event in profile:
 
-        uid   = event[UID  ]
-        state = event[STATE]
-        name  = event[EVENT]
+        if not event[UID]   : event[UID   ] = sid
+        if not event[ENTITY]: event[ENTITY] = 'session'
 
-        # we derive entity_type from the uid -- but funnel
-        # some cases into the session
-        if uid:
-            event[ENTITY] = uid.split('.',1)[0]
-        else:
-            event[ENTITY] = 'session'
-            event[UID]    = sid
-            uid = sid
+        ret.append(event)
 
-        if uid not in entities:
-            entities[uid] = dict()
-            entities[uid]['states'] = dict()
-            entities[uid]['events'] = list()
-
-        if name == 'advance':
-
-            # this is a state progression
-            assert(state), 'cannot advance w/o state'
-            assert(uid),   'cannot advance w/o uid'
-
-            # this is a state transition event
-            event[EVENT] = 'state'
-
-            skip = False
-            if state in state_final and state != state_canceled:
-
-                # a final state other than CANCELED will cancel any previous
-                # CANCELED state.
-                if  state_canceled and \
-                    state_canceled in entities[uid]['states']:
-                    del(entities[uid]['states'][state_canceled])
-
-                # vice-versa, we will not add CANCELED if a final
-                # state already exists:
-                if  state_canceled and \
-                    state_canceled == state:
-                    if any([s in entities[uid]['states']
-                              for s in state_final]):
-                        skip = True
-                        continue
-
-            if state in entities[uid]['states']:
-                # ignore duplicated recordings of state transitions
-                skip = True
-                continue
-              # raise ValueError('double state (%s) for %s' % (state, uid))
-
-            if not skip:
-                entities[uid]['states'][state] = event
-
-        entities[uid]['events'].append(event)
-
-
-    # we have evaluated, cleaned and sorted all events -- now we recreate
-    # a clean profile out of them
-    ret = list()
-    for entity in list(entities.values()):
-        ret += entity['events']
-
-    # sort by time and return
-    ret = sorted(ret[:], key=lambda k: k[TIME])
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-#
-def event_to_label(event):
-
-    if event[EVENT] == 'state':
-        return event[STATE]
-    else:
-        return event[EVENT]
+    return sorted(ret[:], key=lambda k: k[TIME])
 
 
 # ------------------------------------------------------------------------------
