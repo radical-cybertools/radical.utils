@@ -4,7 +4,7 @@ import csv
 import time
 
 from .ids     import get_radical_base
-from .misc    import as_string
+from .misc    import as_string, as_list
 from .misc    import get_env_ns      as ru_get_env_ns
 from .misc    import get_hostname    as ru_get_hostname
 from .misc    import get_hostip      as ru_get_hostip
@@ -240,6 +240,13 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
+    def register(self, events):
+
+        self._registry.extend(as_list(events))
+
+
+    # --------------------------------------------------------------------------
+    #
     def close(self):
 
         try:
@@ -255,6 +262,8 @@ class Profiler(object):
                 self.flush()
                 self._handle.close()
                 self._handle = None
+
+                self._enabled = False
 
         except:
             pass
@@ -283,6 +292,7 @@ class Profiler(object):
 
         # do nothing for events which are not registered (optional)
         if self._registry and event not in self._registry:
+            print('warn: drop %s' % event)
             return
 
         if ts is None:

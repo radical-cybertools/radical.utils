@@ -51,10 +51,9 @@ from .zmq            import PubSub, Publisher, Subscriber
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger
 from .reporter       import Reporter
-from .profile        import Profiler, timestamp, event_to_label
+from .profile        import Profiler, timestamp
 from.profile        import read_profiles, combine_profiles, clean_profile
-from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
-from .profile        import PROF_KEY_MAX
+from .profile        import TIME, EVENT, ENTITY, UID, MSG
 
 from .json_io        import read_json, read_json_str, write_json
 from .json_io        import parse_json, parse_json_str, metric_expand
