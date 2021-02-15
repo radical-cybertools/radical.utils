@@ -12,7 +12,7 @@ from .misc import as_string
 
 # ------------------------------------------------------------------------------
 #
-def read_json(fname):
+def read_json(fname, filter_comments=True):
     '''
     Comments line in the form of
 
@@ -27,7 +27,7 @@ def read_json(fname):
     with open(fname) as f:
 
         try:
-            return parse_json(f.read())
+            return parse_json(f.read(), filter_comments)
 
         except ValueError as e:
             raise ValueError('error parsing %s: %s' % (fname, e)) from e
@@ -35,13 +35,13 @@ def read_json(fname):
 
 # ------------------------------------------------------------------------------
 #
-def read_json_str(filename):
+def read_json_str(filename, filter_comments=True):
     '''
     same as read_json, but converts unicode strings and byte arrays to ASCII
     strings.
     '''
 
-    return as_string(read_json(filename))
+    return as_string(read_json(filename, filter_comments))
 
 
 # ------------------------------------------------------------------------------

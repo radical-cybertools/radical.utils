@@ -241,7 +241,7 @@ class Publisher(object):
     def put(self, topic, msg):
 
         assert(isinstance(topic, str )), 'invalid topic type'
-        assert(isinstance(msg,   dict)), 'invalid message type'
+      # assert(isinstance(msg,   dict)), 'invalid message type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
