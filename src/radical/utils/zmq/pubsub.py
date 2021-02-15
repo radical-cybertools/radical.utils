@@ -241,7 +241,6 @@ class Publisher(object):
     def put(self, topic, msg):
 
         assert(isinstance(topic, str )), 'invalid topic type'
-      # assert(isinstance(msg,   dict)), 'invalid message type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
@@ -292,7 +291,7 @@ class Subscriber(object):
       # assert(url in Subscriber._callbacks)
 
         try:
-            uid    = Subscriber._callbacks.get(url, {}).get('uid')
+          # uid    = Subscriber._callbacks.get(url, {}).get('uid')
             lock   = Subscriber._callbacks.get(url, {}).get('lock')
             term   = Subscriber._callbacks.get(url, {}).get('term')
             socket = Subscriber._callbacks.get(url, {}).get('socket')
@@ -304,16 +303,13 @@ class Subscriber(object):
                 topic, msg = Subscriber._get_nowait(socket, lock, 500, log, prof)
 
                 if topic:
-                    t = as_string(topic)
-                    for m in as_list(msg):
-                        m = as_string(m)
-                        for cb, _lock in callbacks:
-                          # prof.prof('call_cb', uid=uid, msg=cb.__name__)
-                            if _lock:
-                                with _lock:
-                                    cb(t, m)
-                            else:
-                                cb(t, m)
+                    for cb, _lock in callbacks:
+                      # prof.prof('call_cb', uid=uid, msg=cb.__name__)
+                        if _lock:
+                            with _lock:
+                                cb(topic, msg)
+                        else:
+                            cb(topic, msg)
         except:
             log.exception('listener died')
 
