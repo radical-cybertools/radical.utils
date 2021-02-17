@@ -437,7 +437,7 @@ class Subscriber(object):
             Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
 
         sock  = Subscriber._callbacks[self._url]['socket']
-        topic = topic.replace(' ', '_')
+        topic = str(topic).replace(' ', '_')
         log_bulk(self._log, topic, '~~ %s' % self.channel)
 
         with self._lock:
