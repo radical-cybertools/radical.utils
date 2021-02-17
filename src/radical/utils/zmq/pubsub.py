@@ -65,14 +65,7 @@ class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    @property
-    def name(self):
-        return self._uid
-
-    @property
-    def uid(self):
-        return self._uid
-
+    # protocol independent addr query
     @property
     def type_in(self):
         return 'pub'
@@ -83,14 +76,13 @@ class PubSub(Bridge):
 
     @property
     def addr_in(self):
-        # protocol independent addr query
         return self.addr_pub
 
     @property
     def addr_out(self):
-        # protocol independent addr query
         return self.addr_sub
 
+    # protocol dependent addr query
     @property
     def addr_pub(self):
         return self._addr_pub
@@ -98,10 +90,6 @@ class PubSub(Bridge):
     @property
     def addr_sub(self):
         return self._addr_sub
-
-    def addr(self, spec):
-        if spec.lower() == self.type_in : return self.addr_put
-        if spec.lower() == self.type_out: return self.addr_get
 
 
     # --------------------------------------------------------------------------
