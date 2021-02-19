@@ -227,11 +227,12 @@ class Queue(Bridge):
                     msgs = msgpack.unpackb(data)
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
 
-                    if isinstance(msgs, list): buf += msgs
-                    else                     : buf.append(msgs)
-
-                    if isinstance(msgs, list): self.nin += len(msgs)
-                    else                     : self.nin += 1
+                    if isinstance(msgs, list):
+                        buf      += msgs
+                        self.nin += len(msgs)
+                    else:
+                        buf.append(msgs)
+                        self.nin += 1
 
                     active = True
 
