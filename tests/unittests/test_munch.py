@@ -198,6 +198,41 @@ def test_munch_update():
 
 # ------------------------------------------------------------------------------
 #
+def test_munch_inherit():
+
+    # --------------------------------------------------------------------------
+    # plain schema
+    class Foo(ru.Munch):
+        _schema   = {'one'  : int,
+                     'two'  : {str: int},
+                     'three': [str]}
+        _defaults = {'two'  : {'two-default': 0},
+                     'three': [3, 3, 3]}
+
+    # --------------------------------------------------------------------------
+    # class whose schema is composed
+    class Bar(Foo):
+        _schema_extend   = {'four': int,
+                            'five': float,
+                            'six' : Foo}
+        _defaults_extend = {'four': 42,
+                            'six' : {'one'  : 1,
+                                     'three': [33, 33]}}
+
+    # --------------------------------------------------------------------------
+    b = Bar()
+
+    assert (b.one                is None)
+    assert (b.two['two-default'] == 0)
+    assert (b.three              == [3, 3, 3])
+    assert (b.four               == 42), b.four
+    assert (b.five               is None)
+    assert (b.six.one            == 1)
+    assert (b.six.three[1]       == 33)
+
+
+# ------------------------------------------------------------------------------
+#
 def test_demunch():
 
     # --------------------------------------------------------------------------
@@ -240,6 +275,7 @@ if __name__ == '__main__':
 
     test_munch()
     test_munch_update()
+    test_munch_inherit()
     test_demunch()
 
 # ------------------------------------------------------------------------------
