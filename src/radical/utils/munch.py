@@ -1,4 +1,6 @@
 
+# pylint: disable=raise-missing-from
+
 # ------------------------------------------------------------------------------
 #
 # We provide a base class for all kinds of dict-like data objects in the RCT
@@ -60,10 +62,16 @@ class Munch(DictMixin):
             self._schema = dict()
           # raise RuntimeError('class %s has no schema defined' % self.__name__)
 
+        if hasattr(self, '_schema_extend'):
+            self._schema.update(self._schema_extend)
+
         self._data = dict()
 
         if hasattr(self, '_defaults'):
             self.update(copy.deepcopy(self._defaults))
+
+        if hasattr(self, '_defaults_extend'):
+            self.update(copy.deepcopy(self._defaults_extend))
 
         self.update(from_dict)
 
