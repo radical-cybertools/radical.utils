@@ -424,20 +424,35 @@ class Getter(object):
 
                 msg = Getter._get_nowait(url, 500, log, prof)
 
+                BULK = True
                 if msg:
-                    for m in as_list(msg):
 
+                    if BULK:
                         idx += 1
                         if idx >= len(callbacks):  # FIXME: lock callbacks
                             idx = 0
-
                         cb, _lock = callbacks[idx]
                         if _lock:
                             with _lock:
-                                cb(as_string(m))
+                                cb(as_string(msg))
                         else:
-                            cb(as_string(m))
-                      # prof_bulk(prof, 'cb', m, msg=cb.__name__)
+                            cb(as_string(msg))
+                      # prof_bulk(prof, 'cb', msg, msg=cb.__name__)
+
+                    else:
+                        for m in as_list(msg):
+
+                            idx += 1
+                            if idx >= len(callbacks):  # FIXME: lock callbacks
+                                idx = 0
+
+                            cb, _lock = callbacks[idx]
+                            if _lock:
+                                with _lock:
+                                    cb(as_string(m))
+                            else:
+                                cb(as_string(m))
+                          # prof_bulk(prof, 'cb', m, msg=cb.__name__)
 
         except:
             log.exception('listener died')
