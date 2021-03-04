@@ -356,7 +356,7 @@ class Subscriber(object):
         # only allow `get()` and `get_nowait()`
         self._interactive = True
 
-        if topic and cb:
+        if topic:
             self.subscribe(topic, cb)
 
 
@@ -483,7 +483,6 @@ class Subscriber(object):
 
         if not self._interactive:
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
-
 
         sock = Subscriber._callbacks[self._url]['socket']
 

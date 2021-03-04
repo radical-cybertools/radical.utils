@@ -174,7 +174,7 @@ class Queue(Bridge):
         self._get.bind(self._url)
 
         # communicate the bridge ports to the parent process
-        _addr_put = as_string(self._put.getsockopt (zmq.LAST_ENDPOINT))
+        _addr_put = as_string(self._put.getsockopt(zmq.LAST_ENDPOINT))
         _addr_get = as_string(self._get.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses
