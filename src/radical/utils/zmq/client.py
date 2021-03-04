@@ -43,7 +43,6 @@ class Client(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
 
-      # print('connect to %s' % self._url)
         self._sock.connect(self._url)
 
         self._term   = mt.Event()
@@ -61,20 +60,18 @@ class Client(object):
 
         msg_req  = {'cmd': req, 'arg': arg}
         data_req = msgpack.packb(msg_req)
-      # print('send req %s' % msg_req)
 
         no_intr(self._sock.send, data_req)
 
         data_rep = no_intr(self._sock.recv)
         msg_rep  = msgpack.unpackb(data_rep)
-      # print('recv req %s' % msg_rep)
 
         if msg_rep.get('exc'):
             exception = msg_rep['exc']
             raise exception
 
         elif msg_rep.get('err'):
-            raise RuntimeError('call %s failed: %s' % (req, msg_rep['err']))
+            raise RuntimeError('ERROR: %s' % msg_rep['err'])
 
 
         assert(msg_rep.get('res')), msg_rep

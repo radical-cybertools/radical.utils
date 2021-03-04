@@ -26,16 +26,16 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self):
+    def __init__(self, url=None):
 
         # this service offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
+        self._url  = url
         self._uid  = generate_id('server', ns='radical.utils')
-        self._url  = 'tcp://*:*'
         self._cbs  = dict()
 
-        self._log  = Logger(self._uid, level='debug', targets='.')
+        self._log  = Logger(self._uid, level='debug', targets='-')
         self._prof = Profiler(self._uid, path='.')
 
         self._addr = None
@@ -45,6 +45,9 @@ class Server(object):
 
         self.register_request('echo', self._request_echo)
         self.register_request('fail', self._request_fail)
+
+        if not self._url:
+            self._url  = 'tcp://*:*'
 
 
     @property
@@ -67,7 +70,6 @@ class Server(object):
             raise RuntimeError('`start()` can be called only once')
 
         self._proc = mt.Thread(target=self._work)
-        self._proc.daemon = True
         self._proc.start()
 
         self._up.wait()
@@ -78,12 +80,17 @@ class Server(object):
     def stop(self):
 
         self._log.info('stop bridge %s', self._uid)
-
         self._term.set()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def wait(self):
+
+        self._log.info('wait bridge %s', self._uid)
+
         if self._proc:
             self._proc.join()
-
-        self._log.info('stoped bridge %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -109,6 +116,19 @@ class Server(object):
                'res': arg}
 
         self._log.debug('request echo: %s', arg )
+        return rep
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _success(self, res=None):
+
+        rep = {'cmd': 'ok',
+               'err': None,
+               'exc': None,
+               'res': res}
+
+        self._log.debug(rep)
         return rep
 
 
@@ -167,13 +187,15 @@ class Server(object):
 
                 else:
                     try:
-                        rep = self._cbs[cmd](arg)
+                        rep = self._success(self._cbs[cmd](arg))
                     except Exception as e:
                         rep = self._error(err='command failed: %s' % str(e),
                                           exc=e.__dict__)
 
-            self._log.debug('rep: %s', rep)
             no_intr(self._sock.send, msgpack.packb(rep))
+            self._log.debug('rep: %s', rep)
+
+        self._log.debug('term')
 
 
 # ------------------------------------------------------------------------------
