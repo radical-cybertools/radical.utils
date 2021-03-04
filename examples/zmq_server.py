@@ -3,8 +3,6 @@
 import time
 import radical.utils as ru
 
-term = False
-
 
 # ------------------------------------------------------------------------------
 #
@@ -22,11 +20,10 @@ if __name__ == '__main__':
     # ------------------------------------------------------------------------------
     def cmd(arg):
         if arg == 'exit':
-            global term
             s.stop()
             return 'ok'
         else:
-            raise ValueError('unknown command [%s]' % arg)
+            raise ValueError("we don't like no [%s]" % arg)
     # ------------------------------------------------------------------------------
 
 

@@ -35,7 +35,7 @@ class Server(object):
         self._uid  = generate_id('server', ns='radical.utils')
         self._cbs  = dict()
 
-        self._log  = Logger(self._uid, level='debug', targets='-')
+        self._log  = Logger(self._uid, level='debug', targets='.')
         self._prof = Profiler(self._uid, path='.')
 
         self._addr = None
