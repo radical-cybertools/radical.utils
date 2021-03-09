@@ -71,6 +71,8 @@ class Client(object):
             raise exception
 
         elif msg_rep.get('err'):
+            for l in msg_rep.get('exc'):
+                print(l)
             raise RuntimeError('ERROR: %s' % msg_rep['err'])
 
 

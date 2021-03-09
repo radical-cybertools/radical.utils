@@ -6,9 +6,11 @@ import msgpack
 import threading as mt
 
 from ..ids     import generate_id
-from ..misc    import as_string
+from ..url     import Url
+from ..misc    import as_string, get_hostip
 from ..logger  import Logger
 from ..profile import Profiler
+from ..debug   import get_exception_trace
 
 from .utils    import no_intr
 
@@ -31,17 +33,17 @@ class Server(object):
         # this service offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
-        self._url  = url
-        self._uid  = generate_id('server', ns='radical.utils')
-        self._cbs  = dict()
+        self._url    = url
+        self._uid    = generate_id('server', ns='radical.utils')
+        self._cbs    = dict()
 
-        self._log  = Logger(self._uid, level='debug', targets='.')
-        self._prof = Profiler(self._uid, path='.')
+        self._log    = Logger(self._uid, level='debug', targets='.')
+        self._prof   = Profiler(self._uid, path='.')
 
-        self._addr = None
-        self._proc = None
-        self._up   = mt.Event()
-        self._term = mt.Event()
+        self._addr   = None
+        self._thread = None
+        self._up     = mt.Event()
+        self._term   = mt.Event()
 
         self.register_request('echo', self._request_echo)
         self.register_request('fail', self._request_fail)
@@ -66,11 +68,11 @@ class Server(object):
 
         self._log.info('start bridge %s', self._uid)
 
-        if self._proc:
+        if self._thread:
             raise RuntimeError('`start()` can be called only once')
 
-        self._proc = mt.Thread(target=self._work)
-        self._proc.start()
+        self._thread = mt.Thread(target=self._work)
+        self._thread.start()
 
         self._up.wait()
 
@@ -89,8 +91,9 @@ class Server(object):
 
         self._log.info('wait bridge %s', self._uid)
 
-        if self._proc:
-            self._proc.join()
+        if self._thread:
+            self._thread.join()
+        self._log.info('wait bridge %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -112,24 +115,16 @@ class Server(object):
     #
     def _request_echo(self, arg):
 
-        rep = {'cmd': 'echo_ok',
-               'res': arg}
-
-        self._log.debug('request echo: %s', arg )
-        return rep
+        return {'res': arg}
 
 
     # --------------------------------------------------------------------------
     #
     def _success(self, res=None):
 
-        rep = {'cmd': 'ok',
-               'err': None,
-               'exc': None,
-               'res': res}
-
-        self._log.debug(rep)
-        return rep
+        return {'err': None,
+                'exc': None,
+                'res': res}
 
 
     # --------------------------------------------------------------------------
@@ -139,13 +134,9 @@ class Server(object):
         if not err:
             err = 'invalid request'
 
-        rep = {'cmd': 'error',
-               'err': err,
-               'exc': exc,
-               'res': None}
-
-        self._log.error(err)
-        return rep
+        return {'err': err,
+                'exc': exc,
+                'res': None}
 
 
     # --------------------------------------------------------------------------
@@ -160,10 +151,21 @@ class Server(object):
 
         self._sock.bind(self._url)
 
-        self._addr = as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT))
+        self._addr      = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
+        self._addr.host = get_hostip()
+        self._addr      = str(self._addr)
+
         self._up.set()
 
+        self._poll = zmq.Poller()
+        self._poll.register(self._sock, zmq.POLLIN)
+
         while not self._term.is_set():
+
+            event = dict(no_intr(self._poll.poll, timeout=100))
+
+            if self._sock not in event:
+                continue
 
             data = no_intr(self._sock.recv)
             req  = msgpack.unpackb(data)
@@ -190,7 +192,7 @@ class Server(object):
                         rep = self._success(self._cbs[cmd](arg))
                     except Exception as e:
                         rep = self._error(err='command failed: %s' % str(e),
-                                          exc=e.__dict__)
+                                          exc=get_exception_trace())
 
             no_intr(self._sock.send, msgpack.packb(rep))
             self._log.debug('rep: %s', rep)
