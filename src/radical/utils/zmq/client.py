@@ -67,12 +67,10 @@ class Client(object):
         msg_rep  = msgpack.unpackb(data_rep)
 
         if msg_rep.get('exc'):
-            exception = msg_rep['exc']
-            raise exception
-
-        elif msg_rep.get('err'):
             for l in msg_rep.get('exc'):
                 print(l)
+
+        if msg_rep.get('err'):
             raise RuntimeError('ERROR: %s' % msg_rep['err'])
 
 
