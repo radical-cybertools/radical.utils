@@ -21,7 +21,6 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False, env=None):
     # convert string into arg list if needed
     if is_string(cmd) and \
        not shell: cmd    = shlex.split(cmd)
-    if not env  : env    = os.environ
 
     if stdout   : stdout = sp.PIPE
     else        : stdout = None
