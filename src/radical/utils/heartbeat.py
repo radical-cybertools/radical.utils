@@ -176,7 +176,7 @@ class Heartbeat(object):
         if not uid:
             uid = 'default'
 
-        self._log.debug('hb %s beat [%s]', self._uid, uid)
+      # self._log.debug('hb %s beat [%s]', self._uid, uid)
         with self._lock:
             self._tstamps[uid] = timestamp
 
