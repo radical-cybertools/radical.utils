@@ -144,6 +144,7 @@ env_prep(){
                 echo "export $k=\"$bv\""
             fi
         done
+        printf "\n"
 
         # run all remaining arguments as `pre_exec` commands
         if ! test -z "$pre"
@@ -155,6 +156,7 @@ env_prep(){
             done
             printf "\n"
         fi
+        printf "\n"
     }
 
     env=$(_prep)
@@ -175,5 +177,5 @@ env_prep(){
 # export BAR="foo\"bar\"buz"
 # env_dump ed2.env
 #
-# env_prep ed1.env ed2.env ed3.sh  "echo foo bar" "echo buz"
+# env_prep -s ed1.env -d ed2.env -t ed3.sh  "echo foo bar" "echo buz"
 
