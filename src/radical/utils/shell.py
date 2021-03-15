@@ -47,8 +47,6 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False, env=None):
     but only support writing to named files.
     '''
 
-    if not env: env = os.environ
-
     # pipes won't work - see sh_callout_async
     if stdout == sp.PIPE: raise ValueError('stdout pipe unsupported')
     if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
@@ -100,9 +98,6 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
     #       this shit, and give up.  This method does not work for threaded
     #       python applications.
     assert(False), 'this is broken for python apps'
-
-    if not env:
-        env = os.environ
 
     # --------------------------------------------------------------------------
     #
