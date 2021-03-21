@@ -1,21 +1,101 @@
 
 import zmq
-import time
 import msgpack
 
 import threading as mt
 
-from ..misc    import as_string
 from ..json_io import read_json
+from ..misc    import as_list
 
-from .utils    import no_intr, prof_bulk
+from .utils    import no_intr, sock_connect
 
 
 # --------------------------------------------------------------------------
 #
-_LINGER_TIMEOUT    =  250  # ms to linger after close
+_LINGER_TIMEOUT    = 1000  # ms to linger after close
 _HIGH_WATER_MARK   = 1024  # number of messages to buffer before dropping
 _DEFAULT_BULK_SIZE =    1  # number of messages to put in a bulk
+
+
+# ------------------------------------------------------------------------------
+#
+class Request(object):
+
+    def __init__(self, cmd=None, arg=None):
+
+        self._cmd = cmd
+        self._arg = arg
+
+
+    @classmethod
+    def from_dict(cls, req):
+
+        return Request(cmd=req['cmd'], arg=req.get('arg'))
+
+
+    def packb(self):
+
+        msg_req = {'cmd': self._cmd, 'arg': self._arg}
+        return msgpack.packb(msg_req)
+
+
+    @property
+    def cmd(self): return self._cmd
+
+    @property
+    def arg(self): return self._arg
+
+
+# ------------------------------------------------------------------------------
+#
+class Response(object):
+
+    # FIXME: inherit future
+    def __init__(self, res=None, err=None, exc=None):
+
+        self._res = res
+        self._err = err
+        self._exc = exc
+
+    def __repr__(self):
+
+        ret = ''
+        if self._res: ret += 'res: %s  ' % self._res
+        if self._err: ret += 'err: %s  ' % self._err
+        if self._exc: ret += 'exc: %s  ' % self._exc[-1]
+
+        return ret.strip()
+
+
+    def str(self):
+
+        if self._res: ret = 'res: %s' % self._res
+        else        : ret = 'err: %s' % self._err
+
+        return ret.strip()
+
+
+    @classmethod
+    def from_msg(cls, msg):
+        return cls.from_dict(msgpack.unpackb(msg))
+
+
+    @classmethod
+    def from_dict(cls, msg):
+
+        return Response(res=msg.get('res'),
+                        err=msg.get('err'),
+                        exc=msg.get('exc'))
+
+
+    @property
+    def res(self): return self._res
+
+    @property
+    def err(self): return self._err
+
+    @property
+    def exc(self): return as_list(self._exc)
 
 
 # ------------------------------------------------------------------------------
@@ -43,7 +123,7 @@ class Client(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
 
-        self._sock.connect(self._url)
+        sock_connect(self._sock, self._url)
 
         self._term   = mt.Event()
         self._active = False
@@ -56,27 +136,21 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def request(self, req, arg):
+    def request(self, cmd=None, arg=None):
 
-        msg_req  = {'cmd': req, 'arg': arg}
-        data_req = msgpack.packb(msg_req)
+        req = Request(cmd=cmd, arg=arg)
 
-        no_intr(self._sock.send, data_req)
+        no_intr(self._sock.send, req.packb())
 
-        data_rep = no_intr(self._sock.recv)
-        msg_rep  = msgpack.unpackb(data_rep)
+        res = Response.from_msg(no_intr(self._sock.recv))
 
-        if msg_rep.get('exc'):
-            for l in msg_rep.get('exc'):
-                print(l)
+        for l in res.exc:
+            print(l)
 
-        if msg_rep.get('err'):
-            raise RuntimeError('ERROR: %s' % msg_rep['err'])
+        if res.err:
+            raise RuntimeError('ERROR: %s' % res.err)
 
-
-        assert(msg_rep.get('res')), msg_rep
-
-        return msg_rep['res']
+        return res
 
 
     # --------------------------------------------------------------------------

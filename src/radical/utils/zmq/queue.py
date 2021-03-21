@@ -669,7 +669,7 @@ class Getter(object):
         if not self._requested:
 
             with self._lock:  # need to protect self._requested
-                no_intr(self._q.send_multipart, as_bytes(qname))
+                no_intr(self._q.send_multipart, [as_bytes(qname)])
                 self._requested = True
 
 
