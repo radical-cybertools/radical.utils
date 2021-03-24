@@ -22,6 +22,8 @@ def test_plugin_manager():
 
     plugin_2 = pmgr.load('unittests_1', 'default_2', 'a', 1)
     ret = plugin_2.run()
+    assert(plugin_2.plugin_type == 'unittests_1')
+    assert(plugin_2.plugin_name == 'default_2')
     assert(ret == ('a', 1)), 'plugin_2 invocation: %s != %s' % (['a', 1], ret)
 
     try:
