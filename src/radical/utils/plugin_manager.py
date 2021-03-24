@@ -271,7 +271,7 @@ class PluginManager(object):
 
     # --------------------------------------------------------------------------
     #
-    def load(self, ptype, pname):
+    def load(self, ptype, pname, *args, **kwargs):
         '''
         check if a plugin with given type and name was loaded, if so,
         instantiate its plugin class and return it.
@@ -290,7 +290,7 @@ class PluginManager(object):
 
         plugin = self._plugins[ptype][pname]['plugin']
         pclass = self._plugins[ptype][pname]['class']
-        pinst  = getattr(plugin, pclass)()
+        pinst  = getattr(plugin, pclass)(*args, **kwargs)
 
         # create new plugin instance
         return pinst

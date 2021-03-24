@@ -2,9 +2,10 @@
 
 import threading as mt
 
-from ..logger    import Logger
-from ..profile   import Profiler
-from ..json_io   import write_json
+from ..logger  import Logger
+from ..profile import Profiler
+from ..config  import Config
+from ..json_io import read_json, write_json
 
 
 # ------------------------------------------------------------------------------
@@ -18,6 +19,18 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
+    @staticmethod
+    def get_config(name, pwd=None):
+
+        if not pwd: pwd = '.'
+        cfg = Config(cfg=read_json('%s/%s.cfg' % (pwd, name)))
+        with open('/tmp/t', 'a') as fout:
+            fout.write('=== cfg for %s/%s: %s\n' % (pwd, name, cfg.as_dict()))
+        return cfg
+
+
+    # --------------------------------------------------------------------------
+    #
     def __init__(self, cfg):
 
         self._cfg     = cfg
@@ -25,7 +38,8 @@ class Bridge(object):
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level=self._cfg.log_lvl, path=self._pwd)
+                               level='debug', path=self._pwd)
+                             # level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:

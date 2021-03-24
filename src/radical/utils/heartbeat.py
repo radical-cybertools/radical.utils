@@ -80,7 +80,9 @@ class Heartbeat(object):
     def stop(self):
 
         self._term.set()
-        self._watcher.join()
+
+      # # no need to join, is a daemon thread
+      # self._watcher.join()
 
 
     # --------------------------------------------------------------------------

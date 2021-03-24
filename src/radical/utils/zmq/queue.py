@@ -219,6 +219,7 @@ class Queue(Bridge):
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
               # self._prof.prof('poll_put', msg=len(ev_put))
+              # self._log.debug('polled put: %s', ev_put)
 
                 if self._put in ev_put:
 
@@ -231,6 +232,7 @@ class Queue(Bridge):
                     qname = msgpack.unpackb(data[0])
                     msgs  = msgpack.unpackb(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
+                  # self._log.debug('put %s: %s', qname, len(msgs))
 
                     if qname not in buf:
                         buf[qname] = list()
@@ -243,6 +245,7 @@ class Queue(Bridge):
                 # check if somebody wants our messages
                 ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
               # self._prof.prof('poll_get', msg=len(ev_get))
+              # self._log.debug('polled get: %s', ev_get)
 
                 if self._get in ev_get:
 
@@ -264,6 +267,7 @@ class Queue(Bridge):
                     data = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
 
+                  # self._log.debug('get %s: %s', qname, len(msgs))
                     no_intr(self._get.send_multipart, data)
                   # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
@@ -295,7 +299,7 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, log=None, prof=None):
+    def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
         self._channel  = channel
         self._url      = as_string(url)
@@ -305,6 +309,10 @@ class Putter(object):
 
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
                                      ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).put
+
         if not self._log:
             self._log  = Logger(name=self._uid, ns='radical.utils')
 
@@ -501,7 +509,8 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, cb=None, log=None, prof=None):
+    def __init__(self, channel, url=None, cb=None,
+                                log=None, prof=None, path=None):
         '''
         When a callback `cb` is specified, then the Getter c'tor will spawn
         a separate thread which continues to listen on the channel, and the
@@ -516,6 +525,9 @@ class Getter(object):
         self._prof      = prof
         self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
                                       ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).get
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')

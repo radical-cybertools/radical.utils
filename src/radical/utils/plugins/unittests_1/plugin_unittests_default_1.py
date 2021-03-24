@@ -30,7 +30,7 @@ class PLUGIN_CLASS(object, metaclass=ru.Singleton):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self):
+    def __init__(self, descr):
 
         if PLUGIN_CLASS._created:
             assert(False), 'singleton plugin created twice'
