@@ -325,12 +325,20 @@ class PluginManager(object):
             raise LookupError('No such plugin name %s (type: %s) in %s'
                     % (pname, ptype, list(self._plugins[ptype].keys())))
 
-        pdescr = self._plugins[ptype][pname]
-        plugin = pdescr['plugin']
-        pclass = pdescr['class']
-        pinst  = getattr(plugin, pclass)(pdescr, *args, **kwargs)
+        try:
+            pdescr = self._plugins[ptype][pname]
+            plugin = pdescr['plugin']
+            pclass = pdescr['class']
+            print(pclass)
+            print(plugin.__file__)
+            pinst  = getattr(plugin, pclass)(pdescr, args, kwargs)
 
-        assert(isinstance(pinst, PluginBase)), pinst
+            assert(isinstance(pinst, PluginBase)), pinst
+
+        except Exception:
+            self._log.exception('plugin init failed')
+            raise LookupError('Failed to load plugin %s (type: %s)'
+                             % (pname, ptype))
 
         return pinst
 
