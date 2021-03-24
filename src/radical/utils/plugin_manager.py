@@ -329,8 +329,6 @@ class PluginManager(object):
             pdescr = self._plugins[ptype][pname]
             plugin = pdescr['plugin']
             pclass = pdescr['class']
-            print(pclass)
-            print(plugin.__file__)
             pinst  = getattr(plugin, pclass)(pdescr, args, kwargs)
 
             assert(isinstance(pinst, PluginBase)), pinst
