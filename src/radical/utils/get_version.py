@@ -55,7 +55,6 @@ def get_version(paths=None):
                 detail  = lines[-1]
                 pattern = re.compile(_pat)
                 match   = pattern.search(detail)
-                print(lines)
 
                 if match:
                     version_short  = match.group('short').strip()
