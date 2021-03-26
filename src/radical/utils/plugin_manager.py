@@ -17,6 +17,44 @@ from .logger    import Logger
 
 # ------------------------------------------------------------------------------
 #
+class PluginBase(object):
+    '''
+    This class serves as base class for any plugin managed by the plugin handler
+    '''
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, descr: dict) -> None:
+        '''
+        This constructor MUST be called by any inherting implementation.
+        '''
+
+        self._plugin_descr = descr
+
+
+    @property
+    def plugin_type(self) -> str:
+        return self._plugin_descr['type']
+
+    @property
+    def plugin_name(self) -> str:
+        return self._plugin_descr['name']
+
+    @property
+    def plugin_class(self) -> str:
+        return self._plugin_descr['class']
+
+    @property
+    def plugin_version(self) -> str:
+        return self._plugin_descr['version']
+
+    @property
+    def plugin_description(self) -> str:
+        return self._plugin_descr['description']
+
+
+# ------------------------------------------------------------------------------
+#
 class _PluginRegistry(dict, metaclass=Singleton):
     '''
     The plugin registry helper class avoids that plugins are loaded twice.
@@ -271,7 +309,7 @@ class PluginManager(object):
 
     # --------------------------------------------------------------------------
     #
-    def load(self, ptype, pname):
+    def load(self, ptype, pname, *args, **kwargs):
         '''
         check if a plugin with given type and name was loaded, if so,
         instantiate its plugin class and return it.
@@ -287,12 +325,19 @@ class PluginManager(object):
             raise LookupError('No such plugin name %s (type: %s) in %s'
                     % (pname, ptype, list(self._plugins[ptype].keys())))
 
+        try:
+            pdescr = self._plugins[ptype][pname]
+            plugin = pdescr['plugin']
+            pclass = pdescr['class']
+            pinst  = getattr(plugin, pclass)(pdescr, *args, **kwargs)
 
-        plugin = self._plugins[ptype][pname]['plugin']
-        pclass = self._plugins[ptype][pname]['class']
-        pinst  = getattr(plugin, pclass)()
+            assert(isinstance(pinst, PluginBase)), pinst
 
-        # create new plugin instance
+        except Exception:
+            self._log.exception('plugin init failed')
+            raise LookupError('Failed to load plugin %s (type: %s)'
+                             % (pname, ptype))
+
         return pinst
 
 
