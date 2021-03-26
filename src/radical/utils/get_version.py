@@ -48,9 +48,13 @@ def get_version(paths=None):
             version_path = "%s/VERSION" % path
 
             with open(version_path) as f:
-                line    = f.readline().strip()
+                data    = f.read()
+                lines   = data.split('\n', 1)
+                lines   = [line.strip() for line in lines]
+                lines   = [line         for line in lines if line]
+                detail  = lines[-1]
                 pattern = re.compile(_pat)
-                match   = pattern.search(line)
+                match   = pattern.search(detail)
 
                 if match:
                     version_short  = match.group('short').strip()

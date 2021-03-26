@@ -2,6 +2,17 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.6.2  Hotfix Release                                                 2021-03-26
+--------------------------------------------------------------------------------
+
+  - switch to pep-440 for sdist and wheel versioning, to keep pip happy
+
+1.6.0  Release                                                        2021-03-09
+--------------------------------------------------------------------------------
+
+  - add munch inheritance
+  - reduce heartbeat log verbosity
+
 
 1.5.12 Release                                                        2021-02-02
 --------------------------------------------------------------------------------
