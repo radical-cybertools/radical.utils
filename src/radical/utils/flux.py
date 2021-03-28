@@ -1,7 +1,4 @@
 
-# helper to programnatically handle flux instances and to obtain state
-# update events for flux jobs running in that instance
-
 import os
 import time
 
@@ -20,6 +17,13 @@ from .misc    import as_list, get_hostname
 # ------------------------------------------------------------------------------
 #
 class FluxHelper(object):
+
+    # helper to programnatically handle flux instances and to obtain state
+    # update events for flux jobs running in that instance.
+    #
+    # TODO: At the moment, that `FluxHelper` can only be used within a single
+    #       process - later iterations my allow to start the service in one
+    #       process and to register for callbacks etc. from another process.
 
     # list of allowed (reported) flux events
     event_list = {
