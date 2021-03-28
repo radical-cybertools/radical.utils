@@ -124,6 +124,33 @@ def test_munch():
 
 # ------------------------------------------------------------------------------
 #
+def test_munch_defaults():
+
+    # --------------------------------------------------------------------------
+    # plain schema
+    class Foo(ru.Munch):
+        _schema   = {'one'  : int,
+                     'two'  : {str: int},
+                     'three': [str],
+                     'four' : float,
+                     'five' : bool}
+        _defaults = {'two'  : {'two-default': 0},
+                     'three': [3, 3, 3],
+                     'four' : None,
+                     'five' : True}
+    # --------------------------------------------------------------------------
+
+
+    f = Foo()
+    assert (f.one   is None)
+    assert (f.two   == {'two-default': 0})
+    assert (f.three == [3, 3, 3])
+    assert (f.four  is None)
+    assert (f.five  is True)
+
+
+# ------------------------------------------------------------------------------
+#
 def test_munch_update():
 
     # --------------------------------------------------------------------------
@@ -274,6 +301,7 @@ def test_demunch():
 if __name__ == '__main__':
 
     test_munch()
+    test_munch_defaults()
     test_munch_update()
     test_munch_inherit()
     test_demunch()
