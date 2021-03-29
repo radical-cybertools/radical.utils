@@ -26,11 +26,10 @@ class PluginBase(object):
     #
     def __init__(self, descr: dict) -> None:
         '''
-        This constructor MUST be called by any inherting implementation.
+        This constructor MUST be called by any inheriting implementation.
         '''
 
         self._plugin_descr = descr
-
 
     @property
     def plugin_type(self) -> str:
@@ -333,10 +332,10 @@ class PluginManager(object):
 
             assert(isinstance(pinst, PluginBase)), pinst
 
-        except Exception:
+        except Exception as e:
             self._log.exception('plugin init failed')
-            raise LookupError('Failed to load plugin %s (type: %s)'
-                             % (pname, ptype))
+            raise LookupError('Failed to load plugin %s (type: %s)' %
+                              (pname, ptype)) from e
 
         return pinst
 
