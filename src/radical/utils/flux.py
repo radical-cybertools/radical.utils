@@ -4,8 +4,9 @@ import time
 
 from typing import Optional, Dict, Any, Callable
 
-import subprocess as sp
-import threading  as mt
+import threading       as mt
+import subprocess      as sp
+import multiprocessing as mp
 
 from .url     import Url
 from .ids     import generate_id
@@ -13,7 +14,8 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .misc    import as_list, get_hostname
+from .json_io import read_json, write_json
+from .misc    import as_list, get_hostname, rec_makedir
 
 
 # ------------------------------------------------------------------------------
@@ -40,11 +42,7 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self) -> None:
-
-        self._log  = Logger('radical.utils.flux')
-        self._prof = Profiler('radical.utils.flux')
-        self._lock = mt.Lock()
+    def __init__(self, name : str = None) -> None:
 
         try:
             self._mod = import_module('flux')
@@ -53,7 +51,26 @@ class FluxHelper(object):
             self._log.exception('flux import failed')
             raise
 
-        self._services = dict()
+        if name: self._name = name
+        else   : self._name = 'flux_helper'
+
+        self._log         = Logger('radical.utils.flux')
+        self._prof        = Profiler('radical.utils.flux')
+        self._lock        = mt.RLock()
+
+        self._flux_info   = dict()
+        self._local_state = dict()
+
+        self._base = '%s/%s' % (os.getcwd(), self._name)
+        rec_makedir(self._base)
+
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def name(self):
+
+        return self._name
 
 
     # --------------------------------------------------------------------------
@@ -61,6 +78,17 @@ class FluxHelper(object):
     def start_service(self,
                       env: Optional[Dict[str,str]] = None
                      ) -> Dict[str, Any]:
+
+        with self._lock:
+
+            return self._locked_start_service(env)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _locked_start_service(self,
+                              env: Optional[Dict[str,str]] = None
+                             ) -> Dict[str, Any]:
 
         flux_uid = generate_id('flux')
 
@@ -79,7 +107,7 @@ class FluxHelper(object):
         flux_proc = sp.Popen(cmd, shell=True, env=penv,
                              stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.STDOUT)
 
-        while True:
+        while flux_proc.poll() is None:
 
             try:
                 line = flux_proc.stdout.readline()
@@ -92,7 +120,7 @@ class FluxHelper(object):
             if not line:
                 continue
 
-            self._log.debug('=== %s', line)
+            self._log.debug('%s', line)
 
             if line.startswith('export '):
                 k, v = line.split(' ', 1)[1].strip().split('=', 1)
@@ -102,6 +130,8 @@ class FluxHelper(object):
             elif line == 'OK':
                 break
 
+        if flux_proc.poll() is not None:
+            raise RuntimeError('could not execute `flux start`')
 
         assert('FLUX_URI' in flux_env)
 
@@ -130,7 +160,7 @@ class FluxHelper(object):
 
                 time.sleep(1)
 
-                _, err, ret = sh_callout('flux ping -c 1 all')
+                _, err, ret = sh_callout('flux ping -c 1 kvs')
                 if ret:
                     self._log.error('flux watcher err: %s', err)
                     break
@@ -144,78 +174,25 @@ class FluxHelper(object):
         flux_watcher.daemon = True
         flux_watcher.start()
 
-        # ----------------------------------------------------------------------
-        def listen(flux_uid : str,
-                   flux_uri : str,
-                   flux_term: mt.Event
-                  ) -> None:
-
-            handle = None
-            try:
-                handle = self._mod.Flux(url=flux_uri)
-                handle.event_subscribe('job-state')
-
-                while not flux_term.is_set():
-
-                    # FIXME: how can recv be timed out or interrupted after work
-                    #        completed?
-                    event = handle.event_recv()
-
-                    if 'transitions' not in event.payload:
-                        self._log.warn('unexpected flux event: %s' %
-                                        event.payload)
-                        continue
-
-                    transitions = as_list(event.payload['transitions'])
-
-                    for event in transitions:
-                        job_id, job_state = event
-                        if job_state not in self.event_list:
-                            # we are not interested in this event
-                            continue
-
-                        with self._lock:
-                            if flux_uid not in self._services:
-                                # service is gone
-                                flux_term.set()
-                                break
-
-                            # FIXME: can we dig out exit code?  Other meta data?
-                            for cb in self._services[flux_uid]['callbacks']:
-                                cb(job_id, job_state)
-
-
-            except Exception:
-                self._log.exception('Error in listener loop')
-                if handle:
-                    handle.event_unsubscribe('job-state')
-                    del(handle)
-
-            finally:
-                flux_term.set()
-        # ----------------------------------------------------------------------
-
-        flux_listener = mt.Thread(target=listen,
-                                  args=[flux_uid, flux_uri, flux_term])
-        flux_listener.daemon = True
-        flux_listener.start()
-
-
         self._log.info("flux startup successful: [%s]", flux_env['FLUX_URI'])
 
-        with self._lock:
-            self._services[flux_uid] = {'uid'      : flux_uid,
-                                        'uri'      : flux_uri,
-                                        'env'      : flux_env,
-                                        'proc'     : flux_proc,
-                                        'term'     : flux_term,
-                                        'watcher'  : flux_watcher,
-                                        'listener' : flux_listener,
-                                        'handles'  : list(),
-                                        'callbacks': list(),
-                                       }
 
-        return self.check_service(flux_uid)
+        self._flux_info[flux_uid]   = {'uid'      : flux_uid,
+                                       'uri'      : flux_uri,
+                                       'env'      : flux_env}
+
+        self._local_state[flux_uid] = {'proc'     : flux_proc,
+                                       'term'     : flux_term,
+                                       'watcher'  : flux_watcher,
+                                       'listeners': list(),
+                                       'handles'  : list(),
+                                       'executors': list(),
+                                       'callbacks': list()}
+
+        write_json('%s/%s.json' % (self._base, flux_uid),
+                   self._flux_info[flux_uid])
+
+        return self._flux_info[flux_uid]
 
 
     # --------------------------------------------------------------------------
@@ -224,13 +201,27 @@ class FluxHelper(object):
 
         with self._lock:
 
-            if uid not in self._services:
-                raise LookupError('flux service id %s unknown' % uid)
+            flux_info = self._flux_info.get(uid)
 
-            if self._services[uid]['term'].is_set():
+            if not flux_info:
+                try:
+                    flux_info = read_json('%s/%s.json' % (self._base, uid))
+                except Exception as e:
+                    raise LookupError('flux service id %s unknown' % uid) from e
+
+            if self._local_state[uid]['term'].is_set():
                 raise RuntimeError('flux service id %s unknown' % uid)
 
-            return self._services[uid]
+            if uid not in self._local_state:
+                self._local_state[uid] = {'proc'     : None,
+                                          'term'     : None,
+                                          'watcher'  : None,
+                                          'listener' : None,
+                                          'handles'  : list(),
+                                          'executors': list(),
+                                          'callbacks': list()}
+
+            return self._flux_info[uid]
 
 
     # --------------------------------------------------------------------------
@@ -239,36 +230,138 @@ class FluxHelper(object):
 
         with self._lock:
 
-            if uid not in self._services:
-                raise LookupError('flux service id %s unknown' % uid)
+            flux_info = self.check_service(uid)
+            assert(uid in self._local_state)
 
             try:
-                handle = self._mod.Flux(url=self._services[uid]['uri'])
-                if not handle:
-                    raise RuntimeError('handle invalid')
+                handle = self._mod.Flux(url=flux_info['uri'])
+                assert(handle)
 
             except Exception as e:
                 self._log.exception('failed to create flux handle for %s' % uid)
                 raise RuntimeError('failed to create flux handle') from e
 
-            self._services[uid]['handles'].append(handle)
+            self._local_state[uid]['handles'].append(handle)
 
-        return handle
+            return handle
 
+
+    # --------------------------------------------------------------------------
+    #
+    def get_executor(self, uid : str) -> Any:
+
+        with self._lock:
+
+            flux_info = self.check_service(uid)
+            assert(uid in self._local_state)
+
+            try:
+                from flux import job as flux_job
+                args = {'url':flux_info['uri']}
+                jex  = flux_job.executor.FluxExecutor(handle_kwargs=args)
+                assert(jex)
+
+            except Exception as e:
+                self._log.exception('failed to create flux executor for %s' % uid)
+                raise RuntimeError('failed to create flux executor') from e
+
+            self._local_state[uid]['executors'].append(jex)
+
+            return jex
+
+
+    # ----------------------------------------------------------------------
+    def _listen(self,
+               flux_uid : str,
+               flux_uri : str,
+               flux_term: mt.Event,
+               cb       : Callable[[str, str, float, dict], None]
+              ) -> None:
+
+        handle = None
+        self._log.debug('====> register for events: %s', cb)
+        try:
+            handle = self._mod.Flux(url=flux_uri)
+            self._log.debug('=== event handle: %s', handle)
+            handle.event_subscribe('job-state')
+            self._log.debug('=== subscribe event')
+
+            while not flux_term.is_set():
+
+                self._log.debug('=== recv event')
+
+                # FIXME: how can recv be timed out or interrupted after work
+                #        completed?
+                event = handle.event_recv()
+
+                if 'transitions' not in event.payload:
+                    self._log.warn('unexpected flux event: %s' %
+                                    event.payload)
+                    continue
+
+                transitions = as_list(event.payload['transitions'])
+
+                for event in transitions:
+                    self._log.debug('====> event: %s', event)
+                    job_id, job_state, ts = event
+                    if job_state not in self.event_list:
+                        # we are not interested in this event
+                        continue
+
+                    with self._lock:
+                        if flux_uid not in self._flux_info:
+                            # service is gone
+                            flux_term.set()
+                            break
+
+                        # FIXME: can we dig out exit code?  Other meta data?
+                        try:
+                            for cb in self._local_state[flux_uid]['callbacks']:
+                                context = dict()
+                                if job_state == 'INACTIVE':
+                                    context = self._mod.job.event_wait(
+                                            handle, job_id, "finish").context
+                                cb(job_id, job_state, ts, context)
+                        except:
+                            self._log.exception('cb error')
+
+
+        except Exception:
+            self._log.exception('Error in listener loop')
+            if handle:
+                handle.event_unsubscribe('job-state')
+                del(handle)
+
+        finally:
+            flux_term.set()
 
     # --------------------------------------------------------------------------
     #
     def register_callback(self,
                           uid: str,
-                          cb : Callable[[Any], None]
+                          cb : Callable[[str, str, float, dict], None]
                          ) -> None:
 
         with self._lock:
 
-            if uid not in self._services:
-                raise LookupError('flux service id %s unknown' % uid)
+            self._log.debug('===> register cb %s', cb)
 
-            self._services[uid]['callbacks'].append(cb)
+            _ = self.check_service(uid)
+            assert(uid in self._local_state)
+
+            self._local_state[uid]['callbacks'].append(cb)
+
+            flux_term = self._local_state[uid]['term']
+            flux_uri  = self._flux_info[uid]['uri']
+
+            flux_listener = mt.Thread(target=self._listen,
+                                      args=[uid, flux_uri, flux_term, cb])
+            flux_listener.daemon = True
+            flux_listener.start()
+
+            self._local_state[uid]['listeners'].append(flux_listener)
+
+
 
 
     # --------------------------------------------------------------------------
@@ -280,10 +373,10 @@ class FluxHelper(object):
 
         with self._lock:
 
-            if uid not in self._services:
-                raise LookupError('flux service id %s unknown' % uid)
+            _ = self.check_service(uid)
+            assert(uid in self._local_state)
 
-            self._services[uid]['callbacks'].remove(cb)
+            self._local_state[uid]['callbacks'].remove(cb)
 
 
     # --------------------------------------------------------------------------
@@ -292,25 +385,37 @@ class FluxHelper(object):
 
         with self._lock:
 
-            if uid not in self._services:
-                raise LookupError('flux service id %s unknown' % uid)
+            _ = self.check_service(uid)
+
+            if self._local_state[uid]['proc'] is None:
+                raise RuntimeError('cannot kill flux from this process')
 
             # terminate watcher and listener
-            self._services[uid]['term'].set()
+            self._local_state[uid]['term'].set()
 
             # delete all created handles
-            for handle in self._services[uid]['handles']:
+            for handle in self._local_state[uid]['handles']:
                 del(handle)
+
+            # delete all created executors
+            for jex in self._local_state[uid]['executors']:
+                del(jex)
 
             # terminate the service process
             # FIXME: send termination signal to flux for cleanup
-            self._services[uid]['proc'].kill()
+            self._local_state[uid]['proc'].kill()
             time.sleep(0.1)
-            self._services[uid]['proc'].terminate()
-            self._services[uid]['proc'].wait()
+            self._local_state[uid]['proc'].terminate()
+            self._local_state[uid]['proc'].wait()
 
-            # remove service entry
-            del(self._services[uid])
+            # remove service entries
+            del(self._flux_info[uid])
+            del(self._local_state[uid])
+
+            try:
+                os.unlink('%s/%s.json' % (self._base, uid))
+            except Exception:
+                pass
 
 
 # ------------------------------------------------------------------------------
