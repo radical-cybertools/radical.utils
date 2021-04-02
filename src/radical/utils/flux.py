@@ -93,7 +93,7 @@ class FluxHelper(object):
         flux_uid = generate_id('flux')
 
         check = 'flux env; echo "OK"; while true; do echo "ok"; sleep 1; done'
-        start = 'flux start -o,-v,-S,log-filename=out'
+        start = 'flux start -o,-v,-S,log-filename=%s.log' % flux_uid
         cmd   = '/bin/bash -c "echo \\\"%s\\\" | %s"' % (check, start)
 
         penv  = os.environ
