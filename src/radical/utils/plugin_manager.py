@@ -169,17 +169,14 @@ class PluginManager(object):
         for spath in sys.path:
 
             # we only load plugins installed under the namespace hierarchy
-            npath = self._namespace.replace('.', '/')
-            ppath = '%s/%s/plugins/' %  (spath, npath)
-            pglob = '*/plugin_*.py'
-
-            # make sure the 'plugins' dir exists
-            if not os.path.isdir(ppath):
-                continue
+            npath  = self._namespace.replace('.', '/')
+            ppath  = '%s/%s/plugin*/' %  (spath, npath)
+            pglob1 = '*/plugin_*.py'
+            pglob2 = 'plugin_*.py'
 
             # we assume that all python sources in that location are
             # suitable plugins
-            pfiles = glob.glob(ppath + pglob)
+            pfiles = glob.glob(ppath + pglob1) + glob.glob(ppath + pglob2)
 
             if not pfiles:
                 continue
