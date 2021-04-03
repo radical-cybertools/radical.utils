@@ -43,19 +43,19 @@ class FluxHelper(object):
     #
     def __init__(self, name : str = None) -> None:
 
+        if name: self._name = name
+        else   : self._name = 'flux_helper'
+
+        self._log         = Logger('radical.utils.%s' % self._name)
+        self._prof        = Profiler('radical.utils.%s' % self._name)
+        self._lock        = mt.RLock()
+
         try:
             self._mod = import_module('flux')
 
         except Exception:
             self._log.exception('flux import failed')
             raise
-
-        if name: self._name = name
-        else   : self._name = 'flux_helper'
-
-        self._log         = Logger('radical.utils.flux')
-        self._prof        = Profiler('radical.utils.flux')
-        self._lock        = mt.RLock()
 
         self._flux_info   = dict()
         self._local_state = dict()

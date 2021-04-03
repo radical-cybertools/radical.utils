@@ -7,6 +7,11 @@ import pprint
 import radical.utils as ru
 
 
+import pytest
+yaml = pytest.importorskip('yaml')
+flux = pytest.importorskip('flux')
+
+
 # ------------------------------------------------------------------------------
 #
 def test_flux():
