@@ -6,7 +6,6 @@ from typing import Optional, Dict, Any, Callable
 
 import threading       as mt
 import subprocess      as sp
-import multiprocessing as mp
 
 from .url     import Url
 from .ids     import generate_id
@@ -346,7 +345,7 @@ class FluxHelper(object):
 
             self._log.debug('===> register cb %s', cb)
 
-            _ = self.check_service(uid)
+            self.check_service(uid)
             assert(uid in self._local_state)
 
             self._local_state[uid]['callbacks'].append(cb)
@@ -373,7 +372,7 @@ class FluxHelper(object):
 
         with self._lock:
 
-            _ = self.check_service(uid)
+            self.check_service(uid)
             assert(uid in self._local_state)
 
             self._local_state[uid]['callbacks'].remove(cb)
@@ -385,7 +384,7 @@ class FluxHelper(object):
 
         with self._lock:
 
-            _ = self.check_service(uid)
+            self.check_service(uid)
 
             if self._local_state[uid]['proc'] is None:
                 raise RuntimeError('cannot kill flux from this process')
