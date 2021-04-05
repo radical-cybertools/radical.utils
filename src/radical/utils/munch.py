@@ -342,8 +342,9 @@ class Munch(DictMixin):
         if isinstance(t, list)    : return cls._verify_list(k, v, t, cast)
         if isinstance(t, dict)    : return cls._verify_dict(k, v, t, cast)
         if issubclass(t, Munch)   : return v.verify(t)
-        raise TypeError('%s: no verifier defined for type %s'
-                       % (cls.__name__, t))
+        return v
+      # raise TypeError('%s: no verifier defined for type %s'
+      #                % (cls.__name__, t))
 
 
     def verify(self, ctype=None):
