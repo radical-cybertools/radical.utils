@@ -184,7 +184,7 @@ class PluginManager(object, metaclass=Singleton):
                     continue
 
                 try:
-                    modname = '%s.plugins.%s.%s' % ( namespace,
+                    modname = '%s.plugins.%s.%s' % (namespace,
                                 os.path.basename(os.path.dirname(pfile)),
                                 os.path.splitext(os.path.basename(pfile))[0])
                     # now load the plugin proper
