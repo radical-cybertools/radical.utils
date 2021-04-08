@@ -14,7 +14,7 @@ from .constants      import *
 
 # import utility classes
 from .object_cache   import ObjectCache
-from .plugin_manager import PluginManager
+from .plugin_manager import PluginManager, PluginBase
 from .singleton      import Singleton
 from .heartbeat      import Heartbeat
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
