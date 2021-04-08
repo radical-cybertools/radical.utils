@@ -3,6 +3,8 @@ __author__    = 'Radical.Utils Development Team (Andre Merzky)'
 __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
 __license__   = 'MIT'
 
+import radical.utils as ru
+
 
 # ------------------------------------------------------------------------------
 #
@@ -17,23 +19,17 @@ PLUGIN_DESCRIPTION = {
 
 # ------------------------------------------------------------------------------
 #
-class PLUGIN_CLASS(object):
+class PLUGIN_CLASS(ru.PluginBase):
     '''
     This class implements a unittest plugin for radical.utils.
     '''
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self):
+    def __init__(self, descr, *args, **kwargs):
 
-        self._args = None
+        super(PLUGIN_CLASS, self).__init__(descr)
 
-
-    # --------------------------------------------------------------------------
-    #
-    def init(self, *args):
-
-        assert(self._args is None), 'plugin created twice'
         self._args = args
 
 
