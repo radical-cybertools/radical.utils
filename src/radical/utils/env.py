@@ -87,14 +87,82 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
+def _quote(data):
+
+    if "'" in data or '$' in data or '`' in data:
+        # cannot use single quote, so use double quote and escale all other
+        # double quotes in the data
+        # NOTE: we only support these three types of shell directives
+        data = '"' + data.replace('"', '\\"') + '"'
+
+    else:
+        # single quotes will do
+        data = "'" + data +  "'"
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
+def _unquote(data):
+
+    if data.startswith("'") and data.endswith("'"):
+        # just remove enclosing single quotes - no nesting
+        data = data[1:-1]
+
+    elif data.startswith('"') and data.endswith('"'):
+        # remove enclosing double quotes, and replace all occurences of escaled
+        # double quotes (`\"`) with an unescaled one (`"`).
+        data = data[1:-1]
+        data = data.replace('\\"', '"')
+
+    return data
+
+
+# ------------------------------------------------------------------------------
+#
+def env_eval(fname):
+    '''
+    helper to create a dictionary with the env settings in the specified file
+    which contains `unset` and `export` directives
+    '''
+
+    env = dict()
+    with open(fname, 'r') as fin:
+
+        for line in fin.readlines():
+
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith('#'):
+                continue
+
+            cmd, spec = line.split(' ', 1)
+            if cmd == 'unset':
+                k = spec.strip()
+                if k not in env:
+                    continue
+                del(env[k])
+            elif cmd == 'export':
+                k,v = spec.split('=', 1)
+                env[k] = _unquote(v)
+
+    return env
+
+
+# ------------------------------------------------------------------------------
+#
 def env_prep(source=None, target=None, remove=None, pre_exec=None,
              pre_exec_cached=None):
     '''
     Create a shell script which restores the environment specified in `source`
     environment (dict).  While doing so, ensure that all env variables *not*
     defined in `source` but defined in `remove` (list) are unset.  Also ensure
-    that all commands provided in `pre_exec` (list) and `pre_exec_cached` (list)
-    are executed after these settings.
+    that all commands provided in `pre_exec_cached` (list) are executed after
+    these settings.
 
     Once the shell script is created, run it and dump the resulting env, then
     read it back via `env_read()` and return the resulting env dict - that
@@ -107,10 +175,11 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None,
 
     If `target` is given, a shell script will be created in the given location
     so that shell commands can source it and restore the specified environment.
-    Note that the commands given in `pre_exec` are again inserted into that
-    target script - those commands will always be executed when sourcing that
-    script - other than the `pre_exec_cached` commands which will not rerun, but
-    whose results will be recovered.
+
+    Any commands given in 'pre_exec' will be part of the cached script, and will
+    thus *not* be executed when preparing the env, but *will* be executed
+    whenever the prepared shell script is sources.  The returned env dictionary
+    will thus *not* include the effects of those injected commands.
     '''
 
     global _env_cache
@@ -120,6 +189,9 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None,
     if remove          is None: remove          = list()
     if pre_exec        is None: pre_exec        = list()
     if pre_exec_cached is None: pre_exec_cached = list()
+
+    if pre_exec and not target:
+        raise ValueError('`pre_exec` must be used with `target`')
 
     # empty `pre_exec*` settings are ok - just ensure correct type
     pre_exec        = as_list(pre_exec       )
@@ -161,33 +233,27 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None,
             fout.write('\n')
             if remove:
                 fout.write('# unset\n')
-                for k in remove:
+                for k in sorted(remove):
                     if k not in source:
                         fout.write('unset %s\n' % k)
                 fout.write('\n')
 
             if BLACKLIST:
                 fout.write('# blacklist\n')
-                for k in BLACKLIST:
+                for k in sorted(BLACKLIST):
                     fout.write('unset %s\n' % k)
                 fout.write('\n')
 
             if source:
                 fout.write('# export\n')
-                for k, v in source.items():
-                    # FIXME: shell quoting for value
+                for k in sorted(source.keys()):
                     if k not in BLACKLIST:
-                        fout.write("export %s='%s'\n" % (k, v))
-                fout.write('\n')
-
-            if pre_exec:
-                fout.write('# pre_exec\n')
-                for cmd in pre_exec:
-                    fout.write('%s\n' % cmd)
+                        fout.write("export %s='%s'\n" % (k, _quote(source[k])))
                 fout.write('\n')
 
             if pre_exec_cached:
                 fout.write('# pre_exec (cached)\n')
+                # do not sort, order dependent
                 for cmd in pre_exec_cached:
                     fout.write('%s\n' % cmd)
                 fout.write('\n')
@@ -195,7 +261,7 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None,
         finally:
             fout.close()
 
-        cmd = '/bin/sh -c ". %s && env | sort"' % tmp_name
+        cmd = '/bin/sh -c ". %s && /usr/bin/env | /usr/bin/sort"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
         if ret:
@@ -219,22 +285,23 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None,
 
             fout.write('\n# unset\n')
             for k in remove:
-                if k not in source:
+                if k not in sorted(source):
                     fout.write('unset %s\n' % k)
             fout.write('\n')
 
             fout.write('# blacklist\n')
-            for k in BLACKLIST:
+            for k in sorted(BLACKLIST):
                 fout.write('unset %s\n' % k)
             fout.write('\n')
 
             fout.write('# export\n')
-            for k, v in env.items():
+            for k in sorted(env.keys()):
                 # FIXME: shell quoting for value
-                fout.write("export %s='%s'\n" % (k, v))
+                fout.write("export %s='%s'\n" % (k, _quote(env[k])))
             fout.write('\n')
 
             if pre_exec:
+                # do not sort, order dependent
                 fout.write('# pre_exec\n')
                 for cmd in pre_exec:
                     fout.write('%s\n' % cmd)
