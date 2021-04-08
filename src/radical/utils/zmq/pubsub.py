@@ -179,7 +179,7 @@ class Publisher(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, log=None, prof=None):
+    def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
         self._channel  = channel
         self._url      = as_string(url)
@@ -190,6 +190,10 @@ class Publisher(object):
         # FIXME: no uid ns
         self._uid      = generate_id('%s.pub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).pub
+
         if not log:
             self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
 
@@ -304,7 +308,8 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, topic=None, cb=None, log=None, prof=None):
+    def __init__(self, channel, url=None, topic=None, cb=None,
+                                log=None, prof=None, path=None):
         '''
         If a `topic` is given, the channel will subscribe to that topic
         immediately.
@@ -321,8 +326,13 @@ class Subscriber(object):
         self._cb       = cb
         self._log      = log
         self._prof     = prof
+
         self._uid      = generate_id('%s.sub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).sub
+
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
 
@@ -338,25 +348,25 @@ class Subscriber(object):
         self._lock     = mt.Lock()
         self._ctx      = zmq.Context()  # rely on GC for destruction
 
-        if url not in Subscriber._callbacks:
+        if self._url not in Subscriber._callbacks:
 
             s        = self._ctx.socket(zmq.SUB)
             s.linger = _LINGER_TIMEOUT
             s.hwm    = _HIGH_WATER_MARK
             s.connect(self._url)
 
-            Subscriber._callbacks[url] = {'uid'      : self._uid,
-                                          'socket'   : s,
-                                          'channel'  : channel,
-                                          'lock'     : mt.Lock(),
-                                          'term'     : mt.Event(),
-                                          'thread'   : None,
-                                          'callbacks': list()}
+            Subscriber._callbacks[self._url] = {'uid'      : self._uid,
+                                                'socket'   : s,
+                                                'channel'  : channel,
+                                                'lock'     : mt.Lock(),
+                                                'term'     : mt.Event(),
+                                                'thread'   : None,
+                                                'callbacks': list()}
 
         # only allow `get()` and `get_nowait()`
         self._interactive = True
 
-        if topic and cb:
+        if topic:
             self.subscribe(topic, cb)
 
 
@@ -483,7 +493,6 @@ class Subscriber(object):
 
         if not self._interactive:
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
-
 
         sock = Subscriber._callbacks[self._url]['socket']
 

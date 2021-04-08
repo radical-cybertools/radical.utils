@@ -2,9 +2,10 @@
 
 import threading as mt
 
-from ..logger    import Logger
-from ..profile   import Profiler
-from ..json_io   import write_json
+from ..logger  import Logger
+from ..profile import Profiler
+from ..config  import Config
+from ..json_io import read_json, write_json
 
 
 # ------------------------------------------------------------------------------
@@ -15,6 +16,19 @@ class Bridge(object):
     A bridge can be configured to have a finite lifetime: when no messages are
     received in `timeout` seconds, the bridge process will terminate.
     '''
+
+    # --------------------------------------------------------------------------
+    #
+    @staticmethod
+    def get_config(name, pwd=None):
+
+        if not pwd:
+            pwd = '.'
+
+        cfg = Config(cfg=read_json('%s/%s.cfg' % (pwd, name)))
+
+        return cfg
+
 
     # --------------------------------------------------------------------------
     #

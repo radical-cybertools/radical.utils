@@ -1,4 +1,5 @@
 
+import sys
 import zmq
 import time
 import msgpack
@@ -174,7 +175,7 @@ class Queue(Bridge):
         self._get.bind(self._url)
 
         # communicate the bridge ports to the parent process
-        _addr_put = as_string(self._put.getsockopt (zmq.LAST_ENDPOINT))
+        _addr_put = as_string(self._put.getsockopt(zmq.LAST_ENDPOINT))
         _addr_get = as_string(self._get.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses
@@ -210,7 +211,7 @@ class Queue(Bridge):
             self.nout = 0
             self.last = 0
 
-            buf = list()
+            buf = dict()
             while not self._term.is_set():
 
                 active = False
@@ -218,58 +219,64 @@ class Queue(Bridge):
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
               # self._prof.prof('poll_put', msg=len(ev_put))
+              # self._log.debug('polled put: %s', ev_put)
 
                 if self._put in ev_put:
 
                     with self._lock:
-                        data = no_intr(self._put.recv)
+                        data = no_intr(self._put.recv_multipart)
 
-                    msgs = msgpack.unpackb(data)
+                    if len(data) != 2:
+                        raise RuntimeError('%d frames unsupported' % len(data))
+
+                    qname = msgpack.unpackb(data[0])
+                    msgs  = msgpack.unpackb(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
+                  # self._log.debug('put %s: %s', qname, len(msgs))
 
-                    if isinstance(msgs, list):
-                        buf      += msgs
-                        self.nin += len(msgs)
-                    else:
-                        buf.append(msgs)
-                        self.nin += 1
+                    if qname not in buf:
+                        buf[qname] = list()
+                    buf[qname] += msgs
+                    self.nin   += len(msgs)
 
                     active = True
 
 
-                # if we don't have any data in the buffer, there is no point in
-                # checking for receivers
-                if not buf:
-                    pass
-                  # self._prof.prof('poll_get_skip')
+                # check if somebody wants our messages
+                ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
+              # self._prof.prof('poll_get', msg=len(ev_get))
+              # self._log.debug('polled get: %s', ev_get)
 
-                else:
+                if self._get in ev_get:
 
-                    # check if somebody wants our messages
-                    ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
-                  # self._prof.prof('poll_get', msg=len(ev_get))
+                    # send up to `bulk_size` messages from the buffer
+                    # NOTE: this sends partial bulks on buffer underrun
+                    with self._lock:
+                        # the actual req message is ignored - we only care
+                        # about who sent it
+                        qname = as_string(no_intr(self._get.recv))
 
-                    if self._get in ev_get:
+                    if not qname:
+                        qname = 'default'
 
-                        # send up to `bulk_size` messages from the buffer
-                        # NOTE: this sends partial bulks on buffer underrun
-                        with self._lock:
-                            # the actual req message is ignored - we only care
-                            # about who sent it
-                            req = no_intr(self._get.recv)                 # noqa
+                    if qname in buf:
+                        msgs = buf[qname][:self._bulk_size]
+                    else:
+                        msgs = list()
 
-                        bulk   = buf[:self._bulk_size]
-                        data   = msgpack.packb(bulk)
-                        active = True
+                    data = [msgpack.packb(qname), msgpack.packb(msgs)]
+                    active = True
 
-                        no_intr(self._get.send, data)
-                      # prof_bulk(self._prof, 'poll_get_send', msgs=bulk, msg=req)
+                  # self._log.debug('get %s: %s', qname, len(msgs))
+                    no_intr(self._get.send_multipart, data)
+                  # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
-                        self.nout += len(bulk)
-                        self.last  = time.time()
+                    self.nout += len(msgs)
+                    self.last  = time.time()
 
-                        # remove sent messages from buffer
-                        del(buf[:self._bulk_size])
+                    # remove sent messages from buffer
+                    if msgs:
+                        del(buf[qname][:self._bulk_size])
 
                 if not active:
                   # self._prof.prof('sleep', msg=len(buf))
@@ -283,7 +290,6 @@ class Queue(Bridge):
             self._log.exception('bridge failed')
 
     def stop(self):
-        print('===', self.uid, self.nin, self.nout, self.last)
         Bridge.stop(self)
 
 
@@ -293,7 +299,7 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, log=None, prof=None):
+    def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
         self._channel  = channel
         self._url      = as_string(url)
@@ -303,6 +309,10 @@ class Putter(object):
 
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
                                      ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).put
+
         if not self._log:
             self._log  = Logger(name=self._uid, ns='radical.utils')
 
@@ -342,14 +352,20 @@ class Putter(object):
 
     # --------------------------------------------------------------------------
     #
-    def put(self, msgs):
+    def put(self, msgs, qname=None):
+
+        msgs = as_list(msgs)
+
+        if not qname:
+            qname = 'default'
+
 
       # from .utils import log_bulk
       # log_bulk(self._log, msgs, '-> %s' % self._channel)
-        data = msgpack.packb(msgs)
+        data = [msgpack.packb(qname), msgpack.packb(msgs)]
 
         with self._lock:
-            no_intr(self._q.send, data)
+            no_intr(self._q.send_multipart, data)
       # prof_bulk(self._prof, 'put', msgs)
 
 
@@ -368,28 +384,29 @@ class Getter(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _get_nowait(url, timeout, log, prof):  # timeout in ms
+    def _get_nowait(url, qname=None, timeout=None):  # timeout in ms
 
         info = Getter._callbacks[url]
+
+        if not qname:
+            qname = 'default'
 
         with info['lock']:
 
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
-                req = 'request %s' % info['uid']
-                no_intr(info['socket'].send, as_bytes(req))
+                no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
-              # prof.prof('requested')
 
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
 
-                data = no_intr(info['socket'].recv)
+                data = no_intr(info['socket'].recv_multipart)
                 info['requested'] = False
 
-                msgs = as_string(msgpack.unpackb(data))
-              # prof_bulk(prof, 'recv', msgs)
+                qname = as_string(msgpack.unpackb(data[0]))
+                msgs  = as_string(msgpack.unpackb(data[1]))
                 return msgs
 
             else:
@@ -399,17 +416,19 @@ class Getter(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(url, log, prof):
+    def _listener(url, qname=None):
         '''
         other than the pubsub listener, the queue listener will not deliver
         an incoming message to all subscribers, but only to exactly *one*
         subscriber.  We this perform a round-robin over all known callbacks
         '''
 
+        if not qname:
+            qname = 'default'
+
         assert(url in Getter._callbacks)
         time.sleep(1)
 
-        prof.prof('listen_start')
         try:
             term = Getter._callbacks.get(url, {}).get('term')
             idx  = 0  # round-robin cb index
@@ -422,28 +441,27 @@ class Getter(object):
                     time.sleep(0.01)
                     continue
 
-                msg = Getter._get_nowait(url, 500, log, prof)
+                msgs = Getter._get_nowait(url, qname=qname, timeout=500)
 
                 BULK = True
-                if msg:
+                if msgs:
 
                     if BULK:
                         idx += 1
-                        if idx >= len(callbacks):  # FIXME: lock callbacks
+                        if idx >= len(callbacks):
                             idx = 0
                         cb, _lock = callbacks[idx]
                         if _lock:
                             with _lock:
-                                cb(as_string(msg))
+                                cb(as_string(msgs))
                         else:
-                            cb(as_string(msg))
-                      # prof_bulk(prof, 'cb', msg, msg=cb.__name__)
+                            cb(as_string(msgs))
 
                     else:
-                        for m in as_list(msg):
+                        for m in as_list(msgs):
 
                             idx += 1
-                            if idx >= len(callbacks):  # FIXME: lock callbacks
+                            if idx >= len(callbacks):
                                 idx = 0
 
                             cb, _lock = callbacks[idx]
@@ -452,22 +470,24 @@ class Getter(object):
                                     cb(as_string(m))
                             else:
                                 cb(as_string(m))
-                          # prof_bulk(prof, 'cb', m, msg=cb.__name__)
 
         except:
-            log.exception('listener died')
+            sys.stderr.write('listener died\n')
+            sys.stderr.flush()
 
 
     # --------------------------------------------------------------------------
     #
-    def _start_listener(self):
+    def _start_listener(self, qname=None):
+
+        if not qname:
+            qname = 'default'
 
         # only start if needed
         if Getter._callbacks[self._url]['thread']:
             return
 
-        t = mt.Thread(target=Getter._listener,
-                      args=[self._url, self._log, self._prof])
+        t = mt.Thread(target=Getter._listener, args=[self._url, qname])
         t.daemon = True
         t.start()
 
@@ -489,7 +509,8 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, cb=None, log=None, prof=None):
+    def __init__(self, channel, url=None, cb=None,
+                                log=None, prof=None, path=None):
         '''
         When a callback `cb` is specified, then the Getter c'tor will spawn
         a separate thread which continues to listen on the channel, and the
@@ -504,6 +525,9 @@ class Getter(object):
         self._prof      = prof
         self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
                                       ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).get
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
@@ -618,57 +642,57 @@ class Getter(object):
 
     # --------------------------------------------------------------------------
     #
-    def get(self):
+    def get(self, qname=None):
 
         if not self._interactive:
             raise RuntimeError('invalid get(): callbacks are registered')
 
+        if not qname:
+            qname = 'default'
+
         if not self._requested:
-            req = 'Request %s' % self._uid
 
             with self._lock:
-                no_intr(self._q.send, as_bytes(req))
+                no_intr(self._q.send, as_bytes(qname))
                 self._requested = True
 
           # self._prof.prof('requested')
 
         with self._lock:
-            data = no_intr(self._q.recv)
+            data = no_intr(self._q.recv_multipart)
             self._requested = False
 
-        msgs = msgpack.unpackb(data)
-      # prof_bulk(self._prof, 'get', msgs)
+        qname = msgpack.unpackb(data[0])
+        msgs  = msgpack.unpackb(data[1])
 
         return as_string(msgs)
 
 
     # --------------------------------------------------------------------------
     #
-    def get_nowait(self, timeout=None):  # timeout in ms
+    def get_nowait(self, qname=None, timeout=None):  # timeout in ms
 
         if not self._interactive:
             raise RuntimeError('invalid get(): callbacks are registered')
 
+        if not qname:
+            qname = 'default'
+
         if not self._requested:
 
-            # send the request *once* per recieval (got lock above)
-            req = 'request %s' % self._uid
-
             with self._lock:  # need to protect self._requested
-                no_intr(self._q.send, as_bytes(req))
+                no_intr(self._q.send_multipart, [as_bytes(qname)])
                 self._requested = True
-
-          # self._prof.prof('requested')
 
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                data = no_intr(self._q.recv)
+                data = no_intr(self._q.recv_multipart)
                 self._requested = False
 
-            msgs = msgpack.unpackb(data)
-          # prof_bulk(self._prof, 'get_nowait', msgs)
+            qname = msgpack.unpackb(data[0])
+            msgs  = msgpack.unpackb(data[1])
             return as_string(msgs)
 
         else:
