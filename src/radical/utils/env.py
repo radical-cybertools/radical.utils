@@ -87,14 +87,14 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
-    # FIXME: should we add `pre_exec`?
+def env_prep(source=None, target=None, remove=None, pre_exec=None,
+             pre_exec_cached=None):
     '''
     Create a shell script which restores the environment specified in `source`
     environment (dict).  While doing so, ensure that all env variables *not*
     defined in `source` but defined in `remove` (list) are unset.  Also ensure
-    that all commands provided in `pre_exec_cached` (list) are executed after
-    these settings.
+    that all commands provided in `pre_exec` (list) and `pre_exec_cached` (list)
+    are executed after these settings.
 
     Once the shell script is created, run it and dump the resulting env, then
     read it back via `env_read()` and return the resulting env dict - that
@@ -107,6 +107,10 @@ def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
 
     If `target` is given, a shell script will be created in the given location
     so that shell commands can source it and restore the specified environment.
+    Note that the commands given in `pre_exec` are again inserted into that
+    target script - those commands will always be executed when sourcing that
+    script - other than the `pre_exec_cached` commands which will not rerun, but
+    whose results will be recovered.
     '''
 
     global _env_cache
@@ -114,14 +118,17 @@ def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
     # defaults
     if source          is None: source          = os.environ
     if remove          is None: remove          = list()
+    if pre_exec        is None: pre_exec        = list()
     if pre_exec_cached is None: pre_exec_cached = list()
 
-    # empty `pre_exec_cached` settings are ok - just ensure correct type
+    # empty `pre_exec*` settings are ok - just ensure correct type
+    pre_exec        = as_list(pre_exec       )
     pre_exec_cached = as_list(pre_exec_cached)
 
     # cache lookup
     cache_key = str(sorted(source.items())) \
-              + str(sorted(remove)) \
+              + str(sorted(remove))         \
+              + str(sorted(pre_exec))       \
               + str(sorted(pre_exec_cached))
     cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
 
@@ -137,8 +144,8 @@ def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
         #     but are defined in the `remove` list;
         #   - unset all blacklisted vars;
         #   - sets all variables defined in the `source` env dict;
-        #   - runs the `pre_exec_cached` commands given;
         #   - inserts all the `pre_exec` commands given;
+        #   - runs the `pre_exec_cached` commands given;
         #   - dumps the resulting env in a temporary file;
         #
         # Then run that script and read the resulting env back into a dict to
@@ -171,6 +178,12 @@ def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
                     # FIXME: shell quoting for value
                     if k not in BLACKLIST:
                         fout.write("export %s='%s'\n" % (k, v))
+                fout.write('\n')
+
+            if pre_exec:
+                fout.write('# pre_exec\n')
+                for cmd in pre_exec:
+                    fout.write('%s\n' % cmd)
                 fout.write('\n')
 
             if pre_exec_cached:
@@ -220,6 +233,12 @@ def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
                 # FIXME: shell quoting for value
                 fout.write("export %s='%s'\n" % (k, v))
             fout.write('\n')
+
+            if pre_exec:
+                fout.write('# pre_exec\n')
+                for cmd in pre_exec:
+                    fout.write('%s\n' % cmd)
+                fout.write('\n')
 
     return env
 
