@@ -13,13 +13,13 @@ from .shell import sh_callout
 # shell escaping:
 BLACKLIST  = ['PS1', 'LS_COLORS', '_', 'SHLVL']
 
-# Identical task `pre_exec` settings will result in the same environment
+# Identical task `pre_exec_cached` settings will result in the same environment
 # settings, so we cache those environments here.  We rely on a hash to ensure
-# `pre_exec` identity.  Note that this assumes that settings do not depend on,
-# say, the unit ID or similar, which needs very clear and prominent
+# `pre_exec_cached` identity.  Note that this assumes that settings do not
+# depend on, say, the unit ID or similar, which needs very clear and prominent
 # documentation.  Caching can be turned off by adding a unique noop string to
-# the `pre_exec` list - but we probably also add a config flag if that becomes
-# a common issue.
+# the `pre_exec_cached` list - but we probably also add a config flag if that
+# becomes a common issue.
 _env_cache = dict()
 
 
@@ -87,13 +87,14 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(source=None, target=None, remove=None, pre_exec=None):
+def env_prep(source=None, target=None, remove=None, pre_exec_cached=None):
+    # FIXME: should we add `pre_exec`?
     '''
     Create a shell script which restores the environment specified in `source`
     environment (dict).  While doing so, ensure that all env variables *not*
     defined in `source` but defined in `remove` (list) are unset.  Also ensure
-    that all commands provided in `pre_exec` (list) are executed after these
-    settings.
+    that all commands provided in `pre_exec_cached` (list) are executed after
+    these settings.
 
     Once the shell script is created, run it and dump the resulting env, then
     read it back via `env_read()` and return the resulting env dict - that
@@ -111,17 +112,17 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None):
     global _env_cache
 
     # defaults
-    if source   is None: source   = os.environ
-    if remove   is None: remove   = list()
-    if pre_exec is None: pre_exec = list()
+    if source          is None: source          = os.environ
+    if remove          is None: remove          = list()
+    if pre_exec_cached is None: pre_exec_cached = list()
 
-    # empty `pre_exec` settings are ok - just ensure correct type
-    pre_exec = as_list(pre_exec)
+    # empty `pre_exec_cached` settings are ok - just ensure correct type
+    pre_exec_cached = as_list(pre_exec_cached)
 
     # cache lookup
     cache_key = str(sorted(source.items())) \
               + str(sorted(remove)) \
-              + str(sorted(pre_exec))
+              + str(sorted(pre_exec_cached))
     cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
 
     if cache_md5 in _env_cache:
@@ -136,7 +137,8 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None):
         #     but are defined in the `remove` list;
         #   - unset all blacklisted vars;
         #   - sets all variables defined in the `source` env dict;
-        #   - runs the `pre_exec` commands given;
+        #   - runs the `pre_exec_cached` commands given;
+        #   - inserts all the `pre_exec` commands given;
         #   - dumps the resulting env in a temporary file;
         #
         # Then run that script and read the resulting env back into a dict to
@@ -171,9 +173,9 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None):
                         fout.write("export %s='%s'\n" % (k, v))
                 fout.write('\n')
 
-            if pre_exec:
-                fout.write('# pre_exec\n')
-                for cmd in pre_exec:
+            if pre_exec_cached:
+                fout.write('# pre_exec (cached)\n')
+                for cmd in pre_exec_cached:
                     fout.write('%s\n' % cmd)
                 fout.write('\n')
 
@@ -194,8 +196,9 @@ def env_prep(source=None, target=None, remove=None, pre_exec=None):
 
     # if `target` is specified, create a script with that name which unsets the
     # same names as in the tmp script above, and exports all vars from the
-    # resulting env from above (thus storing the *results* of the pre_exec'ed
-    # env, not the env and pre_exec directives themselves).
+    # resulting env from above (thus storing the *results* of the
+    # `pre_exec_cached` env, not the env and `pre_exec_cached` directives
+    # themselves).
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if target:
