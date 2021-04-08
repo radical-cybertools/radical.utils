@@ -54,15 +54,22 @@ env_dump(){
     # not start with a valid key.
 
     tgt=''
-    while ! test -z "$1"; do
-        case "$1" in
-            -t) tgt="u$2"; shift 1 ;;
-            * ) echo "invalid option $1"; return 1
+
+    local OPTIND OPTARG
+    while getopts "t:" OPTION; do
+        case $OPTION in
+            t)  tgt="$OPTARG"
+                echo "tgt: $tgt";;
+            *)  echo "Unknown option: '$OPTION'='$OPTARG'"
+                return 1;;
         esac
     done
 
-    test -z "$tgt" && env | sort
-    test -z "$tgt" && env | sort > $tgt
+    if test -z "$tgt"; then
+        env | sort
+    else
+        env | sort > "$tgt"
+    fi
 }
 
 
