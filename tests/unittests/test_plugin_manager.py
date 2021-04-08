@@ -17,10 +17,13 @@ def test_plugin_manager():
     '''
 
     pmgr = ru.PluginManager('radical.utils')
+    import pprint
+    pprint.pprint(pmgr._plugins)
 
-    plugin_2 = pmgr.load('unittests_1', 'default_2')
-    plugin_2.init('a', 1)
+    plugin_2 = pmgr.load('unittests_1', 'default_2', 'a', 1)
     ret = plugin_2.run()
+    assert(plugin_2.plugin_type == 'unittests_1')
+    assert(plugin_2.plugin_name == 'default_2')
     assert(ret == ('a', 1)), 'plugin_2 invocation: %s != %s' % (['a', 1], ret)
 
     try:
@@ -32,20 +35,17 @@ def test_plugin_manager():
         assert False
 
 
-    plugin_2 = pmgr.load('unittests_1', 'default_2')
-    plugin_2.init('a', 1)
+    plugin_2 = pmgr.load('unittests_1', 'default_2', 'a', 1)
     ret = plugin_2.run()
     assert(ret == ('a', 1)), 'plugin_2 invocation: %s != %s' % (['a', 1], ret)
 
-    plugin_3 = pmgr.load('unittests_2', 'default_2')
-    plugin_3.init('a', 1)
+    plugin_3 = pmgr.load('unittests_2', 'default_2', 'a', 1)
     ret = plugin_3.run()
     assert(ret == ('a', 1)), 'plugin_3 invocation: %s != %s' % (['a', 1], ret)
 
     # load twice -- plugin_2 is marked as singleton plugin_2, and will raise
     # if it is created twice
-    plugin_3 = pmgr.load('unittests_2', 'default_2')
-    plugin_3.init('a', 1)
+    plugin_3 = pmgr.load('unittests_2', 'default_2', 'a', 1)
     ret = plugin_3.run()
     assert(ret == ('a', 1)), 'plugin_3 invocation: %s != %s' % (['a', 1], ret)
 
@@ -54,8 +54,7 @@ def test_plugin_manager():
     pmgr  = ru.PluginManager('radical.utils')
 
     for i in range(1000000):
-        plugin_4 = pmgr.load('unittests_2', 'default_2')
-        plugin_4.init('a', 1)
+        plugin_4 = pmgr.load('unittests_2', 'default_2', 'a', 1)
         ret = plugin_4.run()
         assert(ret == ('a', 1)), 'plugin_4 invoc: %s != %s' % (['a', 1], ret)
 
