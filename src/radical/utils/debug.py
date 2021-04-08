@@ -580,6 +580,7 @@ class Lock(object):
             self.owner = get_thread_name()
 
         self.waits.pop()
+
         return ret
 
 
@@ -587,11 +588,8 @@ class Lock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------
@@ -623,7 +621,7 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def acquire(self, blocking=1):
+    def acquire(self, blocking=True):
 
         self.waits.append(get_thread_name())
         ret = self.lock.acquire(blocking=blocking)
@@ -640,11 +638,8 @@ class RLock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------

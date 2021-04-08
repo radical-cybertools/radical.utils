@@ -58,6 +58,14 @@ class Munch(DictMixin):
               Names with a leading underscore are not supported.
         '''
 
+        if not hasattr(self, '_check'):
+            # check type checking on set
+            self._check = False
+
+        if not hasattr(self, '_cast'):
+            # attempt to cast on type mismatch
+            self._cast = True
+
         if not hasattr(self, '_schema'):
             self._schema = dict()
           # raise RuntimeError('class %s has no schema defined' % self.__name__)
@@ -124,7 +132,7 @@ class Munch(DictMixin):
         return self._data[k]
 
     def __setitem__(self, k, v):
-        self._data[k] = v
+        self._data[k] = self._verify_setter(k, v)
 
     def __delitem__(self, k):
         del self._data[k]
@@ -136,7 +144,9 @@ class Munch(DictMixin):
         # should return a new instance of the same type, not an original Munch,
         # otherwise if an instance of Munch-based has an attribute of another
         # Munch-based type then `verify` method will raise TypeError exception
-        return type(self)(from_dict=copy.deepcopy(self._data))
+        ret = type(self)()
+        ret.update(copy.deepcopy(self._data))
+        return ret
 
 
     # --------------------------------------------------------------------------
@@ -162,7 +172,7 @@ class Munch(DictMixin):
         if k.startswith('_'):
             return object.__setattr__(self, k, v)
 
-        self._data[k] = v
+        self._data[k] = self._verify_setter(k, v)
 
 
     def __delattr__(self, k):
@@ -221,49 +231,99 @@ class Munch(DictMixin):
     # --------------------------------------------------------------------------
     #
     @classmethod
-    def _verify_int(cls, k, v, t):
-        try   : return int(v)
-        except: raise TypeError('%s: expected int type for %s (%s)'
-                               % (cls.__name__, k, type(v)))
+    def _verify_int(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            try   : return int(v)
+            except: raise TypeError('%s: expected int type for %s (%s)'
+                                   % (cls.__name__, k, type(v)))
+        else:
+            if isinstance(v, int):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_str(cls, k, v, t):
-        try   : return str(v)
-        except: raise TypeError('%s: expected str type for %s (%s)'
-                               % (cls.__name__, k, type(v)))
+    def _verify_str(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            try   : return str(v)
+            except: raise TypeError('%s: expected str type for %s (%s)'
+                                   % (cls.__name__, k, type(v)))
+        else:
+            if isinstance(v, str):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_float(cls, k, v, t):
-        try   : return float(v)
-        except: raise TypeError('%s: expected float type for %s (%s)'
-                               % (cls.__name__, k, type(v)))
+    def _verify_float(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            try   : return float(v)
+            except: raise TypeError('%s: expected float type for %s (%s)'
+                                   % (cls.__name__, k, type(v)))
+        else:
+            if isinstance(v, float):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_bool(cls, k, v, t):
+    def _verify_bool(cls, k, v, t, cast):
+        if v is None: return
         if v              in [True, False]       : return v
-        if str(v).lower() in ['true', 'yes', '1']: return True
-        if str(v).lower() in ['false', 'no', '0']: return False
-        raise TypeError('%s: expected bool type for %s (%s)'
-                       % (cls.__name__, k, type(v)))
+        if cast:
+            if str(v).lower() in ['true', 'yes', '1']: return True
+            if str(v).lower() in ['false', 'no', '0']: return False
+            raise TypeError('%s: expected bool type for %s (%s)'
+                           % (cls.__name__, k, type(v)))
+        else:
+            if isinstance(v, bool):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_tuple(cls, k, v, t):
-        v = as_tuple(v)
-        return tuple([cls._verify_kvt(k + ' tuple element', _v, t[0])
-                      for _v in v])
+    def _verify_tuple(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            v = as_tuple(v)
+            return tuple([cls._verify_kvt(k + ' tuple element', _v, t[0], cast)
+                          for _v in v])
+        else:
+            if isinstance(v, tuple):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_list(cls, k, v, t):
-        v = as_list(v)
-        return [cls._verify_kvt(k + ' list element', _v, t[0]) for _v in v]
+    def _verify_list(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            v = as_list(v)
+            return [cls._verify_kvt(k + ' list element', _v, t[0], cast)
+                    for _v in v]
+        else:
+            if isinstance(v, list):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     @classmethod
-    def _verify_dict(cls, k, v, t):
-        t_k = list(t.keys())[0]
-        t_v = list(t.values())[0]
-        return {cls._verify_kvt(_k, _k, t_k) :
-                cls._verify_kvt(_k, _v, t_v)
-                    for _k, _v in v.items()}
+    def _verify_dict(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            t_k = list(t.keys())[0]
+            t_v = list(t.values())[0]
+            return {cls._verify_kvt(_k, _k, t_k, cast) :
+                    cls._verify_kvt(_k, _v, t_v, cast)
+                        for _k, _v in v.items()}
+        else:
+            if isinstance(v, dict):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                           % (k, t, type(v)))
 
     _verifiers = {
             int  : _verify_int.__func__,
@@ -275,15 +335,16 @@ class Munch(DictMixin):
     _verifier_keys = list(_verifiers.keys())
 
     @classmethod
-    def _verify_kvt(cls, k, v, t):
+    def _verify_kvt(cls, k, v, t, cast):
         if t is None              : return v
-        if t in cls._verifier_keys: return cls._verifiers[t](cls, k, v, t)
-        if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t)
-        if isinstance(t, list)    : return cls._verify_list(k, v, t)
-        if isinstance(t, dict)    : return cls._verify_dict(k, v, t)
+        if t in cls._verifier_keys: return cls._verifiers[t](cls, k, v, t, cast)
+        if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t, cast)
+        if isinstance(t, list)    : return cls._verify_list(k, v, t, cast)
+        if isinstance(t, dict)    : return cls._verify_dict(k, v, t, cast)
         if issubclass(t, Munch)   : return v.verify(t)
-        raise TypeError('%s: no verifier defined for type %s'
-                       % (cls.__name__, t))
+        return v
+      # raise TypeError('%s: no verifier defined for type %s'
+      #                % (cls.__name__, t))
 
 
     def verify(self, ctype=None):
@@ -299,11 +360,33 @@ class Munch(DictMixin):
                 if k not in self._schema:
                     raise TypeError('%s: key %s not in schema'
                                    % (type(self).__name__, k))
-                self._data[k] = self._verify_kvt(k, v, self._schema[k])
+                self._data[k] = self._verify_kvt(k, v, self._schema[k],
+                                                 self._cast)
         self._verify()
         return self
 
 
+    # --------------------------------------------------------------------------
+    #
+    def _verify_setter(self, k, v):
+
+
+        if not self._check:
+            # no type checking on set
+            return v
+
+        if self._schema:
+
+            if k.startswith('__'):
+                return v
+            if k not in self._schema:
+                raise TypeError('%s: key %s not in schema'
+                               % (type(self).__name__, k))
+            return self._verify_kvt(k, v, self._schema[k], self._cast)
+
+
+    # --------------------------------------------------------------------------
+    #
     def _verify(self):
         '''
         Can be overloaded
