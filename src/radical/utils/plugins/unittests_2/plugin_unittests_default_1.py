@@ -20,7 +20,7 @@ PLUGIN_DESCRIPTION = {
 
 # ------------------------------------------------------------------------------
 #
-class PLUGIN_CLASS(object, metaclass=ru.Singleton):
+class PLUGIN_CLASS(ru.PluginBase, metaclass=ru.Singleton):
     '''
     This class implements the (empty) default unittest plugin for radical.utils.
     '''
@@ -29,21 +29,17 @@ class PLUGIN_CLASS(object, metaclass=ru.Singleton):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self):
+    def __init__(self, descr, *args, **kwargs):
+
+        super(PLUGIN_CLASS, self).__init__(descr)
 
         if PLUGIN_CLASS._created:
             assert(False), "singleton plugin created twice"
 
         PLUGIN_CLASS._created = True
 
-        self._args = None
-
-
-    # --------------------------------------------------------------------------
-    #
-    def init(self, *args):
-
-        self._args = args
+        self._args   = args
+        self._kwargs = kwargs
 
 
     # --------------------------------------------------------------------------
