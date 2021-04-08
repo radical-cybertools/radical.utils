@@ -22,10 +22,11 @@ class Bridge(object):
     @staticmethod
     def get_config(name, pwd=None):
 
-        if not pwd: pwd = '.'
+        if not pwd:
+            pwd = '.'
+
         cfg = Config(cfg=read_json('%s/%s.cfg' % (pwd, name)))
-        with open('/tmp/t', 'a') as fout:
-            fout.write('=== cfg for %s/%s: %s\n' % (pwd, name, cfg.as_dict()))
+
         return cfg
 
 
@@ -38,8 +39,7 @@ class Bridge(object):
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level='debug', path=self._pwd)
-                             # level=self._cfg.log_lvl, path=self._pwd)
+                               level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
