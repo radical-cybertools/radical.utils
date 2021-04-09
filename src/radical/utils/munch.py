@@ -222,24 +222,28 @@ class Munch(DictMixin):
     #
     @classmethod
     def _verify_int(cls, k, v, t):
+        if v is None: return
         try   : return int(v)
         except: raise TypeError('%s: expected int type for %s (%s)'
                                % (cls.__name__, k, type(v)))
 
     @classmethod
     def _verify_str(cls, k, v, t):
+        if v is None: return
         try   : return str(v)
         except: raise TypeError('%s: expected str type for %s (%s)'
                                % (cls.__name__, k, type(v)))
 
     @classmethod
     def _verify_float(cls, k, v, t):
+        if v is None: return
         try   : return float(v)
         except: raise TypeError('%s: expected float type for %s (%s)'
                                % (cls.__name__, k, type(v)))
 
     @classmethod
     def _verify_bool(cls, k, v, t):
+        if v is None: return
         if v              in [True, False]       : return v
         if str(v).lower() in ['true', 'yes', '1']: return True
         if str(v).lower() in ['false', 'no', '0']: return False
@@ -248,17 +252,20 @@ class Munch(DictMixin):
 
     @classmethod
     def _verify_tuple(cls, k, v, t):
+        if v is None: return
         v = as_tuple(v)
         return tuple([cls._verify_kvt(k + ' tuple element', _v, t[0])
                       for _v in v])
 
     @classmethod
     def _verify_list(cls, k, v, t):
+        if v is None: return
         v = as_list(v)
         return [cls._verify_kvt(k + ' list element', _v, t[0]) for _v in v]
 
     @classmethod
     def _verify_dict(cls, k, v, t):
+        if v is None: return
         t_k = list(t.keys())[0]
         t_v = list(t.values())[0]
         return {cls._verify_kvt(_k, _k, t_k) :
