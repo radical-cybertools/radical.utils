@@ -271,8 +271,7 @@ class Munch(DictMixin):
 
     @classmethod
     def _verify_bool(cls, k, v, t, cast):
-        if v is None: return
-        if v              in [True, False]       : return v
+        if v in [True, False]: return v
         if cast:
             if str(v).lower() in ['true', 'yes', '1']: return True
             if str(v).lower() in ['false', 'no', '0']: return False
