@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 
 import zmq
 import msgpack
@@ -235,7 +236,7 @@ class Server(object):
                 self._sock.bind(url)
                 self._log.debug('success')
                 break
-            except Exception as e:
+            except Exception:
                 self._log.exception('pass')
 
 
