@@ -141,7 +141,7 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
-    def stop(self, timeout=None):
+    def stop(self):
 
         self._term.set()
       # self._bridge_thread.join(timeout=timeout)

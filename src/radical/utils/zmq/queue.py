@@ -15,7 +15,9 @@ from ..logger  import Logger
 from ..profile import Profiler
 
 from .bridge   import Bridge
-from .utils    import no_intr, prof_bulk
+from .utils    import no_intr
+
+# from .utils    import prof_bulk
 
 
 # FIXME: the log bulk method is frequently called and slow

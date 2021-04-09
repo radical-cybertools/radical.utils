@@ -118,12 +118,12 @@ def metric_expand(data):
 
     '''
 
-    try   : import radical.pilot as rp
-    except: pass
-    try   : import radical.saga  as rs
-    except: pass
-    try   : import radical.utils as ru
-    except: pass
+  # try   : import radical.pilot as rp
+  # except: pass
+  # try   : import radical.saga  as rs
+  # except: pass
+  # try   : import radical.utils as ru
+  # except: pass
 
 
     if isinstance(data, str):
