@@ -587,11 +587,8 @@ class Lock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------
@@ -632,7 +629,6 @@ class RLock(object):
             self.owner = get_thread_name()
 
         self.waits.pop()
-
         return ret
 
 
@@ -640,11 +636,8 @@ class RLock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------

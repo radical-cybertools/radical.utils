@@ -13,6 +13,7 @@ from importlib  import util as imp
 
 from .singleton import Singleton
 from .logger    import Logger
+from .misc      import as_list
 
 
 # ------------------------------------------------------------------------------
@@ -54,40 +55,7 @@ class PluginBase(object):
 
 # ------------------------------------------------------------------------------
 #
-class _PluginRegistry(dict, metaclass=Singleton):
-    '''
-    The plugin registry helper class avoids that plugins are loaded twice.
-    '''
-
-
-    # --------------------------------------------------------------------------
-    #
-    def __init__(self):
-
-        self._registry = dict()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def register(self, namespace, plugins):
-
-        if namespace not in self._registry:
-            self._registry[namespace] = plugins
-
-
-    # --------------------------------------------------------------------------
-    #
-    def retrieve(self, namespace):
-
-        if namespace in self._registry:
-            return self._registry[namespace]
-
-        return None
-
-
-# ------------------------------------------------------------------------------
-#
-class PluginManager(object):
+class PluginManager(object, metaclass=Singleton):
     '''
     The PluginManager manages plugins of specific types: the manager can search
     for installed plugins, list and describe plugins found, load plugins, and
@@ -132,54 +100,72 @@ class PluginManager(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, namespace):
+    def __init__(self, namespaces):
         '''
         namespace: name of module (plugins are expected in namespace/plugins/)
         '''
 
         # import here to avoid circular imports
-        self._namespace = namespace
-        self._log       = Logger('radical.utils')
-        self._registry  = _PluginRegistry()  # singleton
-        self._plugins   = self._registry.retrieve(self._namespace)
+        self._namespaces = as_list(namespaces)
+        self._registry   = dict()
+        self._seen       = list()
+        self._log        = Logger('radical.utils')
 
-        # load adaptors if registry didn't have any registered, yet
-        if not self._plugins:
-            self._load_plugins()
-            self._registry.register(self._namespace, self._plugins)
+        for namespace in self._namespaces:
+            self.load_plugins(namespace, self._log)
 
 
     # --------------------------------------------------------------------------
     #
-    def _load_plugins(self):
+    def seen(self, pfile):
+
+        if pfile in self._seen:
+            return True
+        else:
+            self._seen.append(pfile)
+            return False
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register(self, ptype, pname, pinfo):
+
+        if ptype not in self._registry:
+            self._registry[ptype] = dict()
+
+        if pname not in self._registry[ptype]:
+            self._registry[ptype][pname] = pinfo
+
+
+    # --------------------------------------------------------------------------
+    #
+    def retrieve(self, ptype, pname):
+
+        return self._registry.get(ptype, {}).get(pname)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def load_plugins(self, namespace, log):
         '''
         Load all plugins for the given namespace.  Previously loaded plugins
         are overloaded.
         '''
 
-        # start wish a fresh plugin registry
-        self._plugins = dict()
-
-        self._log.info('loading plugins for namespace %s' % self._namespace)
-
-        # avoid to load plugins twice in case of redundant sys paths
-        seen = list()
+        self._log.info('loading plugins for namespace %s' % namespace)
 
         # search for plugins in all system module paths
         for spath in sys.path:
 
             # we only load plugins installed under the namespace hierarchy
-            npath = self._namespace.replace('.', '/')
-            ppath = '%s/%s/plugins/' %  (spath, npath)
-            pglob = '*/plugin_*.py'
-
-            # make sure the 'plugins' dir exists
-            if not os.path.isdir(ppath):
-                continue
+            npath  = namespace.replace('.', '/')
+            ppath  = '%s/%s/plugin*/' %  (spath, npath)
+            pglob1 = '*/plugin_*.py'
+            pglob2 = 'plugin_*.py'
 
             # we assume that all python sources in that location are
             # suitable plugins
-            pfiles = glob.glob(ppath + pglob)
+            pfiles = glob.glob(ppath + pglob1) + glob.glob(ppath + pglob2)
 
             if not pfiles:
                 continue
@@ -194,18 +180,13 @@ class PluginManager(object):
                 else:
                     pshort = pfile
 
-                # check for duplication
-                if pshort in seen:
+                if self.seen(pshort):
                     continue
-                else:
-                    seen.append(pshort)
 
                 try:
-                    modname = '%s.plugins.%s.%s' % (
-                                self._namespace,
+                    modname = '%s.plugins.%s.%s' % (namespace,
                                 os.path.basename(os.path.dirname(pfile)),
                                 os.path.splitext(os.path.basename(pfile))[0])
-
                     # now load the plugin proper
                     spec   = imp.spec_from_file_location(modname, pfile)
                     plugin = imp.module_from_spec(spec)
@@ -220,34 +201,29 @@ class PluginManager(object):
 
                     # make sure details are complete
                     if not ptype:
-                        self._log.error('no plugin type in %s' % pshort)
+                        log.error('no plugin type in %s' % pshort)
                         continue
 
                     if not pname:
-                        self._log.error('no plugin name in %s' % pshort)
+                        log.error('no plugin name in %s' % pshort)
                         continue
 
                     if not pclass:
-                        self._log.error('no plugin class in %s' % pshort)
+                        log.error('no plugin class in %s' % pshort)
                         continue
 
                     if not pvers:
-                        self._log.error('no plugin version in %s' % pshort)
+                        log.error('no plugin version in %s' % pshort)
                         continue
 
                     if not pdescr:
-                        self._log.error('no plugin description in %s' % pshort)
+                        log.error('no plugin description in %s' % pshort)
                         continue
 
                     # now put the plugin and plugin info into the plugin
                     # registry.  Duh!
-                    if ptype not in self._plugins:
-                        self._plugins[ptype] = {}
 
-                    if pname in self._plugins[ptype]:
-                        self._log.warn('overloading plugin %s' % pshort)
-
-                    self._plugins[ptype][pname] = {
+                    pinfo = {
                         'plugin'     : plugin,
                         'class'      : pclass,
                         'type'       : ptype,
@@ -256,12 +232,13 @@ class PluginManager(object):
                         'description': pdescr,
                         'instance'   : None
                     }
+                    self.register(ptype, pname, pinfo)
 
-                    self._log.debug('loading plugin %s' % pfile)
-                    self._log.info ('loading plugin %s' % pshort)
+                    log.debug('loading plugin %s' % pfile)
+                    log.info ('loading plugin %s' % pshort)
 
                 except Exception:
-                    self._log.exception('loading plugin %s failed' % pshort)
+                    log.exception('loading plugin %s failed' % pshort)
 
 
     # --------------------------------------------------------------------------
@@ -270,7 +247,7 @@ class PluginManager(object):
         '''
         return a list of loaded plugin types
         '''
-        return list(self._plugins.keys())
+        return list(self._registry.keys())
 
 
     # --------------------------------------------------------------------------
@@ -279,12 +256,12 @@ class PluginManager(object):
         '''
         return a list of loaded plugins for a given plugin type
         '''
-        if ptype not in self._plugins:
+        if ptype not in self._registry:
             self._log.debug(self.dump_str())
             raise LookupError('No such plugin type %s in %s'
-                    % (ptype, list(self._plugins.keys())))
+                    % (ptype, list(self._registry.keys())))
 
-        return list(self._plugins[ptype].keys())
+        return list(self._registry[ptype].keys())
 
 
     # --------------------------------------------------------------------------
@@ -293,17 +270,17 @@ class PluginManager(object):
         '''
         return a plugin details for a given plugin type / name pair
         '''
-        if ptype not in self._plugins:
+        if ptype not in self._registry:
             self._log.debug(self.dump_str())
             raise LookupError('No such plugin type %s in %s'
-                    % (ptype, list(self._plugins.keys())))
+                    % (ptype, list(self._registry.keys())))
 
-        if pname not in self._plugins[ptype]:
+        if pname not in self._registry[ptype]:
             self._log.debug(self.dump_str())
             raise LookupError('No such plugin name %s (type: %s) in %s'
-                    % (pname, ptype, list(self._plugins[ptype].keys())))
+                    % (pname, ptype, list(self._registry[ptype].keys())))
 
-        return self._plugins[ptype][pname]
+        return self._registry[ptype][pname]
 
 
     # --------------------------------------------------------------------------
@@ -314,18 +291,18 @@ class PluginManager(object):
         instantiate its plugin class and return it.
         '''
 
-        if ptype not in self._plugins:
+        if ptype not in self._registry:
             self._log.debug(self.dump_str())
             raise LookupError('No such plugin type %s in %s'
-                    % (ptype, list(self._plugins.keys())))
+                    % (ptype, list(self._registry.keys())))
 
-        if pname not in self._plugins[ptype]:
+        if pname not in self._registry[ptype]:
             self._log.debug(self.dump_str())
             raise LookupError('No such plugin name %s (type: %s) in %s'
-                    % (pname, ptype, list(self._plugins[ptype].keys())))
+                    % (pname, ptype, list(self._registry[ptype].keys())))
 
         try:
-            pdescr = self._plugins[ptype][pname]
+            pdescr = self._registry[ptype][pname]
             plugin = pdescr['plugin']
             pclass = pdescr['class']
             pinst  = getattr(plugin, pclass)(pdescr, *args, **kwargs)
@@ -345,14 +322,14 @@ class PluginManager(object):
     def dump(self):
 
         print('plugins')
-        pprint.pprint(self._plugins)
+        pprint.pprint(self._registry)
 
 
     # --------------------------------------------------------------------------
     #
     def dump_str(self):
 
-        return 'plugins: \n%s' % pprint.pformat(self._plugins)
+        return 'plugins: \n%s' % pprint.pformat(self._registry)
 
 
 # ------------------------------------------------------------------------------
