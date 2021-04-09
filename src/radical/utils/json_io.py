@@ -118,13 +118,12 @@ def metric_expand(data):
 
     '''
 
-  # try   : import radical.pilot as rp
-  # except: pass
-  # try   : import radical.saga  as rs
-  # except: pass
-  # try   : import radical.utils as ru
-  # except: pass
-
+    try   : import radical.pilot as rp
+    except: pass
+    try   : import radical.saga  as rs
+    except: pass
+    try   : import radical.utils as ru
+    except: pass
 
     if isinstance(data, str):
 
@@ -138,10 +137,8 @@ def metric_expand(data):
                     pass
         return data
 
-
     elif isinstance(data, list):
         return [metric_expand(elem) for elem in data]
-
 
     elif isinstance(data, dict):
         return {metric_expand(k) : metric_expand(v) for k,v in data.items()}
