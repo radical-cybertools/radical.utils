@@ -128,10 +128,10 @@ def log_bulk(log, msgs, token):
     if not msgs:
         return
 
-    msgs = as_list(msgs)
-
     if hasattr(msgs, 'read'):
         msgs = msgpack.unpack(msgs)
+
+    msgs = as_list(msgs)
 
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
@@ -143,6 +143,23 @@ def log_bulk(log, msgs, token):
     else:
         for msg in msgs:
             log.debug("%s: %s", token, str(msg)[0:32])
+
+
+# ------------------------------------------------------------------------------
+#
+def sock_connect(sock, url, hop=None):
+
+    if not hop:
+        hop = os.environ.get('RADICAL_SSH_HOP')
+
+    if hop:
+        from zmq import ssh
+        print('connect   to %s via %s' % (url, hop))
+        ssh.tunnel_connection(sock, url, hop)
+        print('connected to %s via %s' % (url, hop))
+
+    else:
+        sock.connect(url)
 
 
 # ------------------------------------------------------------------------------
