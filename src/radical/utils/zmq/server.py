@@ -27,14 +27,17 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url=None):
+    def __init__(self, url=None, uid=None):
 
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
         self._url    = url
-        self._uid    = generate_id('server', ns='radical.utils')
+        self._uid    = uid
         self._cbs    = dict()
+
+        if not self._uid:
+            self._uid = generate_id('server', ns='radical.utils')
 
         self._log    = Logger(self._uid, level='debug', targets='.')
         self._prof   = Profiler(self._uid, path='.')
