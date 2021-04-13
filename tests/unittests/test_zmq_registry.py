@@ -17,6 +17,17 @@ def test_zmq_registry():
         assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
         assert(c.get('foo.bar.buz.biz') == 42)
         assert(c.get('foo.bar.buz.biz.boz') is None)
+        assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
+
+        assert(c['foo.bar.buz.biz'] == 42)
+        assert(c['foo']['bar']['buz']['biz'] == 42)
+        assert(c['foo.bar.buz.biz.boz'] is None)
+
+        assert('foo' in c)
+        assert(c.keys() == ['foo'])
+        del(c['foo'])
+        assert('foo' not in c)
+        assert(c.keys() == [])
 
     finally:
         r.stop()

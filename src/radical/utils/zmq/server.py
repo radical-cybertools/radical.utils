@@ -273,10 +273,7 @@ class Server(object):
                     rep = self._error(err='no command in request')
 
                 elif cmd not in self._cbs:
-                    rep = self._error(err='command unknown')
-
-                elif not arg:
-                    rep = self._error(err='missing arguments')
+                    rep = self._error(err='command [%s] unknown' % cmd)
 
                 else:
                     try:

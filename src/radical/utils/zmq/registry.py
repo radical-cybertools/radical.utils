@@ -1,8 +1,9 @@
 
-from ..json_io import write_json
+from ..json_io    import write_json
+from ..dict_mixin import DictMixin
 
-from .server  import Server
-from .client  import Client
+from .server import Server
+from .client import Client
 
 
 # ------------------------------------------------------------------------------
@@ -18,8 +19,10 @@ class Registry(Server):
 
         self._data = dict()
 
-        self.register_request('put', self.put)
-        self.register_request('get', self.get)
+        self.register_request('put',  self.put)
+        self.register_request('get',  self.get)
+        self.register_request('keys', self.keys)
+        self.register_request('del',  self.delitem)
 
 
     # --------------------------------------------------------------------------
@@ -69,23 +72,57 @@ class Registry(Server):
             return None
 
 
+    # --------------------------------------------------------------------------
+    #
+    def keys(self, arg):
+
+        return list(self._data.keys())
+
+
+    # --------------------------------------------------------------------------
+    #
+    def delitem(self, arg):
+
+        k = arg[0]
+
+        del(self._data[k])
+
+
 # ------------------------------------------------------------------------------
 #
-class RegistryClient(Client):
+class RegistryClient(Client, DictMixin):
 
+
+    # --------------------------------------------------------------------------
+    #
     def __init__(self, url):
 
         super().__init__(url=url)
 
 
-    def put(self, k, v):
 
+    # --------------------------------------------------------------------------
+    # verbose API
+    def get(self, k):
+        return self.request(cmd='get', arg=[k]).res
+
+    def put(self, k, v):
         return self.request(cmd='put', arg=[k, v]).res
 
 
-    def get(self, k):
+    # --------------------------------------------------------------------------
+    # dict mixin API
+    def __getitem__(self, k):
+        return self.get(k)
 
-        return self.request(cmd='get', arg=[k]).res
+    def __setitem__(self, k, v):
+        return self.put(k, v)
+
+    def __delitem__(self, k):
+        return self.request(cmd='del', arg=[k])
+
+    def keys(self):
+        return self.request(cmd='keys').res
 
 
 # ------------------------------------------------------------------------------
