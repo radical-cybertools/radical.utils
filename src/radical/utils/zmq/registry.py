@@ -37,28 +37,28 @@ class Registry(Server):
     #
     def put(self, arg):
 
-        k, v = arg
+        key, value = arg
 
         this  = self._data
-        elems = k.split('.')
+        elems = key.split('.')
         for elem in elems[:-1]:
             step = this.get(elem)
             if step is None:
                 step = dict()
                 this[elem] = step
                 this = this[elem]
-        this[elems[-1]] = v
+        this[elems[-1]] = value
 
 
     # --------------------------------------------------------------------------
     #
     def get(self, arg):
 
-        k = arg[0]
+        key = arg[0]
 
         try:
             this  = self._data
-            elems = k.split('.')
+            elems = key.split('.')
             for elem in elems[:-1]:
                 step = this.get(elem)
                 if step is None:
@@ -83,9 +83,9 @@ class Registry(Server):
     #
     def delitem(self, arg):
 
-        k = arg[0]
+        key = arg[0]
 
-        del(self._data[k])
+        del(self._data[key])
 
 
 # ------------------------------------------------------------------------------
@@ -103,23 +103,27 @@ class RegistryClient(Client, DictMixin):
 
     # --------------------------------------------------------------------------
     # verbose API
-    def get(self, k):
-        return self.request(cmd='get', arg=[k]).res
+    def get(self, key, default=None):
+        try:
+            return self.request(cmd='get', arg=[key]).res
+        except:
+            return default
 
-    def put(self, k, v):
-        return self.request(cmd='put', arg=[k, v]).res
+
+    def put(self, key, value):
+        return self.request(cmd='put', arg=[key, value]).res
 
 
     # --------------------------------------------------------------------------
     # dict mixin API
-    def __getitem__(self, k):
-        return self.get(k)
+    def __getitem__(self, key):
+        return self.get(key)
 
-    def __setitem__(self, k, v):
-        return self.put(k, v)
+    def __setitem__(self, key, value):
+        return self.put(key, value)
 
-    def __delitem__(self, k):
-        return self.request(cmd='del', arg=[k])
+    def __delitem__(self, key):
+        return self.request(cmd='del', arg=[key])
 
     def keys(self):
         return self.request(cmd='keys').res

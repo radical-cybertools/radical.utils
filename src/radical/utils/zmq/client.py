@@ -2,6 +2,8 @@
 import zmq
 import msgpack
 
+from typing import List, Optional, Dict, Any
+
 import threading as mt
 
 from ..json_io import read_json
@@ -21,29 +23,35 @@ _DEFAULT_BULK_SIZE =    1  # number of messages to put in a bulk
 #
 class Request(object):
 
-    def __init__(self, cmd=None, arg=None):
+    def __init__(self,
+                 cmd: str = None,
+                 arg: Optional[List[Any]] = None
+                ) -> None:
 
         self._cmd = cmd
         self._arg = arg
 
 
     @classmethod
-    def from_dict(cls, req):
+    def from_dict(cls, req:  Dict[str, Any]) -> 'Request':
 
         return Request(cmd=req['cmd'], arg=req.get('arg'))
 
 
-    def packb(self):
+    def packb(self) -> bytearray:
 
         msg_req = {'cmd': self._cmd, 'arg': self._arg}
         return msgpack.packb(msg_req)
 
 
     @property
-    def cmd(self): return self._cmd
+    def cmd(self) -> str:
+        assert self._cmd
+        return self._cmd
 
     @property
-    def arg(self): return self._arg
+    def arg(self) -> Optional[List[Any]]:
+        return self._arg
 
 
 # ------------------------------------------------------------------------------
@@ -51,13 +59,18 @@ class Request(object):
 class Response(object):
 
     # FIXME: inherit future
-    def __init__(self, res=None, err=None, exc=None):
+    def __init__(self,
+                 res: Optional[str]       = None,
+                 err: Optional[str]       = None,
+                 exc: Optional[List[str]] = None
+                ) -> None:
 
         self._res = res
         self._err = err
         self._exc = exc
 
-    def __repr__(self):
+
+    def __repr__(self) -> str:
 
         ret = ''
         if self._res: ret += 'res: %s  ' % self._res
@@ -67,7 +80,7 @@ class Response(object):
         return ret.strip()
 
 
-    def str(self):
+    def str(self) -> str:
 
         if self._res: ret = 'res: %s' % self._res
         else        : ret = 'err: %s' % self._err
@@ -76,12 +89,12 @@ class Response(object):
 
 
     @classmethod
-    def from_msg(cls, msg):
+    def from_msg(cls, msg: bytearray) -> 'Response':
         return cls.from_dict(msgpack.unpackb(msg))
 
 
     @classmethod
-    def from_dict(cls, msg):
+    def from_dict(cls, msg: Dict[str, Any]) -> 'Response':
 
         return Response(res=msg.get('res'),
                         err=msg.get('err'),
@@ -89,13 +102,16 @@ class Response(object):
 
 
     @property
-    def res(self): return self._res
+    def res(self) -> 'Result':
+        return self._res
 
     @property
-    def err(self): return self._err
+    def err(self) -> str:
+        return self._err
 
     @property
-    def exc(self): return as_list(self._exc)
+    def exc(self) -> List[str]:
+        return as_list(self._exc)
 
 
 # ------------------------------------------------------------------------------
@@ -104,7 +120,7 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, server=None, url=None):
+    def __init__(self, server: str = None, url: str = None) -> None:
 
         if server:
             self._url = read_json('%s.cfg' % server)['addr']
@@ -130,13 +146,13 @@ class Client(object):
 
 
     @property
-    def url(self):
+    def url(self) -> Optional[str]:
         return self._url
 
 
     # --------------------------------------------------------------------------
     #
-    def request(self, cmd=None, arg=None):
+    def request(self, cmd: str, arg: Optional[List[Any]] = None) -> 'Response':
 
         req = Request(cmd=cmd, arg=arg)
 
@@ -155,7 +171,7 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def close(self):
+    def close(self) -> None:
 
         self._sock.close()
 
