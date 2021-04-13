@@ -2,8 +2,10 @@
 
 import threading as mt
 
-from ..logger    import Logger
-from ..profile   import Profiler
+from ..logger  import Logger
+from ..profile import Profiler
+from ..config  import Config
+from ..json_io import read_json, write_json
 
 
 # ------------------------------------------------------------------------------
@@ -17,31 +19,81 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
+    @staticmethod
+    def get_config(name, pwd=None):
+
+        if not pwd:
+            pwd = '.'
+
+        cfg = Config(cfg=read_json('%s/%s.cfg' % (pwd, name)))
+
+        return cfg
+
+
+    # --------------------------------------------------------------------------
+    #
     def __init__(self, cfg):
 
         self._cfg     = cfg
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
+        self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level='DEBUG', path=self._cfg.path)
-        self._prof    = Profiler(name=self._uid, path=self._cfg.path)
+                               level=self._cfg.log_lvl, path=self._pwd)
+        self._prof    = Profiler(name=self._uid, path=self._pwd)
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
         else:
             self._prof.disable()
 
-        self._prof.prof('init', uid=self._uid, msg=self._cfg.path)
+        self._prof.prof('init', uid=self._uid, msg=self._pwd)
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()
+
+        write_json('%s/%s.cfg' % (self._pwd, self._cfg.uid),
+                   {'uid'        : self._cfg.uid,
+                    self.type_in : str(self.addr_in),
+                    self.type_out: str(self.addr_out)})
 
 
     # --------------------------------------------------------------------------
     #
     @property
+    def name(self):
+        return self._uid
+
+    @property
+    def uid(self):
+        return self._uid
+
+    @property
     def channel(self):
         return self._channel
+
+    # protocol independent addr query
+    @property
+    def type_in(self):
+        raise NotImplementedError()
+
+    @property
+    def type_out(self):
+        raise NotImplementedError()
+
+    @property
+    def addr_in(self):
+        raise NotImplementedError()
+
+    @property
+    def addr_out(self):
+        raise NotImplementedError()
+
+    def _bridge_initialize(self):
+        raise NotImplementedError()
+
+    def _bridge_work(self):
+        raise NotImplementedError()
 
 
     # --------------------------------------------------------------------------
@@ -89,7 +141,7 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
-    def stop(self, timeout=None):
+    def stop(self):
 
         self._term.set()
       # self._bridge_thread.join(timeout=timeout)
