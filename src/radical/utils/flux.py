@@ -224,7 +224,7 @@ class FluxHelper(object):
             else:
                 if self._local_state[uid]['term'].is_set():
                     # the service is gone already
-                    raise RuntimeError('flux service id %s unknown' % uid)
+                    raise RuntimeError('flux service %s was terminated' % uid)
 
 
             return self._flux_info[uid]
