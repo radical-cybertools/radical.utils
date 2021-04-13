@@ -117,11 +117,11 @@ def metric_expand(data):
         }
     '''
 
-    try   : import radical.pilot as rp             # pylint: disable=E0611,E0401
+    try   : import radical.pilot as rp                              # noqa: F401
     except: pass
-    try   : import radical.saga  as rs             # pylint: disable=E0611,E0401
+    try   : import radical.saga  as rs                              # noqa: F401
     except: pass
-    try   : import radical.utils as ru             # pylint: disable=E0611,E0401
+    try   : import radical.utils as ru                              # noqa: F401
     except: pass
 
     if isinstance(data, str):

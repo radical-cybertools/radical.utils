@@ -105,9 +105,9 @@ class Reporter(object):
             ns = name
 
         # check if this profile is enabled via an env variable
-        self._enabled = True
-        if ru_get_env_ns('report', ns) is None:
-            self._enabled = str(ru_def['report']).lower()
+        self._enabled = str(ru_def['report']).lower()
+        if ru_get_env_ns('report', ns) is not None:
+            self._enabled = str(ru_get_env_ns('report', ns)).lower()
 
         if self._enabled in ['0', 'false', 'off', False, None]:
             self._enabled = False
@@ -426,7 +426,7 @@ class Reporter(object):
     # --------------------------------------------------------------------------
     #
     def progress_done(self):
-        
+
         if not self._enabled:
             return
 
