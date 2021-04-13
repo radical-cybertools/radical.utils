@@ -46,9 +46,9 @@ class FluxHelper(object):
         if name: self._name = name
         else   : self._name = 'flux_helper'
 
-        self._log         = Logger('radical.utils.%s' % self._name)
-        self._prof        = Profiler('radical.utils.%s' % self._name)
-        self._lock        = mt.RLock()
+        self._log  = Logger('radical.utils.%s' % self._name)
+        self._prof = Profiler('radical.utils.%s' % self._name)
+        self._lock = mt.RLock()
 
         try:
             self._mod = import_module('flux')
@@ -57,8 +57,8 @@ class FluxHelper(object):
             self._log.exception('flux import failed')
             raise
 
-        self._flux_info   = dict()
-        self._local_state = dict()
+        self._flux_info   = dict()  # serializable data
+        self._local_state = dict()  # non-serializable state
 
         self._base = '%s/%s' % (os.getcwd(), self._name)
         rec_makedir(self._base)
@@ -95,8 +95,8 @@ class FluxHelper(object):
         start = 'flux start -o,-v,-S,log-filename=%s.log' % flux_uid
         cmd   = '/bin/bash -c "echo \\\"%s\\\" | %s"' % (check, start)
 
-        penv  = os.environ
-        if env:
+        penv  = None
+        if not env:
             penv  = {k:v for k,v in os.environ.items()}
             for k,v in env.items():
                 penv[k] = v
@@ -154,7 +154,6 @@ class FluxHelper(object):
             for k,v in flux_env.items():
                 os.environ[k] = v
 
-            ret = None
             while not flux_term.is_set():
 
                 time.sleep(1)
@@ -200,18 +199,20 @@ class FluxHelper(object):
 
         with self._lock:
 
-            flux_info = self._flux_info.get(uid)
-
-            if not flux_info:
+            if uid not in self._flux_info:
                 try:
-                    flux_info = read_json('%s/%s.json' % (self._base, uid))
+                    fname = '%s/%s.json' % (self._base, uid)
+                    self._flux_info[uid] = read_json(fname)
+
                 except Exception as e:
+                    # no (valid) info file found - that service does not exist
                     raise LookupError('flux service id %s unknown' % uid) from e
 
-            if self._local_state[uid]['term'].is_set():
-                raise RuntimeError('flux service id %s unknown' % uid)
-
             if uid not in self._local_state:
+                # the service actually exists, but we don't have local state.
+                # This implies that the servide was started by a different
+                # process than this one.  We create a dummy local state, but
+                # otherwise consider that service as valid.
                 self._local_state[uid] = {'proc'     : None,
                                           'term'     : None,
                                           'watcher'  : None,
@@ -219,6 +220,12 @@ class FluxHelper(object):
                                           'handles'  : list(),
                                           'executors': list(),
                                           'callbacks': list()}
+
+            else:
+                if self._local_state[uid]['term'].is_set():
+                    # the service is gone already
+                    raise RuntimeError('flux service id %s unknown' % uid)
+
 
             return self._flux_info[uid]
 
@@ -255,9 +262,8 @@ class FluxHelper(object):
             assert(uid in self._local_state)
 
             try:
-                from flux import job as flux_job
                 args = {'url':flux_info['uri']}
-                jex  = flux_job.executor.FluxExecutor(handle_kwargs=args)
+                jex  = self._mod.job.executor.FluxExecutor(handle_kwargs=args)
                 assert(jex)
 
             except Exception as e:
@@ -277,6 +283,11 @@ class FluxHelper(object):
                cb       : Callable[[str, str, float, dict], None]
               ) -> None:
 
+        # NOTE: for services spawned in a different process, `flux_term` will be
+        # `None` and `self._listen` will not be able to terminate with the
+        # service.  In that case we run this thread forever - it is a daemon
+        # thread and will dy with its parent process.
+
         handle = None
         self._log.debug('====> register for events: %s', cb)
         try:
@@ -285,7 +296,7 @@ class FluxHelper(object):
             handle.event_subscribe('job-state')
             self._log.debug('=== subscribe event')
 
-            while not flux_term.is_set():
+            while flux_term is None or not flux_term.is_set():
 
                 self._log.debug('=== recv event')
 
