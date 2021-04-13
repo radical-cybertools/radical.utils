@@ -42,4 +42,6 @@ ignore          =
      # ambiguous var name (to whom?)
      E741,
      # explicit delegation
-     W235
+     W235,
+     # space before nested definition (we use a marker line)
+     E306

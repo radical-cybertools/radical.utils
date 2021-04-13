@@ -23,8 +23,10 @@ NORMALIZE_SOLIDUS=0
 # ------------------------------------------------------------------------------
 #
 usage() {
+  test -z "$*" || echo
+  test -z "$*" || echo "Error: $*"
   echo
-  echo "Usage: JSON.sh [-b] [-l] [-p] [-s] [-h]"
+  echo "Usage: ru.json.sh [-b] [-l] [-p] [-s] [-h]"
   echo
   echo "-p - Prune empty. Exclude fields with empty values."
   echo "-l - Leaf only. Only show leaf nodes, which stops data duplication."
@@ -33,6 +35,8 @@ usage() {
   echo "-s - Remove escaping of the solidus symbol (straight slash)."
   echo "-h - This help text."
   echo
+  test -z "$*" && exit 0
+  test -z "$*" || exit 1
 }
 
 
@@ -44,25 +48,15 @@ parse_options() {
   while [ "$ARGN" -ne 0 ]
   do
     case $1 in
-      -h) usage
-          exit 0
-      ;;
+      -h) usage                   ;;
       -b) BRIEF=1
           LEAFONLY=1
-          PRUNE=1
-      ;;
-      -l) LEAFONLY=1
-      ;;
-      -p) PRUNE=1
-      ;;
-      -n) NO_HEAD=1
-      ;;
-      -s) NORMALIZE_SOLIDUS=1
-      ;;
-      ?*) echo "ERROR: Unknown option."
-          usage
-          exit 0
-      ;;
+          PRUNE=1                 ;;
+      -l) LEAFONLY=1              ;;
+      -p) PRUNE=1                 ;;
+      -n) NO_HEAD=1               ;;
+      -s) NORMALIZE_SOLIDUS=1     ;;
+      ?*) usage "Unknown option." ;;
     esac
     shift 1
     ARGN=$((ARGN-1))
@@ -193,7 +187,15 @@ parse_object () {
 # ------------------------------------------------------------------------------
 #
 parse_value () {
-  local jpath="${1:+$1,}$2" isleaf=0 isempty=0 print=0
+  one="$1"
+  two="$2"
+
+  one="${one%\"}"
+  one="${one#\"}"
+  two="${two%\"}"
+  two="${two#\"}"
+
+  local jpath="${one:+$one.}$two" isleaf=0 isempty=0 print=0
   case "$token" in
     '{') parse_object "$jpath" ;;
     '[') parse_array  "$jpath" ;;
@@ -206,15 +208,19 @@ parse_value () {
        [ "$value" = '""' ] && isempty=1
        ;;
   esac
+
+  value="${value%\"}"
+  value="${value#\"}"
+
   [ "$value" = '' ] && return
   [ "$NO_HEAD" -eq 1 ] && [ -z "$jpath" ] && return
 
-  [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 0 ] && print=1
-  [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE -eq 0 ] && print=1
-  [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE" -eq 1 ] && [ "$isempty" -eq 0 ] && print=1
+  [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE"  -eq 0 ] && print=1
+  [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && [ $PRUNE     -eq 0 ] && print=1
+  [ "$LEAFONLY" -eq 0 ] && [ "$PRUNE"  -eq 1 ] && [ "$isempty" -eq 0 ] && print=1
   [ "$LEAFONLY" -eq 1 ] && [ "$isleaf" -eq 1 ] && \
-    [ $PRUNE -eq 1 ] && [ $isempty -eq 0 ] && print=1
-  [ "$print" -eq 1 ] && printf "[%s]\t%s\n" "$jpath" "$value"
+    [ $PRUNE    -eq 1 ] && [ $isempty  -eq 0 ] && print=1
+  [ "$print"    -eq 1 ] && printf "%s\t: %s\n" "$jpath" "$value"
   :
 }
 

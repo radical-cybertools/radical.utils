@@ -259,7 +259,6 @@ class Munch(DictMixin):
     @classmethod
     def _verify_float(cls, k, v, t, cast):
         if v is None or isinstance(v, float): return v
-        if v is None: return
         if cast:
             try   : return float(v)
             except: raise TypeError('%s: expected float type for %s (%s)'
