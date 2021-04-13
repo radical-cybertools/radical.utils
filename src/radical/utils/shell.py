@@ -13,21 +13,22 @@ from .misc      import is_string, as_string
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout(cmd, stdout=True, stderr=True, shell=False):
+def sh_callout(cmd, stdout=True, stderr=True, shell=False, env=None):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
     '''
 
     # convert string into arg list if needed
-    if not shell and is_string(cmd): cmd = shlex.split(cmd)
+    if is_string(cmd) and \
+       not shell: cmd    = shlex.split(cmd)
 
-    if stdout: stdout = sp.PIPE
-    else     : stdout = None
+    if stdout   : stdout = sp.PIPE
+    else        : stdout = None
 
-    if stderr: stderr = sp.PIPE
-    else     : stderr = None
+    if stderr   : stderr = sp.PIPE
+    else        : stderr = None
 
-    p = sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+    p = sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
 
     if not stdout and not stderr:
         ret = p.wait()
@@ -35,12 +36,12 @@ def sh_callout(cmd, stdout=True, stderr=True, shell=False):
         stdout, stderr = p.communicate()
         ret            = p.returncode
 
-    return as_string(stdout), as_string(stderr), ret
+    return stdout.decode("utf-8"), stderr.decode("utf-8"), ret
 
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
+def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False, env=None):
     '''
     call a shell command in the background.  Do not attempt to pipe STDOUT/ERR,
     but only support writing to named files.
@@ -57,14 +58,15 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False):
     # convert string into arg list if needed
     if not shell and is_string(cmd): cmd = shlex.split(cmd)
 
-    sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+    sp.Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
 
     return
 
 
 # ------------------------------------------------------------------------------
 #
-def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
+def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
+                          shell=False, env=None):
     '''
 
     Run a command, and capture stdout/stderr if so flagged.  The call will
@@ -98,13 +100,14 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
     assert(False), 'this is broken for python apps'
 
     # --------------------------------------------------------------------------
+    #
     class _P(object):
         '''
         internal representation of a process
         '''
 
         # ----------------------------------------------------------------------
-        def __init__(self, cmd, stdin, stdout, stderr, shell):
+        def __init__(self, cmd, stdin, stdout, stderr, shell, env):
 
             cmd = cmd.strip()
 
@@ -135,6 +138,7 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
                                        stdout=self._out_w,
                                        stderr=self._err_w,
                                        shell=shell,
+                                       env=env,
                                        bufsize=1)
 
             t = mt.Thread(target=self._watch)
@@ -150,11 +154,13 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
                 raise RuntimeError('stdin not captured')
             return self._in_q
 
+
         @property
         def stdout(self):
             if not self._out_c:
                 raise RuntimeError('stdout not captured')
             return self._out_q
+
 
         @property
         def stderr(self):
@@ -169,16 +175,20 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
                 raise RuntimeError('stdout not recorded')
             return self._out_f.name
 
+
         @property
         def stderr_filename(self):
             if not self._err_f:
                 raise RuntimeError('stderr not recorded')
             return self._err_f.name
 
+
         def kill(self):
             self._proc.terminate()
 
+
         # ----------------------------------------------------------------------
+        #
         def _watch(self):
 
             poller = select.poll()
@@ -240,7 +250,8 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True, shell=False):
                     return  # finishes thread
     # --------------------------------------------------------------------------
 
-    return _P(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
+    return _P(cmd=cmd, stdin=stdin, stdout=stdout, stderr=stderr,
+                       shell=shell, env=env)
 
 
 # ------------------------------------------------------------------------------

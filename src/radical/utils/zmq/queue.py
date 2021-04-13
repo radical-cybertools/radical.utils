@@ -678,6 +678,11 @@ class Getter(object):
         if not self._interactive:
             raise RuntimeError('invalid get(): callbacks are registered')
 
+        # backward compatibility to `get_nowait(timeout=None)`
+        if timeout is None and isinstance(qname, int):
+            timeout = qname
+            qname   = None
+
         if not qname:
             qname = 'default'
 

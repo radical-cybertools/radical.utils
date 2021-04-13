@@ -41,13 +41,15 @@ from .shell          import sh_callout, sh_callout_bg, sh_callout_async
 from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
-from .env            import env_prep, env_read, env_read_lines, env_diff
+from .env            import env_prep, env_eval, env_read, env_read_lines, env_diff
 from .stack          import stack
 
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber
 from .zmq            import Server, Client, Request, Response
+
+from .flux           import FluxHelper
 
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger
@@ -62,6 +64,7 @@ from .json_io        import parse_json, parse_json_str, metric_expand
 from .which          import which
 from .tracer         import trace, untrace
 from .get_version    import get_version
+
 
 # import various utility methods
 from .ids            import *
