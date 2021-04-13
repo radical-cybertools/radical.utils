@@ -12,9 +12,9 @@ class Registry(Server):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url=None):
+    def __init__(self, url=None, uid=None):
 
-        super().__init__(url=url)
+        super().__init__(url=url, uid=uid)
 
         self._data = dict()
 
