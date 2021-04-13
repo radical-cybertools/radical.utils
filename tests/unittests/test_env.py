@@ -32,24 +32,30 @@ def test_env_prep():
 
     env = dict(os.environ)
 
-    os.environ['BZZ'] = 'foo'
-    env       ['BAR'] = 'bar'
+    os.environ['OS_ONLY']  = 'os_only'
+    os.environ['SHARED']   = 'os_shared'
+    env       ['SHARED']   = 'env_shared'
+    env       ['ENV_ONLY'] = 'env_only'
 
-    ret = ru.env_prep(environment=env, script_path='/tmp/test.env')
-    _, only_ret, changed = ru.env_diff(env, ret)
-    assert(not only_ret), only_ret
+    ret = ru.env_prep(environment=env, unset=['OS_ONLY'], script_path='/tmp/test.env')
+    assert('OS_ONLY' not in ret), ret['OS_ONLY']
+    assert(ret['ENV_ONLY'] == 'env_only')
+    assert(ret['SHARED'] == 'env_shared')
+
+    only_env, only_ret, changed = ru.env_diff(env, ret)
+    assert(not only_ret), [only_env, only_ret, changed]
     assert(not changed),  changed
 
-    out, _, ret = ru.sh_callout('export BZZ=x; . /tmp/test.env; echo $BZZ',
-                                  shell=True)
+    out, _, ret = ru.sh_callout('export OS_ONLY=x; . /tmp/test.env; echo $OS_ONLY',
+                                 shell=True)
     out = out.strip()
     assert(not out), out
     assert(not ret), ret
 
-    out, _, ret = ru.sh_callout('unset BAR; . /tmp/test.env; echo $BAR',
+    out, _, ret = ru.sh_callout('unset ENV_ONLY; . /tmp/test.env; echo $ENV_ONLY',
                                   shell=True)
     out = out.strip()
-    assert(out == 'bar'), out
+    assert(out == 'env_only'), out
     assert(not ret), ret
 
 
