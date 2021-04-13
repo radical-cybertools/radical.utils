@@ -232,7 +232,7 @@ class Munch(DictMixin):
     #
     @classmethod
     def _verify_int(cls, k, v, t, cast):
-        if v is None: return
+        if v is None or isinstance(v, int): return v
         if cast:
             try   : return int(v)
             except: raise TypeError('%s: expected int type for %s (%s)'
@@ -245,7 +245,7 @@ class Munch(DictMixin):
 
     @classmethod
     def _verify_str(cls, k, v, t, cast):
-        if v is None: return
+        if v is None or isinstance(v, str): return v
         if cast:
             try   : return str(v)
             except: raise TypeError('%s: expected str type for %s (%s)'
@@ -258,6 +258,7 @@ class Munch(DictMixin):
 
     @classmethod
     def _verify_float(cls, k, v, t, cast):
+        if v is None or isinstance(v, float): return v
         if v is None: return
         if cast:
             try   : return float(v)
@@ -271,15 +272,13 @@ class Munch(DictMixin):
 
     @classmethod
     def _verify_bool(cls, k, v, t, cast):
-        if v in [True, False]: return v
+        if v is None or isinstance(v, bool): return v
         if cast:
             if str(v).lower() in ['true', 'yes', '1']: return True
             if str(v).lower() in ['false', 'no', '0']: return False
             raise TypeError('%s: expected bool type for %s (%s)'
                            % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, bool):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
@@ -368,7 +367,6 @@ class Munch(DictMixin):
     # --------------------------------------------------------------------------
     #
     def _verify_setter(self, k, v):
-
 
         if not self._check:
             # no type checking on set
