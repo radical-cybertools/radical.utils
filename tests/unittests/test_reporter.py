@@ -125,7 +125,7 @@ def test_env():
         os.environ[key] = '0'    ;  _assert_reporter(pname, None)
         os.environ[key] = '1'    ;  _assert_reporter(pname, fname)
         os.environ[key] = 'True' ;  _assert_reporter(pname, fname)
-        os.environ[key] = 'False';  _assert_reporter(pname, fname)
+        os.environ[key] = 'False';  _assert_reporter(pname, None)
 
 
 # ------------------------------------------------------------------------------
