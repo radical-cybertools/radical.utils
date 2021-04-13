@@ -29,9 +29,6 @@ def test_zmq_queue():
       - messages are received exactly once (no messages get lost / duplicated)
     '''
 
-    # FIXME: this tests failes frequently, needs better timiing or sync
-    return
-
     c_a = 100
     c_b = 200
 
