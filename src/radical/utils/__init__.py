@@ -47,6 +47,7 @@ from .stack          import stack
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber
+from .zmq            import Server, Client, Request, Response
 
 from .flux           import FluxHelper
 
