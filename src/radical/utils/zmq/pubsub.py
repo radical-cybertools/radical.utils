@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 
 import zmq
 import msgpack
@@ -65,14 +66,7 @@ class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    @property
-    def name(self):
-        return self._uid
-
-    @property
-    def uid(self):
-        return self._uid
-
+    # protocol independent addr query
     @property
     def type_in(self):
         return 'pub'
@@ -83,14 +77,13 @@ class PubSub(Bridge):
 
     @property
     def addr_in(self):
-        # protocol independent addr query
         return self.addr_pub
 
     @property
     def addr_out(self):
-        # protocol independent addr query
         return self.addr_sub
 
+    # protocol dependent addr query
     @property
     def addr_pub(self):
         return self._addr_pub
@@ -98,10 +91,6 @@ class PubSub(Bridge):
     @property
     def addr_sub(self):
         return self._addr_sub
-
-    def addr(self, spec):
-        if spec.lower() == self.type_in : return self.addr_put
-        if spec.lower() == self.type_out: return self.addr_get
 
 
     # --------------------------------------------------------------------------
@@ -191,7 +180,7 @@ class Publisher(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, log=None, prof=None):
+    def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
         self._channel  = channel
         self._url      = as_string(url)
@@ -202,6 +191,10 @@ class Publisher(object):
         # FIXME: no uid ns
         self._uid      = generate_id('%s.pub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).pub
+
         if not log:
             self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
 
@@ -241,7 +234,6 @@ class Publisher(object):
     def put(self, topic, msg):
 
         assert(isinstance(topic, str )), 'invalid topic type'
-        assert(isinstance(msg,   dict)), 'invalid message type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
@@ -292,7 +284,7 @@ class Subscriber(object):
       # assert(url in Subscriber._callbacks)
 
         try:
-            uid    = Subscriber._callbacks.get(url, {}).get('uid')
+          # uid    = Subscriber._callbacks.get(url, {}).get('uid')
             lock   = Subscriber._callbacks.get(url, {}).get('lock')
             term   = Subscriber._callbacks.get(url, {}).get('term')
             socket = Subscriber._callbacks.get(url, {}).get('socket')
@@ -304,23 +296,21 @@ class Subscriber(object):
                 topic, msg = Subscriber._get_nowait(socket, lock, 500, log, prof)
 
                 if topic:
-                    t = as_string(topic)
-                    for m in as_list(msg):
-                        m = as_string(m)
-                        for cb, _lock in callbacks:
-                          # prof.prof('call_cb', uid=uid, msg=cb.__name__)
-                            if _lock:
-                                with _lock:
-                                    cb(t, m)
-                            else:
-                                cb(t, m)
+                    for cb, _lock in callbacks:
+                      # prof.prof('call_cb', uid=uid, msg=cb.__name__)
+                        if _lock:
+                            with _lock:
+                                cb(topic, msg)
+                        else:
+                            cb(topic, msg)
         except:
             log.exception('listener died')
 
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url, topic=None, cb=None, log=None, prof=None):
+    def __init__(self, channel, url=None, topic=None, cb=None,
+                                log=None, prof=None, path=None):
         '''
         If a `topic` is given, the channel will subscribe to that topic
         immediately.
@@ -337,8 +327,13 @@ class Subscriber(object):
         self._cb       = cb
         self._log      = log
         self._prof     = prof
+
         self._uid      = generate_id('%s.sub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
+
+        if not self._url:
+            self._url = Bridge.get_config(channel, path).sub
+
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
 
@@ -354,25 +349,25 @@ class Subscriber(object):
         self._lock     = mt.Lock()
         self._ctx      = zmq.Context()  # rely on GC for destruction
 
-        if url not in Subscriber._callbacks:
+        if self._url not in Subscriber._callbacks:
 
             s        = self._ctx.socket(zmq.SUB)
             s.linger = _LINGER_TIMEOUT
             s.hwm    = _HIGH_WATER_MARK
             s.connect(self._url)
 
-            Subscriber._callbacks[url] = {'uid'      : self._uid,
-                                          'socket'   : s,
-                                          'channel'  : channel,
-                                          'lock'     : mt.Lock(),
-                                          'term'     : mt.Event(),
-                                          'thread'   : None,
-                                          'callbacks': list()}
+            Subscriber._callbacks[self._url] = {'uid'      : self._uid,
+                                                'socket'   : s,
+                                                'channel'  : channel,
+                                                'lock'     : mt.Lock(),
+                                                'term'     : mt.Event(),
+                                                'thread'   : None,
+                                                'callbacks': list()}
 
         # only allow `get()` and `get_nowait()`
         self._interactive = True
 
-        if topic and cb:
+        if topic:
             self.subscribe(topic, cb)
 
 
@@ -441,7 +436,7 @@ class Subscriber(object):
             Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
 
         sock  = Subscriber._callbacks[self._url]['socket']
-        topic = topic.replace(' ', '_')
+        topic = str(topic).replace(' ', '_')
         log_bulk(self._log, topic, '~~ %s' % self.channel)
 
         with self._lock:
@@ -499,7 +494,6 @@ class Subscriber(object):
 
         if not self._interactive:
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
-
 
         sock = Subscriber._callbacks[self._url]['socket']
 

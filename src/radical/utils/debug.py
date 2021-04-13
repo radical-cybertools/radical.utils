@@ -167,9 +167,16 @@ def print_stacktrace(msg=None, _stack=None):
 
 # ------------------------------------------------------------------------------
 #
+def get_exception_trace(msg=None):
+
+    return traceback.format_exc().split('\n')
+
+
+# ------------------------------------------------------------------------------
+#
 def print_exception_trace(msg=None):
 
-    print_stacktrace(msg=msg, _stack=traceback.format_exc().split('\n'))
+    print_stacktrace(msg=msg, _stack=get_exception_trace())
 
 
 # ------------------------------------------------------------------------------
