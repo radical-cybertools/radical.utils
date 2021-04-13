@@ -124,7 +124,7 @@ def _unquote(data):
 def env_eval(fname):
     '''
     helper to create a dictionary with the env settings in the specified file
-    which contains `unset` and `export` directives
+    which contains `unset` and `export` directives, or simple 'key=val' lines
     '''
 
     env = dict()
@@ -140,14 +140,20 @@ def env_eval(fname):
             if line.startswith('#'):
                 continue
 
-            cmd, spec = line.split(' ', 1)
-            if cmd == 'unset':
+            if line.startswith('unset ') :
+                _, spec = line.split(' ', 1)
                 k = spec.strip()
                 if k not in env:
                     continue
                 del(env[k])
-            elif cmd == 'export':
+
+            if line.startswith('export ') :
+                _, spec = line.split(' ', 1)
                 k,v = spec.split('=', 1)
+                env[k] = _unquote(v)
+
+            else:
+                k,v = line.split('=', 1)
                 env[k] = _unquote(v)
 
     return env
