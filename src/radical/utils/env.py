@@ -147,7 +147,7 @@ def env_eval(fname):
                     continue
                 del(env[k])
 
-            if line.startswith('export ') :
+            elif line.startswith('export ') :
                 _, spec = line.split(' ', 1)
                 k,v = spec.split('=', 1)
                 env[k] = _unquote(v)
