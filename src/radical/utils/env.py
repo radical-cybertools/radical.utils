@@ -359,28 +359,22 @@ class EnvProcess(object):
     run a code segment in a different os.environ
 
         env = {'foo': 'buz'}
-        p = ru.EnvProcess()
-        with p(env=env):
+        with ru.EnvProcess(env=env) as p:
             if p:
                 p.put(os.environ['foo'])
 
         print('-->', p.get())
     '''
 
-    def __init__(self):
+    def __init__(self, env):
 
         self._q    = mp.Queue()
-        self._env  = None
+        self._env  = env
         self._data = None
 
 
     def __bool__(self):
         return self._child
-
-
-    def __call__(self, env):
-        self._env = env
-        return self
 
 
     def __enter__(self):
@@ -399,6 +393,9 @@ class EnvProcess(object):
 
             for k, v in self._env.items():
                 os.environ[k] = v
+
+        return self
+
 
     def __exit__(self, a, b, c):
 
