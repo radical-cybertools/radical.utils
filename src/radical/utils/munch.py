@@ -144,9 +144,7 @@ class Munch(DictMixin):
         # should return a new instance of the same type, not an original Munch,
         # otherwise if an instance of Munch-based has an attribute of another
         # Munch-based type then `verify` method will raise TypeError exception
-        ret = type(self)()
-        ret.update(copy.deepcopy(self._data))
-        return ret
+        return type(self)(from_dict=copy.deepcopy(self._data))
 
 
     # --------------------------------------------------------------------------
