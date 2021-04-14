@@ -316,6 +316,20 @@ class Munch(DictMixin):
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
+    @classmethod
+    def _verify_munch(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            if issubclass(type(v), t): return v.verify()
+            if isinstance(v, dict)   : return t(from_dict=v).verify()
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                            % (k, t, type(v)))
+        else:
+            if issubclass(type(v), t):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                            % (k, t, type(v)))
+
     _verifiers = {
             int  : _verify_int.__func__,
             str  : _verify_str.__func__,
@@ -333,18 +347,12 @@ class Munch(DictMixin):
         if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t, cast)
         if isinstance(t, list)    : return cls._verify_list(k, v, t, cast)
         if isinstance(t, dict)    : return cls._verify_dict(k, v, t, cast)
-        if issubclass(t, Munch)   : return v.verify(t)
-        return v
-      # raise TypeError('%s: no verifier defined for type %s'
-      #                % (cls.__name__, t))
+        if issubclass(t, Munch)   : return cls._verify_munch(k, v, t, cast)
+        if cast: return v
+        raise TypeError('%s: no verifier defined for type %s'
+                       % (cls.__name__, t))
 
-
-    def verify(self, ctype=None):
-
-        if ctype and not issubclass(type(self), ctype):
-            raise TypeError('class type mismatch: %s >< %s'
-                    % (type(self), ctype))
-
+    def verify(self):
         if self._schema:
             for k, v in self._data.items():
                 if k.startswith('__'):
