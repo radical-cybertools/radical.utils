@@ -41,7 +41,8 @@ from .shell          import sh_callout, sh_callout_bg, sh_callout_async
 from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
-from .env            import env_prep, env_eval, env_read, env_read_lines, env_diff
+from .env            import env_prep, env_eval, env_read, env_read_lines
+from .env            import env_diff, EnvProcess
 from .stack          import stack
 
 from .zmq            import Bridge

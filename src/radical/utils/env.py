@@ -1,8 +1,12 @@
 
 import re
 import os
+import sys
+import queue
 import hashlib
 import tempfile
+
+import multiprocessing as mp
 
 from .misc  import as_list
 from .shell import sh_callout
@@ -346,6 +350,80 @@ def env_diff(env_1, env_2):
         # else is checked in keys_1 loop above
 
     return only_1, only_2, changed
+
+
+# ------------------------------------------------------------------------------
+#
+class EnvProcess(object):
+    '''
+    run a code segment in a different os.environ
+
+        env = {'foo': 'buz'}
+        p = ru.EnvProcess()
+        with p(env=env):
+            if p:
+                p.put(os.environ['foo'])
+
+        print('-->', p.get())
+    '''
+
+    def __init__(self):
+
+        self._q    = mp.Queue()
+        self._env  = None
+        self._data = None
+
+
+    def __bool__(self):
+        return self._child
+
+
+    def __call__(self, env):
+        self._env = env
+        return self
+
+
+    def __enter__(self):
+
+        if os.fork():
+            self._parent = True
+            self._child  = False
+        else:
+            self._parent = False
+            self._child  = True
+
+        if self._child:
+
+            for k in os.environ:
+                del(os.environ[k])
+
+            for k, v in self._env.items():
+                os.environ[k] = v
+
+    def __exit__(self, a, b, c):
+
+        if self._parent:
+
+            while True:
+                try:
+                    self._data = self._q.get(timeout=1)
+                    break
+                except queue.Empty:
+                    pass
+
+
+    def put(self, data):
+
+        if self._child:
+            self._q.put(data)
+            self._q.close()
+            self._q.join_thread()
+            os._exit(0)
+
+
+    def get(self):
+
+        return self._data
 
 
 # ------------------------------------------------------------------------------
