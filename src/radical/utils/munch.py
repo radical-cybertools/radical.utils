@@ -238,8 +238,6 @@ class Munch(DictMixin):
             except: raise TypeError('%s: expected int type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, int):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
@@ -251,8 +249,6 @@ class Munch(DictMixin):
             except: raise TypeError('%s: expected str type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, str):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
@@ -264,8 +260,6 @@ class Munch(DictMixin):
             except: raise TypeError('%s: expected float type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, float):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
@@ -330,6 +324,7 @@ class Munch(DictMixin):
     }
 
     _verifier_keys = list(_verifiers.keys())
+
 
     @classmethod
     def _verify_kvt(cls, k, v, t, cast):
