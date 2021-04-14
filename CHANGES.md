@@ -2,6 +2,21 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.6.5  Release                                                        2021-04-14
+--------------------------------------------------------------------------------
+
+  - improvements to environment isolation
+  - allow `None` as munch default
+  - improve bulk communication on queues
+  - separate queue name spaces on same comm channel / bridge
+  - more tests
+  - multiple namespaces to load plugins from
+  - separate `pre_exec` and `pre_exec_cached`
+  - write cfg file in bridge base class
+  - add zmq server and client classes
+  - add flux helper service
+
+
 1.6.2  Hotfix Release                                                 2021-03-26
 --------------------------------------------------------------------------------
 
