@@ -17,7 +17,6 @@ def test_munch():
     class Foo(ru.Config):
         _schema = {'one': int,
                    'two': {str: int}}
-        pass
 
     # --------------------------------------------------------------------------
     # plain schema
@@ -47,6 +46,7 @@ def test_munch():
                       'two': {'buz': 2}}}
     r = Buz_1(cfg=cfg)
     with pytest.raises(TypeError):
+        # will not be able to convert attribute "foo" (cast=True)
         r.verify()
 
 
@@ -55,6 +55,7 @@ def test_munch():
            'bar'   : {'buz':  2}}
     r = Buz_1(cfg=cfg)
     with pytest.raises(TypeError):
+        # will not be able to convert attribute "bar" (cast=True)
         r.verify()
 
 
@@ -63,6 +64,7 @@ def test_munch():
            'bar'   : Bar_1(cfg={'buz':  2})}
     r = Buz_1(cfg=cfg)
     with pytest.raises(TypeError):
+        # will not be able to convert input data for `Bar_1` (cast=True)
         r.verify()
 
 
@@ -71,6 +73,7 @@ def test_munch():
            'bar'   : Bar_1(cfg={'buz':  'buz'})}
     r = Buz_1(cfg=cfg)
     with pytest.raises(TypeError):
+        # will not be able to convert input data for `Bar_1` (cast=True)
         r.verify()
 
 
@@ -78,8 +81,9 @@ def test_munch():
     cfg = {'foo'   : 2,
            'bar'   : Foo()}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
-        r.verify()
+    # no TypeError, since value of attribute "bar" will be converted
+    # classes `Foo` and `Bar_1` have the same schemas
+    r.verify()
 
 
     # confirm that nested types are checked
@@ -88,6 +92,7 @@ def test_munch():
                       'two': {'buz': 'bar'}}}
     r = Buz_1(cfg=cfg)
     with pytest.raises(TypeError):
+        # will not be able to convert input data for `Bar_1` (attribute `two`)
         r.verify()
 
     # --------------------------------------------------------------------------
@@ -120,6 +125,33 @@ def test_munch():
     r = Buz_2(cfg=cfg)
     with pytest.raises(TypeError):
         r.verify()
+
+
+# ------------------------------------------------------------------------------
+#
+def test_munch_defaults():
+
+    # --------------------------------------------------------------------------
+    # plain schema
+    class Foo(ru.Munch):
+        _schema   = {'one'  : int,
+                     'two'  : {str: int},
+                     'three': [str],
+                     'four' : float,
+                     'five' : bool}
+        _defaults = {'two'  : {'two-default': 0},
+                     'three': [3, 3, 3],
+                     'four' : None,
+                     'five' : True}
+    # --------------------------------------------------------------------------
+
+
+    f = Foo()
+    assert (f.one   is None)
+    assert (f.two   == {'two-default': 0})
+    assert (f.three == [3, 3, 3])
+    assert (f.four  is None)
+    assert (f.five  is True)
 
 
 # ------------------------------------------------------------------------------
@@ -274,6 +306,7 @@ def test_demunch():
 if __name__ == '__main__':
 
     test_munch()
+    test_munch_defaults()
     test_munch_update()
     test_munch_inherit()
     test_demunch()

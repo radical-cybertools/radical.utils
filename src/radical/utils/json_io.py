@@ -1,3 +1,4 @@
+# pylint: disable=unused-import,eval-used
 
 __author__    = 'Radical.Utils Development Team (Andre Merzky)'
 __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
@@ -12,7 +13,7 @@ from .misc import as_string
 
 # ------------------------------------------------------------------------------
 #
-def read_json(fname):
+def read_json(fname, filter_comments=True):
     '''
     Comments line in the form of
 
@@ -27,7 +28,7 @@ def read_json(fname):
     with open(fname) as f:
 
         try:
-            return parse_json(f.read())
+            return parse_json(f.read(), filter_comments)
 
         except ValueError as e:
             raise ValueError('error parsing %s: %s' % (fname, e)) from e
@@ -35,13 +36,13 @@ def read_json(fname):
 
 # ------------------------------------------------------------------------------
 #
-def read_json_str(filename):
+def read_json_str(filename, filter_comments=True):
     '''
     same as read_json, but converts unicode strings and byte arrays to ASCII
     strings.
     '''
 
-    return as_string(read_json(filename))
+    return as_string(read_json(filename, filter_comments))
 
 
 # ------------------------------------------------------------------------------
@@ -118,13 +119,12 @@ def metric_expand(data):
 
     '''
 
-    try   : import radical.pilot as rp
+    try   : import radical.pilot as rp                              # noqa: F401
     except: pass
-    try   : import radical.saga  as rs
+    try   : import radical.saga  as rs                              # noqa: F401
     except: pass
-    try   : import radical.utils as ru
+    try   : import radical.utils as ru                              # noqa: F401
     except: pass
-
 
     if isinstance(data, str):
 
@@ -138,10 +138,8 @@ def metric_expand(data):
                     pass
         return data
 
-
     elif isinstance(data, list):
         return [metric_expand(elem) for elem in data]
-
 
     elif isinstance(data, dict):
         return {metric_expand(k) : metric_expand(v) for k,v in data.items()}

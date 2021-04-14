@@ -167,9 +167,16 @@ def print_stacktrace(msg=None, _stack=None):
 
 # ------------------------------------------------------------------------------
 #
+def get_exception_trace(msg=None):
+
+    return traceback.format_exc().split('\n')
+
+
+# ------------------------------------------------------------------------------
+#
 def print_exception_trace(msg=None):
 
-    print_stacktrace(msg=msg, _stack=traceback.format_exc().split('\n'))
+    print_stacktrace(msg=msg, _stack=get_exception_trace())
 
 
 # ------------------------------------------------------------------------------
@@ -580,6 +587,7 @@ class Lock(object):
             self.owner = get_thread_name()
 
         self.waits.pop()
+
         return ret
 
 
@@ -587,11 +595,8 @@ class Lock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------
@@ -623,7 +628,7 @@ class RLock(object):
 
     # --------------------------------------------------------------------------
     #
-    def acquire(self, blocking=1):
+    def acquire(self, blocking=True):
 
         self.waits.append(get_thread_name())
         ret = self.lock.acquire(blocking=blocking)
@@ -632,7 +637,6 @@ class RLock(object):
             self.owner = get_thread_name()
 
         self.waits.pop()
-
         return ret
 
 
@@ -640,11 +644,8 @@ class RLock(object):
     #
     def release(self):
 
-        ret = self.lock.release()
-
+        self.lock.release()
         self.owner = None
-
-        return ret
 
 
 # ------------------------------------------------------------------------------
