@@ -373,8 +373,6 @@ class Munch(DictMixin):
 
         if self._schema:
 
-            if k.startswith('__'):
-                return v
             if k not in self._schema:
                 raise TypeError('%s: key %s not in schema'
                                % (type(self).__name__, k))
