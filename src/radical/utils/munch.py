@@ -144,9 +144,7 @@ class Munch(DictMixin):
         # should return a new instance of the same type, not an original Munch,
         # otherwise if an instance of Munch-based has an attribute of another
         # Munch-based type then `verify` method will raise TypeError exception
-        ret = type(self)()
-        ret.update(copy.deepcopy(self._data))
-        return ret
+        return type(self)(from_dict=copy.deepcopy(self._data))
 
 
     # --------------------------------------------------------------------------
@@ -232,55 +230,46 @@ class Munch(DictMixin):
     #
     @classmethod
     def _verify_int(cls, k, v, t, cast):
-        if v is None: return
+        if v is None or isinstance(v, int): return v
         if cast:
             try   : return int(v)
             except: raise TypeError('%s: expected int type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, int):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
     @classmethod
     def _verify_str(cls, k, v, t, cast):
-        if v is None: return
+        if v is None or isinstance(v, str): return v
         if cast:
             try   : return str(v)
             except: raise TypeError('%s: expected str type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, str):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
     @classmethod
     def _verify_float(cls, k, v, t, cast):
-        if v is None: return
+        if v is None or isinstance(v, float): return v
         if cast:
             try   : return float(v)
             except: raise TypeError('%s: expected float type for %s (%s)'
                                    % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, float):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
     @classmethod
     def _verify_bool(cls, k, v, t, cast):
-        if v is None: return
-        if v              in [True, False]       : return v
+        if v is None or isinstance(v, bool): return v
         if cast:
             if str(v).lower() in ['true', 'yes', '1']: return True
             if str(v).lower() in ['false', 'no', '0']: return False
             raise TypeError('%s: expected bool type for %s (%s)'
                            % (cls.__name__, k, type(v)))
         else:
-            if isinstance(v, bool):
-                return v
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
@@ -325,6 +314,20 @@ class Munch(DictMixin):
             raise TypeError('attribute type error for %s: expected %s, got %s'
                            % (k, t, type(v)))
 
+    @classmethod
+    def _verify_munch(cls, k, v, t, cast):
+        if v is None: return
+        if cast:
+            if issubclass(type(v), t): return v.verify()
+            if isinstance(v, dict)   : return t(from_dict=v).verify()
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                            % (k, t, type(v)))
+        else:
+            if issubclass(type(v), t):
+                return v
+            raise TypeError('attribute type error for %s: expected %s, got %s'
+                            % (k, t, type(v)))
+
     _verifiers = {
             int  : _verify_int.__func__,
             str  : _verify_str.__func__,
@@ -334,6 +337,7 @@ class Munch(DictMixin):
 
     _verifier_keys = list(_verifiers.keys())
 
+
     @classmethod
     def _verify_kvt(cls, k, v, t, cast):
         if t is None              : return v
@@ -341,18 +345,12 @@ class Munch(DictMixin):
         if isinstance(t, tuple)   : return cls._verify_tuple(k, v, t, cast)
         if isinstance(t, list)    : return cls._verify_list(k, v, t, cast)
         if isinstance(t, dict)    : return cls._verify_dict(k, v, t, cast)
-        if issubclass(t, Munch)   : return v.verify(t)
-        return v
-      # raise TypeError('%s: no verifier defined for type %s'
-      #                % (cls.__name__, t))
+        if issubclass(t, Munch)   : return cls._verify_munch(k, v, t, cast)
+        if cast: return v
+        raise TypeError('%s: no verifier defined for type %s'
+                       % (cls.__name__, t))
 
-
-    def verify(self, ctype=None):
-
-        if ctype and not issubclass(type(self), ctype):
-            raise TypeError('class type mismatch: %s >< %s'
-                    % (type(self), ctype))
-
+    def verify(self):
         if self._schema:
             for k, v in self._data.items():
                 if k.startswith('__'):
@@ -370,15 +368,12 @@ class Munch(DictMixin):
     #
     def _verify_setter(self, k, v):
 
-
         if not self._check:
             # no type checking on set
             return v
 
         if self._schema:
 
-            if k.startswith('__'):
-                return v
             if k not in self._schema:
                 raise TypeError('%s: key %s not in schema'
                                % (type(self).__name__, k))
