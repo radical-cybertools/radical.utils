@@ -370,7 +370,7 @@ class EnvProcess(object):
 
         self._q    = mp.Queue()
         self._env  = env
-        self._data = None
+        self._data = [None, None]   # data, exception
 
 
     def __bool__(self):
@@ -388,6 +388,7 @@ class EnvProcess(object):
 
         if self._child:
 
+            print('set env for child', os.getpid())
             for k in os.environ:
                 del(os.environ[k])
 
@@ -397,7 +398,14 @@ class EnvProcess(object):
         return self
 
 
-    def __exit__(self, a, b, c):
+    def __exit__(self, exc, value, tb):
+
+        if exc and self._child:
+            self._q.put([None, exc])
+            self._q.close()
+            self._q.join_thread()
+            os._exit(0)
+
 
         if self._parent:
 
@@ -412,7 +420,7 @@ class EnvProcess(object):
     def put(self, data):
 
         if self._child:
-            self._q.put(data)
+            self._q.put([data, None])
             self._q.close()
             self._q.join_thread()
             os._exit(0)
@@ -420,7 +428,10 @@ class EnvProcess(object):
 
     def get(self):
 
-        return self._data
+        data, exc = self._data
+        if exc:
+            raise exc
+        return data
 
 
 # ------------------------------------------------------------------------------
