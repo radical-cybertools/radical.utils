@@ -14,6 +14,7 @@ from ..url     import Url
 from ..misc    import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger  import Logger
 from ..profile import Profiler
+from ..debug   import print_exception_trace
 
 from .bridge   import Bridge
 from .utils    import no_intr
@@ -475,6 +476,7 @@ class Getter(object):
                                 cb(as_string(m))
 
         except:
+            print_exception_trace()
             sys.stderr.write('listener died\n')
             sys.stderr.flush()
 
