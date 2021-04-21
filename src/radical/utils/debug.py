@@ -233,7 +233,7 @@ def get_caller_name(skip=2):
 # ------------------------------------------------------------------------------
 #
 _verb  = False
-if 'RADICAL_DEBUG' in os.environ:
+if 'RADICAL_DEBUG_VERBOSE' in os.environ:
     _verb = True
 
 _raise_on_state = dict()
