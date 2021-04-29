@@ -112,11 +112,9 @@ def metric_expand(data):
 
     becomes:
 
-
         {
             2 : "foo"
         }
-
     '''
 
     try   : import radical.pilot as rp                              # noqa: F401
