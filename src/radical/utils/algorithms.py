@@ -324,32 +324,36 @@ def remove_common_prefix(data, extend=0):
 #       task not in good
 #   # --------------------------------------------------------------------------
 #
-def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
-                             ratio=0.5, log=None):
+def lazy_bisect(data, check,
+                on_ok=None, on_nok=None, on_fail=None, on_skip=None,
+                ratio=0.5, log=None):
     '''
     Find the next potentially good candidate element in a presumably ordered
     list `data` (from smallest to largest). The given callable `check` should
     accept a list element for good/bad checks, and return `True` for good (small
     enough), `False` otherwise (too large).
 
-    The method will return a list with only bad elements (elements which the
-    checker deemed too large).  `data` is not altered by this method.
-
     Note that this is only a bisect if `ratio` is set at `0.5` - otherwise the
     search will back off through the list faster (1.0 >= ratio > 0.5) or slower
     (0.5 > ratio >= 0.0) than bisect.
 
-    The method returns two lists, a list with elements of data which were
-    checked `good`, and a list of elements checked as `bad`.
+    The method returns three lists, one list with elements of data which were
+    checked `good`, and one list of elements checked as `bad`.  Checks which
+    raise an exception are also handled as `bad`, any element on which this
+    happens will be returned in the third list (`fail`).  Note that this last
+    list (`fail`) will consist of tuples: [`element`, `error`] where `error` is
+    the exception's error message.
 
     `on_ok` will be called on tasks where `check()` returned `good`, `on_nok`
-    where `check()` returned `bad`, and `on_skip` where bisect decided that no
+    where `check()` returned `bad`, `on_fail()` where `check()` raised an
+    exceptionm and `on_skip` where bisect decided that no
     `check()` invocation is needed.  The respective data item is the only
     argument to the calls.
+
     '''
 
     if not data:
-        return [], []
+        return [], [], []
 
     if not log:
         log = Logger('radical.utils.alg')
@@ -361,6 +365,7 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
     last_bad   = None    # last known bad index
     check_good = list()  # found good index
     check_bad  = list()  # found bad index
+    check_fail = list()  # found bad index
 
     # --------------------------------------------------------------------------
     def wrapcheck(thing, skip=False):
@@ -417,10 +422,15 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
             first = False
 
             idx = len(data) - 1
-            ret = wrapcheck(data[idx])
 
-            if ret is True: check_good.append(idx)
-            else          : check_bad .append(idx)
+            try:
+                ret = wrapcheck(data[idx])
+
+                if ret is True: check_good.append(idx)
+                else          : check_bad .append(idx)
+            except Exception as e:
+                ret = False
+                check_fail.append([idx, str(e)])
 
           # state_needle('start %s %s' % (idx, ret))
 
@@ -450,10 +460,14 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
               # state_needle('known %3d False' % idx)
                 continue
 
-            ret = wrapcheck(data[idx])
+            try:
+                ret = wrapcheck(data[idx])
 
-            if ret is True: check_good.append(idx)
-            else          : check_bad .append(idx)
+                if ret is True: check_good.append(idx)
+                else          : check_bad .append(idx)
+            except Exception as e:
+                ret = False
+                check_fail.append([idx, str(e)])
 
             if ret is True: last_good = idx
             else          : last_bad  = idx  # break out of this branch
@@ -500,9 +514,14 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
             if   idx in check_good: ret = True
             elif idx in check_bad:  ret = False
             else:
-                ret = wrapcheck(data[idx])
-                if ret is True: check_good.append(idx)
-                else          : check_bad .append(idx)
+                try:
+                    ret = wrapcheck(data[idx])
+
+                    if ret is True: check_good.append(idx)
+                    else          : check_bad .append(idx)
+                except Exception as e:
+                    ret = False
+                    check_fail.append([idx, str(e)])
 
           # state_needle('range %3d %s' % (idx, ret))
 
@@ -541,10 +560,12 @@ def lazy_bisect(data, check, on_ok=None, on_nok=None, on_skip=None,
 
   # state_hay()
 
-    # return list of all bad elements
-    assert(len(data) == len(check_good) + len(check_bad))
-    return [data[i] for i in check_good], \
-           [data[i] for i in check_bad ]
+    assert(len(data) == len(check_good) + len(check_bad) + len(check_fail))
+
+    print('return 3')
+    return [ data[i]     for i   in check_good], \
+           [ data[i]     for i   in check_bad],  \
+           [[data[i], e] for i,e in check_fail]
 
 
 # ------------------------------------------------------------------------------
