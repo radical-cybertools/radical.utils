@@ -12,6 +12,7 @@ import netifaces
 
 from .         import url       as ruu
 from .ru_regex import ReString
+from urllib.parse import quote_plus, unquote_plus
 
 # ------------------------------------------------------------------------------
 #
@@ -57,7 +58,7 @@ def split_dburl(dburl, default_dburl=None):
     port = url.port
     path = url.path
     user = url.username
-    pwd  = url.password
+    pwd  = unquote_plus(url.password)
 
     query_options = {'ssl': False}
 
