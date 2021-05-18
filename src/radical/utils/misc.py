@@ -10,6 +10,8 @@ import tempfile
 import itertools
 import netifaces
 
+from urllib.parse import unquote_plus
+
 from .         import url       as ruu
 from .ru_regex import ReString
 
@@ -57,7 +59,7 @@ def split_dburl(dburl, default_dburl=None):
     port = url.port
     path = url.path
     user = url.username
-    pwd  = url.password
+    pwd  = unquote_plus(url.password)
 
     query_options = {'ssl': False}
 
@@ -112,6 +114,7 @@ def mongodb_connect(dburl, default_dburl=None):
 
     try:
         import pymongo
+
     except ImportError as e:
         msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
