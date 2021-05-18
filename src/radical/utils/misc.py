@@ -10,9 +10,10 @@ import tempfile
 import itertools
 import netifaces
 
+from urllib.parse import unquote_plus
+
 from .         import url       as ruu
 from .ru_regex import ReString
-from urllib.parse import quote_plus, unquote_plus
 
 # ------------------------------------------------------------------------------
 #
@@ -113,6 +114,7 @@ def mongodb_connect(dburl, default_dburl=None):
 
     try:
         import pymongo
+
     except ImportError as e:
         msg  = " \n\npymongo is not available -- install RU with: \n\n"
         msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
