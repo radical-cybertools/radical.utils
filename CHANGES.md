@@ -2,6 +2,14 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+
+1.6.6  Release                                                        2021-05-18
+--------------------------------------------------------------------------------
+
+  - fixed method `get_hostname`
+  - handling encoded str for mongodb password
+
+
 1.6.5  Release                                                        2021-04-14
 --------------------------------------------------------------------------------
 
@@ -630,4 +638,3 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
-
