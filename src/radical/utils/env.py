@@ -98,7 +98,9 @@ def _quote(data):
         # cannot use single quote, so use double quote and escale all other
         # double quotes in the data
         # NOTE: we only support these three types of shell directives
-        data = '"' + data.replace('"', '\\"') + '"'
+        data = data.replace('"', '\\"') \
+                   .replace('$', '\\$')
+        data = '"' + data + '"'
 
     else:
         # single quotes will do

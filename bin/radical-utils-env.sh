@@ -65,10 +65,11 @@ env_dump(){
         esac
     done
 
+    # NOTE: we can't `sort` as that screws up multiline settings
     if test -z "$tgt"; then
-        env | sort
+        env 
     else
-        env | sort > "$tgt"
+        env > "$tgt"
     fi
 }
 
@@ -129,18 +130,18 @@ env_prep(){
 
     # get keys from `src` environment dump
     src_keys=$( cat "$src" \
-               | sort \
                | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
                | cut -f1 -d=
+               | sort \
                )
 
     if ! test -z "$rem"
     then
         # get keys from `rem` environment dump
         rem_keys=$( cat "$rem" \
-                  | sort \
                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
                   | cut -f1 -d=
+                  | sort \
                   )
     fi
 
