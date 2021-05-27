@@ -66,8 +66,9 @@ def env_read_lines(lines):
             val += line
             continue
 
-
-        this_key, this_val = line.split('=', 1)
+        elems    = line.split('=', 1)
+        this_key = elems.pop(0)
+        this_val = elems[0] if elems else ''
 
         if re.match(key_pat, this_key):
             # valid key - store previous key/val if we have any, and
@@ -76,7 +77,7 @@ def env_read_lines(lines):
                 env[key] = val
 
             key = this_key
-            val = this_val
+            val = this_val.strip()
         else:
             # invalid key - append linebreak and line to value
             val += '\n'
@@ -136,7 +137,8 @@ def env_eval(fname):
 
         for line in fin.readlines():
 
-            line = line.strip()
+            # avoid split problems on 'foo=' - thus the `v.strip()` later
+            line  = line.strip()
 
             if not line:
                 continue
@@ -149,16 +151,20 @@ def env_eval(fname):
                 k = spec.strip()
                 if k not in env:
                     continue
-                del(env[k])
+                del(env[k.strip()])
 
             elif line.startswith('export ') :
                 _, spec = line.split(' ', 1)
-                k,v = spec.split('=', 1)
-                env[k] = _unquote(v)
+                elems   = spec.split('=', 1)
+                k = elems.pop(0)
+                v = elems[0] if elems else ''
+                env[k] = _unquote(v.strip())
 
             else:
-                k,v = line.split('=', 1)
-                env[k] = _unquote(v)
+                elems = line.split('=', 1)
+                k = elems.pop(0)
+                v = elems[0] if elems else ''
+                env[k] = _unquote(v.strip())
 
     return env
 
@@ -237,7 +243,7 @@ def env_prep(environment=None, unset=None, pre_exec=None,
         # given name and fill it with `unset` and `export` statements to
         # recreate that specific environment: any shell sourcing that
         # `script_path` file thus activates the environment we just prepared.
-        tmp_file, tmp_name = tempfile.mkstemp()
+        tmp_file, tmp_name = tempfile.mkstemp(dir=os.getcwd() + '/env/')
 
         # use a file object to simplify byte conversion
         fout = os.fdopen(tmp_file, 'w')
@@ -246,6 +252,8 @@ def env_prep(environment=None, unset=None, pre_exec=None,
             if unset:
                 fout.write('# unset\n')
                 for k in sorted(unset):
+                    if not k.isalnum():
+                        continue
                     if k not in environment:
                         fout.write('unset %s\n' % k)
                 fout.write('\n')
@@ -259,9 +267,11 @@ def env_prep(environment=None, unset=None, pre_exec=None,
             if environment:
                 fout.write('# export\n')
                 for k in sorted(environment.keys()):
-                    if k not in BLACKLIST:
-                        fout.write("export %s=%s\n"
-                                  % (k, _quote(environment[k])))
+                    if k in BLACKLIST:
+                        continue
+                    if not k.isalnum():
+                        continue
+                    fout.write("export %s=%s\n" % (k, _quote(environment[k])))
                 fout.write('\n')
 
             if pre_exec_cached:
