@@ -6,6 +6,8 @@ import queue
 import hashlib
 import tempfile
 
+from typing import List, Dict, Tuple, Any, Optional
+
 import multiprocessing as mp
 
 from .misc  import as_list
@@ -29,7 +31,7 @@ _env_cache = dict()
 
 # ------------------------------------------------------------------------------
 #
-def env_read(fname):
+def env_read(fname: str) -> Dict[str, str]:
     '''
     helper to parse environment from a file: this method parses the output of
     `env` and returns a dict with the found environment settings.
@@ -43,7 +45,7 @@ def env_read(fname):
 
 # ------------------------------------------------------------------------------
 #
-def env_read_lines(lines):
+def env_read_lines(lines: List[str]) -> Dict[str, str]:
 
     # POSIX definition of variable names
     key_pat = r'^[A-Za-z_][A-Za-z_0-9]*$'
@@ -92,7 +94,7 @@ def env_read_lines(lines):
 
 # ------------------------------------------------------------------------------
 #
-def _quote(data):
+def _quote(data: str) -> str:
 
     if "'" in data or '$' in data or '`' in data:
         # cannot use single quote, so use double quote and escale all other
@@ -111,7 +113,7 @@ def _quote(data):
 
 # ------------------------------------------------------------------------------
 #
-def _unquote(data):
+def _unquote(data: str) -> str:
 
     if data.startswith("'") and data.endswith("'"):
         # just remove enclosing single quotes - no nesting
@@ -128,7 +130,7 @@ def _unquote(data):
 
 # ------------------------------------------------------------------------------
 #
-def env_eval(fname):
+def env_eval(fname: str) -> Dict[str, str]:
     '''
     helper to create a dictionary with the env settings in the specified file
     which contains `unset` and `export` directives, or simple 'key=val' lines
@@ -140,7 +142,7 @@ def env_eval(fname):
         for line in fin.readlines():
 
             # avoid split problems on 'foo=' - thus the `v.strip()` later
-            line  = line.strip()
+            line = line.strip()
 
             if not line:
                 continue
@@ -153,7 +155,7 @@ def env_eval(fname):
                 k = spec.strip()
                 if k not in env:
                     continue
-                del(env[k.strip()])
+                del(env[k])
 
             elif line.startswith('export ') :
                 _, spec = line.split(' ', 1)
@@ -173,15 +175,18 @@ def env_eval(fname):
 
 # ------------------------------------------------------------------------------
 #
-def env_prep(environment=None, unset=None, pre_exec=None,
-             pre_exec_cached=None, script_path=None):
+def env_prep(environment    : Optional[Dict[str,str]] = None,
+             unset          : Optional[List[str]]     = None,
+             pre_exec       : Optional[List[str]]     = None,
+             pre_exec_cached: Optional[List[str]]     = None,
+             script_path    : Optional[str]           = None
+            ) -> Dict[str, str]:
     '''
     Create a shell script which restores the environment specified in
-    `environment`
-    environment (dict).  While doing so, ensure that all env variables *not*
-    defined in `environment` but defined in `unset` (list) are unset.  Also ensure
-    that all commands provided in `pre_exec_cached` (list) are executed after
-    these settings.
+    `environment` environment (dict).  While doing so, ensure that all env
+    variables *not* defined in `environment` but defined in `unset` (list) are
+    unset.  Also ensure that all commands provided in `pre_exec_cached` (list)
+    are executed after these settings.
 
     Once the shell script is created, run it and dump the resulting env, then
     read it back via `env_read()` and return the resulting env dict - that
@@ -337,7 +342,9 @@ def env_prep(environment=None, unset=None, pre_exec=None,
 
 # ------------------------------------------------------------------------------
 #
-def env_diff(env_1, env_2):
+def env_diff(env_1 : Dict[str,str],
+             env_2 : Dict[str,str]
+            ) -> Tuple[Dict[str,str], Dict[str,str], Dict[str,str]]:
     '''
     This method serves debug purposes: it compares to environments and returns
     those elements which appear in only either one or the other env, and which
@@ -364,6 +371,7 @@ def env_diff(env_1, env_2):
     return only_1, only_2, changed
 
 
+
 # ------------------------------------------------------------------------------
 #
 class EnvProcess(object):
@@ -378,18 +386,26 @@ class EnvProcess(object):
         print('-->', p.get())
     '''
 
-    def __init__(self, env):
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, env : Dict[str, str]) -> None:
 
-        self._q    = mp.Queue()
-        self._env  = env
-        self._data = [None, None]   # data, exception
+        self._q     = mp.Queue()
+        self._env   = env
+        self._data  = [None, None]   # data, exception
+        self._child = None
 
 
-    def __bool__(self):
+    # --------------------------------------------------------------------------
+    #
+    def __bool__(self) -> Optional[bool]:
+
         return self._child
 
 
-    def __enter__(self):
+    # --------------------------------------------------------------------------
+    #
+    def __enter__(self) -> 'EnvProcess':
 
         if os.fork():
             self._parent = True
@@ -410,7 +426,12 @@ class EnvProcess(object):
         return self
 
 
-    def __exit__(self, exc, value, tb):
+    # --------------------------------------------------------------------------
+    #
+    def __exit__(self, exc  : Optional[Exception],
+                       value: Optional[Any],
+                       tb   : Optional[Any]
+                ) -> None:
 
         if exc and self._child:
             self._q.put([None, exc])
@@ -429,7 +450,9 @@ class EnvProcess(object):
                     pass
 
 
-    def put(self, data):
+    # --------------------------------------------------------------------------
+    #
+    def put(self, data: str) -> None:
 
         if self._child:
             self._q.put([data, None])
@@ -438,12 +461,15 @@ class EnvProcess(object):
             os._exit(0)
 
 
-    def get(self):
+    # --------------------------------------------------------------------------
+    #
+    def get(self) -> str:
 
         data, exc = self._data
         if exc:
             raise exc
-        return data
+
+        return str(data)
 
 
 # ------------------------------------------------------------------------------
