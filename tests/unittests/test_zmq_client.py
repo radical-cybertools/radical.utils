@@ -1,3 +1,4 @@
+# pylint: disable=no-value-for-parameter
 
 import msgpack
 
