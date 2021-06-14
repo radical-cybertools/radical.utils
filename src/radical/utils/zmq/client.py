@@ -54,6 +54,8 @@ class Request(object):
 #
 class Response(object):
 
+    # --------------------------------------------------------------------------
+    #
     # FIXME: inherit future
     def __init__(self,
                  res: Optional[str]       = None,
@@ -65,6 +67,9 @@ class Response(object):
         self._err = err
         self._exc = exc
 
+
+    # --------------------------------------------------------------------------
+    #
     def __repr__(self) -> str:
 
         ret = ''
@@ -74,6 +79,9 @@ class Response(object):
 
         return ret.strip()
 
+
+    # --------------------------------------------------------------------------
+    #
     def str(self) -> str:
 
         if self._res: ret = 'res: %s' % self._res
@@ -81,11 +89,17 @@ class Response(object):
 
         return ret.strip()
 
+
+    # --------------------------------------------------------------------------
+    #
     @classmethod
     def from_msg(cls, msg: bytes) -> 'Response':
 
         return cls.from_dict(msgpack.unpackb(msg))
 
+
+    # --------------------------------------------------------------------------
+    #
     @classmethod
     def from_dict(cls, msg: Dict[str, Any]) -> 'Response':
 
@@ -93,14 +107,23 @@ class Response(object):
                         err=msg.get('err'),
                         exc=msg.get('exc'))
 
+
+    # --------------------------------------------------------------------------
+    #
     @property
     def res(self) -> Optional[str]:
         return self._res
 
+
+    # --------------------------------------------------------------------------
+    #
     @property
     def err(self) -> Optional[str]:
         return self._err
 
+
+    # --------------------------------------------------------------------------
+    #
     @property
     def exc(self) -> List[str]:
         return as_list(self._exc)
