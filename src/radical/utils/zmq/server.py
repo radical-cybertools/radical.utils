@@ -198,7 +198,7 @@ class Server(object):
     #
     def _request_echo(self, arg):
 
-        return {'res': arg}
+        return arg
 
 
     # --------------------------------------------------------------------------

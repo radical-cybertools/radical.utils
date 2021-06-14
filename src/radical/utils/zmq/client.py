@@ -26,23 +26,20 @@ class Request(object):
     def __init__(self,
                  cmd: Optional[str]       = None,
                  arg: Optional[List[Any]] = None
-                ) -> None:
+                 ) -> None:
 
         self._cmd = cmd
         self._arg = arg
-
 
     @classmethod
     def from_dict(cls, req:  Dict[str, Any]) -> 'Request':
 
         return Request(cmd=req['cmd'], arg=req.get('arg'))
 
-
-    def packb(self) -> bytearray:
+    def packb(self) -> bytes:
 
         msg_req = {'cmd': self._cmd, 'arg': self._arg}
         return msgpack.packb(msg_req)
-
 
     @property
     def cmd(self) -> Optional[str]:
@@ -62,12 +59,11 @@ class Response(object):
                  res: Optional[str]       = None,
                  err: Optional[str]       = None,
                  exc: Optional[List[str]] = None
-                ) -> None:
+                 ) -> None:
 
         self._res = res
         self._err = err
         self._exc = exc
-
 
     def __repr__(self) -> str:
 
@@ -78,7 +74,6 @@ class Response(object):
 
         return ret.strip()
 
-
     def str(self) -> str:
 
         if self._res: ret = 'res: %s' % self._res
@@ -86,11 +81,10 @@ class Response(object):
 
         return ret.strip()
 
-
     @classmethod
-    def from_msg(cls, msg: bytearray) -> 'Response':
-        return cls.from_dict(msgpack.unpackb(msg))
+    def from_msg(cls, msg: bytes) -> 'Response':
 
+        return cls.from_dict(msgpack.unpackb(msg))
 
     @classmethod
     def from_dict(cls, msg: Dict[str, Any]) -> 'Response':
@@ -99,13 +93,12 @@ class Response(object):
                         err=msg.get('err'),
                         exc=msg.get('exc'))
 
-
     @property
-    def res(self) -> str:
+    def res(self) -> Optional[str]:
         return self._res
 
     @property
-    def err(self) -> str:
+    def err(self) -> Optional[str]:
         return self._err
 
     @property
@@ -143,11 +136,11 @@ class Client(object):
         self._term   = mt.Event()
         self._active = False
 
-
+    # --------------------------------------------------------------------------
+    #
     @property
     def url(self) -> str:
         return self._url
-
 
     # --------------------------------------------------------------------------
     #
@@ -166,7 +159,6 @@ class Client(object):
             raise RuntimeError('ERROR: %s' % res.err)
 
         return res
-
 
     # --------------------------------------------------------------------------
     #

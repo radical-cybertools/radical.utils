@@ -29,6 +29,7 @@ def test_zmq_registry():
         assert('foo' not in c)
         assert(c.keys() == [])
 
+        c.close()
     finally:
         r.stop()
         r.wait()
