@@ -24,7 +24,7 @@ _DEFAULT_BULK_SIZE =    1  # number of messages to put in a bulk
 class Request(object):
 
     def __init__(self,
-                 cmd: str = None,
+                 cmd: Optional[str]       = None,
                  arg: Optional[List[Any]] = None
                 ) -> None:
 
@@ -45,8 +45,7 @@ class Request(object):
 
 
     @property
-    def cmd(self) -> str:
-        assert self._cmd
+    def cmd(self) -> Optional[str]:
         return self._cmd
 
     @property
@@ -102,7 +101,7 @@ class Response(object):
 
 
     @property
-    def res(self) -> 'Result':
+    def res(self) -> str:
         return self._res
 
     @property
@@ -146,7 +145,7 @@ class Client(object):
 
 
     @property
-    def url(self) -> Optional[str]:
+    def url(self) -> str:
         return self._url
 
 
