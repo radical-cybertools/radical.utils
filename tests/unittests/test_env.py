@@ -109,11 +109,26 @@ def test_env_eval():
 
 # ------------------------------------------------------------------------------
 #
+def test_env_proc():
+
+    env = {'TEST_SHARED': 'env_shared'}
+    env_proc = ru.EnvProcess(env=env)
+    with env_proc:
+        env_proc.put(ru.sh_callout('echo $TEST_SHARED', shell=True))
+    out = env_proc.get()
+
+    assert('TEST_SHARED' not in os.environ)
+    assert(env['TEST_SHARED'] in out)
+
+
+# ------------------------------------------------------------------------------
+#
 if __name__ == '__main__':
 
     test_env_prep()
     test_env_read()
     test_env_eval()
+    test_env_proc()
 
 
 # ------------------------------------------------------------------------------
