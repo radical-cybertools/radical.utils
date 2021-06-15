@@ -1,7 +1,7 @@
+# pylint: disable=protected-access
 
 import re
 import os
-import sys
 import queue
 import hashlib
 import tempfile
@@ -369,7 +369,6 @@ def env_diff(env_1 : Dict[str,str],
         # else is checked in keys_1 loop above
 
     return only_1, only_2, changed
-
 
 
 # ------------------------------------------------------------------------------
