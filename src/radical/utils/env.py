@@ -462,13 +462,13 @@ class EnvProcess(object):
 
     # --------------------------------------------------------------------------
     #
-    def get(self) -> str:
+    def get(self) -> Any:
 
         data, exc = self._data
         if exc:
             raise exc
 
-        return str(data)
+        return data
 
 
 # ------------------------------------------------------------------------------
