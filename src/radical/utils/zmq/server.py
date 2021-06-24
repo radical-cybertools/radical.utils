@@ -155,6 +155,7 @@ class Server(object):
             raise RuntimeError('`start()` can be called only once')
 
         self._thread = mt.Thread(target=self._work)
+        self._thread.daemon = True
         self._thread.start()
 
         self._up.wait()
