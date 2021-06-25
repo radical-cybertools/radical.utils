@@ -133,6 +133,12 @@ def log_bulk(log, msgs, token):
 
     msgs = as_list(msgs)
 
+    unpacked = list()
+    for msg in msgs:
+        try   : msg = msgpack.unpackb(msg)
+        except: pass
+        unpacked.append(msg)
+
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
 
@@ -142,7 +148,7 @@ def log_bulk(log, msgs, token):
 
     else:
         for msg in msgs:
-            log.debug("%s: %s", token, str(msg)[0:32])
+            log.debug("%s: %s", token, str(msg)[0:128])
 
 
 # ------------------------------------------------------------------------------
