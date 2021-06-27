@@ -88,7 +88,7 @@ def get_channel_url(ep_type, channel=None, url=None):
         # example:
         #   channel `foo`
         #   url     `pubsub://localhost:1234/foo`
-        channel = os.path.basename(Url(url.path))
+        channel = os.path.basename(str(Url(url.path)))
 
     elif not url:
         # get url from environment (`FOO_PUB_URL`) or config file (`foo.cfg`)
@@ -99,7 +99,7 @@ def get_channel_url(ep_type, channel=None, url=None):
         if env_name in os.environ:
             url = os.environ[env_name]
 
-        elif os.exists(cfg_name):
+        elif os.path.exists(cfg_name):
             with open(cfg_name, 'r') as fin:
                 for line in fin.readlines():
                     _ep_type, _url = line.split(':')

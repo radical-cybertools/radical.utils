@@ -562,7 +562,6 @@ def lazy_bisect(data, check,
 
     assert(len(data) == len(check_good) + len(check_bad) + len(check_fail))
 
-    print('return 3')
     return [ data[i]     for i   in check_good], \
            [ data[i]     for i   in check_bad],  \
            [[data[i], e] for i,e in check_fail]
