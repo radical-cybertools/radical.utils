@@ -3,15 +3,17 @@ import os
 import csv
 import time
 
-from .ids     import get_radical_base
-from .misc    import as_string, as_list
-from .misc    import get_env_ns      as ru_get_env_ns
-from .misc    import get_hostname    as ru_get_hostname
-from .misc    import get_hostip      as ru_get_hostip
-from .threads import get_thread_name as ru_get_thread_name
-from .config  import DefaultConfig
-from .atfork  import atfork
+from .ids       import get_radical_base
+from .url       import Url
+from .misc      import as_string, as_list
+from .misc      import get_env_ns      as ru_get_env_ns
+from .misc      import get_hostname    as ru_get_hostname
+from .misc      import get_hostip      as ru_get_hostip
+from .threads   import get_thread_name as ru_get_thread_name
+from .config    import DefaultConfig
+from .atfork    import atfork
 
+from .zmq.queue import Putter
 
 # ------------------------------------------------------------------------------
 #
@@ -173,7 +175,90 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, ns=None, path=None):
+    class ZMQHandler(object):
+
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self, url):
+
+            self._handle = Putter(channel='tracer_queue', url=url)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def trace(self, ts, event, comp, thread, uid, state, msg):
+
+            self._handle.put((ts, event, comp, thread, uid, state, msg))
+
+
+        # ----------------------------------------------------------------------
+        #
+        def flush(self):
+
+            time.sleep(0.1)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def close(self):
+
+            pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    class FileHandler(object):
+
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self, fname):
+
+            self._fname = fname
+
+            try:
+                os.makedirs(os.path.dirname(self._fname))
+            except OSError:
+                pass  # already exists
+
+            # we set `buffering` to `1` to force line buffering.  That is not idea
+            # performance wise - but will not do an `fsync()` after writes, so OS
+            # level buffering should still apply.  This is supposed to shield
+            # against incomplete profiles.
+            self._handle = open(self._fname, 'a', buffering=1024)
+            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
+
+            # register for cleanup after fork
+            global _profilers
+            _profilers.append([self, self._fname])
+
+
+        # ----------------------------------------------------------------------
+        #
+        def trace(self, ts, event, comp, thread, uid, state, msg):
+
+            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
+                           (ts, event, comp, thread, uid, state, msg))
+
+
+        # ----------------------------------------------------------------------
+        #
+        def flush(self):
+
+            # see https://docs.python.org/2/library/stdtypes.html#file.flush
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
+
+
+        # ----------------------------------------------------------------------
+        #
+        def close(self):
+
+            self._handle.close()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, name, ns=None, target=None):
         '''
         Open the file handle, sync the clock, and write timestam_zero
         '''
@@ -198,50 +283,34 @@ class Profiler(object):
 
         # profiler is enabled - set properties, sync time, open handle
         self._enabled = True
-        self._path    = path
         self._name    = name
 
-        if not self._path:
-            self._path = ru_def['profile_dir']
+        if target: self._target = Url(target)
+        else     : self._target = Url(ru_def['profile_dir'])
 
+        if self._target.schema == 'tcp':
+            self._handle = Profiler.ZMQHandler(self._target)
+        else:
+            fname = '%s/%s.prof' % (self._target.path, self._name)
+            self._handle = Profiler.FileHandler(fname)
+
+        # write time normalization info
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
-        try:
-            os.makedirs(self._path)
-        except OSError:
-            pass  # already exists
-
-        # we set `buffering` to `1` to force line buffering.  That is not idea
-        # performance wise - but will not do an `fsync()` after writes, so OS
-        # level buffering should still apply.  This is supposed to shield
-        # against incomplete profiles.
-        fname = '%s/%s.prof' % (self._path, self._name)
-        self._handle = open(fname, 'a', buffering=1024)
-
-        # register for cleanup after fork
-        global _profilers
-        _profilers.append([self, fname])
-
-
-        # write header and time normalization info
-        if self._handle:
-            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
-            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
-                           (self.timestamp(), 'sync_abs', self._name,
-                            ru_get_thread_name(), '', '',
-                            '%s:%s:%s:%s:%s' % (ru_get_hostname(),
-                                                ru_get_hostip(),
-                                                self._ts_zero,
-                                                self._ts_abs,
-                                                self._ts_mode)))
+        self._handle.trace(self.timestamp(), 'sync_abs', self._name,
+                        ru_get_thread_name(), '', '',
+                        '%s:%s:%s:%s:%s' % (ru_get_hostname(),
+                                            ru_get_hostip(),
+                                            self._ts_zero,
+                                            self._ts_abs,
+                                            self._ts_mode))
 
 
     # --------------------------------------------------------------------------
     #
     def __del__(self):
 
-      # self.close()
-        pass
+        self.close()
 
 
     # --------------------------------------------------------------------------
@@ -253,9 +322,9 @@ class Profiler(object):
 
 
     @property
-    def path(self):
+    def target(self):
 
-        return self._path
+        return self._target
 
 
     # --------------------------------------------------------------------------
@@ -274,9 +343,10 @@ class Profiler(object):
 
             if self._enabled and self._handle:
                 self.prof('END')
-                self.flush()
+                self._handle.flush()
                 self._handle.close()
-                self._handle = None
+                self._enabled = False
+                self._handle  = None
 
         except:
             pass
@@ -287,14 +357,8 @@ class Profiler(object):
     def flush(self, verbose=False):
 
         if not self._enabled: return
-        if not self._handle : return
 
-        if verbose:
-            self.prof('flush')
-
-        # see https://docs.python.org/2/library/stdtypes.html#file.flush
         self._handle.flush()
-        os.fsync(self._handle.fileno())
 
 
     # --------------------------------------------------------------------------
@@ -316,11 +380,9 @@ class Profiler(object):
 
         # if uid is a list, then recursively call self.prof for each uid given
         for _uid in as_list(uid):
+            self._handle.trace(ts, event, comp, tid, _uid, state, msg)
 
-            data = '%.7f,%s,%s,%s,%s,%s,%s\n' \
-                    % (ts, event, comp, tid, _uid, state, msg)
-            self._handle.write(data)
-            self._handle.flush()
+        self._handle.flush()
 
 
     # --------------------------------------------------------------------------

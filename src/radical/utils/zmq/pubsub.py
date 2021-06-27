@@ -11,7 +11,6 @@ from ..ids     import generate_id, ID_CUSTOM
 from ..url     import Url
 from ..misc    import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger  import Logger
-from ..profile import Profiler
 
 from .bridge   import Bridge
 from .utils    import no_intr, log_bulk
@@ -159,7 +158,6 @@ class PubSub(Bridge):
                 msg = self._sub.recv()
                 self._pub.send(msg)
 
-                self._prof.prof('subscribe', uid=self._uid, msg=msg)
               # log_bulk(self._log, msg, '~~ %s' % self.channel)
 
 
@@ -170,7 +168,6 @@ class PubSub(Bridge):
                 msg = self._pub.recv()
                 self._sub.send(msg)
 
-              # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
               # log_bulk(self._log, msg, '<> %s' % self.channel)
 
 
@@ -185,7 +182,6 @@ class Publisher(object):
         self._channel  = channel
         self._url      = as_string(url)
         self._log      = log
-        self._prof     = prof
         self._lock     = mt.Lock()
 
         # FIXME: no uid ns
@@ -197,13 +193,6 @@ class Publisher(object):
 
         if not log:
             self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
-
-        if not prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
 
         self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
 
@@ -236,7 +225,6 @@ class Publisher(object):
         assert(isinstance(topic, str )), 'invalid topic type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
-      # self._prof.prof('put', uid=self._uid, msg=msg)
       # log_bulk(self._log, msg, '-> %s' % self.channel)
 
         btopic = as_bytes(topic.replace(' ', '_'))
@@ -261,7 +249,7 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _get_nowait(socket, lock, timeout, log, prof):
+    def _get_nowait(socket, lock, timeout, log, prof=None):
 
         # FIXME: add logging
 
@@ -279,7 +267,7 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(url, log, prof):
+    def _listener(url, log):
 
       # assert(url in Subscriber._callbacks)
 
@@ -293,11 +281,10 @@ class Subscriber(object):
 
                 # this list is dynamic
                 callbacks  = Subscriber._callbacks[url]['callbacks']
-                topic, msg = Subscriber._get_nowait(socket, lock, 500, log, prof)
+                topic, msg = Subscriber._get_nowait(socket, lock, 500, log)
 
                 if topic:
                     for cb, _lock in callbacks:
-                      # prof.prof('call_cb', uid=uid, msg=cb.__name__)
                         if _lock:
                             with _lock:
                                 cb(topic, msg)
@@ -309,8 +296,8 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url=None, topic=None, cb=None,
-                                log=None, prof=None, path=None):
+    def __init__(self, channel, url=None, topic=None, cb=None, prof=None,
+                                log=None, path=None):
         '''
         If a `topic` is given, the channel will subscribe to that topic
         immediately.
@@ -326,7 +313,6 @@ class Subscriber(object):
         self._topic    = as_list(topic)
         self._cb       = cb
         self._log      = log
-        self._prof     = prof
 
         self._uid      = generate_id('%s.sub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
@@ -336,13 +322,6 @@ class Subscriber(object):
 
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
-
-        if not self._prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
 
         self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
@@ -395,7 +374,7 @@ class Subscriber(object):
             return
 
         t = mt.Thread(target=Subscriber._listener,
-                      args=[self._url, self._log, self._prof])
+                      args=[self._url, self._log])
         t.daemon = True
         t.start()
 

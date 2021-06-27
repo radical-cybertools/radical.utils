@@ -13,13 +13,10 @@ from ..ids     import generate_id, ID_CUSTOM
 from ..url     import Url
 from ..misc    import get_hostip, is_string, as_string, as_bytes, as_list, noop
 from ..logger  import Logger
-from ..profile import Profiler
 from ..debug   import print_exception_trace
 
 from .bridge   import Bridge
 from .utils    import no_intr
-
-# from .utils    import prof_bulk
 
 
 # FIXME: the log bulk method is frequently called and slow
@@ -222,7 +219,6 @@ class Queue(Bridge):
 
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=0))
-              # self._prof.prof('poll_put', msg=len(ev_put))
               # self._log.debug('polled put: %s', ev_put)
 
                 if self._put in ev_put:
@@ -235,7 +231,6 @@ class Queue(Bridge):
 
                     qname = msgpack.unpackb(data[0])
                     msgs  = msgpack.unpackb(data[1])
-                  # prof_bulk(self._prof, 'poll_put_recv', msgs)
                   # self._log.debug('put %s: %s', qname, len(msgs))
 
                     if qname not in buf:
@@ -248,7 +243,6 @@ class Queue(Bridge):
 
                 # check if somebody wants our messages
                 ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
-              # self._prof.prof('poll_get', msg=len(ev_get))
               # self._log.debug('polled get: %s', ev_get)
 
                 if self._get in ev_get:
@@ -273,7 +267,6 @@ class Queue(Bridge):
 
                   # self._log.debug('get %s: %s', qname, len(msgs))
                     no_intr(self._get.send_multipart, data)
-                  # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
                     self.nout += len(msgs)
                     self.last  = time.time()
@@ -283,7 +276,6 @@ class Queue(Bridge):
                         del(buf[qname][:self._bulk_size])
 
                 if not active:
-                  # self._prof.prof('sleep', msg=len(buf))
                     # let CPU sleep a bit when there is nothing to do
                     # We don't want to use poll timouts since we use two
                     # competing polls and don't want the idle channel slow down
@@ -308,7 +300,6 @@ class Putter(object):
         self._channel  = channel
         self._url      = as_string(url)
         self._log      = log
-        self._prof     = prof
         self._lock     = mt.Lock()
 
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
@@ -319,13 +310,6 @@ class Putter(object):
 
         if not self._log:
             self._log  = Logger(name=self._uid, ns='radical.utils')
-
-        if not self._prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils')
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
 
         self._log.info('connect put to %s: %s'  % (self._channel, self._url))
 
@@ -370,7 +354,6 @@ class Putter(object):
 
         with self._lock:
             no_intr(self._q.send_multipart, data)
-      # prof_bulk(self._prof, 'put', msgs)
 
 
 # ------------------------------------------------------------------------------
@@ -527,7 +510,6 @@ class Getter(object):
         self._url       = as_string(url)
         self._lock      = mt.Lock()
         self._log       = log
-        self._prof      = prof
         self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
                                       ID_CUSTOM)
 
@@ -536,13 +518,6 @@ class Getter(object):
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
-
-        if not self._prof:
-            self._prof  = Profiler(name=self._uid, ns='radical.utils')
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
 
         self._log.info('connect get to %s: %s'  % (self._channel, self._url))
 
@@ -660,8 +635,6 @@ class Getter(object):
             with self._lock:
                 no_intr(self._q.send, as_bytes(qname))
                 self._requested = True
-
-          # self._prof.prof('requested')
 
         with self._lock:
             data = no_intr(self._q.recv_multipart)

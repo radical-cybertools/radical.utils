@@ -37,7 +37,7 @@ class Server(object):
         self._cbs    = dict()
 
         self._log    = Logger(self._uid, level='debug', targets='.')
-        self._prof   = Profiler(self._uid, path='.')
+        self._prof   = Profiler(self._uid, target='.')
 
         self._addr   = None
         self._thread = None
