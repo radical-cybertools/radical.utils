@@ -128,16 +128,12 @@ def log_bulk(log, msgs, token):
     if not msgs:
         return
 
-    if hasattr(msgs, 'read'):
-        msgs = msgpack.unpack(msgs)
-
-    msgs = as_list(msgs)
-
     unpacked = list()
-    for msg in msgs:
-        try   : msg = msgpack.unpackb(msg)
-        except: pass
+    for msg in as_list(msgs):
+        if hasattr(msg, 'read'):
+            msg = msgpack.unpack(msg)
         unpacked.append(msg)
+    msgs = unpacked
 
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
