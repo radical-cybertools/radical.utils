@@ -2,6 +2,9 @@
 import os
 import csv
 import time
+import queue
+
+import threading as mt
 
 from .ids       import get_radical_base
 from .url       import Url
@@ -14,6 +17,7 @@ from .config    import DefaultConfig
 from .atfork    import atfork
 
 from .zmq.queue import Putter
+
 
 # ------------------------------------------------------------------------------
 #
@@ -181,14 +185,34 @@ class Profiler(object):
         #
         def __init__(self, url):
 
-            self._handle = Putter(channel='tracer_queue', url=url)
+            self._queue       = queue.Queue()
+            self._work_thread = mt.Thread(target=self._work, args=[url])
+
+            self._work_thread.daemon = True
+            self._work_thread.start()
 
 
         # ----------------------------------------------------------------------
         #
         def trace(self, ts, event, comp, thread, uid, state, msg):
 
-            self._handle.put((ts, event, comp, thread, uid, state, msg))
+            self._queue.put((ts, event, comp, thread, uid, state, msg))
+
+
+        # ----------------------------------------------------------------------
+        #
+        def _work(self, url):
+
+            self._handle = Putter(channel='tracer_queue', url=url)
+
+            while True:
+
+                try:
+                    data = self._queue.get(block=True, timeout=0.1)
+                    if data:
+                        self._handle.put(data)
+                except:
+                    pass
 
 
         # ----------------------------------------------------------------------
@@ -258,10 +282,16 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, ns=None, target=None):
+    def __init__(self, name, ns=None, target=None, path=None):
         '''
         Open the file handle, sync the clock, and write timestam_zero
         '''
+
+        # backward compatibility
+        if target is None and path:
+            target = path
+
+        self.path = target
 
         ru_def = DefaultConfig()
 
@@ -381,8 +411,6 @@ class Profiler(object):
         # if uid is a list, then recursively call self.prof for each uid given
         for _uid in as_list(uid):
             self._handle.trace(ts, event, comp, tid, _uid, state, msg)
-
-        self._handle.flush()
 
 
     # --------------------------------------------------------------------------
