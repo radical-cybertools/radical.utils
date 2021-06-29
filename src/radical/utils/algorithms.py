@@ -571,7 +571,6 @@ def lazy_bisect(data, check,
 #
 if __name__ == '__main__':
 
-
     test = [[ 0, 10],
             [20, 30],
             [40, 50],
