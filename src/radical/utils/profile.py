@@ -205,14 +205,22 @@ class Profiler(object):
 
             self._handle = Putter(channel='tracer_queue', url=url)
 
+            buff = list()    # data buffer
+            buff_time = 1.0  # max time to buffer data
+            buff_last = 0.0  # we never sent a buffer out
             while True:
 
                 try:
                     data = self._queue.get(block=True, timeout=0.1)
                     if data:
-                        self._handle.put(data)
+                        buff.append(data)
+
                 except:
                     pass
+
+                if buff and time.time() - buff_last > buff_time:
+                    self._handle.put(buff)
+                    buff = list()
 
 
         # ----------------------------------------------------------------------
