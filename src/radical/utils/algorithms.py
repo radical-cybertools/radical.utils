@@ -108,9 +108,6 @@ def range_concurrency(ranges):
     START = 0
     END   = 1
 
-    t = {0: 'start',
-         1: 'end  '}
-
     for _range in ranges:
         if _range[START] > _range[END]:
             _range[START], _range[END] = _range[END], _range[START]
@@ -149,10 +146,10 @@ def range_concurrency(ranges):
     #     if a range ENDed   at this time, decrease concurrency,
     # store trailing tuple
 
-    for time,mode in times[1:]:
-        if time != last_time:
+    for time_, mode in times[1:]:
+        if time_ != last_time:
             ret.append([last_time, concurrency])
-            last_time = time
+            last_time = time_
 
         if mode == START: concurrency += 1
         else            : concurrency -= 1
