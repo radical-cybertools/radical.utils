@@ -25,7 +25,7 @@ def get_hostname():
     if not _hostname:
 
         _hostname = socket.gethostname()
-        if '.' not in _hostname:
+        if '.' in _hostname:
             try:
                 _hostname = socket.gethostbyaddr(_hostname)[0]
             except socket.herror:
@@ -155,7 +155,7 @@ def compress_hostlist(hostlist):
     # recreate a list of hosts based on the normalized dict
     hosts = []
     for host, count in count_dict.items():
-        hosts.extend([host] * count)
+        hosts.extend([host] * int(count))
 
     # sort the list for readability
     hosts.sort()
