@@ -1,0 +1,150 @@
+[
+    {
+        "input"  : {
+            "hostlist"            : ["host1", "host1",
+                                     "host2", "host2", "host2"],
+            "separator"           : "="
+        },
+        "result" : {
+            "lines"               : ["host1=2\n", "host2=3\n"],
+            "hostlist_compressed" : ["host1", "host1",
+                                     "host2", "host2", "host2"]
+        }
+    },
+    {
+        "input"  : {
+            "hostlist"            : ["host1", "host1",
+                                     "host2", "host2", "host2", "host2"]
+        },
+        "result" : {
+            "lines"               : ["host1 2\n", "host2 4\n"],
+            "hostlist_compressed" : ["host1",
+                                     "host2", "host2"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "1-2,a"
+        },
+        "result" : "ValueError"
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "1-2,5-"
+        },
+        "result" : "ValueError"
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "1-3,7"
+        },
+        "result" : {
+            "hostlist"            : ["1", "2", "3", "7"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "1-3,7-8",
+            "prefix"              : "nid"
+        },
+        "result" : {
+            "hostlist"            : ["nid1", "nid2", "nid3", "nid7", "nid8"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "1-3",
+            "prefix"              : "nid",
+            "width"               : 5
+        },
+        "result" : {
+            "hostlist"            : ["nid00001", "nid00002", "nid00003"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "001-003",
+            "prefix"              : "nid"
+        },
+        "result" : {
+            "hostlist"            : ["nid001", "nid002", "nid003"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring_range"    : "9-11",
+            "prefix"              : "nid"
+        },
+        "result" : {
+            "hostlist"            : ["nid09", "nid10", "nid11"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "node[001-a]"
+        },
+        "result" : "ValueError"
+    },
+    {
+        "input"  : {
+            "hoststring"          : "node[001-]"
+        },
+        "result" : "ValueError"
+    },
+    {
+        "input"  : {
+            "hoststring"          : "node001,node001"
+        },
+        "result" : {
+            "hostlist"            : ["node001", "node001"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "node-[001-003]"
+        },
+        "result" : {
+            "hostlist"            : ["node-001", "node-002", "node-003"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "n[01-03]-c[10,13]-00"
+        },
+        "result" : {
+            "hostlist"            : ["n01-c10-00", "n01-c13-00",
+                                     "n02-c10-00", "n02-c13-00",
+                                     "n03-c10-00", "n03-c13-00"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "batch-node02,n[01-03]-c[10,13]-00"
+        },
+        "result" : {
+            "hostlist"            : ["batch-node02",
+                                     "n01-c10-00", "n01-c13-00",
+                                     "n02-c10-00", "n02-c13-00",
+                                     "n03-c10-00", "n03-c13-00"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "n[01-03]-c[10],n20-c15"
+        },
+        "result" : {
+            "hostlist"            : ["n01-c10", "n02-c10", "n03-c10",
+                                     "n20-c15"]
+        }
+    },
+    {
+        "input"  : {
+            "hoststring"          : "n[01-03],n20,c[100-102]"
+        },
+        "result" : {
+            "hostlist"            : ["n01", "n02", "n03",
+                                     "n20",
+                                     "c100", "c101", "c102"]
+        }
+    }
+]
