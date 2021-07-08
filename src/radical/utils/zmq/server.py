@@ -6,7 +6,8 @@ import threading as mt
 
 from ..ids     import generate_id
 from ..url     import Url
-from ..misc    import as_string, get_hostip
+from ..misc    import as_string
+from ..host    import get_hostip
 from ..logger  import Logger
 from ..profile import Profiler
 from ..debug   import get_exception_trace
