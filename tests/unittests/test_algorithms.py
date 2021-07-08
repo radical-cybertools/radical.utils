@@ -35,15 +35,17 @@ def test_lazy_bisect():
             return False
     # --------------------------------------------------------------------------
 
-    good, bad = ru.lazy_bisect(list(), schedule)
+    good, bad, fail = ru.lazy_bisect(list(), schedule)
     assert(not good)
     assert(not bad)
+    assert(not fail)
 
     things = [Thing(x) for x in range(128)]
-    good, bad = ru.lazy_bisect(things, schedule)
+    good, bad, fail = ru.lazy_bisect(things, schedule)
 
     assert(len(failed) == 12), [len(failed), failed]
-    assert(len(things) == len(good) + len(bad))
+    assert(len(things) == len(good) + len(bad) + len(fail)), \
+          [len(things),   len(good),  len(bad),  len(fail)]
 
     for task in good:
         assert(task not in bad), (task, bad)
@@ -52,9 +54,6 @@ def test_lazy_bisect():
     for task in bad:
         assert(task not in good), (task, good)
         assert(schedule(task) is False), task
-
-    assert(len(things) == len(good) + len(bad)), \
-          [len(things),   len(good),  len(bad)]
 
 
 # ------------------------------------------------------------------------------
