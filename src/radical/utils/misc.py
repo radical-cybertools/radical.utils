@@ -3,12 +3,10 @@ import os
 import sys
 import time
 import errno
-import socket
 import tarfile
 import datetime
 import tempfile
 import itertools
-import netifaces
 
 from urllib.parse import unquote_plus
 
@@ -467,114 +465,6 @@ def as_bytes(data):
 
     else:
         return data
-
-
-# ------------------------------------------------------------------------------
-#
-_hostname = None
-
-
-def get_hostname():
-    '''
-    Look up the hostname
-    '''
-
-    global _hostname                                     # pylint: disable=W0603
-    if not _hostname:
-
-        _hostname = socket.gethostname()
-        if '.' not in _hostname:
-            try:
-                _hostname = socket.gethostbyaddr(_hostname)[0]
-            except socket.herror:
-                pass
-
-    return _hostname
-
-
-# ------------------------------------------------------------------------------
-#
-_hostip = None
-
-
-def get_hostip(req=None, log=None):
-    '''
-    Look up the ip number for a given requested interface name.
-    If interface is not given, do some magic.
-    '''
-
-    global _hostip                                       # pylint: disable=W0603
-    if _hostip:
-        return _hostip
-
-    AF_INET = netifaces.AF_INET
-
-    # We create a ordered preference list, consisting of:
-    #   - given arglist
-    #   - white list (hardcoded preferred interfaces)
-    #   - black_list (hardcoded unfavorable interfaces)
-    #   - all others (whatever is not in the above)
-    # Then this list is traversed, we check if the interface exists and has an
-    # IP address.  The first match is used.
-
-    if req:
-        if not isinstance(req, list):
-            req = [req]
-    else:
-        req = []
-
-    white_list = [
-                  'ipogif0',  # Cray's
-                  'br0',      # SuperMIC
-                  'eth0',     # desktops etc.
-                  'wlan0'     # laptops etc.
-                 ]
-
-    black_list = [
-                  'lo',      # takes the 'inter' out of the 'net'
-                  'sit0'     # ?
-                 ]
-
-    ifaces = netifaces.interfaces()
-    rest   = [iface for iface in ifaces
-                     if iface not in req        and
-                        iface not in white_list and
-                        iface not in black_list]
-
-    preflist = req + white_list + rest
-
-    for iface in preflist:
-
-        if iface not in ifaces:
-            if log:
-                log.debug('check iface %s: does not exist', iface)
-            continue
-
-        info = netifaces.ifaddresses(iface)
-        if AF_INET not in info:
-            if log:
-                log.debug('check iface %s: no information', iface)
-            continue
-
-        if not len(info[AF_INET]):
-            if log:
-                log.debug('check iface %s: insufficient information', iface)
-            continue
-
-        if not info[AF_INET][0].get('addr'):
-            if log:
-                log.debug('check iface %s: disconnected', iface)
-            continue
-
-        ip = info[AF_INET][0].get('addr')
-        if log:
-            log.debug('check iface %s: ip is %s', iface, ip)
-
-        if ip:
-            _hostip = ip
-            return ip
-
-    return '127.0.0.1'
 
 
 # ------------------------------------------------------------------------------

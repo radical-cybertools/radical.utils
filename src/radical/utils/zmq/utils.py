@@ -88,7 +88,7 @@ def get_channel_url(ep_type, channel=None, url=None):
         # example:
         #   channel `foo`
         #   url     `pubsub://localhost:1234/foo`
-        channel = os.path.basename(Url(url.path))
+        channel = os.path.basename(str(Url(url.path)))
 
     elif not url:
         # get url from environment (`FOO_PUB_URL`) or config file (`foo.cfg`)
@@ -99,7 +99,7 @@ def get_channel_url(ep_type, channel=None, url=None):
         if env_name in os.environ:
             url = os.environ[env_name]
 
-        elif os.exists(cfg_name):
+        elif os.path.exists(cfg_name):
             with open(cfg_name, 'r') as fin:
                 for line in fin.readlines():
                     _ep_type, _url = line.split(':')
@@ -128,10 +128,12 @@ def log_bulk(log, msgs, token):
     if not msgs:
         return
 
-    if hasattr(msgs, 'read'):
-        msgs = msgpack.unpack(msgs)
-
-    msgs = as_list(msgs)
+    unpacked = list()
+    for msg in as_list(msgs):
+        if hasattr(msg, 'read'):
+            msg = msgpack.unpack(msg)
+        unpacked.append(msg)
+    msgs = unpacked
 
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
@@ -142,7 +144,7 @@ def log_bulk(log, msgs, token):
 
     else:
         for msg in msgs:
-            log.debug("%s: %s", token, str(msg)[0:32])
+            log.debug("%s: %s", token, str(msg)[0:128])
 
 
 # ------------------------------------------------------------------------------

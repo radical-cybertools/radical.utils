@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 
 import os
 import csv
@@ -6,8 +7,8 @@ import time
 from .ids     import get_radical_base
 from .misc    import as_string, as_list
 from .misc    import get_env_ns      as ru_get_env_ns
-from .misc    import get_hostname    as ru_get_hostname
-from .misc    import get_hostip      as ru_get_hostip
+from .host    import get_hostname    as ru_get_hostname
+from .host    import get_hostip      as ru_get_hostip
 from .threads import get_thread_name as ru_get_thread_name
 from .config  import DefaultConfig
 from .atfork  import atfork
