@@ -9,7 +9,8 @@ from ..atfork  import atfork
 from ..config  import Config
 from ..ids     import generate_id, ID_CUSTOM
 from ..url     import Url
-from ..misc    import get_hostip, is_string, as_string, as_bytes, as_list, noop
+from ..misc    import is_string, as_string, as_bytes, as_list, noop
+from ..host    import get_hostip
 from ..logger  import Logger
 from ..profile import Profiler
 
