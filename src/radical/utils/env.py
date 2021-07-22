@@ -6,6 +6,8 @@ import queue
 import hashlib
 import tempfile
 
+import string_utils as su
+
 from typing import List, Dict, Tuple, Any, Optional
 
 import multiprocessing as mp
@@ -259,7 +261,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             if unset:
                 fout.write('# unset\n')
                 for k in sorted(unset):
-                    if not k.isalnum():
+                    if not k.isalnum() or not su.is_snake_case(k):
                         continue
                     if k not in environment:
                         fout.write('unset %s\n' % k)
@@ -421,6 +423,13 @@ class EnvProcess(object):
 
             for k, v in self._env.items():
                 os.environ[k] = v
+
+            # refresh the python interpreter in that environment
+            import site
+            import importlib
+
+            importlib.reload(site)
+            importlib.invalidate_caches()
 
         return self
 

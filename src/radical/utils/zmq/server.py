@@ -261,7 +261,7 @@ class Server(object):
 
             data = no_intr(self._sock.recv)
             req  = msgpack.unpackb(data)
-            self._log.debug('req: %s', req)
+            self._log.debug('req: %s', str(req)[:128])
 
             if not isinstance(req, dict):
                 rep = self._error(err='invalid message type')
@@ -284,7 +284,7 @@ class Server(object):
                                           exc=get_exception_trace())
 
             no_intr(self._sock.send, msgpack.packb(rep))
-            self._log.debug('rep: %s', rep)
+            self._log.debug('rep: %s', str(rep)[:128])
 
         self._log.debug('term')
 

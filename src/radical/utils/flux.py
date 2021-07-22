@@ -254,6 +254,18 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
+    def get_info(self, uid : str) -> Any:
+
+        with self._lock:
+
+            flux_info = self.check_service(uid)
+            assert(uid in self._local_state)
+
+            return flux_info
+
+
+    # --------------------------------------------------------------------------
+    #
     def get_executor(self, uid : str) -> Any:
 
         with self._lock:

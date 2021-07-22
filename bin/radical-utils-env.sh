@@ -23,6 +23,21 @@ BLACKLIST="PS1 LS_COLORS _"
 
 # ------------------------------------------------------------------------------
 #
+env_grep(){
+
+    # some env variables are known to have difficult to parse values and at the
+    # same time don't need to be inherited - this method filters them out
+
+    grep -v \
+         -e '^LS_COLORS=' \
+         -e '^PS1=' \
+         -e '^_=' \
+         -e '^SHLVL='
+}
+
+
+# ------------------------------------------------------------------------------
+#
 env_dump(){
 
     # Note that this capture will result in an unquoted dump where the values
@@ -67,9 +82,9 @@ env_dump(){
 
     # NOTE: we can't `sort` as that screws up multiline settings
     if test -z "$tgt"; then
-        env 
+        env | env_grep
     else
-        env > "$tgt"
+        env | env_grep > "$tgt"
     fi
 }
 
@@ -124,7 +139,7 @@ env_prep(){
     then
         echo "missing 'src' -- prepare env from current env"
         tmp=$(mktemp)
-        env > "$tmp"
+        env_dump -t "$tmp"
         src="$tmp"
     fi
 

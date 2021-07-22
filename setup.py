@@ -223,6 +223,7 @@ setup_args = {
                             'colorama',
                             'netifaces',
                             'setproctitle',
+                            'python-string-utils',
                             'radical.gtod',
                            ],
     'tests_require'      : ['pytest',
