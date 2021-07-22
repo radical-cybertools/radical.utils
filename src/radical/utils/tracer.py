@@ -42,8 +42,6 @@ _trace_logger    = None
 
 '''
 
-_trace_namespace = 'radical'
-
 
 # ------------------------------------------------------------------------------
 #
@@ -96,6 +94,8 @@ def trace(namespace='radical', log=None):
     _trace_namespace = namespace
     _trace_logger    = log
 
+    sys.stdout.write('---------------- start trace [%s]\n' % namespace)
+    sys.stdout.flush()
     sys.settrace(_tracer)
 
 
@@ -103,6 +103,8 @@ def trace(namespace='radical', log=None):
 def untrace():
 
     sys.settrace(None)
+    sys.stdout.write('---------------- stop  trace\n')
+    sys.stdout.flush()
 
 
 # ------------------------------------------------------------------------------

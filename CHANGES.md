@@ -3,6 +3,17 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.6.7  Release                                                        2021-07-08
+--------------------------------------------------------------------------------
+
+  - add failure list to bisect return values
+  - clean dependencies
+  - created new module `host`, which will contain host-related functions
+  - fix flux module handling
+  - fix msg unpack
+  - enforce python3 shebang in scripts
+
+
 1.6.6  Release                                                        2021-05-18
 --------------------------------------------------------------------------------
 
@@ -638,3 +649,4 @@ Version 0.7.5 release                                                 2014-07-22
 
 
 --------------------------------------------------------------------------------
+

@@ -14,7 +14,8 @@ from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
 from .json_io import read_json, write_json
-from .misc    import as_list, get_hostname, rec_makedir
+from .misc    import as_list, rec_makedir
+from .host    import get_hostname
 
 
 # ------------------------------------------------------------------------------
@@ -51,7 +52,8 @@ class FluxHelper(object):
         self._lock = mt.RLock()
 
         try:
-            self._mod = import_module('flux')
+            self._flux     = import_module('flux')
+            self._flux_job = import_module('flux.job')
 
         except Exception:
             self._log.exception('flux import failed')
@@ -96,8 +98,8 @@ class FluxHelper(object):
         cmd   = '/bin/bash -c "echo \\\"%s\\\" | %s"' % (check, start)
 
         penv  = None
-        if not env:
-            penv  = {k:v for k,v in os.environ.items()}
+        if env:
+            penv = {k:v for k,v in os.environ.items()}
             for k,v in env.items():
                 penv[k] = v
 
@@ -240,7 +242,7 @@ class FluxHelper(object):
             assert(uid in self._local_state)
 
             try:
-                handle = self._mod.Flux(url=flux_info['uri'])
+                handle = self._flux.Flux(url=flux_info['uri'])
                 assert(handle)
 
             except Exception as e:
@@ -275,7 +277,7 @@ class FluxHelper(object):
 
             try:
                 args = {'url':flux_info['uri']}
-                jex  = self._mod.job.executor.FluxExecutor(handle_kwargs=args)
+                jex  = self._flux_job.executor.FluxExecutor(handle_kwargs=args)
                 assert(jex)
 
             except Exception as e:
@@ -303,7 +305,7 @@ class FluxHelper(object):
         handle = None
         self._log.debug('====> register for events: %s', cb)
         try:
-            handle = self._mod.Flux(url=flux_uri)
+            handle = self._flux.Flux(url=flux_uri)
             self._log.debug('=== event handle: %s', handle)
             handle.event_subscribe('job-state')
             self._log.debug('=== subscribe event')
@@ -341,7 +343,7 @@ class FluxHelper(object):
                             for cb in self._local_state[flux_uid]['callbacks']:
                                 context = dict()
                                 if job_state == 'INACTIVE':
-                                    context = self._mod.job.event_wait(
+                                    context = self._flux_job.event_wait(
                                             handle, job_id, "finish").context
                                 cb(job_id, job_state, ts, context)
                         except:
