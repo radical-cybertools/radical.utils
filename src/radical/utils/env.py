@@ -261,7 +261,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             if unset:
                 fout.write('# unset\n')
                 for k in sorted(unset):
-                    if not k.isalnum() or not su.is_snake_case(k):
+                    if not k.isalnum() and not su.is_snake_case(k):
                         continue
                     if k not in environment:
                         fout.write('unset %s\n' % k)
@@ -278,7 +278,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
                 for k in sorted(environment.keys()):
                     if k in BLACKLIST:
                         continue
-                    if not k.isalnum():
+                    if not k.isalnum() and not su.is_snake_case(k):
                         continue
                     fout.write("export %s=%s\n" % (k, _quote(environment[k])))
                 fout.write('\n')
@@ -417,7 +417,6 @@ class EnvProcess(object):
 
         if self._child:
 
-            print('set env for child', os.getpid())
             for k in os.environ:
                 del(os.environ[k])
 

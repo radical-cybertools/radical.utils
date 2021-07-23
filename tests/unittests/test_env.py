@@ -114,11 +114,11 @@ def test_env_proc():
     env = {'TEST_SHARED': 'env_shared'}
     env_proc = ru.EnvProcess(env=env)
     with env_proc:
-        env_proc.put(ru.sh_callout('echo $TEST_SHARED', shell=True))
+        env_proc.put(ru.sh_callout('echo -n $TEST_SHARED', shell=True))
     out = env_proc.get()
 
     assert('TEST_SHARED' not in os.environ)
-    assert(env['TEST_SHARED'] in out)
+    assert(env['TEST_SHARED'] in out), out
 
 
 # ------------------------------------------------------------------------------
