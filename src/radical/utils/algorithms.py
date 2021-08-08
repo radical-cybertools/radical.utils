@@ -492,11 +492,11 @@ def lazy_bisect(data, check,
             if last_good is not None:
 
                 # bisect the difference
-                idx = int(m.ceil((last_bad - last_good + 1) / 2 + last_good))
+                idx = int(m.ceil((last_bad - last_good + 1) * ratio + last_good))
 
             else:
                 # bisect to begin of data
-                idx = int(m.ceil((last_bad + 1) / 2))
+                idx = int(m.ceil((last_bad + 1) * ratio))
 
           # state_needle('range %3d?' % idx)
 
