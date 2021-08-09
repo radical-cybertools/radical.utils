@@ -61,11 +61,16 @@ class LoggerTestCase(TestCase):
         l.close()
 
         # set log file using a corresponding environment variable
+        log_env_tgt_saved = os.environ.get('RADICAL_UTILS_LOG_TGT', -1)
         log_path = os.path.join(self._base_dir, 'log_base_tgt.log')
         os.environ['RADICAL_UTILS_LOG_TGT'] = log_path
         l = ru.Logger('log_base_tgt', ns='radical.utils')
         self.assertTrue(os.path.isfile(log_path))
         l.close()
+        if log_env_tgt_saved == -1:
+            del os.environ['RADICAL_UTILS_LOG_TGT']
+        else:
+            os.environ['RADICAL_UTILS_LOG_TGT'] = log_env_tgt_saved
 
     # --------------------------------------------------------------------------
     #
