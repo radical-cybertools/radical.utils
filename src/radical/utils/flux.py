@@ -14,7 +14,8 @@ from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
 from .json_io import read_json, write_json
-from .misc    import as_list, get_hostname, rec_makedir
+from .misc    import as_list, rec_makedir
+from .host    import get_hostname
 
 
 # ------------------------------------------------------------------------------
