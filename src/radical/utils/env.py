@@ -12,7 +12,7 @@ from typing import List, Dict, Tuple, Any, Optional
 
 import multiprocessing as mp
 
-from .misc  import as_list
+from .misc  import as_list, rec_makedir
 from .shell import sh_callout
 
 
@@ -252,7 +252,9 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         # given name and fill it with `unset` and `export` statements to
         # recreate that specific environment: any shell sourcing that
         # `script_path` file thus activates the environment we just prepared.
-        tmp_file, tmp_name = tempfile.mkstemp(dir=os.getcwd() + '/env/')
+        tgt = os.getcwd() + '/env/'
+        rec_makedir(tgt)
+        tmp_file, tmp_name = tempfile.mkstemp(dir=tgt)
 
         # use a file object to simplify byte conversion
         fout = os.fdopen(tmp_file, 'w')
