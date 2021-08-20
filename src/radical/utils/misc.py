@@ -1,4 +1,5 @@
 
+import collections.abc
 import os
 import sys
 import time
@@ -368,6 +369,8 @@ def as_list(data):
 
     if   data is None : return []
     elif is_list(data): return data
+    elif isinstance(data, (str, bytes, collections.abc.Mapping)): return [data]
+    elif isinstance(data, collections.abc.Iterable): return list(data)
     else              : return [data]
 
 
@@ -943,4 +946,3 @@ def script_2_func(fpath):
 
 
 # ------------------------------------------------------------------------------
-
