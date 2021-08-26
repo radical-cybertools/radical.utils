@@ -615,19 +615,29 @@ class FluxHelper(object):
             assert(self._exe), 'no executor'
 
             def jid_cb(fut, evt):
-                jid = fut.jobid(timeout=0.1)
-                self._queue.put(jid)
+                self._log.debug('==== fh cb 1: %s', evt)
+                try:
+                    jid = fut.jobid(timeout=0.1)
+                    self._log.debug('==== fh cb 2: %s', jid)
+                    self._queue.put(jid)
+                    self._log.debug('==== fh cb 3: %s', jid)
+                except:
+                    self._log.exception('flux cb failed')
+                    self._queue.put(None)
+
 
             for spec in specs:
                 jobspec = json.dumps(spec)
+                self._log.debug('==== fh spec: %s', jobspec)
 
                 fut = self._exe.submit(jobspec, waitable=False)
+                self._log.debug('==== fh fut : %s', fut)
                 fut.add_event_callback('submit', jid_cb)
 
                 if cb:
                     def app_cb(fut, evt):
                         try:
-                            jid = fut.jobid(timeout=0.01)
+                            jid = fut.jobid()
                             cb(jid, evt.name, evt.timestamp, evt.context)
                         except:
                             self._log.exception('app cb failed')
@@ -665,7 +675,7 @@ class FluxHelper(object):
                 assert(handle), 'no handle'
 
             except Exception as e:
-                raise RuntimeError('failed to connect at' % self._uri) from e
+                raise RuntimeError('failed to connect at %s' % self._uri) from e
 
             self._handles.append(handle)
 
@@ -687,7 +697,7 @@ class FluxHelper(object):
                 assert(exe), 'no executor'
 
             except Exception as e:
-                raise RuntimeError('failed to connect at' % self._uri) from e
+                raise RuntimeError('failed to connect at %s' % self._uri) from e
 
             self._executors.append(exe)
 
