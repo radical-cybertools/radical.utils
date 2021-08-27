@@ -943,27 +943,28 @@ def script_2_func(fpath):
   #
   # return ret
 
-    # --------------------------------------------------------------------------
-    #
-    def host_is_local(host: str) -> bool:
-        '''
-        Returns `True` if given hostname is localhost, `False` otherwise.
-        '''
 
-        if not host:
-            return True
+# --------------------------------------------------------------------------
+#
+def host_is_local(host: str) -> bool:
+    '''
+    Returns `True` if given hostname is localhost, `False` otherwise.
+    '''
 
-        elif host == 'localhost':
-            return True
+    if not host:
+        return True
 
-        else:
-            sockhost = socket.gethostname()
-            while sockhost:
-                if host == sockhost:
-                    return True
-                sockhost = '.'.join(sockhost.split('.')[1:])
+    elif host == 'localhost':
+        return True
 
-        return False
+    else:
+        sockhost = socket.gethostname()
+        while sockhost:
+            if host == sockhost:
+                return True
+            sockhost = '.'.join(sockhost.split('.')[1:])
+
+    return False
 
 
 # ------------------------------------------------------------------------------
