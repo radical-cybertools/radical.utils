@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import errno
+import socket
 import tarfile
 import datetime
 import tempfile
@@ -941,6 +942,28 @@ def script_2_func(fpath):
   #     loader.exec_module(mod)
   #
   # return ret
+
+    # --------------------------------------------------------------------------
+    #
+    def host_is_local(host: str) -> bool:
+        '''
+        Returns `True` if given hostname is localhost, `False` otherwise.
+        '''
+
+        if not host:
+            return True
+
+        elif host == 'localhost':
+            return True
+
+        else:
+            sockhost = socket.gethostname()
+            while sockhost:
+                if host == sockhost:
+                    return True
+                sockhost = '.'.join(sockhost.split('.')[1:])
+
+        return False
 
 
 # ------------------------------------------------------------------------------
