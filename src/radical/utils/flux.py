@@ -10,6 +10,7 @@ from typing import Optional, List, Dict, Any, Callable
 import threading       as mt
 import subprocess      as sp
 
+
 from .url     import Url
 from .ids     import generate_id, ID_CUSTOM
 from .shell   import sh_callout
@@ -18,6 +19,7 @@ from .profile import Profiler
 from .modules import import_module
 from .misc    import as_list
 from .host    import get_hostname
+from .debug   import get_stacktrace
 
 
 # --------------------------------------------------------------------------
@@ -319,6 +321,7 @@ class FluxHelper(object):
         self._callbacks = list()
         self._queue     = queue.Queue()
 
+        self._exe       = None
         self._handles   = list()  # TODO
         self._executors = list()  # TODO
 
@@ -359,7 +362,8 @@ class FluxHelper(object):
             for exe in self._executors:
                 del(exe)
 
-            self._exe = None
+            self._exe    = None
+            self._handle = None
 
             if self._uri:
                 try:
@@ -422,6 +426,11 @@ class FluxHelper(object):
             if self._uri:
                 raise RuntimeError('service already connected: %s' % self._uri)
 
+            with open(self._uid + '.dump', 'a') as fout:
+                fout.write('starting ' + str(os.getpid()) + '\n')
+                for l in get_stacktrace():
+                    fout.write(l + '\n')
+
             self._service = _FluxService(self._uid, self._log, self._prof)
             self._service.start_service()
 
@@ -440,6 +449,12 @@ class FluxHelper(object):
         '''
 
         with self._lock:
+
+            with open(self._uid + '.dump', 'a') as fout:
+                fout.write('connecting ' + str(os.getpid()) + '\n')
+                for l in get_stacktrace():
+                    fout.write(l + '\n')
+
 
             if self._uri:
                 raise RuntimeError('service already connected: %s' % self._uri)
@@ -476,8 +491,9 @@ class FluxHelper(object):
             self._listener.daemon = True
             self._listener.start()
 
-            # create a private executor for job management
-            self._exe = self.get_executor()
+            # create a executor and handle for job management
+            self._exe    = self.get_executor()
+            self._handle = self.get_handle()
 
 
     # --------------------------------------------------------------------------
@@ -529,17 +545,13 @@ class FluxHelper(object):
               job to finish to ensure cleanup and stdio flush
         '''
 
-        self._log.debug('====> listen for events')
+        self._log.debug('listen for events')
         handle = None
         try:
             handle = self.get_handle()
-          # self._log.debug('=== event handle: %s', handle)
             handle.event_subscribe('job-state')
-          # self._log.debug('=== subscribe event')
 
             while not self._term.is_set():
-
-              # self._log.debug('=== recv event')
 
                 # FIXME: how can recv be timed out or interrupted after work
                 #        completed?
@@ -554,7 +566,7 @@ class FluxHelper(object):
 
                 for event in transitions:
 
-                  # self._log.debug('====> event: %s', event)
+                    self._log.debug('event: %s', event)
                     job_id, event_name, ts = event
 
                     if event_name not in self._event_list:
@@ -615,12 +627,9 @@ class FluxHelper(object):
             assert(self._exe), 'no executor'
 
             def jid_cb(fut, evt):
-                self._log.debug('==== fh cb 1: %s', evt)
                 try:
                     jid = fut.jobid(timeout=0.1)
-                    self._log.debug('==== fh cb 2: %s', jid)
                     self._queue.put(jid)
-                    self._log.debug('==== fh cb 3: %s', jid)
                 except:
                     self._log.exception('flux cb failed')
                     self._queue.put(None)
@@ -628,10 +637,8 @@ class FluxHelper(object):
 
             for spec in specs:
                 jobspec = json.dumps(spec)
-                self._log.debug('==== fh spec: %s', jobspec)
-
-                fut = self._exe.submit(jobspec, waitable=False)
-                self._log.debug('==== fh fut : %s', fut)
+                fut     = self._exe.submit(jobspec, waitable=False)
+                self._log.debug('submit: %s', fut)
                 fut.add_event_callback('submit', jid_cb)
 
                 if cb:
@@ -658,7 +665,65 @@ class FluxHelper(object):
             for spec in specs:
                 ids.append(self._queue.get())
 
+            self._log.debug('submitted: %s', ids)
             return ids
+
+
+    # --------------------------------------------------------------------------
+    #
+    def attach_jobs(self,
+                    ids: List[int],
+                    cb : Optional[Callable[[str, str, float, dict], None]] = None
+                   ) -> Any:
+
+        states = list()
+        with self._lock:
+
+            if not self._uri:
+                raise RuntimeError('FluxHelper is not connected')
+
+            assert(self._exe), 'no executor'
+
+            for flux_id in ids:
+
+                fut = self._exe.attach(flux_id)
+                states.append(fut.state())
+                self._log.debug('attach %s : %s', flux_id, fut)
+
+                if cb:
+                    def app_cb(fut, evt):
+                        try:
+                            cb(str(flux_id), evt.name, evt.timestamp, evt.context)
+                        except:
+                            self._log.exception('app cb failed')
+
+                    for ev in [
+                               'submit',
+                             # 'alloc',
+                               'start',
+                               'finish',
+                               'release',
+                             # 'free',
+                               'clean',
+                               'exception',
+                              ]:
+                        fut.add_event_callback(ev, app_cb)
+
+            return states
+
+
+    # --------------------------------------------------------------------------
+    #
+    def cancel_jobs(self, flux_ids: List[int]) -> None:
+
+        with self._lock:
+
+            assert(self._exe), 'no executor'
+
+            for flux_id in flux_ids:
+                fut = self._exe.attach(flux_id)
+                self._log.debug('cancel %s : %s', flux_id, fut)
+                fut.cancel()
 
 
     # --------------------------------------------------------------------------
