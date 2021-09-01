@@ -24,12 +24,7 @@ def get_hostname():
     global _hostname                                     # pylint: disable=W0603
     if not _hostname:
 
-        _hostname = socket.gethostname()
-        if '.' in _hostname:
-            try:
-                _hostname = socket.gethostbyaddr(_hostname)[0]
-            except socket.herror:
-                pass
+        _hostname = socket.getfqdn()
 
     return _hostname
 
