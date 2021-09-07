@@ -77,7 +77,7 @@ class HostTestCase(TestCase):
 
             filename = ru.create_hostfile(self._base_dir, 'tc', hostlist, sep)
 
-            with open(filename) as f:
+            with open(filename, 'r', encoding='utf8') as f:
                 hostfile_lines = f.readlines()
             self.assertEqual(test_case['result']['lines'], hostfile_lines)
 
