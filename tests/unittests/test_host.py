@@ -5,6 +5,8 @@ __copyright__ = 'Copyright 2021, The RADICAL-Cybertools Team'
 __license__   = 'MIT'
 
 import os
+import socket
+
 os.environ['RADICAL_BASE'] = '/tmp'
 
 import glob
@@ -45,17 +47,22 @@ class HostTestCase(TestCase):
     #
     @mock.patch('radical.utils.host.socket')
     def test_get_hostname(self, mocked_socket):
+        """Check caching wrapper for gethostname."""
 
-        mocked_socket.gethostname.return_value   = '127.0.0.1'
-        mocked_socket.gethostbyaddr.return_value = ('localhost', None, None)
+        # Note that ru.get_hostname() actually uses getfqdn()
+        fq_hostname = socket.getfqdn()
+        mocked_socket.gethostname.return_value = socket.gethostname()
+        mocked_socket.getfqdn.return_value = fq_hostname
 
         self.assertFalse(mocked_socket.gethostname.called)
-        self.assertEqual(ru.get_hostname(), 'localhost')
-        self.assertTrue(mocked_socket.gethostname.called)
+        self.assertFalse(mocked_socket.getfqdn.called)
+        self.assertEqual(ru.get_hostname(), fq_hostname)
+        self.assertTrue(mocked_socket.getfqdn.called)
 
-        mocked_socket.gethostname.reset_mock()
-        ru.get_hostname()  # `socket.gethostname` is not called 2nd time
+        mocked_socket.getfqdn.reset_mock()
+        ru.get_hostname()  # System level hostname lookup is not called 2nd time
         self.assertFalse(mocked_socket.gethostname.called)
+        self.assertFalse(mocked_socket.getfqdn.called)
 
     # --------------------------------------------------------------------------
     #

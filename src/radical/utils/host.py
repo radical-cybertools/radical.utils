@@ -114,7 +114,7 @@ def create_hostfile(sandbox, name, hostlist, sep=' ', impaired=False):
 
     hostlist = as_list(hostlist)
     filename = '%s/%s.hosts' % (sandbox or '.', name)
-    with open(filename, 'w') as fout:
+    with open(filename, 'w', encoding='utf8') as fout:
 
         if not impaired:
             # create dict: {'host1': x, 'host2': y}
