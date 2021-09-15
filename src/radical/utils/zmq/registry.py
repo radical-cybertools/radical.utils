@@ -74,7 +74,9 @@ class Registry(Server):
 
     # --------------------------------------------------------------------------
     #
-    def keys(self):
+    def keys(self, arg):
+
+        assert(not arg)
 
         return list(self._data.keys())
 
