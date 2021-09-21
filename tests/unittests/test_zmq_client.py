@@ -17,15 +17,16 @@ class TestZMQClient(TestCase):
     def test_request(self):
 
         # initialization
-        r = Request()
-        self.assertIsNone(r.cmd)
-        self.assertIsNone(r.arg)
+        r = Request(cmd='')
+        self.assertEqual(r.cmd,    '')  # input empty string
+        self.assertEqual(r.args,   ())  # empty tuple
+        self.assertEqual(r.kwargs, {})  # empty dict
 
         # init with `from_dict` class method
-        test_req = {'cmd': 'test', 'arg': [1, 2, 3]}
+        test_req = {'cmd': 'test', 'args': [1, 2, 3]}
         r = Request.from_dict(req=test_req)
-        self.assertEqual(r.cmd, test_req['cmd'])
-        self.assertEqual(r.arg, test_req['arg'])
+        self.assertEqual(r.cmd,  test_req['cmd'])
+        self.assertEqual(r.args, tuple(test_req['args']))
 
         # get packed instance
         packed_r = r.packb()
@@ -77,15 +78,14 @@ class TestZMQClient(TestCase):
         s = Server()
         s.start()
 
+        c = None
         try:
+
             c = Client(url=s.addr)
             self.assertEqual(c.url, s.addr)
 
-            test_arg = ['test_arg']
-            resp = c.request(cmd='echo', arg=test_arg)
-
-            self.assertIsInstance(resp, Response)
-            self.assertEqual(resp.res, test_arg)
+            echo_str = 'test_echo'
+            self.assertEqual(c.request(cmd='echo', arg=echo_str), echo_str)
 
             with self.assertRaises(RuntimeError):
                 # no command in request
@@ -95,9 +95,10 @@ class TestZMQClient(TestCase):
                 # command [no_registered_cmd] unknown
                 c.request(cmd='no_registered_cmd')
 
-            c.close()
-        except:
-            pass
+        finally:
+
+            if c:
+                c.close()
 
         s.stop()
         s.wait()

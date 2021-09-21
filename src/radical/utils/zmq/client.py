@@ -35,9 +35,9 @@ class Request(object):
     @classmethod
     def from_dict(cls, req:  Dict[str, Any]) -> 'Request':
 
-        return Request(cmd=req['cmd'],
-                       args=req.get('args'),
-                       kwargs=req.get('kwargs'))
+        args   = req.get('args')   or []
+        kwargs = req.get('kwargs') or {}
+        return Request(req['cmd'], *args, **kwargs)
 
 
     def packb(self) -> bytes:
