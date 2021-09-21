@@ -16,7 +16,6 @@ from .misc import as_list
 # ------------------------------------------------------------------------------
 #
 _hostname = None
-_count    = 0
 
 
 def get_hostname():
@@ -31,10 +30,6 @@ def get_hostname():
                 _hostname = socket.gethostbyaddr(_hostname)[0]
             except socket.herror:
                 pass
-
-    global _count
-    print("====", _count, _hostname)
-    _count += 1
 
     return _hostname
 

@@ -4,7 +4,7 @@ import msgpack
 
 import threading as mt
 
-from typing import Optional, Union, Literal, Iterator, Any, Dict
+from typing import Optional, Union, Iterator, Any, Dict
 
 from ..ids     import generate_id
 from ..url     import Url
@@ -82,7 +82,7 @@ class Server(object):
 
         tmp = self._ports.split('-')
 
-        self._port_this : Union[int, Literal['*'], None] = None
+        self._port_this : Union[int, str, None] = None
         self._port_start: Optional[int]
         self._port_stop : Optional[int]
 
@@ -108,7 +108,7 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def _iterate_ports(self) -> Iterator[Union[int, Literal['*'], None]]:
+    def _iterate_ports(self) -> Iterator[Union[int, str, None]]:
 
         if self._port_this == '*':
             # leave scanning to zmq
