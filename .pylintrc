@@ -139,7 +139,8 @@ disable=not-context-manager,
         no-member,                                # FIXME
         global-statement,
         try-except-raise,
-        attribute-defined-outside-init
+        attribute-defined-outside-init,
+        unspecified-encoding
 
 
 
