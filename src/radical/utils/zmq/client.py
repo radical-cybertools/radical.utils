@@ -25,8 +25,7 @@ class Request(object):
 
     def __init__(self,
                  cmd: Optional[str]       = None,
-                 arg: Optional[List[Any]] = None
-                 ) -> None:
+                 arg: Optional[List[Any]] = None) -> None:
 
         self._cmd = cmd
         self._arg = arg
@@ -60,8 +59,7 @@ class Response(object):
     def __init__(self,
                  res: Optional[str]       = None,
                  err: Optional[str]       = None,
-                 exc: Optional[List[str]] = None
-                 ) -> None:
+                 exc: Optional[List[str]] = None) -> None:
 
         self._res = res
         self._err = err

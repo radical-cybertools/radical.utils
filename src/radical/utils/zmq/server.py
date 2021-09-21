@@ -4,6 +4,8 @@ import msgpack
 
 import threading as mt
 
+from typing import Optional, Union, Literal, Iterator, Any, Dict
+
 from ..ids     import generate_id
 from ..url     import Url
 from ..misc    import as_string
@@ -28,14 +30,15 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url=None, uid=None):
+    def __init__(self, url: Optional[str] = None,
+                       uid: Optional[str] = None) -> None:
 
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
-        self._url    = url
-        self._uid    = uid
-        self._cbs    = dict()
+        self._url = url
+        self._uid = uid
+        self._cbs = dict()
 
         if not self._uid:
             self._uid = generate_id('server', ns='radical.utils')
@@ -79,6 +82,10 @@ class Server(object):
 
         tmp = self._ports.split('-')
 
+        self._port_this : Union[int, Literal['*'], None] = None
+        self._port_start: Optional[int]
+        self._port_stop : Optional[int]
+
         if len(tmp) == 0:
             self._port_start = 1
             self._port_stop  = None
@@ -98,12 +105,10 @@ class Server(object):
         else:
             raise RuntimeError('cannot parse port spec %s' % self._ports)
 
-        self._port_this = None
-
 
     # --------------------------------------------------------------------------
     #
-    def _iterate_ports(self):
+    def _iterate_ports(self) -> Iterator[Union[int, Literal['*'], None]]:
 
         if self._port_this == '*':
             # leave scanning to zmq
@@ -112,7 +117,7 @@ class Server(object):
 
 
         if self._port_this is None:
-            # initizliaze range iterator
+            # initialize range iterator
             self._port_this = self._port_start
 
         if self._port_stop is None:
@@ -121,6 +126,10 @@ class Server(object):
                 self._port_this += 1
 
         else:
+            # make type checker happy
+            assert(isinstance(self._port_this,  int))
+            assert(isinstance(self._port_start, int))
+
             while self._port_this <= self._port_start:
                 yield self._port_this
                 self._port_this += 1
@@ -128,7 +137,7 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def _iterate_urls(self):
+    def _iterate_urls(self) -> Iterator[str]:
 
         for port in self._iterate_ports():
             yield '%s://%s:%s' % (self._proto, self._iface, port)
@@ -137,18 +146,18 @@ class Server(object):
     # --------------------------------------------------------------------------
     #
     @property
-    def uid(self):
+    def uid(self) -> Optional[str]:
         return self._uid
 
 
     @property
-    def addr(self):
+    def addr(self) -> Optional[str]:
         return self._addr
 
 
     # --------------------------------------------------------------------------
     #
-    def start(self):
+    def start(self) -> None:
 
         self._log.info('start bridge %s', self._uid)
 
@@ -163,7 +172,7 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def stop(self):
+    def stop(self) -> None:
 
         self._log.info('stop bridge %s', self._uid)
         self._term.set()
@@ -171,18 +180,19 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def wait(self):
+    def wait(self) -> None:
 
         self._log.info('wait bridge %s', self._uid)
 
         if self._thread:
             self._thread.join()
+
         self._log.info('wait bridge %s', self._uid)
 
 
     # --------------------------------------------------------------------------
     #
-    def register_request(self, req, cb):
+    def register_request(self, req, cb) -> None:
 
         self._log.info('add handler: %s: %s', req, cb)
         self._cbs[req] = cb
@@ -190,21 +200,21 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def _request_fail(self, arg):
+    def _request_fail(self, arg) -> None:
 
         raise RuntimeError('task failed successfully')
 
 
     # --------------------------------------------------------------------------
     #
-    def _request_echo(self, arg):
+    def _request_echo(self, arg: Any) -> Any:
 
         return arg
 
 
     # --------------------------------------------------------------------------
     #
-    def _success(self, res=None):
+    def _success(self, res: Optional[str] = None) -> Dict[str, Optional[str]]:
 
         return {'err': None,
                 'exc': None,
@@ -213,7 +223,8 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def _error(self, err=None, exc=None):
+    def _error(self, err: Optional[str] = None,
+                     exc: Optional[str] = None) -> Dict[str, Optional[str]]:
 
         if not err:
             err = 'invalid request'
@@ -225,7 +236,7 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def _work(self):
+    def _work(self) -> None:
 
         self._ctx  = zmq.Context()
         self._sock = self._ctx.socket(zmq.REP)
@@ -243,9 +254,9 @@ class Server(object):
                 self._log.exception('pass')
 
 
-        self._addr      = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
-        self._addr.host = get_hostip()
-        self._addr      = str(self._addr)
+        addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
+        addr.host  = get_hostip()
+        self._addr = str(self._addr)
 
         self._up.set()
 
@@ -281,7 +292,7 @@ class Server(object):
                         rep = self._success(self._cbs[cmd](arg))
                     except Exception as e:
                         rep = self._error(err='command failed: %s' % str(e),
-                                          exc=get_exception_trace())
+                                          exc='\n'.join(get_exception_trace()))
 
             no_intr(self._sock.send, msgpack.packb(rep))
             self._log.debug('rep: %s', rep)
