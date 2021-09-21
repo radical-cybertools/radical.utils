@@ -260,43 +260,41 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         tmp_file, tmp_name = tempfile.mkstemp(dir=tgt)
 
         # use a file object to simplify byte conversion
-        fout = os.fdopen(tmp_file, 'w')
-        try:
-            fout.write('\n')
-            if unset:
-                fout.write('# unset\n')
-                for k in sorted(unset):
-                    if not k.isalnum() and not re_snake_case.match(k):
-                        continue
-                    if k not in environment:
-                        fout.write('unset %s\n' % k)
-                fout.write('\n')
+        data = '\n'
+        if unset:
+            data += '# unset\n'
+            for k in sorted(unset):
+                if not k.isalnum() and not re_snake_case.match(k):
+                    continue
+                if k not in environment:
+                    data += 'unset %s\n' % k
+            data += '\n'
 
-            if BLACKLIST:
-                fout.write('# blacklist\n')
-                for k in sorted(BLACKLIST):
-                    fout.write('unset %s\n' % k)
-                fout.write('\n')
+        if BLACKLIST:
+            data += '# blacklist\n'
+            for k in sorted(BLACKLIST):
+                data += 'unset %s\n' % k
+            data += '\n'
 
-            if environment:
-                fout.write('# export\n')
-                for k in sorted(environment.keys()):
-                    if k in BLACKLIST:
-                        continue
-                    if not k.isalnum() and not re_snake_case.match(k):
-                        continue
-                    fout.write("export %s=%s\n" % (k, _quote(environment[k])))
-                fout.write('\n')
+        if environment:
+            data += '# export\n'
+            for k in sorted(environment.keys()):
+                if k in BLACKLIST:
+                    continue
+                if not k.isalnum() and not re_snake_case.match(k):
+                    continue
+                data += "export %s=%s\n" % (k, _quote(environment[k]))
+            data += '\n'
 
-            if pre_exec_cached:
-                fout.write('# pre_exec (cached)\n')
-                # do not sort, order dependent
-                for cmd in pre_exec_cached:
-                    fout.write('%s\n' % cmd)
-                fout.write('\n')
+        if pre_exec_cached:
+            data += '# pre_exec (cached)\n'
+            # do not sort, order dependent
+            for cmd in pre_exec_cached:
+                data += '%s\n' % cmd
+            data += '\n'
 
-        finally:
-            fout.close()
+        with open(tmp_file, 'w') as fout:
+            fout.write(data)
 
         cmd = '/bin/sh -c ". %s && /usr/bin/env | /usr/bin/sort"' % tmp_name
         out, err, ret = sh_callout(cmd)
@@ -318,31 +316,33 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
+
+        data = '\n# unset\n'
+        for k in unset:
+            if k not in sorted(environment):
+                data += 'unset %s\n' % k
+        data += '\n'
+
+        data += '# blacklist\n'
+        for k in sorted(BLACKLIST):
+            data += 'unset %s\n' % k
+        data += '\n'
+
+        data += '# export\n'
+        for k in sorted(env.keys()):
+            # FIXME: shell quoting for value
+            data += "export %s=%s\n" % (k, _quote(env[k]))
+        data += '\n'
+
+        if pre_exec:
+            # do not sort, order dependent
+            data += '# pre_exec\n'
+            for cmd in pre_exec:
+                data += '%s\n' % cmd
+            data += '\n'
+
         with open(script_path, 'w') as fout:
-
-            fout.write('\n# unset\n')
-            for k in unset:
-                if k not in sorted(environment):
-                    fout.write('unset %s\n' % k)
-            fout.write('\n')
-
-            fout.write('# blacklist\n')
-            for k in sorted(BLACKLIST):
-                fout.write('unset %s\n' % k)
-            fout.write('\n')
-
-            fout.write('# export\n')
-            for k in sorted(env.keys()):
-                # FIXME: shell quoting for value
-                fout.write("export %s=%s\n" % (k, _quote(env[k])))
-            fout.write('\n')
-
-            if pre_exec:
-                # do not sort, order dependent
-                fout.write('# pre_exec\n')
-                for cmd in pre_exec:
-                    fout.write('%s\n' % cmd)
-                fout.write('\n')
+            fout.write(data)
 
     return env
 
