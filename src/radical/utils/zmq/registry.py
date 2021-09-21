@@ -121,7 +121,7 @@ class RegistryClient(Client, DictMixin):
     def __getitem__(self, key: str) -> Optional[Any]:
         return self.get(key)
 
-    def __setitem__(self, key:str, val: Any) -> None:
+    def __setitem__(self, key: str, val: Any) -> None:
         return self.put(key, val)
 
     def __delitem__(self, key: str) -> None:

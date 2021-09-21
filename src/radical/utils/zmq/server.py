@@ -55,7 +55,7 @@ class Server(object):
         self.register_request('fail', self._request_fail)
 
         if not self._url:
-            self._url  = 'tcp://*:10000-11000'
+            self._url = 'tcp://*:10000-11000'
 
         # URLs can specify port ranges to use - check if that is the case (see
         # default above) and initilize iterator.  The URL is expected to have
@@ -113,8 +113,6 @@ class Server(object):
         if self._port_this == '*':
             # leave scanning to zmq
             yield self._port_this
-            return
-
 
         if self._port_this is None:
             # initialize range iterator
@@ -130,7 +128,7 @@ class Server(object):
             assert(isinstance(self._port_this,  int))
             assert(isinstance(self._port_start, int))
 
-            while self._port_this <= self._port_start:
+            while self._port_this <= self._port_stop:
                 yield self._port_this
                 self._port_this += 1
 
@@ -253,10 +251,9 @@ class Server(object):
             except Exception:
                 self._log.exception('pass')
 
-
         addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
         addr.host  = get_hostip()
-        self._addr = str(self._addr)
+        self._addr = str(addr)
 
         self._up.set()
 
@@ -279,7 +276,7 @@ class Server(object):
 
             else:
                 cmd = req.get('cmd')
-                arg = req.get('arg')
+                arg = req.get('arg') or []
 
                 if not cmd:
                     rep = self._error(err='no command in request')
@@ -289,7 +286,7 @@ class Server(object):
 
                 else:
                     try:
-                        rep = self._success(self._cbs[cmd](arg))
+                        rep = self._success(self._cbs[cmd](*arg))
                     except Exception as e:
                         rep = self._error(err='command failed: %s' % str(e),
                                           exc='\n'.join(get_exception_trace()))
