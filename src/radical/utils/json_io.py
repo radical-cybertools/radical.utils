@@ -1,4 +1,4 @@
-# pylint: disable=unused-import,eval-used
+# pylint: disable=unused-import,import-error,no-name-in-module,eval-used,unspecified-encoding
 
 __author__    = 'Radical.Utils Development Team (Andre Merzky)'
 __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
@@ -112,11 +112,9 @@ def metric_expand(data):
 
     becomes:
 
-
         {
             2 : "foo"
         }
-
     '''
 
     try   : import radical.pilot as rp                              # noqa: F401
