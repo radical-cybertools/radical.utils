@@ -256,7 +256,7 @@ class Server(object):
 
         addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
         addr.host  = get_hostip()
-        self._addr = str(self._addr)
+        self._addr = str(addr)
 
         self._up.set()
 
@@ -289,7 +289,7 @@ class Server(object):
 
                 else:
                     try:
-                        rep = self._success(self._cbs[cmd](arg))
+                        rep = self._success(self._cbs[cmd](*arg))
                     except Exception as e:
                         rep = self._error(err='command failed: %s' % str(e),
                                           exc='\n'.join(get_exception_trace()))

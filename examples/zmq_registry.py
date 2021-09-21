@@ -20,8 +20,8 @@ if __name__ == '__main__':
         print(c.get('foo.bar.buz.biz.boz'))
         print('ok')
 
-    except:
-        print('oops')
+  # except:
+  #     print('oops')
 
     finally:
         r.stop()

@@ -2,7 +2,7 @@
 import zmq
 import msgpack
 
-from typing import List, Optional, Dict, Any
+from typing import Optional, List, Dict, Tuple, Any
 
 import threading as mt
 
@@ -26,21 +26,28 @@ class Request(object):
     # --------------------------------------------------------------------------
     #
     def __init__(self,
-                 cmd: Optional[str]       = None,
-                 arg: Optional[List[Any]] = None) -> None:
+                 cmd:      Optional[str] = None,
+                 *args:    Any,
+                 **kwargs: Any) -> None:
 
-        self._cmd = cmd
-        self._arg = arg
+        self._cmd    = cmd
+        self._args   = args
+        self._kwargs = kwargs
+
 
     @classmethod
     def from_dict(cls, req:  Dict[str, Any]) -> 'Request':
 
-        return Request(cmd=req['cmd'], arg=req.get('arg'))
+        return Request(cmd=req['cmd'],
+                       args=req.get('args'),
+                       kwargs=req.get('kwargs'))
 
 
     def packb(self) -> bytes:
 
-        msg_req = {'cmd': self._cmd, 'arg': self._arg}
+        msg_req = {'cmd'   : self._cmd,
+                   'args'  : self._args,
+                   'kwargs': self._kwargs}
         return msgpack.packb(msg_req)
 
 
@@ -50,8 +57,13 @@ class Request(object):
 
 
     @property
-    def arg(self) -> Optional[List[Any]]:
-        return self._arg
+    def args(self) -> Optional[Tuple[...]]:
+        return self._args
+
+
+    @property
+    def kwargs(self) -> Optional[Dict[str, Any]]:
+        return self._kwargs
 
 
 # ------------------------------------------------------------------------------
@@ -174,9 +186,13 @@ class Client(object):
     # --------------------------------------------------------------------------
     #
     def request(self, cmd: str,
-                      arg: Optional[List[Any]] = None) -> 'Response':
+                      *args:    Optional[Any],
+                      **kwargs: Optional[Any]) -> 'Response':
 
-        req = Request(cmd=cmd, arg=arg)
+        arg = {'args'  : args,
+               'kwargs': kwargs}
+
+        req = Request(cmd=cmd, arg)
 
         no_intr(self._sock.send, req.packb())
 

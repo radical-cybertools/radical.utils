@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # pylint: disable=no-value-for-parameter
 
 import msgpack
@@ -30,6 +31,7 @@ class TestZMQClient(TestCase):
         packed_r = r.packb()
         self.assertIsInstance(packed_r, bytes)
 
+
     # --------------------------------------------------------------------------
     #
     def test_response(self):
@@ -60,6 +62,7 @@ class TestZMQClient(TestCase):
         self.assertNotIn('err: ', str(r))
         self.assertIn('res: ', repr(r))
         self.assertIn('exc: ', repr(r))
+
 
     # --------------------------------------------------------------------------
     #
