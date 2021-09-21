@@ -34,6 +34,7 @@ _env_cache = dict()
 #   - consists of letters, underscores and numbers
 re_snake_case = re.compile(r'^[a-zA-Z_][\w]+$', re.ASCII)
 
+
 # ------------------------------------------------------------------------------
 #
 def env_read(fname: str) -> Dict[str, str]:
@@ -211,8 +212,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     whenever the prepared shell script is sources.  The returned env dictionary
     will thus *not* include the effects of those injected commands.
     '''
-
-    global _env_cache
 
     # defaults
     if environment     is None: environment     = os.environ
@@ -479,7 +478,7 @@ class EnvProcess(object):
 
         data, exc = self._data
         if exc:
-            raise exc
+            raise exc                         # pylint: disable=raising-bad-type
 
         return data
 

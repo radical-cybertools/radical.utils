@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import errno
-import socket
 import tarfile
 import datetime
 import tempfile
