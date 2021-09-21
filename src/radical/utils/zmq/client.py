@@ -25,10 +25,7 @@ class Request(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self,
-                 cmd:      str,
-                 *args:    Optional[Tuple[Any, ...]],
-                 **kwargs: Optional[Dict[str, Any]]) -> None:
+    def __init__(self, cmd: str, *args, **kwargs) -> None:
 
         self._cmd    = cmd
         self._args   = args
@@ -185,9 +182,7 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def request(self, cmd: str,
-                      *args:    Tuple[Any, ...],
-                      **kwargs: Dict[str, Any]) -> Any:
+    def request(self, cmd: str, *args, **kwargs) -> Any:
 
         req = Request(cmd, *args, **kwargs)
 
@@ -196,11 +191,10 @@ class Client(object):
         res = Response.from_msg(no_intr(self._sock.recv))
 
         if res.err:
+            err_msg = 'ERROR: %s' % res.err
             if res.exc:
-                raise RuntimeError('ERROR: %s\n%s'
-                                  % (res.err, '\n'.join(res.exc)))
-            else:
-                raise RuntimeError('ERROR: %s' % res.err)
+                err_msg += '\n%s' % '\n'.join(res.exc)
+            raise RuntimeError(err_msg)
 
         return res.res
 

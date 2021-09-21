@@ -104,14 +104,14 @@ class RegistryClient(Client, DictMixin):
     def get(self, key: str, default: Optional[str] = None) -> Optional[Any]:
 
         try:
-            return self.request(cmd='get', arg=[key]).res
+            return self.request(cmd='get', key=key)
         except:
             return default
 
 
     def put(self, key: str,
                   val: Any) -> None:
-        ret = self.request(cmd='put', arg=[key, val]).res
+        ret = self.request(cmd='put', key=key, val=val)
         assert(ret is None)
         return ret
 
@@ -125,11 +125,11 @@ class RegistryClient(Client, DictMixin):
         return self.put(key, val)
 
     def __delitem__(self, key: str) -> None:
-        ret = self.request(cmd='del', arg=[key]).res
+        ret = self.request(cmd='del', key=key)
         assert(ret is None)
 
     def keys(self) -> List[str]:
-        ret = self.request(cmd='keys').res
+        ret = self.request(cmd='keys')
         assert(isinstance(ret, list))
         return ret
 
