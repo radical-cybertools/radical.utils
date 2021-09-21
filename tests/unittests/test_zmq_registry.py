@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# pylint: no-value-for-parameter,unused-argument
+# pylint: disable=no-value-for-parameter,unused-argument
 
 import radical.utils as ru
 
