@@ -267,32 +267,39 @@ class Server(object):
             if self._sock not in event:
                 continue
 
-            data = no_intr(self._sock.recv)
-            req  = msgpack.unpackb(data)
-            self._log.debug('req: %s', req)
+            # default response
+            rep = self._error('server error')
 
-            if not isinstance(req, dict):
-                rep = self._error(err='invalid message type')
+            try:
+                data = no_intr(self._sock.recv)
+                req  = msgpack.unpackb(data)
+                self._log.debug('req: %s', req)
 
-            else:
-                cmd = req.get('cmd')
-                arg = req.get('arg') or []
-
-                if not cmd:
-                    rep = self._error(err='no command in request')
-
-                elif cmd not in self._cbs:
-                    rep = self._error(err='command [%s] unknown' % cmd)
+                if not isinstance(req, dict):
+                    rep = self._error(err='invalid message type')
 
                 else:
-                    try:
-                        rep = self._success(self._cbs[cmd](*arg))
-                    except Exception as e:
-                        rep = self._error(err='command failed: %s' % str(e),
-                                          exc='\n'.join(get_exception_trace()))
+                    cmd    = req['cmd']
+                    args   = req['args']
+                    kwargs = req['kwargs']
 
-            no_intr(self._sock.send, msgpack.packb(rep))
-            self._log.debug('rep: %s', rep)
+                    if not cmd:
+                        rep = self._error(err='no command in request')
+
+                    elif cmd not in self._cbs:
+                        rep = self._error(err='command [%s] unknown' % cmd)
+
+                    else:
+                        rep = self._success(self._cbs[cmd](*args, **kwargs))
+
+            except Exception as e:
+                rep = self._error(err='command failed: %s' % str(e),
+                                  exc='\n'.join(get_exception_trace()))
+
+            finally:
+                no_intr(self._sock.send, msgpack.packb(rep))
+                self._log.debug('rep: %s', rep)
+
 
         self._sock.close()
         self._log.debug('term')

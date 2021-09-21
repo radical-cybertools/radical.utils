@@ -26,9 +26,9 @@ class Request(object):
     # --------------------------------------------------------------------------
     #
     def __init__(self,
-                 cmd:      Optional[str] = None,
-                 *args:    Any,
-                 **kwargs: Any) -> None:
+                 cmd:      str,
+                 *args:    Optional[Tuple[Any, ...]],
+                 **kwargs: Optional[Dict[str, Any]]) -> None:
 
         self._cmd    = cmd
         self._args   = args
@@ -52,17 +52,17 @@ class Request(object):
 
 
     @property
-    def cmd(self) -> Optional[str]:
+    def cmd(self) -> str:
         return self._cmd
 
 
     @property
-    def args(self) -> Optional[Tuple[...]]:
+    def args(self) -> Tuple[Any, ...]:
         return self._args
 
 
     @property
-    def kwargs(self) -> Optional[Dict[str, Any]]:
+    def kwargs(self) -> Dict[str, Any]:
         return self._kwargs
 
 
@@ -74,7 +74,7 @@ class Response(object):
     #
     # FIXME: inherit future
     def __init__(self,
-                 res: Optional[str]       = None,
+                 res: Optional[Any]       = None,
                  err: Optional[str]       = None,
                  exc: Optional[List[str]] = None) -> None:
 
@@ -88,7 +88,7 @@ class Response(object):
     def __repr__(self) -> str:
 
         ret = ''
-        if self._res: ret += 'res: %s  ' % self._res
+        if self._res: ret += 'res: %s  ' % str(self._res)
         if self._err: ret += 'err: %s  ' % self._err
         if self._exc: ret += 'exc: %s  ' % self._exc[-1]
 
@@ -99,8 +99,8 @@ class Response(object):
     #
     def __str__(self) -> str:
 
-        if self._res: ret = 'res: %s' % self._res
-        else        : ret = 'err: %s' % self._err
+        if self._res: ret = 'res: %s  ' % str(self._res)
+        else        : ret = 'err: %s  ' % self._err
 
         return ret.strip()
 
@@ -126,7 +126,7 @@ class Response(object):
     # --------------------------------------------------------------------------
     #
     @property
-    def res(self) -> Optional[str]:
+    def res(self) -> Optional[Any]:
         return self._res
 
 
@@ -186,27 +186,23 @@ class Client(object):
     # --------------------------------------------------------------------------
     #
     def request(self, cmd: str,
-                      *args:    Optional[Any],
-                      **kwargs: Optional[Any]) -> 'Response':
+                      *args:    Tuple[Any, ...],
+                      **kwargs: Dict[str, Any]) -> Any:
 
-        arg = {'args'  : args,
-               'kwargs': kwargs}
-
-        req = Request(cmd=cmd, arg)
+        req = Request(cmd, *args, **kwargs)
 
         no_intr(self._sock.send, req.packb())
 
         res = Response.from_msg(no_intr(self._sock.recv))
 
-        assert(isinstance(res, Response))
-
-        for l in res.exc:
-            print(l)
-
         if res.err:
-            raise RuntimeError('ERROR: %s' % res.err)
+            if res.exc:
+                raise RuntimeError('ERROR: %s\n%s'
+                                  % (res.err, '\n'.join(res.exc)))
+            else:
+                raise RuntimeError('ERROR: %s' % res.err)
 
-        return res
+        return res.res
 
 
     # --------------------------------------------------------------------------

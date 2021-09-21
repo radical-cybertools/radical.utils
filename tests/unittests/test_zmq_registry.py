@@ -12,32 +12,37 @@ from unittest import mock
 @mock.patch('radical.utils.zmq.server.Profiler')
 def test_zmq_registry(mocked_prof):
 
+    c = None
     r = ru.zmq.Registry()
     r.start()
 
-    assert(r.addr)
-    c = ru.zmq.RegistryClient(url=r.addr)
+    try:
+        assert(r.addr)
+        c = ru.zmq.RegistryClient(url=r.addr)
 
-    c.put('foo.bar.buz', {'biz': 42})
-    assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
-    assert(c.get('foo.bar.buz.biz') == 42)
-    assert(c.get('foo.bar.buz.biz.boz') is None)
-    assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
+        c.put('foo.bar.buz', {'biz': 42})
+        assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
+        assert(c.get('foo.bar.buz.biz') == 42)
+        assert(c.get('foo.bar.buz.biz.boz') is None)
+        assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
 
-    assert(c['foo.bar.buz.biz'] == 42)
-    assert(c['foo']['bar']['buz']['biz'] == 42)
-    assert(c['foo.bar.buz.biz.boz'] is None)
+        assert(c['foo.bar.buz.biz'] == 42)
+        assert(c['foo']['bar']['buz']['biz'] == 42)
+        assert(c['foo.bar.buz.biz.boz'] is None)
 
-    assert('foo' in c)
-    assert(c.keys() == ['foo'])
-    del(c['foo'])
-    assert('foo' not in c)
-    assert(c.keys() == [])
+        assert('foo' in c)
+        assert(c.keys() == ['foo'])
+        del(c['foo'])
+        assert('foo' not in c)
+        assert(c.keys() == [])
 
-    c.close()
+    finally:
 
-    r.stop()
-    r.wait()
+        if c:
+            c.close()
+
+        r.stop()
+        r.wait()
 
 
 # ------------------------------------------------------------------------------
