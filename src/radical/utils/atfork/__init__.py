@@ -45,6 +45,8 @@ about resource usage by references your callable holds, consider using
 weakref's within your callable.
 """
 
+# flake8: noqa: F401
+
 from .atfork       import monkeypatch_os_fork_functions, atfork
 from .stdlib_fixer import fix_logging_module
 
