@@ -93,9 +93,11 @@ class TestZMQClient(TestCase):
                 c.request(cmd='no_registered_cmd')
 
             c.close()
-        finally:
-            s.stop()
-            s.wait()
+        except:
+            pass
+
+        s.stop()
+        s.wait()
 
 
 # ------------------------------------------------------------------------------

@@ -286,6 +286,7 @@ class Server(object):
             no_intr(self._sock.send, msgpack.packb(rep))
             self._log.debug('rep: %s', rep)
 
+        self._sock.close()
         self._log.debug('term')
 
 
