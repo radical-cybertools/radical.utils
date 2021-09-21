@@ -6,8 +6,6 @@ import queue
 import hashlib
 import tempfile
 
-import string_utils as su
-
 from typing import List, Dict, Tuple, Any, Optional
 
 import multiprocessing as mp
@@ -30,6 +28,11 @@ BLACKLIST  = ['PS1', 'LS_COLORS', '_', 'SHLVL']
 # becomes a common issue.
 _env_cache = dict()
 
+# we use a regex to match snake_case words which we allow for variable names
+# with the following conditions
+#   - starts with a letter or underscore
+#   - consists of letters, underscores and numbers
+re_snake_case = re.compile(r'^[a-zA-Z_][\w]+$', re.ASCII)
 
 # ------------------------------------------------------------------------------
 #
@@ -263,7 +266,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             if unset:
                 fout.write('# unset\n')
                 for k in sorted(unset):
-                    if not k.isalnum() and not su.is_snake_case(k):
+                    if not k.isalnum() and not re_snake_case.match(k):
                         continue
                     if k not in environment:
                         fout.write('unset %s\n' % k)
@@ -280,7 +283,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
                 for k in sorted(environment.keys()):
                     if k in BLACKLIST:
                         continue
-                    if not k.isalnum() and not su.is_snake_case(k):
+                    if not k.isalnum() and not re_snake_case.match(k):
                         continue
                     fout.write("export %s=%s\n" % (k, _quote(environment[k])))
                 fout.write('\n')
