@@ -12,7 +12,7 @@ from ..misc    import as_list
 from .utils    import no_intr, sock_connect
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 _LINGER_TIMEOUT    = 1000  # ms to linger after close
 _HIGH_WATER_MARK   = 1024  # number of messages to buffer before dropping
@@ -23,6 +23,8 @@ _DEFAULT_BULK_SIZE =    1  # number of messages to put in a bulk
 #
 class Request(object):
 
+    # --------------------------------------------------------------------------
+    #
     def __init__(self,
                  cmd: Optional[str]       = None,
                  arg: Optional[List[Any]] = None) -> None:
@@ -35,14 +37,17 @@ class Request(object):
 
         return Request(cmd=req['cmd'], arg=req.get('arg'))
 
+
     def packb(self) -> bytes:
 
         msg_req = {'cmd': self._cmd, 'arg': self._arg}
         return msgpack.packb(msg_req)
 
+
     @property
     def cmd(self) -> Optional[str]:
         return self._cmd
+
 
     @property
     def arg(self) -> Optional[List[Any]]:
@@ -80,7 +85,7 @@ class Response(object):
 
     # --------------------------------------------------------------------------
     #
-    def str(self) -> str:
+    def __str__(self) -> str:
 
         if self._res: ret = 'res: %s' % self._res
         else        : ret = 'err: %s' % self._err
@@ -97,7 +102,7 @@ class Response(object):
 
 
     # --------------------------------------------------------------------------
-    #
+    # type hinting for classmethods are not well supported, so we don't use them
     @classmethod
     def from_dict(cls, msg: Dict[str, Any]) -> 'Response':
 
@@ -124,7 +129,7 @@ class Response(object):
     #
     @property
     def exc(self) -> List[str]:
-        return as_list(self._exc)
+        return as_list(self._exc)                                 # type: ignore
 
 
 # ------------------------------------------------------------------------------
@@ -133,7 +138,8 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, server: str = None, url: str = None) -> None:
+    def __init__(self, server: str = None,
+                       url:    str = None) -> None:
 
         if server:
             self._url = read_json('%s.cfg' % server)['addr']
@@ -157,21 +163,26 @@ class Client(object):
         self._term   = mt.Event()
         self._active = False
 
+
     # --------------------------------------------------------------------------
     #
     @property
     def url(self) -> str:
         return self._url
 
+
     # --------------------------------------------------------------------------
     #
-    def request(self, cmd: str, arg: Optional[List[Any]] = None) -> 'Response':
+    def request(self, cmd: str,
+                      arg: Optional[List[Any]] = None) -> 'Response':
 
         req = Request(cmd=cmd, arg=arg)
 
         no_intr(self._sock.send, req.packb())
 
         res = Response.from_msg(no_intr(self._sock.recv))
+
+        assert(isinstance(res, Response))
 
         for l in res.exc:
             print(l)
@@ -180,6 +191,7 @@ class Client(object):
             raise RuntimeError('ERROR: %s' % res.err)
 
         return res
+
 
     # --------------------------------------------------------------------------
     #

@@ -49,6 +49,7 @@ class HostTestCase(TestCase):
         mocked_socket.gethostname.return_value   = '127.0.0.1'
         mocked_socket.gethostbyaddr.return_value = ('localhost', None, None)
 
+        ru.host._hostname = None
         self.assertFalse(mocked_socket.gethostname.called)
         self.assertEqual(ru.get_hostname(), 'localhost')
         self.assertTrue(mocked_socket.gethostname.called)
@@ -56,6 +57,9 @@ class HostTestCase(TestCase):
         mocked_socket.gethostname.reset_mock()
         ru.get_hostname()  # `socket.gethostname` is not called 2nd time
         self.assertFalse(mocked_socket.gethostname.called)
+
+        # reset
+        ru.host._hostname = None
 
     # --------------------------------------------------------------------------
     #
