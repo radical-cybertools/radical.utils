@@ -263,7 +263,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         if unset:
             data += '# unset\n'
             for k in sorted(unset):
-                if not k.isalnum() and not re_snake_case.match(k):
+                if not re_snake_case.match(k):
                     continue
                 if k not in environment:
                     data += 'unset %s\n' % k
@@ -280,7 +280,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             for k in sorted(environment.keys()):
                 if k in BLACKLIST:
                     continue
-                if not k.isalnum() and not re_snake_case.match(k):
+                if not re_snake_case.match(k):
                     continue
                 data += "export %s=%s\n" % (k, _quote(environment[k]))
             data += '\n'
