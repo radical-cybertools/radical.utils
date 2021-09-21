@@ -119,11 +119,11 @@ def test_env_proc():
 
     with env_proc:
         env_proc.put(ru.sh_callout('echo -n $%s' % key, shell=True))
-    out = env_proc.get()[0]
+    out = str(env_proc.get())
 
     assert(isinstance(out, str))
     assert(key not in os.environ)
-    assert(env[key] in out)        # pylint: disable=unsupported-membership-test
+    assert(env[key] in out)
 
 
 # ------------------------------------------------------------------------------
