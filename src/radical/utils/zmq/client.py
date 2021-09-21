@@ -25,19 +25,13 @@ class Request(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, cmd: str, *args, **kwargs) -> None:
+    def __init__(self, cmd:      str,
+                       *args:    Any,
+                       **kwargs: Any) -> None:
 
         self._cmd    = cmd
         self._args   = args
         self._kwargs = kwargs
-
-
-    @classmethod
-    def from_dict(cls, req:  Dict[str, Any]) -> 'Request':
-
-        args   = req.get('args')   or []
-        kwargs = req.get('kwargs') or {}
-        return Request(req['cmd'], *args, **kwargs)
 
 
     def packb(self) -> bytes:
@@ -182,7 +176,7 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def request(self, cmd: str, *args, **kwargs) -> Any:
+    def request(self, cmd: str, *args: Any, **kwargs: Any) -> Any:
 
         req = Request(cmd, *args, **kwargs)
 

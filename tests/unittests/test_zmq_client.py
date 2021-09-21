@@ -22,11 +22,11 @@ class TestZMQClient(TestCase):
         self.assertEqual(r.args,   ())  # empty tuple
         self.assertEqual(r.kwargs, {})  # empty dict
 
-        # init with `from_dict` class method
-        test_req = {'cmd': 'test', 'args': [1, 2, 3]}
-        r = Request.from_dict(req=test_req)
-        self.assertEqual(r.cmd,  test_req['cmd'])
-        self.assertEqual(r.args, tuple(test_req['args']))
+        cmd  = 'test'
+        args = (1, 2, 3)
+        r = Request(cmd, *args)
+        self.assertEqual(r.cmd,  cmd)
+        self.assertEqual(r.args, args)
 
         # get packed instance
         packed_r = r.packb()
