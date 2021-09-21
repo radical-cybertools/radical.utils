@@ -16,6 +16,7 @@ def test_zmq_registry(mocked_prof):
     r.start()
 
     try:
+        assert(r.addr)
         c = ru.zmq.RegistryClient(url=r.addr)
 
         c.put('foo.bar.buz', {'biz': 42})

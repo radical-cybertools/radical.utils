@@ -5,7 +5,7 @@ from ..json_io    import write_json
 from ..dict_mixin import DictMixin
 
 from .server import Server
-from .client import Client, Response
+from .client import Client
 
 
 # ------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ class RegistryClient(Client, DictMixin):
 
     # --------------------------------------------------------------------------
     # verbose API
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, key: str, default: Optional[str] = None) -> Optional[Any]:
 
         try:
             return self.request(cmd='get', arg=[key]).res
@@ -118,7 +118,7 @@ class RegistryClient(Client, DictMixin):
 
     # --------------------------------------------------------------------------
     # dict mixin API
-    def __getitem__(self, key: str) -> Optional[str]:
+    def __getitem__(self, key: str) -> Optional[Any]:
         return self.get(key)
 
     def __setitem__(self, key:str, val: Any) -> None:
