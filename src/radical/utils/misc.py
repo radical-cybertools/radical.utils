@@ -770,11 +770,12 @@ def rec_makedir(target):
         os.makedirs(target)
 
     except OSError as e:
-        # ignore failure on existing directory
+
+        # ignore failure on existing directory - otherwise raise
         if e.errno == errno.EEXIST and os.path.isdir(os.path.dirname(target)):
-            pass
-        else:
-            raise
+            return
+
+        raise
 
 
 # ------------------------------------------------------------------------------
