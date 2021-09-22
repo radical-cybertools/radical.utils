@@ -23,6 +23,21 @@ BLACKLIST="PS1 LS_COLORS _"
 
 # ------------------------------------------------------------------------------
 #
+env_grep(){
+
+    # some env variables are known to have difficult to parse values and at the
+    # same time don't need to be inherited - this method filters them out
+
+    grep -v \
+         -e '^LS_COLORS=' \
+         -e '^PS1=' \
+         -e '^_=' \
+         -e '^SHLVL='
+}
+
+
+# ------------------------------------------------------------------------------
+#
 env_dump(){
 
     # Note that this capture will result in an unquoted dump where the values
@@ -65,10 +80,11 @@ env_dump(){
         esac
     done
 
+    # NOTE: we can't `sort` as that screws up multiline settings
     if test -z "$tgt"; then
-        env | sort
+        env | env_grep
     else
-        env | sort > "$tgt"
+        env | env_grep > "$tgt"
     fi
 }
 
@@ -123,24 +139,24 @@ env_prep(){
     then
         echo "missing 'src' -- prepare env from current env"
         tmp=$(mktemp)
-        env > "$tmp"
+        env_dump -t "$tmp"
         src="$tmp"
     fi
 
     # get keys from `src` environment dump
     src_keys=$( cat "$src" \
-               | sort \
                | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-               | cut -f1 -d=
+               | cut -f1 -d= \
+               | sort
                )
 
     if ! test -z "$rem"
     then
         # get keys from `rem` environment dump
         rem_keys=$( cat "$rem" \
-                  | sort \
                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-                  | cut -f1 -d=
+                  | cut -f1 -d= \
+                  | sort
                   )
     fi
 
@@ -183,7 +199,7 @@ env_prep(){
         if ! test -z "$pre"
         then
             printf "\n# pre_exec_env\n"
-            for pe in "$pre"
+            for pe in $pre
             do
                 printf "$pe"
             done
@@ -228,7 +244,6 @@ check(){
     shift $(($OPTIND - 1))
     cmd="$*"
 
-    redir=''
     test -z "$outfile" && outfile=1
     test -z "$errfile" && errfile=2
 
