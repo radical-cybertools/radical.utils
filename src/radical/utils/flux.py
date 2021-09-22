@@ -1,4 +1,6 @@
 
+# pylint: disable=cell-var-from-loop
+
 import os
 import time
 import json
@@ -236,7 +238,6 @@ class _FluxService(object):
 
             self._uri = None
             self._env = None
-
 
 
 # ------------------------------------------------------------------------------

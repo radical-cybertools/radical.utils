@@ -209,8 +209,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     will thus *not* include the effects of those injected commands.
     '''
 
-    global _env_cache
-
     # defaults
     if environment     is None: environment     = os.environ
     if unset           is None: unset           = list()
@@ -476,7 +474,7 @@ class EnvProcess(object):
 
         data, exc = self._data
         if exc:
-            raise exc
+            raise exc                          # pylint disable=raising-bad-type
 
         return data
 
