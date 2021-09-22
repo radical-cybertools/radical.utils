@@ -1,3 +1,4 @@
+# pylint: disable=try-except-raise
 
 import io
 import os
@@ -10,8 +11,6 @@ from .testing import sys_exit
 
 # from
 # http://stackoverflow.com/questions/1417631/python-code-to-daemonize-a-process
-
-# pylint: disable=try-except-raise
 
 
 # ------------------------------------------------------------------------------
@@ -65,9 +64,9 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
         raise RuntimeError(
             'Failed to start daemon: %d (%s)\n' % (e.errno, e.strerror)) from e
 
-
-    # decouple from parent process group
-    os.setsid()
+    # decoupling from parent process group is disabled
+    # (some launch methods, e.g., APRun, required to run within the same group)
+    #    os.setsid()
 
     # second fork
     try:
@@ -115,7 +114,7 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
         sys_exit(0)
 
     else:
-        # just return - the callinng code will now continue daemonized
+        # just return - the calling code will now continue daemonized
         return
 
 
