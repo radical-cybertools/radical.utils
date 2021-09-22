@@ -244,17 +244,26 @@ class Logger(object):
 
         if not level:
             level = ru_get_env_ns('log_lvl', ns)
+
         if not level:
             # backward compatibility
             level = ru_get_env_ns('verbose', ns)
+
         if not level:
             level = ru_def['log_lvl']
 
         if level in [OFF, 'OFF']:
             targets = ['null']
 
+        try:
+            level = int(level)
+        except:
+            pass
+
         if isinstance(level, int):
-            self._debug_level = max(0, level - 10)
+            if level < 10:
+                self._debug_level = 10 - level
+                level = 'DEBUG'
 
         elif level.upper().startswith('DEBUG_'):
             self._debug_level = int(level.split('_', 1)[1])
@@ -272,6 +281,8 @@ class Logger(object):
                    '10' : 'DEBUG',
                     '0' :  ru_def['log_lvl'],
                    '-1' : 'OFF'}
+
+
         level   = levels.get(str(level), str(level)).upper()
         warning = None
         if level not in list(levels.values()):
