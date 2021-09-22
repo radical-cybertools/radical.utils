@@ -63,8 +63,6 @@ def test_flux_startup():
     assert(fh.uri)
     assert('FLUX_URI' in fh.env)
 
-    # in case of keeping Spec data in a JSON file:
-    #    spec  = ru.read_json('spec.json')
     specs = [spec] * njobs
     ids   = fh.submit_jobs(specs, cb=cb1)
     assert(len(ids) == njobs), len(ids)
@@ -113,8 +111,6 @@ def test_flux_pickup():
     assert(fh.uri)
     assert('FLUX_URI' in fh.env)
 
-    # in case of keeping Spec data in a JSON file:
-    #    spec  = ru.read_json('spec.json')
     specs = [spec] * njobs
     ids   = fh.submit_jobs(specs, cb=cb1)
     assert(len(ids) == njobs), len(ids)
