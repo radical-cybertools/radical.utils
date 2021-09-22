@@ -256,4 +256,28 @@ def get_hostlist(hoststring):
     return output
 
 
+# --------------------------------------------------------------------------
+#
+def is_localhost(host: str) -> bool:
+    '''
+    Returns `True` if given hostname is localhost, `False` otherwise.
+    '''
+
+    if not host:
+        return True
+
+    elif host == 'localhost':
+        return True
+
+    else:
+        sockhost = socket.gethostname()
+        while sockhost:
+            if host == sockhost:
+                return True
+            sockhost = '.'.join(sockhost.split('.')[1:])
+
+    return False
+
+
 # ------------------------------------------------------------------------------
+
