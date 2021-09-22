@@ -219,7 +219,6 @@ setup_args = {
                             'netifaces',
                             'ntplib',
                             'pymongo',
-                            'python-string-utils',
                             'pyzmq',
                             'radical.gtod',
                             'regex',

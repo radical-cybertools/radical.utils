@@ -111,14 +111,19 @@ def test_env_eval():
 #
 def test_env_proc():
 
-    env = {'TEST_SHARED': 'env_shared'}
+    key = 'TEST_SHARED'
+    val = 'env_shared'
+
+    env = {key: val}
     env_proc = ru.EnvProcess(env=env)
+
     with env_proc:
-        env_proc.put(ru.sh_callout('echo -n $TEST_SHARED', shell=True))
+        env_proc.put(ru.sh_callout('echo -n $%s' % key, shell=True))
     out = str(env_proc.get())
 
-    assert('TEST_SHARED' not in os.environ)
-    assert(env['TEST_SHARED'] in out), out
+    assert(isinstance(out, str))
+    assert(key not in os.environ)
+    assert(env[key] in out)
 
 
 # ------------------------------------------------------------------------------

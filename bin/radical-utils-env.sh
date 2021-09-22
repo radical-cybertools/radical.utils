@@ -146,8 +146,8 @@ env_prep(){
     # get keys from `src` environment dump
     src_keys=$( cat "$src" \
                | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-               | cut -f1 -d=
-               | sort \
+               | cut -f1 -d= \
+               | sort
                )
 
     if ! test -z "$rem"
@@ -155,8 +155,8 @@ env_prep(){
         # get keys from `rem` environment dump
         rem_keys=$( cat "$rem" \
                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-                  | cut -f1 -d=
-                  | sort \
+                  | cut -f1 -d= \
+                  | sort
                   )
     fi
 
@@ -199,7 +199,7 @@ env_prep(){
         if ! test -z "$pre"
         then
             printf "\n# pre_exec_env\n"
-            for pe in "$pre"
+            for pe in $pre
             do
                 printf "$pe"
             done
@@ -244,7 +244,6 @@ check(){
     shift $(($OPTIND - 1))
     cmd="$*"
 
-    redir=''
     test -z "$outfile" && outfile=1
     test -z "$errfile" && errfile=2
 
