@@ -50,7 +50,6 @@ def test_flux_startup():
     def cb1(job_id, state, ts, context):
 
       # print([job_id, state, ts, context])
-        global events
         if job_id not in events:
             events[job_id] = [ts, state]
         else:
@@ -99,7 +98,6 @@ def test_flux_pickup():
     def cb1(job_id, state, ts, context):
 
       # print([job_id, state, ts, context])
-        global events
         if job_id not in events:
             events[job_id] = [ts, state]
         else:
