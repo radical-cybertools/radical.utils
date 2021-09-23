@@ -2,7 +2,7 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
-1.7.0  Release                                                        2021-09-23
+1.8.0  Release                                                        2021-09-23
 --------------------------------------------------------------------------------
 
   - add `debug_1`, `debug_2` etc as additional log levels
