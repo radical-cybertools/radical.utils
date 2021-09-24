@@ -260,6 +260,7 @@ class Logger(object):
         except:
             pass
 
+        self._debug_level = 0
         if isinstance(level, int):
             if level < 10:
                 self._debug_level = 10 - level
@@ -268,9 +269,6 @@ class Logger(object):
         elif level.upper().startswith('DEBUG_'):
             self._debug_level = int(level.split('_', 1)[1])
             level = 'DEBUG'
-
-        else:
-            self._debug_level = 0
 
 
         # translate numeric levels into upper case symbolic ones
