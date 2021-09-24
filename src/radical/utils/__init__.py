@@ -26,7 +26,7 @@ from .futures        import NEW, RUNNING, DONE, FAILED, CANCELED
 from .url            import Url
 from .host           import get_hostip, get_hostname
 from .host           import get_hostlist, get_hostlist_by_range
-from .host           import create_hostfile, compress_hostlist
+from .host           import create_hostfile, compress_hostlist, is_localhost
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
 from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .lockable       import Lockable
