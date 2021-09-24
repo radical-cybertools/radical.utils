@@ -2,6 +2,12 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+1.8.2  Hotfix Release                                                 2021-09-24
+--------------------------------------------------------------------------------
+
+  - ensure var initialization
+
+
 1.8.1  Hotfix Release                                                 2021-09-24
 --------------------------------------------------------------------------------
 
