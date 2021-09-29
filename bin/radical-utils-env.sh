@@ -187,8 +187,17 @@ env_prep(){
         for k in $src_keys
         do
             # exclude blacklisted keys
-            if ! expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
+            if expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
             then
+                continue
+            fi
+
+            # handle bash function definitions
+            if expr "$k" : "^BASH_FUNC_(.*?)%%$" >/dev/null
+                fname=${k##*_}
+                fname=${fname%\%\%}
+                echo "$fname(){\"$bv\"}"
+            else
                 bv=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
                 echo "export $k=\"$bv\""
             fi

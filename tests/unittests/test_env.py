@@ -73,6 +73,9 @@ def test_env_read():
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
+                if k.startswith('BASH_FUNC_'):
+                    # bash funcs are not exported to other shells
+                    continue
                 assert(env[k] == v)
 
     finally:
@@ -100,6 +103,9 @@ def test_env_eval():
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
+                if k.startswith('BASH_FUNC_'):
+                    # bash funcs are not exported to other shells
+                    continue
                 assert(env[k] == v)
 
     finally:

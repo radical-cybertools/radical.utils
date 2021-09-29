@@ -60,6 +60,8 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
     val     = ''
 
     for line in lines:
+        if 'foo' in line:
+            print('=== read: %s' % line)
 
         # remove newline
         line = line.rstrip('\n')
@@ -282,7 +284,11 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
                     continue
                 if not re_snake_case.match(k):
                     continue
-                data += "export %s=%s\n" % (k, _quote(environment[k]))
+                if k.startswith('BASH_FUNC_') and k.endswith('%%'):
+                    fname = k[11:-3]
+                    data += "%s(){%s}\n" % (fname, _quote(environment[k]))
+                else:
+                    data += "export %s=%s\n" % (k, _quote(environment[k]))
             data += '\n'
 
         if pre_exec_cached:
@@ -329,8 +335,12 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
 
         data += '# export\n'
         for k in sorted(env.keys()):
-            # FIXME: shell quoting for value
-            data += "export %s=%s\n" % (k, _quote(env[k]))
+            if k.startswith('BASH_FUNC_') and k.endswith('%%'):
+                fname = k[11:-3]
+                data += "%s(){%s}\n" % (fname, _quote(env[k]))
+            else:
+                # FIXME: shell quoting for value
+                data += "export %s=%s\n" % (k, _quote(env[k]))
         data += '\n'
 
         if pre_exec:
