@@ -284,8 +284,11 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
                     continue
                 if not re_snake_case.match(k):
                     continue
-                if k.startswith('BASH_FUNC_') and k.endswith('%%'):
+                if k.startswith('BASH_FUNC_') and \
+                        (k.endswith('%%') or k.endswith('()')):
                     fname = k[11:-3]
+                    if k.startswith('() {'):
+                        k = k[3:]
                     data += "%s(){%s}\n" % (fname, _quote(environment[k]))
                 else:
                     data += "export %s=%s\n" % (k, _quote(environment[k]))
