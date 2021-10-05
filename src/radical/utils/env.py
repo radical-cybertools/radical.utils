@@ -32,7 +32,10 @@ _env_cache = dict()
 # with the following conditions
 #   - starts with a letter or underscore
 #   - consists of letters, underscores and numbers
-re_snake_case = re.compile(r'^[a-zA-Z_][\w]+$', re.ASCII)
+re_snake_case = re.compile(r'^[a-zA-Z_]\w+$', re.ASCII)
+
+# regex to check if a variable refers to a bash shell function
+re_bash_function = re.compile(r'^BASH_FUNC_([a-zA-Z_]\w+)(%%|\(\))$', re.ASCII)
 
 
 # ------------------------------------------------------------------------------
@@ -51,11 +54,16 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_read_lines(lines: List[str]) -> Dict[str, str]:
+def env_read_lines(lines: List[str]) -> Tuple[Dict[str, str], Dict[str, str]]:
+    '''
+    read lines which are the result of an `env` shell call, and sort the
+    resulting keys into and environment and a shell function dict, return both
+    '''
 
     # POSIX definition of variable names
     key_pat = r'^[A-Za-z_][A-Za-z_0-9]*$'
     env     = dict()
+    funcs   = dict()
     key     = None
     val     = ''
 
@@ -80,7 +88,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
         this_key = elems.pop(0)
         this_val = elems[0] if elems else ''
 
-        if re.match(key_pat, this_key):
+        if re_snake_case.match(this_key):
             # valid key - store previous key/val if we have any, and
             # initialize `key` and `val`
             if key and key not in BLACKLIST:
@@ -88,6 +96,16 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
 
             key = this_key
             val = this_val.strip()
+
+        elif re_bash_function.match(this_key):
+            # function definitions
+            # initialize `key` and `val`
+            if key and key not in BLACKLIST:
+                env[key] = val
+
+            key = this_key
+            val = this_val.strip()
+
         else:
             # invalid key - append linebreak and line to value
             val += '\n'

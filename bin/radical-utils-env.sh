@@ -40,51 +40,70 @@ env_grep(){
 #
 env_dump(){
 
-    # Note that this capture will result in an unquoted dump where the values
-    # can contain spaces, quotes (double and single), non-printable characters
-    # etc.  The guarantees we have are:
+    # The purpose of this method is to dump the environment of the current shell
+    # in a format that can be parsed by other shell scripts (see `env_get`) and
+    # from Python (or other languages).  That is a surprisingly difficult task:
+    # environment variables can contain characters not allowed by POSIX (hello
+    # bash functions), and values can contain unprintable characters, newlines,
+    # quotes, assignments etc.  Consider this example:
     #
-    #   - variable names begin with a letter, and contain letters, numbers and
-    #     underscores.  From POSIX:
+    #     foo="bar\nbuz=biz"
     #
-    #       "Environment variable names used by the utilities in the Shell and
-    #       Utilities volume of IEEE Std 1003.1-2001 consist solely of uppercase
-    #       letters, digits, and the '_' (underscore) from the characters
-    #       defined in Portable Character Set and do not begin with a digit."
+    # `env` will result in
     #
-    #     Note that implementations usually also support lowercase letters, so
-    #     we'll have to support that, too (event though it is rarely used for
-    #     exported system variables).
+    #     ...
+    #     foo=bar
+    #     buz=biz
+    #     ...
     #
-    #   - variable values can have any character.  Again POSIX:
+    # which a parser cannot reliably distinguish from two separate exports.
+    # Alas, `env -0` (which outputs null-terminated strings) is not POSIX
+    # compliant.
     #
-    #       "For values to be portable across systems conforming to IEEE Std
-    #       1003.1-2001, the value shall be composed of characters from the
-    #       portable character set (except NUL [...])."
+    # We thus use `awk` to inspect the environment and to translate all value
+    # line breaks into `\n`:
     #
-    # So the rules for names are strict, for values they are, unfortunately,
-    # loose.  Specifically, values can contain unprintable characters and also
-    # newlines.  While the Python equivalent of `env_prep` handles that case
-    # well, the shell implementation below will simply ignore any lines which do
-    # not start with a valid key.
+    #     awk 'END {
+    #       for (k in ENVIRON) {
+    #         v=ENVIRON[k];
+    #         gsub(/\n/,"\\n",v);
+    #         print k"="v;
+    #       }
+    #     }' < /dev/null
+    #
+    # which, for our foo above, results into
+    #
+    #     ...
+    #     foo=bar\nbuz=biz
+    #     ...
+    #
+    # which can be cleanly parsed
+    #
 
-    tgt=''
-
-    local OPTIND OPTARG
+    local tgt
+    local OPTIND OPTARG OPTION
     while getopts "t:" OPTION; do
         case $OPTION in
-            t)  tgt="$OPTARG"
-                echo "tgt: $tgt";;
+            t)  tgt="$OPTARG" ;;
             *)  echo "Unknown option: '$OPTION'='$OPTARG'"
                 return 1;;
         esac
     done
 
-    # NOTE: we can't `sort` as that screws up multiline settings
+    dump() {
+        awk 'END {
+          for (k in ENVIRON) {
+            v=ENVIRON[k];
+            gsub(/\n/,"\\n",v);
+            print k"="v;
+          }
+        }' < /dev/null
+    }
+
     if test -z "$tgt"; then
-        env | env_grep
+        dump | sort | env_grep
     else
-        env | env_grep > "$tgt"
+        dump | sort | env_grep > "$tgt"
     fi
 }
 
@@ -122,16 +141,16 @@ env_prep(){
     #
     # FIXME: the latter is not yet true and needs fixing
     #
-    src=''
-    tgt=''
-    rem=''
-    pre=''
-    while ! test -z "$1"; do
-        case "$1" in
-            -s) src="$2"      ; shift 2 ;;
-            -t) tgt="$2"      ; shift 2 ;;
-            -r) rem="$2"      ; shift 2 ;;
-            -p) pre="$pre$2\n"; shift 2 ;;
+    local src tgt rem pre
+    local OPTIND OPTION OPTARG
+    while getopts "s:r:p:t:" OPTION; do
+        case $OPTION in
+            s) src="$OPTARG"       ;;
+            t) tgt="$OPTARG"       ;;
+            r) rem="$OPTARG"       ;;
+            p) pre="$pre$OPTARG\n" ;;
+            *)  echo "Unknown option: '$OPTION'='$OPTARG'"
+                return 1;;
         esac
     done
 
@@ -144,8 +163,9 @@ env_prep(){
     fi
 
     # get keys from `src` environment dump
+    # NOTE: bash func exports can end in `()` or `%%`
     src_keys=$( cat "$src" \
-               | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
+               | grep -e '^[A-Za-z_][A-Za-z_0-9]*\(()\|\%\%\)\?=' \
                | cut -f1 -d= \
                | sort
                )
@@ -154,10 +174,10 @@ env_prep(){
     then
         # get keys from `rem` environment dump
         rem_keys=$( cat "$rem" \
-                  | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-                  | cut -f1 -d= \
-                  | sort
-                  )
+                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*\(()\|\%\%\)\?=' \
+                   | cut -f1 -d= \
+                   | sort
+                   )
     fi
 
     _prep(){
@@ -182,8 +202,9 @@ env_prep(){
         fi
 
 
-        # export all keys from `src`
+        # export all keys from `src` (but filter out bash function definitions)
         printf "\n# export\n"
+        functions=''
         for k in $src_keys
         do
             # exclude blacklisted keys
@@ -193,16 +214,23 @@ env_prep(){
             fi
 
             # handle bash function definitions
-            if expr "$k" : "^BASH_FUNC_(.*?)%%$" >/dev/null
-                fname=${k##*_}
-                fname=${fname%\%\%}
-                echo "$fname(){\"$bv\"}"
+            v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/{ /{\n/')
+            func=$(expr "$k" : '^BASH_FUNC_\(.*\)%%$')
+            if ! test -z "$func"
+            then
+                functions=$(printf "$func $v\nexport -f $func\n\n$functions")
             else
-                bv=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
-                echo "export $k=\"$bv\""
+                v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
+                echo "export $k=\"$v\""
             fi
         done
         printf "\n"
+
+        # add functions if any were found
+        if ! test -z "$functions"
+        then
+            printf "# functions\n$functions\n\n"
+        fi
 
         # run all remaining arguments as `pre_exec` commands
         if ! test -z "$pre"
@@ -215,13 +243,14 @@ env_prep(){
             printf "\n"
         fi
         printf "\n"
+
+        printf "# end\n"
     }
 
     env=$(_prep)
 
     test -z "$tgt" && echo  "$env"
     test -z "$tgt" || echo  "$env" > $tgt
-
     test -z "$tmp" || rm -f "$tmp"
 }
 

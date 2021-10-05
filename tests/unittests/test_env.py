@@ -32,6 +32,7 @@ def test_env_prep():
 
     env = dict(os.environ)
 
+    os.environ['BASH_FUNC_foo%%']  = '() {echo foo}'
     os.environ['OS_ONLY']  = 'os_only'
     os.environ['SHARED']   = 'os_shared'
     env       ['SHARED']   = 'env_shared'
