@@ -32,7 +32,7 @@ _env_cache = dict()
 # with the following conditions
 #   - starts with a letter or underscore
 #   - consists of letters, underscores and numbers
-re_snake_case = re.compile(r'^[a-zA-Z_]\w+$', re.ASCII)
+re_snake_case = re.compile(r'^[a-zA-Z_]\w*$', re.ASCII)
 
 # regex to check if a variable refers to a bash shell function
 re_bash_function = re.compile(r'^BASH_FUNC_([a-zA-Z_]\w+)(%%|\(\))$', re.ASCII)
@@ -54,16 +54,70 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_read_lines(lines: List[str]) -> Tuple[Dict[str, str], Dict[str, str]]:
+def env_write(script_path, env, unset, pre_exec):
+
+    data = '\n'
+    if unset:
+        data += '# unset\n'
+        for k in sorted(unset):
+            if not re_snake_case.match(k):
+                continue
+            data += 'unset %s\n' % k
+        data += '\n'
+
+    if BLACKLIST:
+        data += '# blacklist\n'
+        for k in sorted(BLACKLIST):
+            data += 'unset %s\n' % k
+        data += '\n'
+
+    funcs = list()
+    data += '# export\n'
+    for k in sorted(env.keys()):
+        if k in BLACKLIST:
+            continue
+        if k.startswith('BASH_FUNC_') and \
+                (k.endswith('%%') or k.endswith('()')):
+            funcs.append(k)
+            continue
+        if not re_snake_case.match(k):
+            continue
+        data += "export %s=%s\n" % (k, _quote(env[k]))
+    data += '\n'
+
+    if funcs:
+        data += '\n# functions\n'
+        for func in funcs:
+            fname = func[10:-2]
+            v     = env[func]
+            if v.startswith('() { '):
+                v = v.replace('() { ', '() {\n', 1)
+            data += '%s%s\n' % (fname, v)
+            data += 'test -z "$BASH" || export -f %s\n' % fname
+        data += '\n'
+
+    if pre_exec:
+        data += '# pre_exec (not cached)\n'
+
+        # do not sort, order dependent
+        for cmd in pre_exec:
+            data += '%s\n' % cmd
+        data += '\n'
+
+    with open(script_path, 'w') as fout:
+        fout.write(data)
+
+
+# ------------------------------------------------------------------------------
+#
+def env_read_lines(lines: List[str]) -> Dict[str, str]:
     '''
     read lines which are the result of an `env` shell call, and sort the
     resulting keys into and environment and a shell function dict, return both
     '''
 
     # POSIX definition of variable names
-    key_pat = r'^[A-Za-z_][A-Za-z_0-9]*$'
     env     = dict()
-    funcs   = dict()
     key     = None
     val     = ''
 
@@ -156,51 +210,6 @@ def _unquote(data: str) -> str:
 
 # ------------------------------------------------------------------------------
 #
-def env_eval(fname: str) -> Dict[str, str]:
-    '''
-    helper to create a dictionary with the env settings in the specified file
-    which contains `unset` and `export` directives, or simple 'key=val' lines
-    '''
-
-    env = dict()
-    with open(fname, 'r') as fin:
-
-        for line in fin.readlines():
-
-            # avoid split problems on 'foo=' - thus the `v.strip()` later
-            line = line.strip()
-
-            if not line:
-                continue
-
-            if line.startswith('#'):
-                continue
-
-            if line.startswith('unset ') :
-                _, spec = line.split(' ', 1)
-                k = spec.strip()
-                if k not in env:
-                    continue
-                del(env[k])
-
-            elif line.startswith('export ') :
-                _, spec = line.split(' ', 1)
-                elems   = spec.split('=', 1)
-                k = elems.pop(0)
-                v = elems[0] if elems else ''
-                env[k] = _unquote(v.strip())
-
-            else:
-                elems = line.split('=', 1)
-                k = elems.pop(0)
-                v = elems[0] if elems else ''
-                env[k] = _unquote(v.strip())
-
-    return env
-
-
-# ------------------------------------------------------------------------------
-#
 def env_prep(environment    : Optional[Dict[str,str]] = None,
              unset          : Optional[List[str]]     = None,
              pre_exec       : Optional[List[str]]     = None,
@@ -234,7 +243,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     '''
 
     # defaults
-    if environment     is None: environment     = os.environ
+    if environment     is None: environment     = dict(**os.environ)
     if unset           is None: unset           = list()
     if pre_exec        is None: pre_exec        = list()
     if pre_exec_cached is None: pre_exec_cached = list()
@@ -249,11 +258,11 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     # cache lookup
     cache_key = str(sorted(environment.items())) \
               + str(sorted(unset))               \
-              + str(sorted(pre_exec))            \
               + str(sorted(pre_exec_cached))
     cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
 
     if cache_md5 in _env_cache:
+        print('use cache')
         env = _env_cache[cache_md5]
 
     else:
@@ -278,51 +287,8 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         rec_makedir(tgt)
         tmp_file, tmp_name = tempfile.mkstemp(dir=tgt)
 
-        # use a file object to simplify byte conversion
-        data = '\n'
-        if unset:
-            data += '# unset\n'
-            for k in sorted(unset):
-                if not re_snake_case.match(k):
-                    continue
-                if k not in environment:
-                    data += 'unset %s\n' % k
-            data += '\n'
-
-        if BLACKLIST:
-            data += '# blacklist\n'
-            for k in sorted(BLACKLIST):
-                data += 'unset %s\n' % k
-            data += '\n'
-
-        if environment:
-            data += '# export\n'
-            for k in sorted(environment.keys()):
-                if k in BLACKLIST:
-                    continue
-                if not re_snake_case.match(k):
-                    continue
-                if k.startswith('BASH_FUNC_') and \
-                        (k.endswith('%%') or k.endswith('()')):
-                    fname = k[11:-3]
-                    if k.startswith('() {'):
-                        k = k[3:]
-                    data += "%s(){%s}\n" % (fname, _quote(environment[k]))
-                else:
-                    data += "export %s=%s\n" % (k, _quote(environment[k]))
-            data += '\n'
-
-        if pre_exec_cached:
-            data += '# pre_exec (cached)\n'
-            # do not sort, order dependent
-            for cmd in pre_exec_cached:
-                data += '%s\n' % cmd
-            data += '\n'
-
-        with open(tmp_file, 'w') as fout:
-            fout.write(data)
-
-        cmd = '/bin/sh -c ". %s && /usr/bin/env | /usr/bin/sort"' % tmp_name
+        env_write(tmp_name, environment, unset, pre_exec_cached)
+        cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
         if ret:
@@ -343,36 +309,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
 
-        data = '\n# unset\n'
-        for k in unset:
-            if k not in sorted(environment):
-                data += 'unset %s\n' % k
-        data += '\n'
-
-        data += '# blacklist\n'
-        for k in sorted(BLACKLIST):
-            data += 'unset %s\n' % k
-        data += '\n'
-
-        data += '# export\n'
-        for k in sorted(env.keys()):
-            if k.startswith('BASH_FUNC_') and k.endswith('%%'):
-                fname = k[11:-3]
-                data += "%s(){%s}\n" % (fname, _quote(env[k]))
-            else:
-                # FIXME: shell quoting for value
-                data += "export %s=%s\n" % (k, _quote(env[k]))
-        data += '\n'
-
-        if pre_exec:
-            # do not sort, order dependent
-            data += '# pre_exec\n'
-            for cmd in pre_exec:
-                data += '%s\n' % cmd
-            data += '\n'
-
-        with open(script_path, 'w') as fout:
-            fout.write(data)
+        env_write(script_path, env=env, unset=unset, pre_exec=pre_exec)
 
     return env
 
@@ -386,6 +323,9 @@ def env_diff(env_1 : Dict[str,str],
     This method serves debug purposes: it compares to environments and returns
     those elements which appear in only either one or the other env, and which
     changed from one env to another.
+
+    It will ignore any keys in the `BLACKLIST` and will also ignore
+    `BASH_FUNC_*` keys which point to bash function definitions.
     '''
 
     only_1  = dict()
@@ -396,11 +336,19 @@ def env_diff(env_1 : Dict[str,str],
     keys_2 = sorted(env_2.keys())
 
     for k in keys_1:
+        if k in BLACKLIST:
+            continue
+        if k.startswith('BASH_FUNC_'):
+            continue
         v = env_1[k]
         if   k not in env_2: only_1[k]  = v
         elif v != env_2[k] : changed[k] = [v, env_2[k]]
 
     for k in keys_2:
+        if k in BLACKLIST:
+            continue
+        if k.startswith('BASH_FUNC_'):
+            continue
         v = env_2[k]
         if k not in env_1: only_2[k]  = v
         # else is checked in keys_1 loop above

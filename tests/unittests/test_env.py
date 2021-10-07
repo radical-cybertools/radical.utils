@@ -26,7 +26,7 @@ def test_env_prep():
 
     env = dict(os.environ)
     ret = ru.env_prep(env)
-    _, only_ret, changed = ru.env_diff(env, ret)
+    only_env, only_ret, changed = ru.env_diff(env, ret)
     assert(not only_ret), only_ret
     assert(not changed), changed
 
@@ -47,10 +47,20 @@ def test_env_prep():
     assert(not only_ret), [only_env, only_ret, changed]
     assert(not changed),  changed
 
-    out, _, ret = ru.sh_callout('export OS_ONLY=x; . /tmp/test.env; echo $OS_ONLY',
+    out, err, ret = ru.sh_callout('export OS_ONLY=x; . /tmp/test.env; echo $OS_ONLY',
                                  shell=True)
-    out = out.strip()
-    assert(not out), out
+    import pprint
+    print('=== ret')
+    pprint.pprint(ret)
+    print('=== out')
+    pprint.pprint(out)
+    print('=== err')
+    pprint.pprint(err)
+    assert(not out.strip()), out
+    assert(not err.strip()), err
+    import pprint
+    print('=== ret')
+    pprint.pprint(ret)
     assert(not ret), ret
 
     out, _, ret = ru.sh_callout('unset ENV_ONLY; . /tmp/test.env; echo $ENV_ONLY',
@@ -65,42 +75,12 @@ def test_env_prep():
 def test_env_read():
 
     fname = '/tmp/env.%d' % os.getpid()
-    os.system('/bin/sh -c "env > %s"' % fname)
+    os.system('/bin/bash -c "env > %s"' % fname)
     try:
         env = ru.env_read(fname)
 
         for k,v in env.items():
-            assert(os.environ[k] == v)
-
-        for k,v in os.environ.items():
-            if k not in ru.env.BLACKLIST:
-                if k.startswith('BASH_FUNC_'):
-                    # bash funcs are not exported to other shells
-                    continue
-                assert(env[k] == v)
-
-    finally:
-        try   : os.unlink(fname)
-        except: pass
-
-
-# ------------------------------------------------------------------------------
-#
-def test_env_eval():
-
-    fname = '/tmp/env.%d' % os.getpid()
-    try:
-        cmd   = "sh -c \"env " \
-                "| sed -e \\\"s/^/export /\\\" "\
-                "| sed -e \\\"s/=/='/\\\" " \
-                "| sed -e \\\"s/$/'/\\\" "\
-                "> %s\"" % fname
-        os.system(cmd)
-        env = ru.env_eval(fname)
-
-        for k,v in env.items():
-            if k not in ru.env.BLACKLIST:
-                assert(os.environ[k] == v), [os.environ[k], v]
+            assert(os.environ[k] == v), [k, os.environ[k], v]
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
@@ -139,7 +119,6 @@ if __name__ == '__main__':
 
     test_env_prep()
     test_env_read()
-    test_env_eval()
     test_env_proc()
 
 
