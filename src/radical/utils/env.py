@@ -95,7 +95,7 @@ def env_write(script_path, env, unset=None, pre_exec=None):
             v     = env[func]
             if v.startswith('() { '):
                 v = v.replace('() { ', '() {\n', 1)
-            data += '%s%s\n' % (fname, v)
+            data += '%s%s\n' % (fname, v.replace('\\n', '\n'))
             data += 'test -z "$BASH" || export -f %s\n\n' % fname
         data += '\n'
 
