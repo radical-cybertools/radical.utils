@@ -57,7 +57,7 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_write(script_path, env, unset, pre_exec):
+def env_write(script_path, env, unset=None, pre_exec=None):
 
     data = '\n'
     if unset:
@@ -287,6 +287,8 @@ def env_eval(fname: str) -> Dict[str, str]:
                 env[k] = _unquote(v.strip())
 
     return env
+
+
 # ------------------------------------------------------------------------------
 #
 def env_prep(environment    : Optional[Dict[str,str]] = None,
