@@ -250,7 +250,7 @@ def env_eval(fname: str) -> Dict[str, str]:
                 else:
                     # still part of function data, replace the stripped newline
                     if func_data:
-                        func_data += '\\n'
+                        func_data += '\n'
                     func_data += line
                     continue
 
