@@ -37,6 +37,9 @@ re_snake_case = re.compile(r'^[a-zA-Z_]\w*$', re.ASCII)
 # regex to check if a variable refers to a bash shell function
 re_bash_function = re.compile(r'^BASH_FUNC_([a-zA-Z_]\w+)(%%|\(\))$', re.ASCII)
 
+# regex to detect the start of a function definition as written by `env_write()`
+re_function = re.compile(r'^([a-zA-Z_]\w+)\(\) {$', re.ASCII)
+
 
 # ------------------------------------------------------------------------------
 #
@@ -208,6 +211,82 @@ def _unquote(data: str) -> str:
     return data
 
 
+
+# ------------------------------------------------------------------------------
+#
+def env_eval(fname: str) -> Dict[str, str]:
+    '''
+    helper to create a dictionary with the env settings in the specified file
+    which contains `unset` and `export` directives, or simple 'key=val' lines
+    '''
+
+    env = dict()
+    with open(fname,    'r') as fin, \
+         open('/tmp/t', 'w') as fout:
+
+        func_name = None
+        func_data = None
+        for line in fin.readlines():
+
+            if not line:
+                continue
+
+            if line.startswith('#'):
+                fout.write('- %s\n' % line)
+                continue
+
+            # avoid split problems on 'foo=' - thus the `v.strip()` later
+            line = line.strip()
+
+            if func_name:
+                # we capture a function definition right now - check if done
+                if line == 'test -z "$BASH" || export -f %s' % func_name:
+                    # done - convert into a bash env variables
+                    env['BASH_FUNC_%s%%%%' % func_name] = '() %s' % func_data
+                    # stop function parsing
+                    func_name = None
+                    func_data = None
+                    continue
+                else:
+                    # still part of function data, replace the stripped newline
+                    if func_data:
+                        func_data += '\\n'
+                    func_data += line
+                    continue
+
+
+            func_check = re_function.match(line)
+            if func_check:
+                # detected start of function
+                assert(func_name is None)
+                func_name = func_check[1]
+                func_data = ''
+                assert(func_name)
+                continue
+
+
+            if line.startswith('unset ') :
+                _, spec = line.split(' ', 1)
+                k = spec.strip()
+                if k not in env:
+                    continue
+                del(env[k])
+
+            elif line.startswith('export ') :
+                _, spec = line.split(' ', 1)
+                elems   = spec.split('=', 1)
+                k = elems.pop(0)
+                v = elems[0] if elems else ''
+                env[k] = _unquote(v.strip())
+
+            else:
+                fout.write('? %s\n' % line)
+                elems = line.split('=', 1)
+                k = elems.pop(0)
+                v = elems[0] if elems else ''
+                env[k] = _unquote(v.strip())
+
+    return env
 # ------------------------------------------------------------------------------
 #
 def env_prep(environment    : Optional[Dict[str,str]] = None,
