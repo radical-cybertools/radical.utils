@@ -366,7 +366,11 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         # `script_path` file thus activates the environment we just prepared.
         tgt = os.getcwd() + '/env/'
         rec_makedir(tgt)
-        tmp_file, tmp_name = tempfile.mkstemp(dir=tgt)
+
+        if script_path: prefix = os.path.basename(script_path)
+        else          : prefix = None
+
+        tmp_file, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
 
         env_write(tmp_name, environment, unset, pre_exec_cached)
         cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name
