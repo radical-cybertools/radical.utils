@@ -219,22 +219,11 @@ def env_eval(fname: str) -> Dict[str, str]:
     '''
 
     env = dict()
-    with open(fname,    'r') as fin, \
-         open('/tmp/t', 'w') as fout:
+    with open(fname, 'r') as fin:
 
         func_name = None
         func_data = None
         for line in fin.readlines():
-
-            if not line:
-                continue
-
-            if line.startswith('#'):
-                fout.write('- %s\n' % line)
-                continue
-
-            # avoid split problems on 'foo=' - thus the `v.strip()` later
-            line = line.strip()
 
             if func_name:
                 # we capture a function definition right now - check if done
@@ -252,6 +241,13 @@ def env_eval(fname: str) -> Dict[str, str]:
                     func_data += line
                     continue
 
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith('#'):
+                continue
 
             func_check = re_function.match(line)
             if func_check:
@@ -278,7 +274,6 @@ def env_eval(fname: str) -> Dict[str, str]:
                 env[k] = _unquote(v.strip())
 
             else:
-                fout.write('? %s\n' % line)
                 elems = line.split('=', 1)
                 k = elems.pop(0)
                 v = elems[0] if elems else ''
@@ -310,6 +305,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
              unset          : Optional[List[str]]     = None,
              pre_exec       : Optional[List[str]]     = None,
              pre_exec_cached: Optional[List[str]]     = None,
+             script_path    : Optional[str]           = None
             ) -> Dict[str, str]:
     '''
     Create a shell script which restores the environment specified in
@@ -338,7 +334,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     '''
 
     # defaults
-    if environment     is None: environment     = dict(**os.environ)
+    if environment     is None: environment     = dict(os.environ)
     if unset           is None: unset           = list()
     if pre_exec        is None: pre_exec        = list()
     if pre_exec_cached is None: pre_exec_cached = list()
@@ -368,7 +364,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         #     but are defined in the `unset` list;
         #   - unset all blacklisted vars;
         #   - sets all variables defined in the `environment` dict;
-        #   - inserts all the `pre_exec` commands given;
         #   - runs the `pre_exec_cached` commands given;
         #   - dumps the resulting env in a temporary file;
         #
