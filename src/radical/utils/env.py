@@ -125,8 +125,6 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
     val     = ''
 
     for line in lines:
-        if 'foo' in line:
-            print('=== read: %s' % line)
 
         # remove newline
         line = line.rstrip('\n')
@@ -291,11 +289,27 @@ def env_eval(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
+def env_dump(environment: Optional[Dict[str,str]] = None,
+             script_path: Optional[str]           = None) -> None:
+
+    if not environment:
+        environment = dict(os.environ)
+
+    if script_path:
+        with open(script_path, 'w') as fout:
+            for k in sorted(environment.keys()):
+                fout.write('%s=%s\n' % (k, environment[k].replace('\n', '\\n')))
+    else:
+        for k in sorted(environment.keys()):
+            print('%s=%s' % (k, environment[k].replace('\n', '\\n')))
+
+
+# ------------------------------------------------------------------------------
+#
 def env_prep(environment    : Optional[Dict[str,str]] = None,
              unset          : Optional[List[str]]     = None,
              pre_exec       : Optional[List[str]]     = None,
              pre_exec_cached: Optional[List[str]]     = None,
-             script_path    : Optional[str]           = None
             ) -> Dict[str, str]:
     '''
     Create a shell script which restores the environment specified in
@@ -343,7 +357,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     cache_md5 = hashlib.md5(cache_key.encode('utf-8')).hexdigest()
 
     if cache_md5 in _env_cache:
-        print('use cache')
         env = _env_cache[cache_md5]
 
     else:
