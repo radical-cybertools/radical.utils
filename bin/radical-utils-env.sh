@@ -131,7 +131,7 @@ env_prep(){
     #   -r <file>    : File containing the 'remove' env to unset if needed
     #   -p cmd       : Command to run after all env settings (and unsettings)
     #                  This parameter can be specified multiple times.
-    #   -t <file>    : File to write the targe=t setting to -- sourcing that
+    #   -t <file>    : File to write the target setting to -- sourcing that
     #                  file from within the 'remove' environment will re-create
     #                  the desired 'source' environment.
     #

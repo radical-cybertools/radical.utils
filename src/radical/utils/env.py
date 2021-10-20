@@ -209,7 +209,6 @@ def _unquote(data: str) -> str:
     return data
 
 
-
 # ------------------------------------------------------------------------------
 #
 def env_eval(fname: str) -> Dict[str, str]:
@@ -378,7 +377,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         if script_path: prefix = os.path.basename(script_path)
         else          : prefix = None
 
-        tmp_file, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
+        _, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
 
         env_write(tmp_name, environment, unset, pre_exec_cached)
         cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name

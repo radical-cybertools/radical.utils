@@ -58,9 +58,6 @@ def test_env_prep():
     pprint.pprint(err)
     assert(not out.strip()), out
     assert(not err.strip()), err
-    import pprint
-    print('=== ret')
-    pprint.pprint(ret)
     assert(not ret), ret
 
     out, _, ret = ru.sh_callout('unset ENV_ONLY; . /tmp/test.env; echo $ENV_ONLY',
@@ -96,6 +93,28 @@ def test_env_read():
 
 # ------------------------------------------------------------------------------
 #
+def test_env_write():
+
+    fname     = '/tmp/env.%d' % os.getpid()
+    env       = {'TEST_ENV': 'test_env'}
+    unset_env = ['UNSET_ENV', '1_NON_VALID']
+    try:
+        ru.env_write(fname, env, unset_env)
+
+        with open(fname) as fd:
+            file_content = ''.join(fd.readlines())
+
+        assert ("export TEST_ENV='test_env'" in file_content)
+        assert ('UNSET_ENV'                  in file_content)
+        assert ('1_NON_VALID'            not in file_content)
+        assert ('# pre_exec'             not in file_content)
+
+    finally:
+        try   : os.unlink(fname)
+        except: pass
+
+# ------------------------------------------------------------------------------
+#
 def test_env_proc():
 
     key = 'TEST_SHARED'
@@ -119,6 +138,7 @@ if __name__ == '__main__':
 
     test_env_prep()
     test_env_read()
+    test_env_write()
     test_env_proc()
 
 
