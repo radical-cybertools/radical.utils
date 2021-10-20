@@ -113,6 +113,7 @@ def test_env_write():
         try   : os.unlink(fname)
         except: pass
 
+
 # ------------------------------------------------------------------------------
 #
 def test_env_proc():
