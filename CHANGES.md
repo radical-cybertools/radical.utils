@@ -2,7 +2,7 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
-1.8.3  Hotfix Release                                                 2021-11-03
+1.8.4  Hotfix Release                                                 2021-11-03
 --------------------------------------------------------------------------------
 
   - fix env handling on old BASH versions (Stampede2)
