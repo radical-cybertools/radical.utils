@@ -22,6 +22,7 @@ from setuptools import setup, find_namespace_packages
 name     = 'radical.utils'
 mod_root = 'src/radical/utils/'
 
+path = None
 
 # ------------------------------------------------------------------------------
 #
@@ -53,6 +54,8 @@ def get_version(_mod_root):
     during installation.  That file is used at runtime to get the version
     information.
     '''
+
+    global path
 
     try:
 
@@ -243,6 +246,12 @@ setup_args = {
 setup(**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
+
+if path:
+    os.system('rm -f %s/VERSION'      % path)
+    os.system('rm -f %s/VERSION.git'  % path)
+    os.system('rm -f %s/SDIST'        % path)
+    os.system('rm -f %s/%s'           % (path, sdist_name))
 
 
 # ------------------------------------------------------------------------------

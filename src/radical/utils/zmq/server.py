@@ -269,7 +269,7 @@ class Server(object):
                 continue
 
             # default response
-            rep = self._error('server error')
+            rep = None
 
             try:
                 data = no_intr(self._sock.recv)
@@ -298,6 +298,8 @@ class Server(object):
                                   exc='\n'.join(get_exception_trace()))
 
             finally:
+                if not rep:
+                     rep = self._error('server error')
                 no_intr(self._sock.send, msgpack.packb(rep))
                 self._log.debug('rep: %s', str(rep)[:128])
 
