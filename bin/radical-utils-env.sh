@@ -383,7 +383,7 @@ env_deactivate(){
         unset  VIRTUAL_ENV
     fi
 
-    # similar for conda (both levels)
+    # conda env fallback
     if ! test -z "$CONDA_PREFIX"
     then
         # remove the `$PATH` entry if it exists
@@ -395,7 +395,7 @@ env_deactivate(){
         unset  CONDA_PREFIX
     fi
 
-    # similar for conda (both levels)
+    # base conda fallback
     if ! test -z "$CONDA_PREFIX_1"
     then
         # remove the `$PATH` entry if it exists
