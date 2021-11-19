@@ -344,5 +344,77 @@ sync_n(){
 
 
 # ------------------------------------------------------------------------------
+#
+env_deactivate(){
+    # provide a generic deactivate which attempts to move the current shell out
+    # of any activated virtualenv or conda env
+
+    # deactivate active conda
+    conda=$(which conda 2>/dev/null)
+    if ! test -z "$conda"
+    then
+        conda deactivate  # leave any conda env
+        conda deactivate  # leave conda base env
+    fi
+
+    # old style conda
+    has_deactivate=$(which deactivate 2>/dev/null)
+    if ! test -z "$has_deactivate"
+    then
+        . deactivate
+    fi
+
+    # deactivate active virtualenv
+    has_deactivate=$(set | grep -e '^deactivate\s*()')
+    if ! test -z "$has_deactivate"
+    then
+        deactivate
+    fi
+
+    # as a fallback, check if `$VIRTUAL_ENV` is set and dactivate manually
+    if ! test -z "$VIRTUAL_ENV"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$VIRTUAL_ENV/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        REMOVE="$VIRTUAL_ENV/bin/"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  VIRTUAL_ENV
+    fi
+
+    # similar for conda (both levels)
+    if ! test -z "$CONDA_PREFIX"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$CONDA_PREFIX/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        REMOVE="$CONDA_PREFIX/bin/"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  CONDA_PREFIX
+    fi
+
+    # similar for conda (both levels)
+    if ! test -z "$CONDA_PREFIX_1"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$CONDA_PREFIX_1/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        REMOVE="$CONDA_PREFIX_1/bin/"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  CONDA_PREFIX_1
+        unset  CONDA_SHLVL
+        unset  CONDA_EXE
+        unset  CONDA_PREFIX_1
+        unset  CONDA_PYTHON_EXE
+        unset  CONDA_PROMPT_MODIFIER
+        unset  CONDA_DEFAULT_ENV
+        unset  _CE_CONDA
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # env_prep -s ed1.env -d ed2.env -t ed3.sh  "echo foo bar" "echo buz"
 
