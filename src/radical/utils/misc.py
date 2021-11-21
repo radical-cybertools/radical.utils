@@ -795,7 +795,7 @@ def mktar(tarname, fnames=None, data=None):
     the `tarname` to reflect that.
     '''
 
-    tar = tarfile.open(tarname, "w:bz2")
+    tar = tarfile.ru_open(tarname, "w:bz2")
     if fnames:
         for element in fnames:
             if isinstance(str, element):
@@ -847,7 +847,7 @@ def script_2_func(fpath):
     postfix = []
 
 
-    with open(fpath, 'r') as fin:
+    with ru_open(fpath, 'r') as fin:
         code_lines = fin.readlines()
 
     # ensure that 'if __name__ == '__main__' works
@@ -938,6 +938,17 @@ def script_2_func(fpath):
   #
   # return ret
 
+
+# ------------------------------------------------------------------------------
+#
+def ru_open(*args, **kwargs):
+    '''
+    ensure that we use UTF8 consistently throughout the stack
+    '''
+
+    kwargs['encoding'] = 'utf8'
+
+    return open(*args, **kwargs)
 
 # ------------------------------------------------------------------------------
 
