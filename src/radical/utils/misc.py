@@ -795,7 +795,7 @@ def mktar(tarname, fnames=None, data=None):
     the `tarname` to reflect that.
     '''
 
-    tar = tarfile.ru_open(tarname, "w:bz2")
+    tar = tarfile.open(tarname, "w:bz2")
     if fnames:
         for element in fnames:
             if isinstance(str, element):
