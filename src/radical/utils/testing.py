@@ -43,8 +43,6 @@ def sys_exit(ret):
     call `pytest.exit(ret)` when running under pytest, `sys.exit(ret) otherwise
     '''
 
-    global _pytest_active
-
     if _pytest_active:
         pytest.exit(ret)
 

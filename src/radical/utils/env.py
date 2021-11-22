@@ -10,7 +10,7 @@ from typing import List, Dict, Tuple, Any, Optional
 
 import multiprocessing as mp
 
-from .misc  import as_list, rec_makedir
+from .misc  import as_list, rec_makedir, ru_open
 from .shell import sh_callout
 
 
@@ -49,7 +49,7 @@ def env_read(fname: str) -> Dict[str, str]:
     `env` and returns a dict with the found environment settings.
     '''
 
-    with open(fname, 'r') as fin:
+    with ru_open(fname, 'r') as fin:
         lines = fin.readlines()
 
     return env_read_lines(lines)
@@ -107,7 +107,7 @@ def env_write(script_path, env, unset=None, pre_exec=None):
             data += '%s\n' % cmd
         data += '\n'
 
-    with open(script_path, 'w') as fout:
+    with ru_open(script_path, 'w') as fout:
         fout.write(data)
 
 
@@ -218,7 +218,7 @@ def env_eval(fname: str) -> Dict[str, str]:
     '''
 
     env = dict()
-    with open(fname, 'r') as fin:
+    with ru_open(fname, 'r') as fin:
 
         func_name = None
         func_data = None
@@ -290,7 +290,7 @@ def env_dump(environment: Optional[Dict[str,str]] = None,
         environment = dict(os.environ)
 
     if script_path:
-        with open(script_path, 'w') as fout:
+        with ru_open(script_path, 'w') as fout:
             for k in sorted(environment.keys()):
                 fout.write('%s=%s\n' % (k, environment[k].replace('\n', '\\n')))
     else:
