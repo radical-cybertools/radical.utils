@@ -344,5 +344,71 @@ sync_n(){
 
 
 # ------------------------------------------------------------------------------
+#
+env_deactivate(){
+    # provide a generic deactivate which attempts to move the current shell out
+    # of any activated virtualenv or conda env
+
+    # deactivate active conda
+    conda=$(which conda 2>/dev/null)
+    if ! test -z "$conda"
+    then
+        while test "$CONDA_SHLVL" -gt "0"
+        do
+            conda deactivate
+        done
+    fi
+
+    # old style conda
+    has_deactivate=$(which deactivate 2>/dev/null)
+    if ! test -z "$has_deactivate"
+    then
+        . deactivate
+    fi
+
+    # deactivate active virtualenv
+    has_deactivate=$(set | grep -e '^deactivate\s*()')
+    if ! test -z "$has_deactivate"
+    then
+        deactivate
+    fi
+
+    # as a fallback, check if `$VIRTUAL_ENV` is set and dactivate manually
+    if ! test -z "$VIRTUAL_ENV"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$VIRTUAL_ENV/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  VIRTUAL_ENV
+    fi
+
+    # conda env fallback
+    if ! test -z "$CONDA_PREFIX"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$CONDA_PREFIX/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  CONDA_PREFIX
+    fi
+
+    # check for other conda levels
+    prefixes=$(env | cut -f 1 -d '=' | grep CONDA_PREFIX_)
+    for prefix in $prefixes
+    do
+        # remove the `$PATH` entry if it exists
+        REMOVE="$prefix/bin"
+        export PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        unset  $prefix
+    done
+
+    # clean out CONDA env vars
+    unset  CONDA_DEFAULT_ENV
+    unset  CONDA_PROMPT_MODIFIER
+}
+
+
+# ------------------------------------------------------------------------------
 # env_prep -s ed1.env -d ed2.env -t ed3.sh  "echo foo bar" "echo buz"
 
