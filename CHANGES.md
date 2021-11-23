@@ -2,6 +2,15 @@
 For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
+
+1.9.0  Release                                                        2021-11-23
+--------------------------------------------------------------------------------
+
+  - fixed `tarfile` method name
+  - generic deactivate
+  - pylint fixes, wrap open for utf8 encoding
+
+
 1.8.4  Hotfix Release                                                 2021-11-03
 --------------------------------------------------------------------------------
 
