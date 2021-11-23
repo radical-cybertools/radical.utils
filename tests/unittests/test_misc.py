@@ -278,6 +278,24 @@ def test_base():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_ru_open():
+
+    test_str = 'TEST encoding'
+    _, fpath = tempfile.mkstemp()
+
+    with ru.ru_open(fpath, 'w') as fd:
+        assert(fd.encoding == 'utf8')
+        fd.write(test_str)
+
+    with open(fpath, encoding='utf8') as fd:
+        assert(fd.read() == test_str)
+
+    try   : os.remove(fpath)
+    except: pass
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -290,6 +308,7 @@ if __name__ == "__main__":
     test_expand_env()
     test_script_2_func()
     test_base()
+    test_ru_open()
 
 
 # ------------------------------------------------------------------------------
