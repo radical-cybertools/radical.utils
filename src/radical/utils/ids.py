@@ -208,8 +208,6 @@ def _generate_id(template, prefix, ns=None):
     #  rarely used in IDs. They should be created only once per module instance,
     #  and/or only if needed.
 
-    global _cache
-
     state_dir = _BASE
     if ns:
         state_dir = os.path.join(_BASE, ns)

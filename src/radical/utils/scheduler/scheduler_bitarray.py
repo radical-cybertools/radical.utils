@@ -162,11 +162,11 @@ class BitarrayScheduler(SchedulerBase):
 
 
         if not loc:
-          # with open('ba_cores.bin', 'w') as f:
+          # with ru_open('ba_cores.bin', 'w') as f:
           #     self._cores.tofile(f)
-          # with open('ba_pat.bin', 'w') as f:
+          # with ru_open('ba_pat.bin', 'w') as f:
           #     pat.tofile(f)
-          # with open('ba_req.bin', 'w') as f:
+          # with ru_open('ba_req.bin', 'w') as f:
           #     f.write('%d\n' % req)
             self._pos = 0
             raise RuntimeError('out of cores (%s cores requested)' % req)
