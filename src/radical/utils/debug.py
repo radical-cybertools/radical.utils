@@ -14,6 +14,7 @@ import importlib.util
 import threading as mt
 
 from .ids     import generate_id
+from .misc    import ru_open
 from .threads import get_thread_name
 
 
@@ -116,7 +117,7 @@ def print_stacktraces(signum=None, sigframe=None):
     sys.stdout.write('%s\n' % out)
 
     if 'RADICAL_DEBUG' in os.environ:
-        with open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
+        with ru_open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
             f.write('%s\n' % out)
 
 
@@ -258,9 +259,6 @@ def raise_on(tag, log=None, msg=None):
     process-local, but is shared amongst threads of that process.
     '''
 
-    global _raise_on_state                               # pylint: disable=W0603
-    global _raise_on_lock                                # pylint: disable=W0603
-
     with _raise_on_lock:
 
         if tag not in _raise_on_state:
@@ -367,8 +365,6 @@ def add_snippet_path(path):
 
     if 'RADICAL_DEBUG' in os.environ:
 
-        global _SNIPPET_PATHS                            # pylint: disable=W0603
-
         if path not in _SNIPPET_PATHS:
             _SNIPPET_PATHS.append(path)
 
@@ -412,7 +408,7 @@ def get_snippet(sid):
             fname = '%s/%s.py' % (path, sid)
 
             try:
-                with open(fname, 'r') as fin:
+                with ru_open(fname, 'r') as fin:
                     snippet = fin.read()
                     snippet = snippet.replace('###SNIPPET_FILE###', fname)
                     snippet = snippet.replace('###SNIPPET_PATH###', path)
@@ -516,7 +512,7 @@ class DebugHelper(object):
             tid = mt.currentThread().ident
 
             fb  = '/tmp/ru.dh.%s.%s.%s' % (self.name, pid, tid)
-            fd  = open(fb, 'w+')
+            fd  = ru_open(fb, 'w+')
 
             fd.seek(0,0)
             fd.write('\nSTACK TRACE:\n%s\n%s\n' % (time.time(), get_trace()))

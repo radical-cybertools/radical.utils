@@ -130,9 +130,6 @@ def cancel_main_thread(signame=None, once=False):
     finalization.
     """
 
-    global _signal_lock                                  # pylint: disable=W0603
-    global _signal_sent                                  # pylint: disable=W0603
-
     if signame: signum = get_signal_by_name(signame)
     else      : signum = None
 
@@ -190,10 +187,13 @@ def _sigusr2_handler(signum, frame):
 
 def set_cancellation_handler():
 
+    # this method compares function pointers
+    # pylint: disable=W0143
+
     # check if any handler exists
     old_handler = signal.getsignal(signal.SIGUSR2)
     if old_handler not in [signal.SIG_DFL, signal.SIG_IGN, None] and \
-       old_handler != _sigusr2_handler:                 # pylint:  disable=W0143
+       old_handler != _sigusr2_handler:
         raise RuntimeError('handler for SIGUSR2 is already present')
 
     try:

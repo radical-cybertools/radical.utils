@@ -48,7 +48,6 @@ _trace_logger    = None
 def _tracer(frame, event, _):
 
     global _trace_external                               # pylint: disable=W0603
-    global _trace_logger                                 # pylint: disable=W0603
 
   # if  event == "call":
     if  event == "line":
