@@ -848,7 +848,7 @@ def script_2_func(fpath):
     postfix = []
 
 
-    with open(fpath, 'r') as fin:
+    with ru_open(fpath, 'r') as fin:
         code_lines = fin.readlines()
 
     # ensure that 'if __name__ == '__main__' works
@@ -939,6 +939,17 @@ def script_2_func(fpath):
   #
   # return ret
 
+
+# ------------------------------------------------------------------------------
+#
+def ru_open(*args, **kwargs):
+    '''
+    ensure that we use UTF8 consistently throughout the stack
+    '''
+
+    kwargs['encoding'] = 'utf8'
+
+    return open(*args, **kwargs)
 
 # ------------------------------------------------------------------------------
 
