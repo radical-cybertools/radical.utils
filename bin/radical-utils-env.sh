@@ -353,15 +353,10 @@ env_deactivate(){
     conda=$(which conda 2>/dev/null)
     if ! test -z "$conda"
     then
-        if test -z "$CONDA_SHLVL"
-        then
+        while test "$CONDA_SHLVL" -gt "0"
+        do
             conda deactivate
-        else
-            while ! "$CONDA_SHLVL" = "0"
-            do
-                conda deactivate
-            done
-        fi
+        done
     fi
 
     # old style conda
@@ -407,6 +402,10 @@ env_deactivate(){
         export PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
         unset  $prefix
     done
+
+    # clean out CONDA env vars
+    unset  CONDA_DEFAULT_ENV
+    unset  CONDA_PROMPT_MODIFIER
 }
 
 
