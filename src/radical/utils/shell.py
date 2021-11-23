@@ -9,6 +9,7 @@ import subprocess as sp
 
 from .constants import RUNNING, DONE, FAILED
 from .misc      import is_string
+from .misc      import ru_open
 
 
 # ------------------------------------------------------------------------------
@@ -52,8 +53,8 @@ def sh_callout_bg(cmd, stdout=None, stderr=None, shell=False, env=None):
     if stderr == sp.PIPE: raise ValueError('stderr pipe unsupported')
 
     # openfile descriptors for I/O, if needed
-    if is_string(stdout): stdout = open(stdout, 'w')
-    if is_string(stderr): stderr = open(stderr, 'w')
+    if is_string(stdout): stdout = ru_open(stdout, 'w')
+    if is_string(stderr): stderr = ru_open(stderr, 'w')
 
     # convert string into arg list if needed
     if not shell and is_string(cmd): cmd = shlex.split(cmd)
@@ -127,10 +128,10 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
             self._out_q = queue.Queue()              # put stdout to   parent
             self._err_q = queue.Queue()              # put stderr to   parent
 
-            if is_string(stdout): self._out_f = open(stdout, 'w')
+            if is_string(stdout): self._out_f = ru_open(stdout, 'w')
             else                : self._out_f = None
 
-            if is_string(stderr): self._err_f = open(stderr, 'w')
+            if is_string(stderr): self._err_f = ru_open(stderr, 'w')
             else                : self._err_f = None
 
             self.state = RUNNING

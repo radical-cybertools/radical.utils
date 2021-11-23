@@ -2,6 +2,8 @@
 import re
 import os
 
+from .misc import ru_open
+
 _pat = r'^\s*(?P<detail>(?P<short>[^-]*)(?P<base>-[^-@]+?)?(-[^@]+?)?(?P<branch>@.+?)?)\s*$'
 
 
@@ -47,7 +49,7 @@ def get_version(paths=None):
         try:
             version_path = "%s/VERSION" % path
 
-            with open(version_path) as f:
+            with ru_open(version_path) as f:
                 data    = f.read()
                 lines   = data.split('\n', 1)
                 lines   = [line.strip() for line in lines]
@@ -72,9 +74,9 @@ def get_version(paths=None):
         # check if there is also an SDIST near the version_path
         sdist_path = version_path.replace('/VERSION', '/SDIST')
         try:
-            with open(sdist_path) as fh:
+            with ru_open(sdist_path) as fh:
                 sdist_name = fh.read().strip()
-        except Exception as e:
+        except Exception:
             # ignore missing SDIST file
             pass
 

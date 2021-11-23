@@ -213,7 +213,6 @@ def os_fork_wrapper():
     pid = None
     prepare_to_fork_acquire()
     try:
-        global _orig_os_fork
         pid = _orig_os_fork()
     finally:
         if pid == 0:
@@ -232,7 +231,6 @@ def os_forkpty_wrapper():
     pid = None
     prepare_to_fork_acquire()
     try:
-        global _orig_os_forkpty
         pid, fd = _orig_os_forkpty()
     finally:
         if pid == 0:

@@ -8,7 +8,7 @@ __license__   = 'MIT'
 import re
 import json
 
-from .misc import as_string
+from .misc import as_string, ru_open
 
 
 # ------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ def read_json(fname, filter_comments=True):
         pprint.pprint(read_json("my_file.json"))
     '''
 
-    with open(fname) as f:
+    with ru_open(fname) as f:
 
         try:
             return parse_json(f.read(), filter_comments)
@@ -59,7 +59,7 @@ def write_json(data, fname):
         data  = fname
         fname = tmp
 
-    with open(fname, 'w') as f:
+    with ru_open(fname, 'w') as f:
         json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
         f.write('\n')
         f.flush()
