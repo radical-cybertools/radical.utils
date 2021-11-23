@@ -6,6 +6,7 @@ import string
 # import colorama as c
 
 from .misc    import get_env_ns as ru_get_env_ns
+from .misc    import ru_open
 from .config  import DefaultConfig
 
 
@@ -18,7 +19,7 @@ def _open(target):
     except OSError:
         pass  # exists
 
-    return open(target, 'w')
+    return ru_open(target, 'w')
 
 
 # ------------------------------------------------------------------------------
