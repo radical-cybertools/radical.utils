@@ -19,7 +19,7 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .misc    import as_list
+from .misc    import as_list, ru_open
 from .host    import get_hostname
 from .debug   import get_stacktrace
 
@@ -427,7 +427,7 @@ class FluxHelper(object):
             if self._uri:
                 raise RuntimeError('service already connected: %s' % self._uri)
 
-            with open(self._uid + '.dump', 'a') as fout:
+            with ru_open(self._uid + '.dump', 'a') as fout:
                 fout.write('starting ' + str(os.getpid()) + '\n')
                 for l in get_stacktrace():
                     fout.write(l + '\n')
@@ -451,7 +451,7 @@ class FluxHelper(object):
 
         with self._lock:
 
-            with open(self._uid + '.dump', 'a') as fout:
+            with ru_open(self._uid + '.dump', 'a') as fout:
                 fout.write('connecting ' + str(os.getpid()) + '\n')
                 for l in get_stacktrace():
                     fout.write(l + '\n')

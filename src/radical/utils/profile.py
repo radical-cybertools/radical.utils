@@ -5,7 +5,7 @@ import csv
 import time
 
 from .ids     import get_radical_base
-from .misc    import as_string, as_list
+from .misc    import as_string, as_list, ru_open
 from .misc    import get_env_ns      as ru_get_env_ns
 from .host    import get_hostname    as ru_get_hostname
 from .host    import get_hostip      as ru_get_hostip
@@ -46,7 +46,7 @@ def _sync_ntp():
     # read from disk cache
     t_now = time.time()
     try:
-        with open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
+        with ru_open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
             data  = as_string(fin.read()).split()
             t_sys = float(data[0])
             t_ntp = float(data[1])
@@ -57,6 +57,7 @@ def _sync_ntp():
 
 
     # if disc cache is empty or old
+    t_now = time.time()
     if t_sys is None or t_now - t_sys > NTP_CACHE_TIMEOUT:
 
         # refresh data
@@ -71,7 +72,7 @@ def _sync_ntp():
         t_sys = (t_one + t_two) / 2.0
         t_ntp = response.tx_time
 
-        with open('%s/ntp.cache' % get_radical_base('utils'), 'w') as fout:
+        with ru_open('%s/ntp.cache' % get_radical_base('utils'), 'w') as fout:
             fout.write('%f\n%f\n' % (t_sys, t_ntp))
 
     # correct both time stamps by current time
@@ -107,9 +108,8 @@ def _atfork_parent():
 
 
 def _atfork_child():
-    global _profilers
     for prof, fname in _profilers:
-        prof._handle = open(fname, 'a', buffering=1024)
+        prof._handle = ru_open(fname, 'a', buffering=1024)
 
 
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
@@ -196,10 +196,9 @@ class Profiler(object):
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
         fname = '%s/%s.prof' % (self._path, self._name)
-        self._handle = open(fname, 'a', buffering=1024)
+        self._handle = ru_open(fname, 'a', buffering=1024)
 
         # register for cleanup after fork
-        global _profilers
         _profilers.append([self, fname])
 
 
@@ -373,7 +372,7 @@ def read_profiles(profiles, sid=None, efilter=None):
 
     for prof in profiles:
 
-        with open(prof, 'r') as csvfile:
+        with ru_open(prof, 'r') as csvfile:
 
             ret[prof] = list()
             reader    = csv.reader(csvfile)
