@@ -6,7 +6,7 @@ import time
 from types import FrameType
 
 from .ids     import get_radical_base
-from .misc    import as_string, as_list
+from .misc    import as_string, as_list, ru_open
 from .misc    import get_env_ns      as ru_get_env_ns
 from .host    import get_hostname    as ru_get_hostname
 from .host    import get_hostip      as ru_get_hostip
@@ -75,11 +75,10 @@ def _sync_ntp():
 
     # read from disk cache
     try:
-        with open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
+        with ru_open('%s/ntp.cache' % get_radical_base('utils'), 'r') as fin:
             data  = as_string(fin.read()).split()
             t_sys = float(data[0])
             t_ntp = float(data[1])
-            t_now = time.time()
 
     except:
         t_sys = None
@@ -87,6 +86,7 @@ def _sync_ntp():
 
 
     # if disc cache is empty or old
+    t_now = time.time()
     if t_sys is None or t_now - t_sys > NTP_CACHE_TIMEOUT:
 
         # refresh data
@@ -101,7 +101,7 @@ def _sync_ntp():
         t_sys = (t_one + t_two) / 2.0
         t_ntp = response.tx_time
 
-        with open('%s/ntp.cache' % get_radical_base('utils'), 'w') as fout:
+        with ru_open('%s/ntp.cache' % get_radical_base('utils'), 'w') as fout:
             fout.write('%f\n%f\n' % (t_sys, t_ntp))
 
     # correct both time stamps by current time
@@ -137,9 +137,8 @@ def _atfork_parent():
 
 
 def _atfork_child():
-    global _profilers
     for prof, fname in _profilers:
-        prof._handle = open(fname, 'a', buffering=1024)
+        prof._handle = ru_open(fname, 'a', buffering=1024)
 
 
 atfork(_atfork_prepare, _atfork_parent, _atfork_child)
@@ -226,10 +225,9 @@ class Profiler(object):
         # level buffering should still apply.  This is supposed to shield
         # against incomplete profiles.
         fname = '%s/%s.prof' % (self._path, self._name)
-        self._handle = open(fname, 'a', buffering=1024)
+        self._handle = ru_open(fname, 'a', buffering=1024)
 
         # register for cleanup after fork
-        global _profilers
         _profilers.append([self, fname])
 
 
@@ -428,169 +426,6 @@ def read_profiles(profiles, sid=None):
         tdiff('frame %s' % pname)
 
     tdiff('read done')
-
-    return ret
-
-
-# ------------------------------------------------------------------------------
-#
-def combine_profiles(profs):
-    '''
-    We merge all profiles and sort by time.
-
-    This routine expects all profiles to have a synchronization time stamp
-    (`sync_abs`) We expect one such absolute timestamp to be available per host
-    (the first profile entry will contain host information).  All timestamps
-    from the same host will be corrected by the respectively determined NTP
-    offset.  We define an 'accuracy' measure which is the maximum difference of
-    clock correction offsets across all hosts.  All time stamps are then
-    0-aligned, so that the smalles timestamp in the returned data frame is 0.0.
-
-    The method returnes the combined profiles (a single pandas data frame)
-    and accuracy, as tuple.
-    '''
-
-    from datatable import dt
-
-    tdiff('combine start')
-    syncs    = dict()  # profiles which have relative time refs
-    t_host   = dict()  # time offset per host
-    t_min    = None    # absolute starting point of profiled session
-    accuracy = 0       # max uncorrected clock deviation
-
-    # we expect exactly one `sync_abs` event per profile - all additional ones are
-    # ignored.  This implies that all events in that profile originate on the
-    # same host.  Not that `sync_abs` is always the first event in a profile, we
-    # can thus use it to determine t_min
-  # for pname, prof in profs.items():
-  #
-  #     tdiff('sync start %s' % pname)
-  #     # add an `entity` column to each profile table
-  #     prof['entity'] = str()
-  #
-  #     t_off = 0.0
-  #
-  #     if not prof.nrows:
-  #       # print('WARNING: skip empty profile %s' % pname)
-  #         syncs[pname] = t_off
-  #         continue
-  #
-  #     sync = prof.iloc[0]
-  #   # print(sync)
-  #   # print('==', sync[EVENT])
-  #   # print()
-  #
-  #     if t_min is None: t_min =     sync[TIME]
-  #     else            : t_min = min(sync[TIME], t_min)
-  #
-  #     if sync[EVENT] != 'sync_abs':
-  #       # print('WARNING: unsynced   profile %s' % pname)
-  #         pass
-  #
-  #     else:
-  #         host, ip, t_sys, t_ntp, t_mode = sync[MSG].split(':')
-  #
-  #         host_id = '%s:%s' % (host, ip)
-  #         t_off   = float(t_sys) - float(t_ntp)
-  #
-  #         syncs[pname] = t_off
-  #
-  #         if t_mode == 'sys':
-  #           # print('sys synced profile (%s)' % t_mode)
-  #             pass
-  #
-  #         else:
-  #             # determine the correction for the given host
-  #             if host_id not in t_host:
-  #                 t_host[host_id] = t_off
-  #
-  #             else:
-  #                 diff = t_off - t_host[host_id]
-  #                 accuracy = max(accuracy, diff)
-  #
-  #                 # allow *some* amount of inconsistency before warning
-  #                 if diff > NTP_DIFF_WARN_LIMIT:
-  #                     print('conflicting time sync for %-45s (%15s): '
-  #                           '%10.2f - %10.2f = %5.2f'
-  #                        % (pname, host_id, t_off, t_host[host_id], diff))
-  #                     continue
-  #     tdiff('sync stop  %s' % pname)
-  #
-  # # apply t_min and t_off correction to all events
-  # for pname, prof in profs.items():
-  #
-  #     if not prof.nrows:
-  #         continue
-  #
-  #     t_fix = syncs[pname] - t_min
-  #     prof.time += t_fix
-  #
-  #     end = prof.loc[prof['event'] == 'END']
-  #     if not end.nrows:
-  #       # print('WARNING: profile "%s" not correctly closed.' % pname)
-  #         pass
-
-    # combine, sort by time and return
-    # FIXME
-
-    tdiff('concat start')
-    p_glob = dt.rbind(*(list(profs.values())))
-  # p_glob = pandas.concat(profs.values())
-    tdiff('concat')
-  # p_glob.drop_duplicates(inplace=True)
-  # tdiff('dedup')
-    p_glob.sort('time')
-    tdiff('sort')
-
-    return p_glob, accuracy
-
-
-# ------------------------------------------------------------------------------
-#
-def clean_profile(profile, sid, state_final=None, state_canceled=None):
-    '''
-    This method will prepare a profile for consumption in radical.analytics.
-    It performs the following actions:
-
-      - makes sure all events have a `ename` entry
-      - remove all state transitions to `CANCELLED` if a different final state
-        is encountered for the same uid
-      - assignes the session uid to all events without uid
-      - makes sure that state transitions have an `ename` set to `state`
-    '''
-
-    import numpy as np
-
-    tdiff('clean start')
-    state_final = as_list(state_final)
-
-    # replace all NaN with ''
-    profile['uid'].replace(np.nan, '')
-    tdiff('replace nan')
-
-    # 'advance' events are renamed to `state`
-    profile['event'].replace('advance', 'state')
-    tdiff('replace advance')
-
-    # use sid as uid if that is not defined
-    profile['uid'].replace('', sid)
-    tdiff('replace ""')
-
-    # extract entity type from uid
-    etype = profile['uid'].str.split('.', n=1, expand=True)
-    profile['entity'] = etype[0]
-    tdiff('add entity')
-
-    # `etype` for session id is `session` (not `rp.session`)
-    profile['entity'].replace('rp', 'session', inplace=True)
-    tdiff('replace rp')
-
-    # FIXME: duplicated final events are ignored right now
-
-    # convert to list of tuples
-    # FIXME: this should be DFs all the way down...
-    ret = list(profile.to_records(index=False))
-    tdiff('as list')
 
     return ret
 
