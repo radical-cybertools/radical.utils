@@ -37,7 +37,7 @@ class Bridge(object):
         self._cfg     = cfg
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
-        self._pwd     = self._cfg.path
+        self._pwd     = self._cfg.path or './'
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
