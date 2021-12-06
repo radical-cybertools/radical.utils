@@ -1,5 +1,6 @@
 # pylint: disable=protected-access
 
+import sys
 import zmq
 import msgpack
 
@@ -13,6 +14,7 @@ from ..misc    import is_string, as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
 from ..profile import Profiler
+from ..debug   import print_exception_trace
 
 from .bridge   import Bridge
 from .utils    import no_intr, log_bulk
@@ -284,8 +286,10 @@ class Subscriber(object):
 
       # assert(url in Subscriber._callbacks)
 
+        uid = None
+
         try:
-          # uid    = Subscriber._callbacks.get(url, {}).get('uid')
+            uid    = Subscriber._callbacks.get(url, {}).get('uid')
             lock   = Subscriber._callbacks.get(url, {}).get('lock')
             term   = Subscriber._callbacks.get(url, {}).get('term')
             socket = Subscriber._callbacks.get(url, {}).get('socket')
@@ -304,8 +308,13 @@ class Subscriber(object):
                                 cb(topic, msg)
                         else:
                             cb(topic, msg)
-        except:
-            log.exception('listener died')
+
+        except Exception as e:
+            print_exception_trace()
+            log.exception('listener died: %s : %s' % (uid, url))
+            sys.stderr.write('listener died: %s : %s : %s\n'
+                            % (uid, url, repr(e)))
+            sys.stderr.flush()
 
 
     # --------------------------------------------------------------------------

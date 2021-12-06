@@ -476,9 +476,10 @@ class Getter(object):
                             else:
                                 cb(as_string(m))
 
-        except:
+        except Exception as e:
             print_exception_trace()
-            sys.stderr.write('listener died\n')
+            sys.stderr.write('listener died: %s : %s : %s\n'
+                            % (qname, url, repr(e)))
             sys.stderr.flush()
 
 
