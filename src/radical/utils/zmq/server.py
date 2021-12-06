@@ -249,8 +249,11 @@ class Server(object):
                 self._sock.bind(url)
                 self._log.debug('success')
                 break
-            except Exception:
-                self._log.exception('pass')
+            except zmq.error.ZMQError as e:
+                if 'Address already in use' in str(e):
+                    self._log.warn('port in use - try next (%s)' % url)
+                else:
+                    raise
 
         addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
         addr.host  = get_hostip()
