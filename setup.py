@@ -247,11 +247,11 @@ setup(**setup_args)
 
 os.system('rm -rf src/%s.egg-info' % name)
 
-if path:
-    os.system('rm -f %s/VERSION'      % path)
-    os.system('rm -f %s/VERSION.git'  % path)
-    os.system('rm -f %s/SDIST'        % path)
-    os.system('rm -f %s/%s'           % (path, sdist_name))
+# if path:
+#     os.system('rm -f %s/VERSION'      % path)
+#     os.system('rm -f %s/VERSION.git'  % path)
+#     os.system('rm -f %s/SDIST'        % path)
+#     os.system('rm -f %s/%s'           % (path, sdist_name))
 
 
 # ------------------------------------------------------------------------------

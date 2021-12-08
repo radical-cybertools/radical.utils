@@ -20,8 +20,13 @@ from ..debug   import print_exception_trace
 from .bridge   import Bridge
 from .utils    import no_intr
 
+# from .utils    import log_bulk
 # from .utils    import prof_bulk
 
+
+# logger = Logger('radical.utils.zmq.queue', targets=['.'], level='DEBUG',
+# path='/tmp')
+# logger.debug('==== logging!')
 
 # FIXME: the log bulk method is frequently called and slow
 
@@ -236,6 +241,7 @@ class Queue(Bridge):
 
                     qname = msgpack.unpackb(data[0])
                     msgs  = msgpack.unpackb(data[1])
+                  # log_bulk(logger, msgs, '<> %s' % qname)
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
                   # self._log.debug('put %s: %s', qname, len(msgs))
 
@@ -250,7 +256,7 @@ class Queue(Bridge):
                 # check if somebody wants our messages
                 ev_get = dict(no_intr(self._poll_get.poll, timeout=0))
               # self._prof.prof('poll_get', msg=len(ev_get))
-              # self._log.debug('polled get: %s', ev_get)
+              # self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
                 if self._get in ev_get:
 
@@ -268,6 +274,8 @@ class Queue(Bridge):
                         msgs = buf[qname][:self._bulk_size]
                     else:
                         msgs = list()
+
+                  # log_bulk(logger, msgs, '>< %s' % qname)
 
                     data = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
@@ -364,9 +372,7 @@ class Putter(object):
         if not qname:
             qname = 'default'
 
-
-      # from .utils import log_bulk
-      # log_bulk(self._log, msgs, '-> %s' % self._channel)
+      # log_bulk(self._log, msgs, '-> %s [%s]' % (self._channel, qname))
         data = [msgpack.packb(qname), msgpack.packb(msgs)]
 
         with self._lock:
@@ -412,6 +418,7 @@ class Getter(object):
 
                 qname = as_string(msgpack.unpackb(data[0]))
                 msgs  = as_string(msgpack.unpackb(data[1]))
+              # log_bulk(logger, msgs, '<- %s' % qname)
                 return msgs
 
             else:
