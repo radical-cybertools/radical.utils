@@ -224,7 +224,7 @@ setup_args = {
                             'netifaces',
                             'ntplib',
                             'psutil',
-                            'pymongo',
+                            'pymongo<4',
                             'pyzmq',
                             'regex',
                             'setproctitle',
