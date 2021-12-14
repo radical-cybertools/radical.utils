@@ -221,7 +221,7 @@ setup_args = {
                             'msgpack',
                             'netifaces',
                             'ntplib',
-                            'pymongo',
+                            'pymongo<4',
                             'pyzmq',
                             'radical.gtod',
                             'regex',
