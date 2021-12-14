@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.9.1  Hotfix Release                                                 2021-11-23
+--------------------------------------------------------------------------------
+
+  - constrain mongodb version dependency
+
+
 1.9.0  Release                                                        2021-11-23
 --------------------------------------------------------------------------------
 
