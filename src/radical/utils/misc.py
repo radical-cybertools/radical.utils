@@ -577,14 +577,14 @@ def expand_env(data, env=None, ignore_missing=True):
     floats if they are formatted that way and contain no other characters.
     '''
 
-    from .munch    import Munch
+    from .typeddict import TypedDict
 
     # no data: None, empty dict / sequence / string
     if not data:
         return data
 
     # dict type
-    elif isinstance(data, (dict, Munch)):
+    elif isinstance(data, (dict, TypedDict)):
 
         for k,v in data.items():
             data[k] = expand_env(v, env, ignore_missing)

@@ -45,7 +45,7 @@ def test_munch():
            'bar'   : {'one': 3,
                       'two': {'buz': 2}}}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         # will not be able to convert attribute "foo" (cast=True)
         r.verify()
 
@@ -54,7 +54,7 @@ def test_munch():
     cfg = {'foo'   : 2,
            'bar'   : {'buz':  2}}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         # will not be able to convert attribute "bar" (cast=True)
         r.verify()
 
@@ -63,7 +63,7 @@ def test_munch():
     cfg = {'foo'   : 2,
            'bar'   : Bar_1(cfg={'buz':  2})}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         # will not be able to convert input data for `Bar_1` (cast=True)
         r.verify()
 
@@ -72,7 +72,7 @@ def test_munch():
     cfg = {'foo'   : 2,
            'bar'   : Bar_1(cfg={'buz':  'buz'})}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         # will not be able to convert input data for `Bar_1` (cast=True)
         r.verify()
 
@@ -91,7 +91,7 @@ def test_munch():
            'bar'   : {'one': 3,
                       'two': {'buz': 'bar'}}}
     r = Buz_1(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         # will not be able to convert input data for `Bar_1` (attribute `two`)
         r.verify()
 
@@ -114,7 +114,7 @@ def test_munch():
            'bar'   : {'one': 3,
                       'two': {'buz': 1}}}
     r = Buz_2(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         r.verify()
 
     # confirm that old type is checked
@@ -123,7 +123,7 @@ def test_munch():
            'bar'   : {'one': 3,
                       'two': {'buz': 'buz'}}}
     r = Buz_2(cfg=cfg)
-    with pytest.raises(TypeError):
+    with pytest.raises(ru.TDError):
         r.verify()
 
 
@@ -244,12 +244,12 @@ def test_munch_inherit():
     # --------------------------------------------------------------------------
     # class whose schema is composed
     class Bar(Foo):
-        _schema_extend   = {'four': int,
-                            'five': float,
-                            'six' : Foo}
-        _defaults_extend = {'four': 42,
-                            'six' : {'one'  : 1,
-                                     'three': [33, 33]}}
+        _schema   = {'four': int,
+                     'five': float,
+                     'six' : Foo}
+        _defaults = {'four': 42,
+                     'six' : {'one'  : 1,
+                              'three': [33, 33]}}
 
     # --------------------------------------------------------------------------
     b = Bar()
