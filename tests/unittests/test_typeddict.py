@@ -116,6 +116,26 @@ class TypedDictTestCase(TestCase):
 
     # --------------------------------------------------------------------------
     #
+    def test_hash(self):
+
+        class TDHashed(TypedDict):
+
+            def __hash__(self):
+                return hash(tuple(sorted(self.items())))
+
+        # ----------------------------------------------------------------------
+
+        obj = TypedDict()
+
+        with self.assertRaises(TypeError) as e:
+            hash(obj)
+        self.assertIn('unhashable type', str(e.exception))
+
+        input_data = {'a': 'a', 'b': 'b'}
+        self.assertEqual(hash(TDHashed(input_data)), hash(TDHashed(input_data)))
+
+    # --------------------------------------------------------------------------
+    #
     def test_self_default(self):
 
         # test `cls._self_default` flag (for method `update`)

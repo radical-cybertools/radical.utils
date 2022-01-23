@@ -86,6 +86,8 @@ class TypedDictMeta(type):
 #
 class TypedDict(metaclass=TypedDictMeta):
 
+    __hash__ = None
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, from_dict=None):
