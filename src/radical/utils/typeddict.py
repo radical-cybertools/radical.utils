@@ -318,8 +318,8 @@ class TypedDict(metaclass=TypedDictMeta):
             level=level)
 
     @classmethod
-    def _verify_base(cls, k, v, t, cast):
-        if cast:
+    def _verify_base(cls, k, v, t):
+        if cls._cast:
             try:
                 return t(v)
             except (TypeError, ValueError):
@@ -327,8 +327,8 @@ class TypedDict(metaclass=TypedDictMeta):
         cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_bool(cls, k, v, t, cast):
-        if cast:
+    def _verify_bool(cls, k, v, t):
+        if cls._cast:
             if str(v).lower() in ['true', 'yes', '1']:
                 return True
             if str(v).lower() in ['false', 'no', '0']:
@@ -336,34 +336,33 @@ class TypedDict(metaclass=TypedDictMeta):
         cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_tuple(cls, k, v, t, cast):
-        if cast:
+    def _verify_tuple(cls, k, v, t):
+        if cls._cast:
             v = as_tuple(v)
-            return tuple([cls._verify_kvt(k + ' tuple element', _v, t[0], cast)
-                          for _v in v])
+            return tuple(
+                [cls._verify_kvt(k + ' tuple element', _v, t[0]) for _v in v])
         else:
             if isinstance(v, tuple):
                 return v
             cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_list(cls, k, v, t, cast):
-        if cast:
+    def _verify_list(cls, k, v, t):
+        if cls._cast:
             v = as_list(v)
-            return [cls._verify_kvt(k + ' list element', _v, t[0], cast)
-                    for _v in v]
+            return [cls._verify_kvt(k + ' list element', _v, t[0]) for _v in v]
         else:
             if isinstance(v, list):
                 return v
             cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_dict(cls, k, v, t, cast):
-        if cast:
+    def _verify_dict(cls, k, v, t):
+        if cls._cast:
             t_k = list(t.keys())[0]
             t_v = list(t.values())[0]
-            return {cls._verify_kvt(_k, _k, t_k, cast):
-                    cls._verify_kvt(_k, _v, t_v, cast)
+            return {cls._verify_kvt(_k, _k, t_k):
+                    cls._verify_kvt(_k, _v, t_v)
                     for _k, _v in v.items()}
         else:
             if isinstance(v, dict):
@@ -371,28 +370,30 @@ class TypedDict(metaclass=TypedDictMeta):
             cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_typeddict(cls, k, v, t, cast):
-        if cast:
-            if issubclass(type(v), t): return v.verify()
-            if isinstance(v, dict)   : return t(from_dict=v).verify()
+    def _verify_typeddict(cls, k, v, t):
+        if cls._cast:
+            if issubclass(type(v), t)          : return v.verify()
+            # different TypedDict-base, but has a subset of schema
+            if isinstance(v, (dict, TypedDict)): return t(from_dict=v).verify()
         else:
             if issubclass(type(v), t):
                 return v
         cls.__raise_attr_error(k, v, t)
 
     @classmethod
-    def _verify_kvt(cls, k, v, t, cast):
-        if t is None or v is None: return v
+    def _verify_kvt(cls, k, v, t):
+        if t is None or v is None      : return v
         if isinstance(t, type):
+            if issubclass(t, TypedDict): return cls._verify_typeddict(k, v, t)
+            # check base types
             if isinstance(v, t)        : return v
-            elif t in [str, int, float]: return cls._verify_base(k, v, t, cast)
-            elif t is bool             : return cls._verify_bool(k, v, t, cast)
-            else: cls.__raise_attr_error(k, v, t, level=3)
-        if isinstance(t, tuple)    : return cls._verify_tuple(k, v, t, cast)
-        if isinstance(t, list)     : return cls._verify_list(k, v, t, cast)
-        if isinstance(t, dict)     : return cls._verify_dict(k, v, t, cast)
-        if issubclass(t, TypedDict): return cls._verify_typeddict(k, v, t, cast)
-        if cast: return v
+            if t in [str, int, float]  : return cls._verify_base(k, v, t)
+            if t is bool               : return cls._verify_bool(k, v, t)
+            cls.__raise_attr_error(k, v, t, level=3)
+        if isinstance(t, tuple)        : return cls._verify_tuple(k, v, t)
+        if isinstance(t, list)         : return cls._verify_list(k, v, t)
+        if isinstance(t, dict)         : return cls._verify_dict(k, v, t)
+        if cls._cast                   : return v
         raise TDError('no verifier defined for type %s' % t, level=2)
 
     def verify(self):
@@ -406,8 +407,7 @@ class TypedDict(metaclass=TypedDictMeta):
                 if k not in self._schema:
                     raise TDError('key "%s" not in schema' % k)
 
-                self._data[k] = self._verify_kvt(k, v, self._schema[k],
-                                                 self._cast)
+                self._data[k] = self._verify_kvt(k, v, self._schema[k])
         self._verify()
         return self
 
@@ -420,7 +420,7 @@ class TypedDict(metaclass=TypedDictMeta):
 
         if k not in self._schema:
             raise TDError('key "%s" not in schema' % k, level=2)
-        return self._verify_kvt(k, v, self._schema[k], self._cast)
+        return self._verify_kvt(k, v, self._schema[k])
 
     # --------------------------------------------------------------------------
     #

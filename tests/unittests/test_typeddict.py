@@ -160,6 +160,71 @@ class TypedDictTestCase(TestCase):
 
     # --------------------------------------------------------------------------
     #
+    def test_verify(self):
+
+        # attribute "_cast" is True by default
+
+        class TDBase(TypedDict):
+
+            _schema = {
+                'attr_int' : int,
+                'attr_dict': {str: int}
+            }
+
+        class TDMain(TypedDict):
+
+            _schema = {
+                'attr_main_int': int,
+                'attr_main_td' : TDBase
+            }
+
+        class TDBaseCopy(TypedDict):
+
+            _schema = {
+                'attr_int' : int,
+                'attr_dict': {str: int}
+            }
+
+        # ----------------------------------------------------------------------
+
+        input_data = {'attr_main_int': 2,
+                      'attr_main_td' : {'attr_int' : 3,
+                                        'attr_dict': {'attr_any': 2}}}
+        obj = TDMain(input_data)
+        obj.verify()
+        self.assertEqual(type(obj.attr_main_td).__name__, 'TDBase')
+        self.assertEqual(obj.as_dict(), input_data)
+
+        with self.assertRaises(TDError):
+            # will not be able to convert attribute "attr_main_int"
+            TDMain({'attr_main_int': 'non_int',
+                    'attr_main_td' : {'attr_int' : 3,
+                                      'attr_dict': {'attr_any': 2}}}).verify()
+
+        with self.assertRaises(TDError):
+            # will not be able to convert attribute "attr_main_td"
+            TDMain({'attr_main_int': 2,
+                    'attr_main_td' : {'not_in_schema': 3}}).verify()
+
+        with self.assertRaises(TDError):
+            # will not be able to convert input data for `TDBase`
+            TDMain({'attr_main_int': 2,
+                    'attr_main_td' : TDBase({'not_in_schema': 3})}).verify()
+
+        with self.assertRaises(TDError):
+            # will not be able to convert attribute "attr_main_td.attr_dict"
+            TDMain({'attr_main_int': 2,
+                    'attr_main_td' : {'attr_int' : 3,
+                                      'attr_dict': {'attr_any': 'a'}}}).verify()
+
+        obj = TDMain({'attr_main_int': 2,
+                      'attr_main_td' : TDBaseCopy()})
+        # no TDError, since value of attribute "attr_main_td" will be converted
+        # classes `TDBase` and `TDBaseCopy` have the same schemas
+        obj.verify()
+
+    # --------------------------------------------------------------------------
+    #
     def test_verify_setter(self):
 
         class TDBaseNoSchema(TypedDict):
