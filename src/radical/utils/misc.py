@@ -704,7 +704,7 @@ def get_radical_base(module=None):
     '''
     Several parts of the RCT stack store state on the file system.  This should
     usually be under `$HOME/.radical` - but that location is not always
-    available or desireable.  We interpret the env variable `RADICAL_BASE_DIR`,
+    available or desireable.  We interpret the env variable `RADICAL_BASE`,
     and fall back to `pwd` if neither that nor `$HOME` exists.
 
     The optional `module` parameter will result in the respective subdir name to
@@ -733,10 +733,6 @@ def get_base(ns, module=None):
             module = module[len(ns_low) + 1:]
 
     base = os.environ.get("%s_BASE" % ns_up)
-
-    if not base:
-        # backward compatibility
-        base = os.environ.get("%s_BASE_DIR" % ns_up)
 
     if not base:
         base  = os.environ.get("HOME")
@@ -946,9 +942,11 @@ def ru_open(*args, **kwargs):
     ensure that we use UTF8 consistently throughout the stack
     '''
 
-    kwargs['encoding'] = 'utf8'
+    if 'encoding' not in kwargs:
+        kwargs['encoding'] = 'utf8'
 
     return open(*args, **kwargs)
+
 
 # ------------------------------------------------------------------------------
 
