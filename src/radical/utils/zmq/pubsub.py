@@ -161,7 +161,7 @@ class PubSub(Bridge):
                 self._pub.send(msg)
 
                 self._prof.prof('subscribe', uid=self._uid, msg=msg)
-                log_bulk(self._log, msg, '~~1 %s' % self.channel)
+              # log_bulk(self._log, msg, '~~1 %s' % self.channel)
 
 
             if self._pub in socks:
@@ -172,7 +172,7 @@ class PubSub(Bridge):
                 self._sub.send(msg)
 
               # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
-                log_bulk(self._log, msg, '<> %s' % self.channel)
+              # log_bulk(self._log, msg, '<> %s' % self.channel)
 
 
 # ------------------------------------------------------------------------------
@@ -197,8 +197,8 @@ class Publisher(object):
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
-            self._log  = Logger(name=self._uid, ns='radical.utils.zmq',
-            level='debug')
+            self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
+                              # level='debug')
 
         if not prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
@@ -237,9 +237,9 @@ class Publisher(object):
 
         assert(isinstance(topic, str )), 'invalid topic type'
 
-        self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
+      # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
-        log_bulk(self._log, msg, '-> %s' % self.channel)
+      # log_bulk(self._log, msg, '-> %s' % self.channel)
 
         btopic = as_bytes(topic.replace(' ', '_'))
         bmsg   = msgpack.packb(msg)
@@ -439,7 +439,7 @@ class Subscriber(object):
 
         sock  = Subscriber._callbacks[self._url]['socket']
         topic = str(topic).replace(' ', '_')
-        log_bulk(self._log, topic, '~~2 %s' % topic)
+      # log_bulk(self._log, topic, '~~2 %s' % topic)
 
         with self._lock:
             no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
