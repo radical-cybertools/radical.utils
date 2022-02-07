@@ -1,3 +1,4 @@
+# pylint: disable=reimported
 
 # allow star import, unused symbols
 # flake8: noqa: F401
@@ -46,11 +47,10 @@ from .stack          import stack
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
 from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .typeddict      import TypedDict, TypedDictMeta, TDError, to_dict
-#from .description    import Description
-#from .munch          import Munch, demunch
+from .config         import Config, DefaultConfig
+# for backward compatibility keep the names of obsolete classes
 from .typeddict      import TypedDict as Description
 from .typeddict      import TypedDict as Munch, demunch
-from .config         import Config, DefaultConfig
 
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
