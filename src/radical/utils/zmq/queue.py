@@ -238,7 +238,7 @@ class Queue(Bridge):
                     qname = as_string(msgpack.unpackb(data[0]))
                     msgs  = msgpack.unpackb(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
-                    log_bulk(self._log, '<> %s' % qname, msgs)
+                 ## log_bulk(self._log, '<> %s' % qname, msgs)
                     self._log.debug('put %s: %s ! ', qname, len(msgs))
 
                     if qname not in buf:
@@ -271,7 +271,7 @@ class Queue(Bridge):
                     else:
                         msgs = list()
 
-                    log_bulk(self._log, '>< %s' % qname, msgs)
+                 ## log_bulk(self._log, '>< %s' % qname, msgs)
 
                     data = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
@@ -371,7 +371,7 @@ class Putter(object):
         if not qname:
             qname = 'default'
 
-        log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
+     ## log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
         data = [msgpack.packb(qname), msgpack.packb(msgs)]
 
         with self._lock:
@@ -403,12 +403,12 @@ class Getter(object):
 
         with info['lock']:
 
-            logger  = Logger(name=qname, ns='radical.utils', level='DEBUG')
+         ## logger  = Logger(name=qname, ns='radical.utils', level='DEBUG')
 
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
-                logger.debug('=== => from %s[%s]', uid, qname)
+             ## logger.debug('=== => from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
 
@@ -420,7 +420,7 @@ class Getter(object):
 
                 qname = as_string(msgpack.unpackb(data[0]))
                 msgs  = as_string(msgpack.unpackb(data[1]))
-                log_bulk(logger, '<-1 %s [%s]' % (uid, qname), msgs)
+             ## log_bulk(logger, '<-1 %s [%s]' % (uid, qname), msgs)
                 return msgs
 
             else:
@@ -684,7 +684,7 @@ class Getter(object):
         qname = msgpack.unpackb(data[0])
         msgs  = msgpack.unpackb(data[1])
 
-        log_bulk(self._log, '<-2 %s [%s]' % (self._channel, qname), msgs)
+     ## log_bulk(self._log, '<-2 %s [%s]' % (self._channel, qname), msgs)
 
         return as_string(msgs)
 
@@ -718,7 +718,7 @@ class Getter(object):
 
             qname = msgpack.unpackb(data[0])
             msgs  = msgpack.unpackb(data[1])
-            log_bulk(self._log, '<-3 %s [%s]' % (self._channel, qname), msgs)
+         ## log_bulk(self._log, '<-3 %s [%s]' % (self._channel, qname), msgs)
 
             return as_string(msgs)
 

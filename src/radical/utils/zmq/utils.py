@@ -126,10 +126,7 @@ def get_channel_url(ep_type, channel=None, url=None):
 #
 def log_bulk(log, token, msgs):
 
-    log.debug("=== %s: ?", token)
-
     if not msgs:
-        log.debug("=== %s: -----", token)
         return
 
   # unpacked = list()
