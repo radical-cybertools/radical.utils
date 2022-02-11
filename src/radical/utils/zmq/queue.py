@@ -235,7 +235,7 @@ class Queue(Bridge):
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
 
-                    qname = msgpack.unpackb(data[0])
+                    qname = as_string(msgpack.unpackb(data[0]))
                     msgs  = msgpack.unpackb(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
                     log_bulk(self._log, '<> %s' % qname, msgs)
