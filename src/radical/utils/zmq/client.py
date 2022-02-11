@@ -2,12 +2,11 @@
 import zmq
 import msgpack
 
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Any
 
 import threading as mt
 
 from ..json_io import read_json
-from ..misc    import as_list
 
 from .utils    import no_intr, sock_connect
 

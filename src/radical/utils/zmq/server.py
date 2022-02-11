@@ -302,7 +302,7 @@ class Server(object):
 
             finally:
                 if not rep:
-                     rep = self._error('server error')
+                    rep = self._error('server error')
                 no_intr(self._sock.send, msgpack.packb(rep))
                 self._log.debug('rep: %s', str(rep)[:128])
 

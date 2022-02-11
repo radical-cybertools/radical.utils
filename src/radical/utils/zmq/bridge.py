@@ -40,7 +40,8 @@ class Bridge(object):
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level=self._cfg.log_lvl, path=self._pwd)
+                               level='DEBUG', path=self._pwd)
+                             # level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
 
         if self._pwd is None:

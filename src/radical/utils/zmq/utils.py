@@ -124,17 +124,20 @@ def get_channel_url(ep_type, channel=None, url=None):
 
 # ------------------------------------------------------------------------------
 #
-def log_bulk(log, token, msgs, *args):
+def log_bulk(log, token, msgs):
+
+    log.debug("=== %s: ?", token)
 
     if not msgs:
+        log.debug("=== %s: -----", token)
         return
 
-    unpacked = list()
-    for msg in as_list(msgs):
-        if hasattr(msg, 'read'):
-            msg = msgpack.unpack(msg)
-        unpacked.append(msg)
-    msgs = unpacked
+  # unpacked = list()
+  # for msg in as_list(msgs):
+  #     if hasattr(msg, 'read'):
+  #         msg = msgpack.unpack(msg)
+  #     unpacked.append(msg)
+  # msgs = unpacked
 
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
