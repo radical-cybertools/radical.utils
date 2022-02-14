@@ -73,7 +73,7 @@ class Client(object):
         if res['err']:
             err_msg = 'ERROR: %s' % res['err']
             if res['exc']:
-                err_msg += '\n%s' % '\n'.join(res['exc'])
+                err_msg += '\n%s' % ''.join(res['exc'])
             raise RuntimeError(err_msg)
 
         return res['res']
