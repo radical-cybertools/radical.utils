@@ -178,6 +178,8 @@ class FSHandler(logging.FileHandler):
 #
 class Logger(object):
 
+    # --------------------------------------------------------------------------
+    #
     def __init__(self, name, ns=None, path=None, targets=None, level=None,
                  verbose=False):
 
@@ -222,9 +224,6 @@ class Logger(object):
         self._logger.propagate = False   # let messages not trickle upward
         self._logger.name      = name
 
-        if self._logger.handlers:
-            return
-
         # otherwise configure this logger
         if not path:
             path = ru_def['log_dir']
@@ -245,14 +244,32 @@ class Logger(object):
 
         if not level:
             level = ru_get_env_ns('log_lvl', ns)
+
         if not level:
             # backward compatibility
             level = ru_get_env_ns('verbose', ns)
+
         if not level:
             level = ru_def['log_lvl']
 
         if level in [OFF, 'OFF']:
             targets = ['null']
+
+        try:
+            level = int(level)
+        except:
+            pass
+
+        self._debug_level = 0
+        if isinstance(level, int):
+            if level < 10:
+                self._debug_level = 10 - level
+                level = 'DEBUG'
+
+        elif level.upper().startswith('DEBUG_'):
+            self._debug_level = int(level.split('_', 1)[1])
+            level = 'DEBUG'
+
 
         # translate numeric levels into upper case symbolic ones
         levels  = {'50' : 'CRITICAL',
@@ -262,6 +279,8 @@ class Logger(object):
                    '10' : 'DEBUG',
                     '0' :  ru_def['log_lvl'],
                    '-1' : 'OFF'}
+
+
         level   = levels.get(str(level), str(level)).upper()
         warning = None
         if level not in list(levels.values()):
@@ -276,26 +295,29 @@ class Logger(object):
                                       '%(levelname)-8s : '
                                       '%(message)s')
 
+      # print('=== %-30s -> %-10s %d' % (name, level, self._debug_level))
+
         # add a handler for each targets (using the same format)
-        p = path
-        n = name
-        for t in targets:
-            if   t in ['0', 'null']       : h = logging.NullHandler()
-            elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
-            elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
-            elif t in ['.']               : h = FSHandler("%s/%s.log" % (p, n))
-            elif t.startswith('/')        : h = FSHandler(t)
-            else                          : h = FSHandler("%s/%s"     % (p, t))
+        if not self._logger.handlers:
+            p = path
+            n = name
+            for t in targets:
+                if   t in ['0', 'null']       : h = logging.NullHandler()
+                elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
+                elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
+                elif t in ['.']               : h = FSHandler("%s/%s.log" % (p, n))
+                elif t.startswith('/')        : h = FSHandler(t)
+                else                          : h = FSHandler("%s/%s"     % (p, t))
 
-            h.setFormatter(formatter)
-            h.name = self._logger.name
-            self._logger.addHandler(h)
+                h.setFormatter(formatter)
+                h.name = self._logger.name
+                self._logger.addHandler(h)
 
-        if level != 'OFF':
-            self._logger.setLevel(level)
+            if level != 'OFF':
+                self._logger.setLevel(level)
 
-        if warning:
-            self._logger.warning(warning)
+            if warning:
+                self._logger.warning(warning)
 
         # if `name` points to module, try to log its version info
         if verbose:
@@ -359,8 +381,36 @@ class Logger(object):
 
 
     # --------------------------------------------------------------------------
+    #
+    # treat `self.debug_1()`, `self.debug_2()` etc. the same as `self.debug()`
+    # if the respective `debug_level` is set, and ignore otherwise.  All other
+    # unknown method calls are forwarded to the nativ logger instance.  This is
+    # basically inheritance, but since the logger class has no constructor, we
+    # do it this way.
+    #
+    def __getattr__(self, name):
+
+        if name.startswith('debug_'):
+            level = int(name.split('_', 1)[1])
+            if level > self._debug_level:
+                return self._ignore
+            else:
+                return self.debug
+        else:
+            return getattr(self._logger, name)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _ignore(self, *args, **kwargs):
+        pass
+
+
+    # --------------------------------------------------------------------------
+    #
     # Add a close method to make sure we can close file handles etc.  This also
     # closes handles on all parent loggers (if those exist).
+    #
     def close(self):
 
         logger = self._logger
@@ -369,15 +419,6 @@ class Logger(object):
                 handler.close()
                 logger.removeHandler(handler)
             logger = logger.parent
-
-
-    # --------------------------------------------------------------------------
-    # all othe method calls are forwarded to the nativ logger instance.  This is
-    # basically inheritance, but since the logger class has no c onstructor, we
-    # do it this way.
-    def __getattr__(self, attr):
-
-        return getattr(self._logger, attr)
 
 
 # ------------------------------------------------------------------------------

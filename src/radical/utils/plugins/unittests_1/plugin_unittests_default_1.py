@@ -4,7 +4,7 @@ __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
 __license__   = 'MIT'
 
 import radical.utils  as ru
-import does_not_exist as nope                       # noqa pylint: disable=F0401
+import does_not_exist as nope                 # noqa pylint: disable=F0401,W0611
 
 
 # ------------------------------------------------------------------------------

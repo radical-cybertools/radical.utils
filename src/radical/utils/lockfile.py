@@ -6,7 +6,7 @@ import errno
 
 import threading as mt
 
-from .misc   import as_bytes
+from .misc   import as_bytes, ru_open
 from .debug  import get_caller_name
 
 
@@ -138,7 +138,7 @@ class Lockfile(object):
         self._tmp  = '%s/.%s.%d.%d' % (fname_dir, fname_base, os.getpid(), cnt)
 
         # make sure our tmp file exists
-        with open(self._tmp, 'w') as fout:
+        with ru_open(self._tmp, 'w') as fout:
             fout.write('%s\n' % get_caller_name())
 
 
@@ -216,7 +216,7 @@ class Lockfile(object):
         if not owner:
             owner = get_caller_name()
 
-        with open(self._tmp, 'w') as fout:
+        with ru_open(self._tmp, 'w') as fout:
             fout.write('%s\n' % owner)
 
         start = time.time()
@@ -268,7 +268,7 @@ class Lockfile(object):
         '''
 
         try:
-            with open(self._lck, 'r') as fin:
+            with ru_open(self._lck, 'r') as fin:
                 # strip newline
                 return(fin.readline()[:-1])
 

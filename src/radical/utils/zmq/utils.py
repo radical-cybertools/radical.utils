@@ -6,6 +6,7 @@ import msgpack
 
 from ..url  import Url
 from ..misc import as_list
+from ..misc import ru_open
 
 
 # --------------------------------------------------------------------------
@@ -100,7 +101,7 @@ def get_channel_url(ep_type, channel=None, url=None):
             url = os.environ[env_name]
 
         elif os.path.exists(cfg_name):
-            with open(cfg_name, 'r') as fin:
+            with ru_open(cfg_name, 'r') as fin:
                 for line in fin.readlines():
                     _ep_type, _url = line.split(':')
                     if _ep_type.strip().upper() == ep_type.upper():

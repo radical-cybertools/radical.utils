@@ -3,6 +3,60 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.11.0 Release                                                        2022-01-19
+--------------------------------------------------------------------------------
+
+  - sync release versions
+
+
+1.9.1  Hotfix Release                                                 2021-11-23
+--------------------------------------------------------------------------------
+
+  - constrain mongodb version dependency
+
+
+1.9.0  Release                                                        2021-11-23
+--------------------------------------------------------------------------------
+
+  - fixed `tarfile` method name
+  - generic deactivate
+  - pylint fixes, wrap open for utf8 encoding
+
+
+1.8.4  Hotfix Release                                                 2021-11-03
+--------------------------------------------------------------------------------
+
+  - fix env handling on old BASH versions (Stampede2)
+
+
+1.8.2  Hotfix Release                                                 2021-09-24
+--------------------------------------------------------------------------------
+
+  - ensure var initialization
+
+
+1.8.1  Hotfix Release                                                 2021-09-24
+--------------------------------------------------------------------------------
+
+  - add missing import
+
+
+1.8.0  Release                                                        2021-09-23
+--------------------------------------------------------------------------------
+
+  - add `debug_1`, `debug_2` etc as additional log levels
+  - socket cleanup for ZMQ connections
+  - add ZMQ registry class with dict interface
+  - added test for `zmq.client` and applied corresponding fixes
+  - add type annotations
+  - support for task env isolation
+  - damonize server threads
+  - disabled `os.setsid` in `ru.daemonize`
+  - improved flux integration (flux executor API)
+  - reconnect to external flux instances
+  - cleanup and fix host helper methods
+
+
 1.6.7  Release                                                        2021-07-08
 --------------------------------------------------------------------------------
 

@@ -8,6 +8,8 @@ import datetime
 import tempfile
 import itertools
 
+from typing import List, Tuple, Union, Any
+
 from urllib.parse import unquote_plus
 
 from .         import url       as ruu
@@ -282,7 +284,7 @@ def window(seq, n=2):
 
 # ------------------------------------------------------------------------------
 #
-def round_to_base(value, base=1):
+def round_to_base(value: float, base: int = 1) -> int:
     '''
     This method expects an integer or float value, and will round it to any
     given integer base.  For example:
@@ -303,7 +305,7 @@ def round_to_base(value, base=1):
 
 # ------------------------------------------------------------------------------
 #
-def round_upper_bound(value):
+def round_upper_bound(value: Union[int, float]) -> int:
     '''
     This method expects an integer or float value, and will return an integer
     upper bound suitable for example to define plot ranges.  The upper bound is
@@ -329,7 +331,7 @@ def round_upper_bound(value):
 
 # ------------------------------------------------------------------------------
 #
-def is_tuple(data):
+def is_tuple(data: Any) -> bool:
     '''
     return True if given data are a `tuple`, `False` otherwise
     '''
@@ -339,7 +341,7 @@ def is_tuple(data):
 
 # ------------------------------------------------------------------------------
 #
-def as_tuple(data):
+def as_tuple(data: Any) -> Tuple[Any]:
     '''
     return non-tuple data into a tuple.
     '''
@@ -351,7 +353,7 @@ def as_tuple(data):
 
 # ------------------------------------------------------------------------------
 #
-def is_list(data):
+def is_list(data: Any) -> bool:
     '''
     return True if given data are a `list`, `False` otherwise
     '''
@@ -361,7 +363,7 @@ def is_list(data):
 
 # ------------------------------------------------------------------------------
 #
-def as_list(data):
+def as_list(data: Any) -> List[Any]:
     '''
     return non-list data into a list.
     '''
@@ -373,7 +375,7 @@ def as_list(data):
 
 # ------------------------------------------------------------------------------
 #
-def to_type(data):
+def to_type(data: Any) -> Union[str, int, float, Any]:
 
     if not isinstance(data, str):
         return data
@@ -389,7 +391,7 @@ def to_type(data):
 
 # ------------------------------------------------------------------------------
 #
-def is_seq(data):
+def is_seq(data: Any) -> bool:
     '''
     tests if the given data is a sequence (but not a string)
     '''
@@ -398,7 +400,7 @@ def is_seq(data):
 
 # ------------------------------------------------------------------------------
 #
-def is_string(data):
+def is_string(data: Any) -> bool:
     '''
     tests if the given data are a `string` type
     '''
@@ -407,7 +409,7 @@ def is_string(data):
 
 # ------------------------------------------------------------------------------
 #
-def as_string(data):
+def as_string(data: Any) -> Any:
     '''
     Make a best-effort attempt to convert bytes to strings.  Iterate through
     lists and dicts, but leave all other datatypes alone.
@@ -431,13 +433,7 @@ def as_string(data):
 
 # ------------------------------------------------------------------------------
 #
-def is_str(s):
-    return isinstance(s, str)
-
-
-# ------------------------------------------------------------------------------
-#
-def is_bytes(data):
+def is_bytes(data: Any) -> bool:
     '''
     checks if the given data are of types `bytes` or `bytearray`
     '''
@@ -447,7 +443,7 @@ def is_bytes(data):
 # ------------------------------------------------------------------------------
 # thanks to
 # http://stackoverflow.com/questions/956867/#13105359
-def as_bytes(data):
+def as_bytes(data: Any) -> Any:
     '''
     Make a best-effort attempt to convert strings to bytes.  Iterate through
     lists and dicts, but leave all other datatypes alone.
@@ -770,11 +766,12 @@ def rec_makedir(target):
         os.makedirs(target)
 
     except OSError as e:
-        # ignore failure on existing directory
+
+        # ignore failure on existing directory - otherwise raise
         if e.errno == errno.EEXIST and os.path.isdir(os.path.dirname(target)):
-            pass
-        else:
-            raise
+            return
+
+        raise
 
 
 # ------------------------------------------------------------------------------
@@ -850,7 +847,7 @@ def script_2_func(fpath):
     postfix = []
 
 
-    with open(fpath, 'r') as fin:
+    with ru_open(fpath, 'r') as fin:
         code_lines = fin.readlines()
 
     # ensure that 'if __name__ == '__main__' works
@@ -941,6 +938,17 @@ def script_2_func(fpath):
   #
   # return ret
 
+
+# ------------------------------------------------------------------------------
+#
+def ru_open(*args, **kwargs):
+    '''
+    ensure that we use UTF8 consistently throughout the stack
+    '''
+
+    kwargs['encoding'] = 'utf8'
+
+    return open(*args, **kwargs)
 
 # ------------------------------------------------------------------------------
 

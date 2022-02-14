@@ -23,52 +23,87 @@ BLACKLIST="PS1 LS_COLORS _"
 
 # ------------------------------------------------------------------------------
 #
+env_grep(){
+
+    # some env variables are known to have difficult to parse values and at the
+    # same time don't need to be inherited - this method filters them out
+
+    grep -v \
+         -e '^LS_COLORS=' \
+         -e '^PS1=' \
+         -e '^_=' \
+         -e '^SHLVL='
+}
+
+
+# ------------------------------------------------------------------------------
+#
 env_dump(){
 
-    # Note that this capture will result in an unquoted dump where the values
-    # can contain spaces, quotes (double and single), non-printable characters
-    # etc.  The guarantees we have are:
+    # The purpose of this method is to dump the environment of the current shell
+    # in a format that can be parsed by other shell scripts (see `env_get`) and
+    # from Python (or other languages).  That is a surprisingly difficult task:
+    # environment variables can contain characters not allowed by POSIX (hello
+    # bash functions), and values can contain unprintable characters, newlines,
+    # quotes, assignments etc.  Consider this example:
     #
-    #   - variable names begin with a letter, and contain letters, numbers and
-    #     underscores.  From POSIX:
+    #     foo="bar\nbuz=biz"
     #
-    #       "Environment variable names used by the utilities in the Shell and
-    #       Utilities volume of IEEE Std 1003.1-2001 consist solely of uppercase
-    #       letters, digits, and the '_' (underscore) from the characters
-    #       defined in Portable Character Set and do not begin with a digit."
+    # `env` will result in
     #
-    #     Note that implementations usually also support lowercase letters, so
-    #     we'll have to support that, too (event though it is rarely used for
-    #     exported system variables).
+    #     ...
+    #     foo=bar
+    #     buz=biz
+    #     ...
     #
-    #   - variable values can have any character.  Again POSIX:
+    # which a parser cannot reliably distinguish from two separate exports.
+    # Alas, `env -0` (which outputs null-terminated strings) is not POSIX
+    # compliant.
     #
-    #       "For values to be portable across systems conforming to IEEE Std
-    #       1003.1-2001, the value shall be composed of characters from the
-    #       portable character set (except NUL [...])."
+    # We thus use `awk` to inspect the environment and to translate all value
+    # line breaks into `\n`:
     #
-    # So the rules for names are strict, for values they are, unfortunately,
-    # loose.  Specifically, values can contain unprintable characters and also
-    # newlines.  While the Python equivalent of `env_prep` handles that case
-    # well, the shell implementation below will simply ignore any lines which do
-    # not start with a valid key.
+    #     awk 'END {
+    #       for (k in ENVIRON) {
+    #         v=ENVIRON[k];
+    #         gsub(/\n/,"\\n",v);
+    #         print k"="v;
+    #       }
+    #     }' < /dev/null
+    #
+    # which, for our foo above, results into
+    #
+    #     ...
+    #     foo=bar\nbuz=biz
+    #     ...
+    #
+    # which can be cleanly parsed
+    #
 
-    tgt=''
-
-    local OPTIND OPTARG
+    local tgt
+    local OPTIND OPTARG OPTION
     while getopts "t:" OPTION; do
         case $OPTION in
-            t)  tgt="$OPTARG"
-                echo "tgt: $tgt";;
+            t)  tgt="$OPTARG" ;;
             *)  echo "Unknown option: '$OPTION'='$OPTARG'"
                 return 1;;
         esac
     done
 
+    dump() {
+        awk 'END {
+          for (k in ENVIRON) {
+            v=ENVIRON[k];
+            gsub(/\n/,"\\n",v);
+            print k"="v;
+          }
+        }' < /dev/null
+    }
+
     if test -z "$tgt"; then
-        env | sort
+        dump | sort | env_grep
     else
-        env | sort > "$tgt"
+        dump | sort | env_grep > "$tgt"
     fi
 }
 
@@ -96,7 +131,7 @@ env_prep(){
     #   -r <file>    : File containing the 'remove' env to unset if needed
     #   -p cmd       : Command to run after all env settings (and unsettings)
     #                  This parameter can be specified multiple times.
-    #   -t <file>    : File to write the targe=t setting to -- sourcing that
+    #   -t <file>    : File to write the target setting to -- sourcing that
     #                  file from within the 'remove' environment will re-create
     #                  the desired 'source' environment.
     #
@@ -106,16 +141,16 @@ env_prep(){
     #
     # FIXME: the latter is not yet true and needs fixing
     #
-    src=''
-    tgt=''
-    rem=''
-    pre=''
-    while ! test -z "$1"; do
-        case "$1" in
-            -s) src="$2"      ; shift 2 ;;
-            -t) tgt="$2"      ; shift 2 ;;
-            -r) rem="$2"      ; shift 2 ;;
-            -p) pre="$pre$2\n"; shift 2 ;;
+    local src tgt rem pre
+    local OPTIND OPTION OPTARG
+    while getopts "s:r:p:t:" OPTION; do
+        case $OPTION in
+            s) src="$OPTARG"       ;;
+            t) tgt="$OPTARG"       ;;
+            r) rem="$OPTARG"       ;;
+            p) pre="$pre$OPTARG\n" ;;
+            *)  echo "Unknown option: '$OPTION'='$OPTARG'"
+                return 1;;
         esac
     done
 
@@ -123,25 +158,26 @@ env_prep(){
     then
         echo "missing 'src' -- prepare env from current env"
         tmp=$(mktemp)
-        env > "$tmp"
+        env_dump -t "$tmp"
         src="$tmp"
     fi
 
     # get keys from `src` environment dump
+    # NOTE: bash func exports can end in `()` or `%%`
     src_keys=$( cat "$src" \
-               | sort \
-               | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-               | cut -f1 -d=
+               | grep -e '^[A-Za-z_][A-Za-z_0-9]*\(()\|\%\%\)\?=' \
+               | cut -f1 -d= \
+               | sort
                )
 
     if ! test -z "$rem"
     then
         # get keys from `rem` environment dump
         rem_keys=$( cat "$rem" \
-                  | sort \
-                  | grep -e '^[A-Za-z_][A-Za-z_0-9]*=' \
-                  | cut -f1 -d=
-                  )
+                   | grep -e '^[A-Za-z_][A-Za-z_0-9]*\(()\|\%\%\)\?=' \
+                   | cut -f1 -d= \
+                   | sort
+                   )
     fi
 
     _prep(){
@@ -166,37 +202,55 @@ env_prep(){
         fi
 
 
-        # export all keys from `src`
+        # export all keys from `src` (but filter out bash function definitions)
         printf "\n# export\n"
+        functions=''
         for k in $src_keys
         do
             # exclude blacklisted keys
-            if ! expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
+            if expr "$BLACKLIST" : ".*\<$k\>.*" >/dev/null
             then
-                bv=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
-                echo "export $k=\"$bv\""
+                continue
+            fi
+
+            # handle bash function definitions
+            v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/{ /{\n/')
+            func=$(expr "$k" : '^BASH_FUNC_\(.*\)\(()\|%%\)$')
+            if ! test -z "$func"
+            then
+                functions=$(printf "$func $v\nexport -f $func\n\n$functions")
+            else
+                v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
+                echo "export $k=\"$v\""
             fi
         done
         printf "\n"
+
+        # add functions if any were found
+        if ! test -z "$functions"
+        then
+            printf "# functions\n$functions\n\n"
+        fi
 
         # run all remaining arguments as `pre_exec` commands
         if ! test -z "$pre"
         then
             printf "\n# pre_exec_env\n"
-            for pe in "$pre"
+            for pe in $pre
             do
                 printf "$pe"
             done
             printf "\n"
         fi
         printf "\n"
+
+        printf "# end\n"
     }
 
     env=$(_prep)
 
     test -z "$tgt" && echo  "$env"
     test -z "$tgt" || echo  "$env" > $tgt
-
     test -z "$tmp" || rm -f "$tmp"
 }
 
@@ -228,7 +282,6 @@ check(){
     shift $(($OPTIND - 1))
     cmd="$*"
 
-    redir=''
     test -z "$outfile" && outfile=1
     test -z "$errfile" && errfile=2
 
@@ -287,6 +340,72 @@ sync_n(){
 
     rm -f "$f"
 
+}
+
+
+# ------------------------------------------------------------------------------
+#
+env_deactivate(){
+    # provide a generic deactivate which attempts to move the current shell out
+    # of any activated virtualenv or conda env
+
+    # deactivate active conda
+    conda=$(which conda 2>/dev/null)
+    if ! test -z "$conda"
+    then
+        while test "$CONDA_SHLVL" -gt "0"
+        do
+            conda deactivate
+        done
+    fi
+
+    # old style conda
+    has_deactivate=$(which deactivate 2>/dev/null)
+    if ! test -z "$has_deactivate"
+    then
+        . deactivate
+    fi
+
+    # deactivate active virtualenv
+    has_deactivate=$(set | grep -e '^deactivate\s*()')
+    if ! test -z "$has_deactivate"
+    then
+        deactivate
+    fi
+
+    # as a fallback, check if `$VIRTUAL_ENV` is set and dactivate manually
+    if ! test -z "$VIRTUAL_ENV"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$VIRTUAL_ENV/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  VIRTUAL_ENV
+    fi
+
+    # conda env fallback
+    if ! test -z "$CONDA_PREFIX"
+    then
+        # remove the `$PATH` entry if it exists
+        REMOVE="$CONDA_PREFIX/bin"
+        PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        export PATH
+        unset  CONDA_PREFIX
+    fi
+
+    # check for other conda levels
+    prefixes=$(env | cut -f 1 -d '=' | grep CONDA_PREFIX_)
+    for prefix in $prefixes
+    do
+        # remove the `$PATH` entry if it exists
+        REMOVE="$prefix/bin"
+        export PATH=$(echo $PATH | tr ":" "\n" | grep -v "$REMOVE" | tr "\n" ":")
+        unset  $prefix
+    done
+
+    # clean out CONDA env vars
+    unset  CONDA_DEFAULT_ENV
+    unset  CONDA_PROMPT_MODIFIER
 }
 
 

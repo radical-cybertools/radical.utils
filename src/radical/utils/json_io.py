@@ -1,4 +1,4 @@
-# pylint: disable=unused-import,eval-used
+# pylint: disable=unused-import,import-error,no-name-in-module,eval-used,unspecified-encoding
 
 __author__    = 'Radical.Utils Development Team (Andre Merzky)'
 __copyright__ = 'Copyright 2013, RADICAL@Rutgers'
@@ -8,7 +8,7 @@ __license__   = 'MIT'
 import re
 import json
 
-from .misc import as_string
+from .misc import as_string, ru_open
 
 
 # ------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ def read_json(fname, filter_comments=True):
         pprint.pprint(read_json("my_file.json"))
     '''
 
-    with open(fname) as f:
+    with ru_open(fname) as f:
 
         try:
             return parse_json(f.read(), filter_comments)
@@ -59,7 +59,7 @@ def write_json(data, fname):
         data  = fname
         fname = tmp
 
-    with open(fname, 'w') as f:
+    with ru_open(fname, 'w') as f:
         json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
         f.write('\n')
         f.flush()
@@ -112,11 +112,9 @@ def metric_expand(data):
 
     becomes:
 
-
         {
             2 : "foo"
         }
-
     '''
 
     try   : import radical.pilot as rp                              # noqa: F401
