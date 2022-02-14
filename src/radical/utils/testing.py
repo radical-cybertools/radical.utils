@@ -44,7 +44,7 @@ def sys_exit(ret):
     '''
 
     if _pytest_active:
-        pytest.exit(ret)
+        pytest.exit(reason='Exit with pytest', returncode=ret)
 
     else:
         sys.exit(ret)
