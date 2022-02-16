@@ -121,6 +121,7 @@ __copyright__ = "Copyright 2016, RADICAL@Rutgers"
 __license__   = "MIT"
 
 import glob
+import os
 
 from .debug      import find_module
 from .misc       import expand_env as ru_expand_env
