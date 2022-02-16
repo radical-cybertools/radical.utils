@@ -20,7 +20,7 @@ from ..debug   import print_exception_trace
 from .bridge   import Bridge
 from .utils    import no_intr
 
-from .utils    import log_bulk
+# from .utils    import log_bulk
 # from .utils    import prof_bulk
 
 
