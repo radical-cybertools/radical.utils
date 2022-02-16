@@ -380,17 +380,17 @@ class DefaultConfig(Config, metaclass=Singleton):
                    'profile_dir': str,
                  }
 
-  # _defaults = {
-  #                'log_lvl'    : 'error',
-  #                'log_tgt'    : 'stderr',
-  #                'log_dir'    : '.',
-  #                'report'     : True,
-  #                'report_tgt' : 'stderr',
-  #                'report_dir' : '.',
-  #                'profile'    : True,
-  #                'profile_dir': '.',
-  #              }
-  #
+    _defaults = {
+                   'log_lvl'    : 'error',
+                   'log_tgt'    : 'stderr',
+                   'log_dir'    : '.',
+                   'report'     : True,
+                   'report_tgt' : 'stderr',
+                   'report_dir' : '.',
+                   'profile'    : True,
+                   'profile_dir': '.',
+                 }
+
 
     # --------------------------------------------------------------------------
     #
