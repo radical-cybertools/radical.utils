@@ -63,6 +63,8 @@ def env_write(script_path, env, unset=None, pre_exec=None):
     if unset:
         data += '# unset\n'
         for k in sorted(unset):
+            if k in env:
+                continue
             if not re_snake_case.match(k):
                 continue
             data += 'unset %s\n' % k
