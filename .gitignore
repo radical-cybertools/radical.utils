@@ -1,4 +1,5 @@
 *.py[cod]
+VERSION
 .env
 ve/
 
@@ -26,6 +27,8 @@ pip-log.txt
 .coverage
 .tox
 nosetests.xml
+*.log
+*.prof
 
 # Translations
 *.mo
@@ -33,7 +36,9 @@ nosetests.xml
 # tmp files
 *.swp
 
-# Mr Developer
+# Developer
 .mr.developer.cfg
 .project
 .pydevproject
+.idea
+
