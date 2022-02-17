@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.11.1 Hotfix Release                                                 2022-02-17
+--------------------------------------------------------------------------------
+
+  - fix env setup
+
+
 1.11.0 Release                                                        2022-01-19
 --------------------------------------------------------------------------------
 
