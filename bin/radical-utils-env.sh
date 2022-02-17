@@ -353,6 +353,7 @@ env_deactivate(){
     conda=$(which conda 2>/dev/null)
     if ! test -z "$conda"
     then
+        eval "$(conda shell.posix hook)"
         while test "$CONDA_SHLVL" -gt "0"
         do
             conda deactivate
