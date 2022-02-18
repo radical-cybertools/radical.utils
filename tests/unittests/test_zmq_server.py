@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# pylint: disable=no-value-for-parameter
+# pylint: disable=no-value-for-parameter, protected-access
 
 from unittest import mock, TestCase
 
