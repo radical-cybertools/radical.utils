@@ -13,7 +13,7 @@ from radical.utils.zmq        import Server
 
 # --------------------------------------------------------------------------
 #
-class TestServer(ru.zmq.Server):
+class MyZMQServer(ru.zmq.Server):
 
     def __init__(self):
 
@@ -162,7 +162,7 @@ class TestZMQServer(TestCase):
     @mock.patch('radical.utils.zmq.server.Profiler')
     def test_server_class(self, mocked_profiler, mocked_logger):
 
-        s = TestServer()
+        s = MyZMQServer()
 
         try:
             s.start()
