@@ -25,7 +25,7 @@ from .misc import as_list, as_tuple, is_string
 
 # ------------------------------------------------------------------------------
 #
-class TDError(Exception):
+class TDErrorMixin:
 
     # --------------------------------------------------------------------------
     #
@@ -42,6 +42,28 @@ class TDError(Exception):
         super().__init__('%s.%s%s' % (cls_name,
                                       f.f_code.co_name,
                                       msg and ' - %s' % msg or ''))
+
+# ------------------------------------------------------------------------------
+
+
+class TDError(TDErrorMixin, Exception):
+    pass
+
+
+class TDAttributeError(TDErrorMixin, AttributeError):
+    pass
+
+
+class TDKeyError(TDErrorMixin, KeyError):
+    pass
+
+
+class TDTypeError(TDErrorMixin, TypeError):
+    pass
+
+
+class TDValueError(TDErrorMixin, ValueError):
+    pass
 
 
 # ------------------------------------------------------------------------------
@@ -233,7 +255,7 @@ class TypedDict(metaclass=TypedDictMeta):
         elif default is not None:
             return default
         else:
-            raise TDError('key "%s" not found' % key)
+            raise TDKeyError('key "%s" not found' % key)
 
     def popitem(self):
         if len(self):
@@ -313,7 +335,7 @@ class TypedDict(metaclass=TypedDictMeta):
     #
     @classmethod
     def __raise_attr_error(cls, k, v, t, level=4):
-        raise TDError(
+        raise TDAttributeError(
             'attribute "%s" - expected type %s, got %s' % (k, t, type(v)),
             level=level)
 
@@ -394,7 +416,7 @@ class TypedDict(metaclass=TypedDictMeta):
         if isinstance(t, list)         : return cls._verify_list(k, v, t)
         if isinstance(t, dict)         : return cls._verify_dict(k, v, t)
         if cls._cast                   : return v
-        raise TDError('no verifier defined for type %s' % t, level=2)
+        raise TDTypeError('no verifier defined for type %s' % t, level=2)
 
     def verify(self):
 
@@ -405,7 +427,7 @@ class TypedDict(metaclass=TypedDictMeta):
                     continue
 
                 if k not in self._schema:
-                    raise TDError('key "%s" not in schema' % k)
+                    raise TDKeyError('key "%s" not in schema' % k)
 
                 self._data[k] = self._verify_kvt(k, v, self._schema[k])
         self._verify()
@@ -419,7 +441,7 @@ class TypedDict(metaclass=TypedDictMeta):
         elif not self._schema: return v
 
         if k not in self._schema:
-            raise TDError('key "%s" not in schema' % k, level=2)
+            raise TDKeyError('key "%s" not in schema' % k, level=2)
         return self._verify_kvt(k, v, self._schema[k])
 
     # --------------------------------------------------------------------------
@@ -446,7 +468,7 @@ class TypedDict(metaclass=TypedDictMeta):
         (by default only if the last key is missing then return `default` value)
         """
         if not key:
-            raise TDError('empty key on query')
+            raise TDKeyError('empty key on query')
         key_seq = key.split('.') if is_string(key) else list(key)
 
         output = self
@@ -458,7 +480,7 @@ class TypedDict(metaclass=TypedDictMeta):
                 output = output[sub_key]
                 # if there are more sub-keys in a key sequence
                 if key_seq and not isinstance(output, (dict, TypedDict)):
-                    raise TDError(
+                    raise TDValueError(
                         'value for sub-key "%s" is not of dict type' % sub_key)
 
             elif not key_seq or not last_key:
@@ -466,7 +488,7 @@ class TypedDict(metaclass=TypedDictMeta):
                 break
 
             else:
-                raise TDError('intermediate key "%s" missed' % sub_key)
+                raise TDKeyError('intermediate key "%s" missed' % sub_key)
 
         return output
 

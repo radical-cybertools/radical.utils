@@ -6,7 +6,9 @@ __license__   = 'MIT'
 
 from unittest import TestCase
 
-from radical.utils import TypedDict, TDError
+from radical.utils.typeddict import TDError, TDAttributeError, TDKeyError
+from radical.utils.typeddict import TDTypeError, TDValueError
+from radical.utils           import TypedDict
 
 
 # ------------------------------------------------------------------------------
@@ -94,7 +96,7 @@ class TypedDictTestCase(TestCase):
                     self.assertIsInstance(obj[k], t)
 
                 obj.random_attr = 'random'
-                with self.assertRaises(TDError):
+                with self.assertRaises(KeyError):
                     # due to "random_attr" is not in schema
                     obj.verify()
 
@@ -195,23 +197,23 @@ class TypedDictTestCase(TestCase):
         self.assertEqual(type(obj.attr_main_td).__name__, 'TDBase')
         self.assertEqual(obj.as_dict(), input_data)
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(AttributeError):
             # will not be able to convert attribute "attr_main_int"
             TDMain({'attr_main_int': 'non_int',
                     'attr_main_td' : {'attr_int' : 3,
                                       'attr_dict': {'attr_any': 2}}}).verify()
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(KeyError):
             # will not be able to convert attribute "attr_main_td"
             TDMain({'attr_main_int': 2,
                     'attr_main_td' : {'not_in_schema': 3}}).verify()
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(KeyError):
             # will not be able to convert input data for `TDBase`
             TDMain({'attr_main_int': 2,
                     'attr_main_td' : TDBase({'not_in_schema': 3})}).verify()
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(AttributeError):
             # will not be able to convert attribute "attr_main_td.attr_dict"
             TDMain({'attr_main_int': 2,
                     'attr_main_td' : {'attr_int' : 3,
@@ -253,7 +255,7 @@ class TypedDictTestCase(TestCase):
         # with provided "_schema"
         obj = TDBase()
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(KeyError):
             # provided attribute is not in schema
             obj.attr_dict = {}
 
@@ -264,7 +266,7 @@ class TypedDictTestCase(TestCase):
         obj.attr_float = 1
         self.assertIsInstance(obj.attr_float, float)
         self.assertEqual(obj.attr_float, 1.)
-        with self.assertRaises(TDError):
+        with self.assertRaises(AttributeError):
             # couldn't convert provided value into a corresponding type (float)
             obj.attr_float = 'str_value'
 
@@ -272,7 +274,7 @@ class TypedDictTestCase(TestCase):
         TDBase._cast = False
         obj.attr_str = 'new_str_value'
         self.assertIsInstance(obj.attr_str, str)
-        with self.assertRaises(TDError):
+        with self.assertRaises(AttributeError):
             # no attempts to convert between types
             obj.attr_str = 1
 
@@ -330,7 +332,7 @@ class TypedDictTestCase(TestCase):
             v = 'random_value'
             self.assertEqual(v, obj.pop('unknown_key', v))
 
-            with self.assertRaises(TDError) as e:
+            with self.assertRaises(KeyError) as e:
                 obj.pop('unknown_key')
             self.assertIn('not found', str(e.exception))
 
@@ -411,16 +413,19 @@ class TypedDictTestCase(TestCase):
                                            default=1,
                                            last_key=False), int)
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(KeyError):
             td_obj.query('')
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(TDKeyError):
+            td_obj.query(None)
+
+        with self.assertRaises(ValueError):
             td_obj.query('high_dict.high_dict_l1.high_dict_str.within_non_dict')
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(TDValueError):
             td_obj.query('high_td.low_dict.low_dict_int.within_non_dict')
 
-        with self.assertRaises(TDError):
+        with self.assertRaises(KeyError):
             td_obj.query('high_td.unknown_sub_key.levelK')
 
     # --------------------------------------------------------------------------
@@ -482,9 +487,12 @@ class TypedDictTestCase(TestCase):
 
         # inherited from TD1Base ("_schema")
         td3 = TD3Base({'base_int': 10, 'base_str': 20})
-        with self.assertRaises(TDError):
-            # due to `TD3Base._cast = False` (inherited from TD2Base)
+        # exception due to `TD3Base._cast = False` (inherited from TD2Base)
+        with self.assertRaises(AttributeError) as e:
             td3.verify()
+        with self.assertRaises(TDAttributeError) as e:
+            td3.verify()
+        self.assertIn('attribute "base_int" - expected type', str(e.exception))
         # NOTE: control flags should be set through the class only
         TD3Base._cast = True
         td3.verify()
@@ -495,7 +503,7 @@ class TypedDictTestCase(TestCase):
 
     # --------------------------------------------------------------------------
     #
-    def test_tderror(self):
+    def test_tderrors(self):
 
         def raise_exception(level=1):
             raise TDError('level %s' % level, level=level)
@@ -539,5 +547,22 @@ class TypedDictTestCase(TestCase):
             # `'self' in f.f_locals` -> True
             TDErrorClass().raise_self_tderror()
         self.assertIn('TDErrorClass', str(e.exception))
+
+        # catch exceptions by their parent classes
+
+        with self.assertRaises(Exception):
+            raise TDError
+
+        with self.assertRaises(AttributeError):
+            raise TDAttributeError
+
+        with self.assertRaises(KeyError):
+            raise TDKeyError
+
+        with self.assertRaises(TypeError):
+            raise TDTypeError
+
+        with self.assertRaises(ValueError):
+            raise TDValueError
 
 # ------------------------------------------------------------------------------
