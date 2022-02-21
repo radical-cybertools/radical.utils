@@ -6,31 +6,39 @@ __license__   = "MIT"
 
 import os
 
+from unittest import TestCase
+
 import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
 #
-def test_sh_quote():
+class ShellTestCase(TestCase):
 
-    os.environ['FOO'] = '=foo='
-    os.environ['BAR'] = '=bar='
+    # --------------------------------------------------------------------------
+    #
+    def test_sh_quote(self):
 
-    ret = ru.sh_callout('echo %s' % ru.sh_quote('$FOO $BAR'), shell=True)
-    assert(ret[0] == '=foo= =bar=\n' and not ret[1] and not ret[2]), ret
+        os.environ['FOO'] = '=foo='
+        os.environ['BAR'] = '=bar='
 
-    ret = ru.sh_callout('echo `echo %s`' % ru.sh_quote('$FOO $BAR'), shell=True)
-    assert(ret[0] == '=foo= =bar=\n' and not ret[1] and not ret[2]), ret
+        test_cases = [
+            ['echo %s' % ru.sh_quote('$FOO $BAR'),         '=foo= =bar=\n'],
+            ['echo %s' % ru.sh_quote('`echo $FOO $BAR`'),  '=foo= =bar=\n'],
+            ['echo %s' % ru.sh_quote('$(echo $FOO $BAR)'), '=foo= =bar=\n']]
 
-    ret = ru.sh_callout('echo $(echo %s)' % ru.sh_quote('$FOO $BAR'), shell=True)
-    assert(ret[0] == '=foo= =bar=\n' and not ret[1] and not ret[2]), ret
+        for tc in test_cases:
+
+            ret = ru.sh_callout(tc[0], shell=True)
+            assert(ret[0] == tc[1] and not ret[1] and not ret[2]), [tc,ret]
 
 
 # ------------------------------------------------------------------------------
 #
 if __name__ == '__main__':
 
-    test_sh_quote()
+    tc = ShellTestCase()
+    tc.test_sh_quote()
 
 
 # ------------------------------------------------------------------------------
