@@ -1,11 +1,4 @@
-
-__author__    = 'RADICAL-Cybertools Team'
-__copyright__ = 'Copyright 2016-2022, The RADICAL-Cybertools Team'
-__license__   = 'MIT'
-
-
-'''
-Config file parsing.
+"""Config file parsing.
 
 We provide a json based config file parser with following properties
 
@@ -44,7 +37,7 @@ the location of the user provided config files.
 
 For example, the module `radical.utils` will have the following config dirs:
 
-  sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs
+  sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
   usr_config_dir = /home/merzky/.radical/utils/configs
 
 After loading the system level config file, any existing user level config
@@ -55,7 +48,7 @@ file is merged into it, via
 so that the user config settings supersede the system config settings.
 
 Both path and name specifiers can contain `*` as wildcard, which is then
-interpreted as by `glob()`.  If that wildcard exist, then all matching config
+interpreted as by `glob()`.  If that wildcard exists, then all matching config
 files are read into *one* configuration dict, where each root key is set to
 the value the '*' expands to (minus the `.json` extension).
 
@@ -121,12 +114,14 @@ Implementation
 
 This implementation is based on typed dictionaries which are accessed as
 `TypedDict`'ed object hierarchy.
+"""
 
-'''
+__author__    = 'RADICAL-Cybertools Team'
+__copyright__ = 'Copyright 2016-2022, The RADICAL-Cybertools Team'
+__license__   = 'MIT'
 
-
-import os
 import glob
+import os
 
 from .debug      import find_module
 from .misc       import expand_env as ru_expand_env
@@ -140,8 +135,7 @@ from .singleton  import Singleton
 # ------------------------------------------------------------------------------
 #
 class Config(TypedDict):
-    '''
-    Contents of a config (json) file from a module's config tree.
+    """Contents of a config (json) file from a module's config tree.
 
     Fields
     ------
@@ -173,7 +167,7 @@ class Config(TypedDict):
     NOTE: Keys containing an underscore are not exposed via the API.
           Keys containing dots are split and interpreted as paths in the
           configuration hierarchy.
-    '''
+    """
 
     _self_default = True
 
@@ -186,7 +180,7 @@ class Config(TypedDict):
     def __init__(self, module=None, category=None, name=None, cfg=None,
                        from_dict=None, path=None, expand=True, env=None,
                        _internal=False):
-        '''
+        """
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
@@ -220,7 +214,7 @@ class Config(TypedDict):
         NOTE: Keys containing an underscore are not exposed via the API.
               Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
-        '''
+        """
 
         if from_dict:
             # if we could only overload constructors by signature... :-/
