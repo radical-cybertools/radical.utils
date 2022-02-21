@@ -40,6 +40,7 @@ from .munch          import Munch, demunch
 from .description    import Description
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
+from .shell          import sh_quote
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
 from .testing        import sys_exit
 from .testing        import TestConfig
