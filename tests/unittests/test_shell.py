@@ -27,10 +27,10 @@ class ShellTestCase(TestCase):
             ['echo %s' % ru.sh_quote('`echo $FOO $BAR`'),  '=foo= =bar=\n'],
             ['echo %s' % ru.sh_quote('$(echo $FOO $BAR)'), '=foo= =bar=\n']]
 
-        for tc in test_cases:
+        for cmd, out in test_cases:
 
-            ret = ru.sh_callout(tc[0], shell=True)
-            assert(ret[0] == tc[1] and not ret[1] and not ret[2]), [tc,ret]
+            ret = ru.sh_callout(cmd, shell=True)
+            assert(ret[0] == out and not ret[1] and not ret[2]), [cmd, out, ret]
 
 
 # ------------------------------------------------------------------------------
