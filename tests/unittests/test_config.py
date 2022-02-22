@@ -3,54 +3,69 @@
 # pylint: disable=protected-access
 
 import os
-import pytest
+
+from unittest import TestCase
+
 import radical.utils as ru
 
 
 # ------------------------------------------------------------------------------
 #
-def test_config():
+class ConfigTestCase(TestCase):
 
-    base = os.path.abspath(os.path.dirname(__file__))
-    path = '%s/data/resource_*.json' % base
+    # --------------------------------------------------------------------------
+    #
+    def test_config(self):
 
-    with pytest.raises(ValueError):
-        _ = ru.Config(path='foo', cfg='bar')
+        base = os.path.abspath(os.path.dirname(__file__))
+        cfg_files = '%s/data/resource_*.json' % base
 
-    cfg1 = ru.Config(name=path)
+        with self.assertRaises(ValueError):
+            ru.Config(path='foo', cfg='bar')
 
-    assert('bar' == cfg1.yale._query('grace.agent_launch_method'))
-    assert('bar' == cfg1['yale']['grace']['agent_launch_method'])
+        cfg1 = ru.Config(name=cfg_files)
+        self.assertEqual(cfg1.yale._query('grace.agent_launch_method'), 'bar')
+        self.assertEqual(cfg1['yale']['grace']['agent_launch_method'],  'bar')
+        self.assertIsNone(cfg1._query('yale.grace.no_launch_method'))
+        with self.assertRaises(KeyError):
+            # key is not set
+            cfg1['yale']['grace']['no_launch_method']                # noqa F841
 
-    assert(None  is cfg1._query('yale.grace.no_launch_method'))
-    with pytest.raises(KeyError):
-        _ = cfg1['yale']['grace']['no_launch_method']                # noqa F841
+        os.environ['FOO'] = 'GSISSH'
+        # `agent_launch_method` is defined by env variable `$FOO`
 
-    os.environ['FOO'] = 'GSISSH'
+        cfg2 = ru.Config(name=cfg_files)
+        self.assertEqual(cfg2.yale.grace.agent_launch_method, 'GSISSH')
 
-    cfg2 = ru.Config(name=path)
-    assert('GSISSH' == cfg2._query('yale.grace.agent_launch_method'))
-    assert(None     is cfg2._query('yale.grace.no_launch_method'))
+        # env variables are not expanded
+        cfg3 = ru.Config(name=cfg_files, expand=False)
+        self.assertEqual(cfg3.yale.grace.agent_launch_method, '${FOO:bar}')
 
-    cfg3 = ru.Config(name=path, expand=False)
-    assert('${FOO:bar}' == cfg3._query('yale.grace.agent_launch_method'))
+        env  = {'FOO': 'baz'}
+        cfg4 = ru.Config(name=cfg_files, env=env)
+        self.assertEqual(cfg4['yale']['grace']['agent_launch_method'], 'baz')
 
-    env  = {'FOO' : 'baz'}
-    cfg4 = ru.Config(name=path, env=env)
-    assert('baz' == cfg4._query('yale.grace.agent_launch_method'))
+        # test `cls._self_default` flag
+        cfg5 = ru.Config(from_dict={'foo_0': {'foo_1': {'foo2': 'bar'}}})
+        self.assertEqual(cfg5.foo_0.foo_1.foo2, 'bar')
+        self.assertIsInstance(cfg5.foo_0.foo_1, ru.Config)
 
-    # test `cls._self_default` flag
-    cfg5 = ru.Config(from_dict={'foo_0': {'foo_1': {'foo2': 'bar'}}})
-    assert('bar' == cfg5.foo_0.foo_1.foo2)
-    assert(isinstance(cfg5.foo_0.foo_1, ru.Config))
+    # --------------------------------------------------------------------------
+    #
+    def test_default_config(self):
 
+        dc1 = ru.DefaultConfig()
+        self.assertIn(type(dc1), ru.Singleton._instances)
+        self.assertEqual(dc1, ru.Singleton._instances[type(dc1)])
 
-# ------------------------------------------------------------------------------
-#
-if __name__ == '__main__':
+        c = ru.Config(module='radical.utils', category='utils', name='default')
+        self.assertEqual(c.as_dict(), dc1.as_dict())
 
-    test_config()
+        dc1.log_dir = '/tmp'
 
+        dc2 = ru.DefaultConfig()  # check that there is ony one instance
+        self.assertEqual(id(dc1), id(dc2))
+        self.assertEqual(dc1, dc2)
 
 # ------------------------------------------------------------------------------
 

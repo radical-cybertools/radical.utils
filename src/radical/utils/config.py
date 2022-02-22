@@ -71,15 +71,15 @@ Queries
 
 We support two types of queries on the resulting parsed configs:
 
-  - dict like queries (via `ru.DictMixin`)
-  - the `query(key)` method returns a single value, or 'None' if not found.
+  - `dict` like queries
+  - the `_query(key)` method returns a single value, or 'None' if not found.
 
-In the latter `query()` case, the `key` can be specified as dot-separated
+In the latter `_query()` case, the `key` can be specified as dot-separated
 path, so that the following two snippets are equivalent (assuming that a
 `foo.bar` section exists):
 
   val = cfg['foo']['bar'].get('baz')
-  val = cfg.query('foo.bar.baz')
+  val = cfg._query('foo.bar.baz')
 
 
 Environment
@@ -397,35 +397,27 @@ class Config(TypedDict):
 
         write_json(self.as_dict(), fname)
 
-    # --------------------------------------------------------------------------
-    #
-    def merge(self, src, expand=True, env=None, policy='overwrite', log=None):
-        '''
-        merge the given dict into the existing config settings, overwriting
-        any values which already existed
-        '''
-
-        if expand:
-            # NOTE: expansion is done on reference, not copy
-            ru_expand_env(src, env=env)
-
-        dict_merge(self, src, policy=policy, log=log)
-
 
 # ------------------------------------------------------------------------------
 #
 class DefaultConfigMeta(TypedDictMeta, Singleton):
+    """
+    Metaclass inherited from `TypedDict`'s metaclass along with `Singleton` to
+    avoid metaclass conflict (the metaclass of a derived class must be a
+    subclass of the metaclasses of all its bases). `Singleton` metaclass allows
+    to have only one instance of a corresponding class.
+    """
     pass
 
 
 # ------------------------------------------------------------------------------
 #
 class DefaultConfig(Config, metaclass=DefaultConfigMeta):
-    '''
+    """
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
-    '''
+    """
 
     _schema = {
         'log_lvl'    : str,
@@ -437,7 +429,6 @@ class DefaultConfig(Config, metaclass=DefaultConfigMeta):
         'profile'    : bool,
         'profile_dir': str,
     }
-
 
     # --------------------------------------------------------------------------
     #
