@@ -29,7 +29,7 @@ class ConfigTestCase(TestCase):
         self.assertIsNone(cfg1._query('yale.grace.no_launch_method'))
         with self.assertRaises(KeyError):
             # key is not set
-            cfg1['yale']['grace']['no_launch_method']                # noqa F841
+            _ = cfg1['yale']['grace']['no_launch_method']            # noqa F841
 
         os.environ['FOO'] = 'GSISSH'
         # `agent_launch_method` is defined by env variable `$FOO`
@@ -61,7 +61,8 @@ class ConfigTestCase(TestCase):
         c = ru.Config(module='radical.utils', category='utils', name='default')
         self.assertEqual(c.as_dict(), dc1.as_dict())
 
-        dc1.log_dir = '/tmp'
+        # do not change other attributes for other tests consistency
+        dc1.report_dir = '/tmp'
 
         dc2 = ru.DefaultConfig()  # check that there is ony one instance
         self.assertEqual(id(dc1), id(dc2))
