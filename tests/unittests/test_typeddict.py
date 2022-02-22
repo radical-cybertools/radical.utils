@@ -392,41 +392,41 @@ class TypedDictTestCase(TestCase):
         })
 
         self.assertIsInstance(
-            td_obj.query('high_dict.high_dict_l1.high_dict_str'), str)
+            td_obj._query('high_dict.high_dict_l1.high_dict_str'), str)
         self.assertIsInstance(
-            td_obj.query(['high_dict', 'high_dict_l1', 'high_dict_str']), str)
+            td_obj._query(['high_dict', 'high_dict_l1', 'high_dict_str']), str)
         self.assertIsInstance(
-            td_obj.query('high_str'), str)
+            td_obj._query('high_str'), str)
         self.assertIsInstance(
-            td_obj.query('high_td.low_str'), str)
+            td_obj._query('high_td.low_str'), str)
         self.assertIsInstance(
-            td_obj.query('high_td.low_dict'), dict)
+            td_obj._query('high_td.low_dict'), dict)
         self.assertIsInstance(
-            td_obj.query('high_td.low_dict.low_dict_int'), int)
+            td_obj._query('high_td.low_dict.low_dict_int'), int)
 
-        self.assertIsNone(td_obj.query('high_dict.high_dict_l1.unknown_key'))
-        self.assertIsNone(td_obj.query('high_td.low_dict.unknown_key'))
+        self.assertIsNone(td_obj._query('high_dict.high_dict_l1.unknown_key'))
+        self.assertIsNone(td_obj._query('high_td.low_dict.unknown_key'))
 
-        self.assertIsInstance(td_obj.query('high_td.low_dict.unknown_key',
-                                           default=1), int)
-        self.assertIsInstance(td_obj.query('high_td.unknown_sub_key.levelK',
-                                           default=1,
-                                           last_key=False), int)
+        self.assertIsInstance(td_obj._query('high_td.low_dict.unknown_key',
+                                            default=1), int)
+        self.assertIsInstance(td_obj._query('high_td.unknown_sub_key.levelK',
+                                            default=1,
+                                            last_key=False), int)
 
         with self.assertRaises(KeyError):
-            td_obj.query('')
+            td_obj._query('')
 
         with self.assertRaises(TDKeyError):
-            td_obj.query(None)
+            td_obj._query(None)
 
         with self.assertRaises(ValueError):
-            td_obj.query('high_dict.high_dict_l1.high_dict_str.within_non_dict')
+            td_obj._query('high_dict.high_dict_l1.high_dict_str.within_non_dict')
 
         with self.assertRaises(TDValueError):
-            td_obj.query('high_td.low_dict.low_dict_int.within_non_dict')
+            td_obj._query('high_td.low_dict.low_dict_int.within_non_dict')
 
         with self.assertRaises(KeyError):
-            td_obj.query('high_td.unknown_sub_key.levelK')
+            td_obj._query('high_td.unknown_sub_key.levelK')
 
     # --------------------------------------------------------------------------
     #

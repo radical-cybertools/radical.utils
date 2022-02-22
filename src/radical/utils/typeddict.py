@@ -454,7 +454,7 @@ class TypedDict(metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
-    def query(self, key, default=None, last_key=True):
+    def _query(self, key, default=None, last_key=True):
         """
         For a query like
 
