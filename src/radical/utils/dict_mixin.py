@@ -6,9 +6,11 @@ __license__   = 'MIT'
 import re
 import fnmatch
 
+from .typeddict import TypedDict
 
-PRESERVE  = 'preserve'
-OVERWRITE = 'overwrite'
+PRESERVE   = 'preserve'
+OVERWRITE  = 'overwrite'
+DICT_TYPES = (dict, TypedDict)
 
 
 # see http://code.activestate.com/recipes/117236-dictionary-mixin-framework/
@@ -139,23 +141,23 @@ def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
     if  b    is None: return a
     if _path is None: _path = list()
 
-    if  not isinstance(a, dict):
+    if  not isinstance(a, DICT_TYPES):
         raise TypeError('*dict*_merge expects dicts, not %s' % type(a))
 
-    if  not isinstance(b, dict):
+    if  not isinstance(b, DICT_TYPES):
         raise TypeError('*dict*_merge expects dicts, not %s' % type(b))
 
     # --------------------------------------------------------------------------
     def merge_key(a, key_a, b, key_b):
 
         # need to resolve conflict
-        if  isinstance(a[key_a], dict) and isinstance(b[key_b], dict):
+        if isinstance(a[key_a], DICT_TYPES) \
+                and isinstance(b[key_b], DICT_TYPES):
             dict_merge(a[key_a], b[key_b],
                        policy    = policy,
                        wildcards = wildcards,
                        log       = log,
                        _path     = _path + [str(key_a)])
-
 
         elif key_a not in a and key_b in b:
             a[key_a] = b[key_b]  # use b value
