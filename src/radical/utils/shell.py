@@ -14,6 +14,31 @@ from .misc      import ru_open
 
 # ------------------------------------------------------------------------------
 #
+def sh_quote(data):
+    '''
+    quote a string and wrap it in double quotes so that it can passed to a POSIX
+    shell.
+
+    Examples:
+
+      foo        -> "foo"
+      foo"bar    -> "foo\\"bar"
+      foo\\"bar  -> "foo\\\\\\"bar"
+      $FOO'$BAR  -> "$FOO'$BAR"
+
+    NOTE: this method does not attempt to strip out backticks or other code
+          execution mechanisms from the string.
+
+    '''
+
+    if '\\' in data: data.replace('\\', '\\\\')
+    if '"'  in data: data.replace('"',  '\\"')
+
+    return '"%s"' % data
+
+
+# ------------------------------------------------------------------------------
+#
 def sh_callout(cmd, stdout=True, stderr=True, shell=False, env=None):
     '''
     call a shell command, return `[stdout, stderr, retval]`.
