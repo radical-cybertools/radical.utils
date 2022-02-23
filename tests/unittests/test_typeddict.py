@@ -152,13 +152,19 @@ class TypedDictTestCase(TestCase):
 
         # ----------------------------------------------------------------------
 
-        obj = TDNonSelf(from_dict={'level0': {'level1': {'level2': 'value'}}})
-        self.assertNotIsInstance(obj.level0, TDNonSelf)
-        self.assertIsInstance(obj.level0.level1, TypedDict)
+        obj1 = TDNonSelf(from_dict={'level0': {'level1': {'level2': 'value'}}})
+        self.assertIsInstance(obj1, TDNonSelf)
+        self.assertNotIsInstance(obj1.level0, TDNonSelf)
+        self.assertIsInstance(obj1.level0.level1, TypedDict)
 
-        obj = TDSelf(from_dict={'level0': {'level1': {'level2': 'value'}}})
-        self.assertIsInstance(obj.level0, TDSelf)
-        self.assertTrue(issubclass(type(obj.level0.level1), TypedDict))
+        obj2 = TDSelf(from_dict={'level0': {'level1': {'level2': 'value'}}})
+        self.assertIsInstance(obj2, TDSelf)
+        self.assertIsInstance(obj2.level0, TDSelf)
+        self.assertTrue(issubclass(type(obj2.level0.level1), TypedDict))
+
+        # all instances are treated as `dict`
+        self.assertIsInstance(obj1, dict)
+        self.assertIsInstance(obj2, dict)
 
     # --------------------------------------------------------------------------
     #

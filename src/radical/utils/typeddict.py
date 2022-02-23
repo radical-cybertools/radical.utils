@@ -33,7 +33,7 @@ class TDErrorMixin:
 
         f = sys._getframe(level)
         if 'self' in f.f_locals:
-            cls_name = f.f_locals['self'].__class__.__name__
+            cls_name = type(f.f_locals['self']).__name__
         elif 'cls' in f.f_locals:
             cls_name = f.f_locals['cls'].__name__
         else:
@@ -142,6 +142,14 @@ class TypedDict(metaclass=TypedDictMeta):
         self.__dict__['_data'] = {}
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
+
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def __class__(self):
+
+        # masquerade as dict for `isinstance` calls
+        return dict
 
     # --------------------------------------------------------------------------
     #
