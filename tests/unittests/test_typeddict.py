@@ -296,10 +296,10 @@ class TypedDictTestCase(TestCase):
         for k in obj:
             self.assertIn(k, input_dict)
 
-        for k in obj.iterkeys():
+        for k in obj.keys():
             self.assertIn(k, input_dict)
 
-        for v in obj.itervalues():
+        for v in obj.values():
             self.assertIn(v, input_dict.values())
 
         for k, v in obj.items():
