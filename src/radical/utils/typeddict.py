@@ -219,28 +219,20 @@ class TypedDict(metaclass=TypedDictMeta):
     def __len__(self):
         return len(self._data)
 
+    def __iter__(self):
+        return iter(self._data)
+
     def keys(self):
         return self._data.keys()
 
-    def clear(self):
-        self._data.clear()
-
-    # --------------------------------------------------------------------------
-    #
-    def __iter__(self):
-        for k in self.keys():
-            yield k
-
-    def iterkeys(self):
-        return self.__iter__()
-
-    def itervalues(self):
-        for k in self:
-            yield self[k]
+    def values(self):
+        return self._data.values()
 
     def items(self):
-        for k in self:
-            yield k, self[k]
+        return self._data.items()
+
+    def clear(self):
+        self._data.clear()
 
     # --------------------------------------------------------------------------
     #
