@@ -6,7 +6,7 @@ __license__   = 'MIT'
 
 from unittest import TestCase
 
-from radical.utils.typeddict import TDError, TDAttributeError, TDKeyError
+from radical.utils.typeddict import TDError, TDKeyError
 from radical.utils.typeddict import TDTypeError, TDValueError
 from radical.utils           import TypedDict
 
@@ -203,7 +203,7 @@ class TypedDictTestCase(TestCase):
         self.assertEqual(type(obj.attr_main_td).__name__, 'TDBase')
         self.assertEqual(obj.as_dict(), input_data)
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             # will not be able to convert attribute "attr_main_int"
             TDMain({'attr_main_int': 'non_int',
                     'attr_main_td' : {'attr_int' : 3,
@@ -219,7 +219,7 @@ class TypedDictTestCase(TestCase):
             TDMain({'attr_main_int': 2,
                     'attr_main_td' : TDBase({'not_in_schema': 3})}).verify()
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             # will not be able to convert attribute "attr_main_td.attr_dict"
             TDMain({'attr_main_int': 2,
                     'attr_main_td' : {'attr_int' : 3,
@@ -272,7 +272,7 @@ class TypedDictTestCase(TestCase):
         obj.attr_float = 1
         self.assertIsInstance(obj.attr_float, float)
         self.assertEqual(obj.attr_float, 1.)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             # couldn't convert provided value into a corresponding type (float)
             obj.attr_float = 'str_value'
 
@@ -280,7 +280,7 @@ class TypedDictTestCase(TestCase):
         TDBase._cast = False
         obj.attr_str = 'new_str_value'
         self.assertIsInstance(obj.attr_str, str)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             # no attempts to convert between types
             obj.attr_str = 1
 
@@ -319,6 +319,30 @@ class TypedDictTestCase(TestCase):
 
         obj.clear()
         self.assertEqual(len(obj), 0)
+
+        class TDSchemed(TypedDict):
+
+            _schema = {
+                'attr_str'  : str,
+                'attr_float': float
+            }
+
+        tds = TDSchemed()
+        self.assertIsNone(tds.attr_str)
+        with self.assertRaises(KeyError):
+            # not defined earlier and not from schema
+            _ = tds.unknown_key
+
+        tds.unknown_key = 'unknown_key_value'
+        self.assertEqual(tds.unknown_key, 'unknown_key_value')
+
+        del tds.unknown_key
+        self.assertNotIn('unknown_key', tds)
+
+        # `__str__` method checked
+        self.assertEqual('%s' % tds, '{}')
+        # `__repr__` method checked
+        self.assertIn('TDSchemed object, schema keys', '%r' % tds)
 
     # --------------------------------------------------------------------------
     #
@@ -494,9 +518,9 @@ class TypedDictTestCase(TestCase):
         # inherited from TD1Base ("_schema")
         td3 = TD3Base({'base_int': 10, 'base_str': 20})
         # exception due to `TD3Base._cast = False` (inherited from TD2Base)
-        with self.assertRaises(AttributeError) as e:
+        with self.assertRaises(TypeError):
             td3.verify()
-        with self.assertRaises(TDAttributeError) as e:
+        with self.assertRaises(TDTypeError) as e:
             td3.verify()
         self.assertIn('attribute "base_int" - expected type', str(e.exception))
         # NOTE: control flags should be set through the class only
@@ -558,9 +582,6 @@ class TypedDictTestCase(TestCase):
 
         with self.assertRaises(Exception):
             raise TDError
-
-        with self.assertRaises(AttributeError):
-            raise TDAttributeError
 
         with self.assertRaises(KeyError):
             raise TDKeyError
