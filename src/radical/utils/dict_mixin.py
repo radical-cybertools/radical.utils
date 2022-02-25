@@ -6,9 +6,8 @@ __license__   = 'MIT'
 import re
 import fnmatch
 
-
-PRESERVE  = 'preserve'
-OVERWRITE = 'overwrite'
+PRESERVE   = 'preserve'
+OVERWRITE  = 'overwrite'
 
 
 # see http://code.activestate.com/recipes/117236-dictionary-mixin-framework/
@@ -149,13 +148,12 @@ def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
     def merge_key(a, key_a, b, key_b):
 
         # need to resolve conflict
-        if  isinstance(a[key_a], dict) and isinstance(b[key_b], dict):
+        if isinstance(a[key_a], dict) and isinstance(b[key_b], dict):
             dict_merge(a[key_a], b[key_b],
                        policy    = policy,
                        wildcards = wildcards,
                        log       = log,
                        _path     = _path + [str(key_a)])
-
 
         elif key_a not in a and key_b in b:
             a[key_a] = b[key_b]  # use b value
