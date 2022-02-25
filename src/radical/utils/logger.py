@@ -295,7 +295,7 @@ class Logger(object):
                                       '%(levelname)-8s : '
                                       '%(message)s')
 
-      # print('=== %-30s -> %-10s %d' % (name, level, self._debug_level))
+      # print('%-30s -> %-10s %d' % (name, level, self._debug_level))
 
         # add a handler for each targets (using the same format)
         if not self._logger.handlers:
