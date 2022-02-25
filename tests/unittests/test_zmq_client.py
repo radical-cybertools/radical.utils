@@ -1,69 +1,19 @@
 #!/usr/bin/env python3
+
 # pylint: disable=no-value-for-parameter
 
-import msgpack
+import os
 
 from unittest import mock, TestCase
 
-from radical.utils.zmq import Client, Request, Response, Server
+from radical.utils.json_io import write_json
+
+from radical.utils.zmq import Client, Server
 
 
 # ------------------------------------------------------------------------------
 #
 class TestZMQClient(TestCase):
-
-    # --------------------------------------------------------------------------
-    #
-    def test_request(self):
-
-        # initialization
-        r = Request(cmd='')
-        self.assertEqual(r.cmd,    '')  # input empty string
-        self.assertEqual(r.args,   ())  # empty tuple
-        self.assertEqual(r.kwargs, {})  # empty dict
-
-        cmd  = 'test'
-        args = (1, 2, 3)
-        r = Request(cmd, *args)
-        self.assertEqual(r.cmd,  cmd)
-        self.assertEqual(r.args, args)
-
-        # get packed instance
-        packed_r = r.packb()
-        self.assertIsInstance(packed_r, bytes)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def test_response(self):
-
-        # initialization
-        r = Response()
-        self.assertIsNone(r.res)
-        self.assertIsNone(r.err)
-        self.assertIsInstance(r.exc, list)
-        self.assertFalse(r.exc)  # empty list
-
-        # init with `from_dict` class method
-        test_msg = {'res': 'ok', 'err': '', 'exc': ['1', '2', '3']}
-        r = Response.from_dict(msg=test_msg)
-        self.assertEqual(r.res, test_msg['res'])
-        self.assertEqual(r.err, test_msg['err'])
-        self.assertEqual(r.exc, test_msg['exc'])
-
-        # init with `from_msg` class method
-        packed_msg = msgpack.packb(test_msg)
-        r = Response.from_msg(msg=packed_msg)
-        self.assertEqual(r.res, test_msg['res'])
-        self.assertEqual(r.err, test_msg['err'])
-        self.assertEqual(r.exc, test_msg['exc'])
-
-        # `repr` & `str`
-        self.assertIn('res: ', str(r))
-        self.assertNotIn('err: ', str(r))
-        self.assertIn('res: ', repr(r))
-        self.assertIn('exc: ', repr(r))
-
 
     # --------------------------------------------------------------------------
     #
@@ -78,28 +28,35 @@ class TestZMQClient(TestCase):
         s = Server()
         s.start()
 
-        c = None
-        try:
+        write_json({'addr': s.addr}, 'server_local.cfg')
+        c = Client(server='server_local')
+        self.assertEqual(c.url, s.addr)
+        c.close()
+        os.unlink('server_local.cfg')
 
-            c = Client(url=s.addr)
-            self.assertEqual(c.url, s.addr)
+        c = Client(url=s.addr)
+        self.assertEqual(c.url, s.addr)
 
-            echo_str = 'test_echo'
-            self.assertEqual(c.request(cmd='echo', arg=echo_str), echo_str)
+        echo_str = 'test_echo'
+        self.assertEqual(c.request(cmd='echo', arg=echo_str), echo_str)
 
-            with self.assertRaises(RuntimeError):
-                # no command in request
-                c.request(cmd='')
+        with self.assertRaises(RuntimeError) as e:
+            # unknown attribute for command `echo`
+            c.request(cmd='echo', wrong_attr=echo_str)
+        self.assertIn('TypeError', str(e.exception))
+        self.assertIn('unexpected keyword argument', str(e.exception))
 
-            with self.assertRaises(RuntimeError):
-                # command [no_registered_cmd] unknown
-                c.request(cmd='no_registered_cmd')
+        with self.assertRaises(RuntimeError) as e:
+            # no command in request
+            c.request(cmd='')
+        self.assertIn('no command in request', str(e.exception))
 
-        finally:
+        with self.assertRaises(RuntimeError) as e:
+            # command [no_registered_cmd] unknown
+            c.request(cmd='no_registered_cmd')
+        self.assertIn('command [no_registered_cmd] unknown', str(e.exception))
 
-            if c:
-                c.close()
-
+        c.close()
         s.stop()
         s.wait()
 
@@ -109,8 +66,6 @@ class TestZMQClient(TestCase):
 if __name__ == '__main__':
 
     tc = TestZMQClient()
-    tc.test_request()
-    tc.test_response()
     tc.test_client()
 
 # ------------------------------------------------------------------------------

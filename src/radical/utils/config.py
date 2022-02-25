@@ -37,7 +37,7 @@ the location of the user provided config files.
 
 For example, the module `radical.utils` will have the following config dirs:
 
-  sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs
+  sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
   usr_config_dir = /home/merzky/.radical/utils/configs
 
 After loading the system level config file, any existing user level config
@@ -48,7 +48,7 @@ file is merged into it, via
 so that the user config settings supersede the system config settings.
 
 Both path and name specifiers can contain `*` as wildcard, which is then
-interpreted as by `glob()`.  If that wildcard exist, then all matching config
+interpreted as by `glob()`.  If that wildcard exists, then all matching config
 files are read into *one* configuration dict, where each root key is set to
 the value the '*' expands to (minus the `.json` extension).
 
@@ -71,15 +71,15 @@ Queries
 
 We support two types of queries on the resulting parsed configs:
 
-  - dict like queries (via `ru.DictMixin`)
-  - the `query(key)` method returns a single value, or 'None' if not found.
+  - `dict` like queries
+  - the `_query(key)` method returns a single value, or 'None' if not found.
 
-In the latter `query()` case, the `key` can be specified as dot-separated
+In the latter `_query()` case, the `key` can be specified as dot-separated
 path, so that the following two snippets are equivalent (assuming that a
 `foo.bar` section exists):
 
   val = cfg['foo']['bar'].get('baz')
-  val = cfg.query('foo.bar.baz')
+  val = cfg._query('foo.bar.baz')
 
 
 Environment
@@ -113,28 +113,28 @@ Implementation
 --------------
 
 This implementation is based on typed dictionaries which are accessed as
-`munch`'ed object hierarchy.
+`TypedDict`'ed object hierarchy.
 """
 
-__author__    = "Radical.Utils Development Team"
-__copyright__ = "Copyright 2016, RADICAL@Rutgers"
-__license__   = "MIT"
+__author__    = 'RADICAL-Cybertools Team'
+__copyright__ = 'Copyright 2016-2022, The RADICAL-Cybertools Team'
+__license__   = 'MIT'
 
 import glob
 import os
 
 from .debug      import find_module
 from .misc       import expand_env as ru_expand_env
-from .json_io    import read_json
+from .json_io    import read_json, write_json
 from .dict_mixin import dict_merge
-from .munch      import Munch
+from .typeddict  import TypedDict, TypedDictMeta
 
 from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class Config(Munch):
+class Config(TypedDict):
     """Contents of a config (json) file from a module's config tree.
 
     Fields
@@ -168,6 +168,7 @@ class Config(Munch):
           Keys containing dots are split and interpreted as paths in the
           configuration hierarchy.
     """
+
     _self_default = True
 
     # FIXME: we should cache config files after reading, so that repeated
@@ -390,34 +391,53 @@ class Config(Munch):
 
         super().__init__(from_dict=cfg_dict)
 
+    # --------------------------------------------------------------------------
+    #
+    def write(self, fname):
+
+        write_json(self.as_dict(), fname)
+
 
 # ------------------------------------------------------------------------------
 #
-class DefaultConfig(Config, metaclass=Singleton):
-    '''
+class DefaultConfigMeta(TypedDictMeta, Singleton):
+    """
+    Metaclass inherited from `TypedDict`'s metaclass along with `Singleton` to
+    avoid metaclass conflict (the metaclass of a derived class must be a
+    subclass of the metaclasses of all its bases). `Singleton` metaclass allows
+    to have only one instance of a corresponding class.
+    """
+    pass
+
+
+# ------------------------------------------------------------------------------
+#
+class DefaultConfig(Config, metaclass=DefaultConfigMeta):
+    """
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
-    '''
+    """
 
-    _schema   = {
-                   'log_lvl'    : str,
-                   'log_tgt'    : str,
-                   'log_dir'    : str,
-                   'report'     : bool,
-                   'report_tgt' : str,
-                   'report_dir' : str,
-                   'profile'    : bool,
-                   'profile_dir': str,
-                 }
-
+    _schema = {
+        'log_lvl'    : str,
+        'log_tgt'    : str,
+        'log_dir'    : str,
+        'report'     : bool,
+        'report_tgt' : str,
+        'report_dir' : str,
+        'profile'    : bool,
+        'profile_dir': str,
+    }
 
     # --------------------------------------------------------------------------
     #
     def __init__(self):
 
-        super(DefaultConfig, self).__init__(module='radical.utils.utils',
+        super(DefaultConfig, self).__init__(module='radical.utils',
+                                            category='utils',
                                             name='default')
 
 
 # ------------------------------------------------------------------------------
+
