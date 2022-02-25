@@ -102,9 +102,7 @@ class TypedDictMeta(type):
 
 # ------------------------------------------------------------------------------
 #
-class TypedDict(metaclass=TypedDictMeta):
-
-    __hash__ = None
+class TypedDict(dict, metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
@@ -139,14 +137,6 @@ class TypedDict(metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
-    @property
-    def __class__(self):
-
-        # masquerade as dict for `isinstance` calls
-        return dict
-
-    # --------------------------------------------------------------------------
-    #
     def update(self, other):
         """
         Overload `dict.update()`: the call is used to ensure that sub-dicts are
@@ -173,10 +163,6 @@ class TypedDict(metaclass=TypedDictMeta):
             return
 
         for k, v in other.items():
-            # NOTE: if an attribute is of TypedDict and is needed not replace
-            #       it, but rather to update it, then uncomment the next 2 lines
-            # if isinstance(v, TypedDict):
-            #     v = v.as_dict()
             if isinstance(v, dict):
                 t = self._schema.get(k) or \
                     (type(self) if self._self_default else TypedDict)
@@ -308,7 +294,7 @@ class TypedDict(metaclass=TypedDictMeta):
         Iterate given object and apply `TypedDict.as_dict()` to all typed
         values, and return the result (effectively a shallow copy).
         """
-        if isinstance(src, (dict, TypedDict)):
+        if isinstance(src, dict):
             tgt = {k: cls._to_dict_value(v) for k, v in src.items()}
         elif isinstance(src, list):
             tgt = [cls._to_dict_value(x) for x in src]
@@ -382,16 +368,16 @@ class TypedDict(metaclass=TypedDictMeta):
                     cls._verify_kvt(_k, _v, t_v)
                     for _k, _v in v.items()}
         else:
-            if isinstance(v, dict):
+            if issubclass(type(v), dict):
                 return v
             cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_typeddict(cls, k, v, t):
         if cls._cast:
-            if issubclass(type(v), t)          : return v.verify()
+            if issubclass(type(v), t): return v.verify()
             # different TypedDict-base, but has a subset of schema
-            if isinstance(v, (dict, TypedDict)): return t(from_dict=v).verify()
+            if isinstance(v, dict)   : return t(from_dict=v).verify()
         else:
             if issubclass(type(v), t):
                 return v
@@ -474,7 +460,7 @@ class TypedDict(metaclass=TypedDictMeta):
             if sub_key in output:
                 output = output[sub_key]
                 # if there are more sub-keys in a key sequence
-                if key_seq and not isinstance(output, (dict, TypedDict)):
+                if key_seq and not isinstance(output, dict):
                     raise TDValueError(
                         'value for sub-key "%s" is not of dict type' % sub_key)
 
