@@ -178,8 +178,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None, base=None):
     where the `task.*` IDs are unique for the used sid namespace.
 
     The namespaces are stored under ```$RADICAL_BASE/.radical/utils/```.
-    If `RADICAL_BASE` is not set (env variable `RADICAL_BASE_DIR` is used for
-    backward compatibility), then `$HOME` is used.
+    If `RADICAL_BASE` is not set, then `$HOME` is used.
 
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.

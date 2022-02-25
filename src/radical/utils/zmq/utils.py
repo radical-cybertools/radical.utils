@@ -2,7 +2,6 @@
 import os
 import zmq
 import errno
-import msgpack
 
 from ..url  import Url
 from ..misc import as_list
@@ -124,28 +123,21 @@ def get_channel_url(ep_type, channel=None, url=None):
 
 # ------------------------------------------------------------------------------
 #
-def log_bulk(log, msgs, token):
+def log_bulk(log, token, msgs):
 
     if not msgs:
         return
-
-    unpacked = list()
-    for msg in as_list(msgs):
-        if hasattr(msg, 'read'):
-            msg = msgpack.unpack(msg)
-        unpacked.append(msg)
-    msgs = unpacked
 
     if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
         msgs = [msg['arg'] for msg in msgs]
 
     if isinstance(msgs[0], dict) and 'uid' in msgs[0]:
         for msg in msgs:
-            log.debug("%s: %s [%s]", token, msg['uid'], msg.get('state'))
+            log.debug("=== %s: %s [%s]", token, msg['uid'], msg.get('state'))
 
     else:
         for msg in msgs:
-            log.debug("%s: %s", token, str(msg)[0:128])
+            log.debug("=== %s: %s", token, str(msg)[0:32])
 
 
 # ------------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 
+import os
 
 import threading as mt
 
@@ -41,6 +42,9 @@ class Bridge(object):
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
+
+        if self._pwd is None:
+            self._pwd = os.getcwd()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
