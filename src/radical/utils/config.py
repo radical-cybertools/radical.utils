@@ -1,143 +1,173 @@
+"""Config file parsing.
 
-__author__    = "Radical.Utils Development Team"
-__copyright__ = "Copyright 2016, RADICAL@Rutgers"
-__license__   = "MIT"
+We provide a json based config file parser with following properties
+
+  - system config files will be merged with user configs (if those exist)
+  - python style comments are filtered out before parsing
+  - after parsing, `${ABC:default}`-style values are set or expanded via
+    `os.environ`
+  - the returned class exposes settings as dicts or attributes
+    cfg['foo']['bar'] == cfg.foo.bar
 
 
-# ------------------------------------------------------------------------------
-#
-# We provide a json based config file parser with following properties
-#
-#   - system config files will be merged with user configs (if those exist)
-#   - python style comments are filtered out before parsing
-#   - after parsing, `${ABC:default}`-style values are set or expanded via
-#     `os.environ`
-#   - the returned class exposes settings as dicts or attributes
-#     cfg['foo']['bar'] == cfg.foo.bar
-#
-#
-# Config Names and Locations
-# --------------------------
-#
-# We assume two basic locations for config files: one is installed within the
-# scope of a Python module, the other one is under user control, and usually in
-# the users home directory.  The  config reader accepts the following parameters
-# to derive the exact locations:
-#
-#   - module: name of module under which the config is installed
-#   - path  : config file path relative to the module home
-#   - name  : config file name relative to the path
-#
-# The `module` string is interpreted as follows:
-#
-#   module         = 'module'
-#   module_path    = radical.utils.debug.find_module(module)
-#   usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
-#                    os.environ.get('HOME', '/tmp')
-#   sys_config_dir = '%s/configs'     % (module_path)
-#   usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
-#
-# so the location of the module's `__init__.py` is used to derive the location
-# of the installed system config files, and the module name is used to derive
-# the location of the user provided config files.
-#
-# For example, the module `radical.utils` will have the following config dirs:
-#
-#   sys_config_dir = /tmp/ve/lib/python2.7/site-packages/radical/utils/configs
-#   usr_config_dir = /home/merzky/.radical/utils/configs
-#
-# After loading the system level config file, any existing user level config
-# file is merged into it, via
-#
-#   radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
-#
-# so that the user config settings supersede the system config settings.
-#
-# Both path and name specifiers can contain `*` as wildcard, which is then
-# interpreted as by `glob()`.  If that wildcard exist, then all matching config
-# files are read into *one* configuration dict, where each root key is set to
-# the value the '*' expands to (minus the `.json` extension).
-#
-# For example, the name `radical.pilot.resource_*` with the following config
-# files:
-#
-#   /tmp/ve/[...]/radical/pilot/configs/resource_xsede.json
-#   /tmp/ve/[...]/radical/pilot/configs/resource_ncsa.json
-#
-# will result in a config dict like:
-#
-#   {
-#     'xsede' : { 'foo' : 'bar' },
-#     'ncsa'  : { 'fiz' : 'baz' }
-#   }
-#
-#
-# Queries
-# -------
-#
-# We support two types of queries on the resulting parsed configs:
-#
-#   - dict like queries (via `ru.DictMixin`)
-#   - the `query(key)` method returns a single value, or 'None' if not found.
-#
-# In the latter `query()` case, the `key` can be specified as dot-separated
-# path, so that the following two snippets are equivalent (assuming that a
-# `foo.bar` section exists):
-#
-#   val = cfg['foo']['bar'].get('baz')
-#   val = cfg.query('foo.bar.baz')
-#
-#
-# Environment
-# -----------
-#
-# Towards `os.environ` completion, we support the following syntax in all string
-# *values* (not keys):
-#
-#   '${RADICAL_UTILS_ENV:default_value}'
-#
-# which will be replaced by
-#
-#   `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
-#
-# The default value is optional, an empty string is used if no default value is
-# given.  Env evaluation is only performed at time of parsing, not at time of
-# query.  RU attempts to convert env variables to float and int - if that fails,
-# values are stored as strings.
-#
-#
-# Validation
-# ----------
-#
-# It probably makes sense to switch to a json schema validator at some point,
-# see for example https://pypi.python.org/pypi/json-schema-validator. For now
-# this implementation remains schema-less, and will thus, in a very pythonesque
-# way, only fail once values are queried or used.
-#
-#
-# Implementation
-# --------------
-#
-# This implementation is based on typed dictionaries which are accessed as
-# `munch`'ed object hierarchy.
-#
-# ------------------------------------------------------------------------------
+Config Names and Locations
+--------------------------
 
-import os
+We assume two basic locations for config files: one is installed within the
+scope of a Python module, the other one is under user control, and usually in
+the users home directory.  The  config reader accepts the following parameters
+to derive the exact locations:
+
+  - module: name of module under which the config is installed
+  - path  : config file path relative to the module home
+  - name  : config file name relative to the path
+
+The `module` string is interpreted as follows:
+
+  module         = 'module'
+  module_path    = radical.utils.debug.find_module(module)
+  usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
+                   os.environ.get('HOME', '/tmp')
+  sys_config_dir = '%s/configs'     % (module_path)
+  usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
+
+so the location of the module's `__init__.py` is used to derive the location
+of the installed system config files, and the module name is used to derive
+the location of the user provided config files.
+
+For example, the module `radical.utils` will have the following config dirs:
+
+  sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
+  usr_config_dir = /home/merzky/.radical/utils/configs
+
+After loading the system level config file, any existing user level config
+file is merged into it, via
+
+  radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
+
+so that the user config settings supersede the system config settings.
+
+Both path and name specifiers can contain `*` as wildcard, which is then
+interpreted as by `glob()`.  If that wildcard exists, then all matching config
+files are read into *one* configuration dict, where each root key is set to
+the value the '*' expands to (minus the `.json` extension).
+
+For example, the name `radical.pilot.resource_*` with the following config
+files:
+
+  /tmp/ve/[...]/radical/pilot/configs/resource_xsede.json
+  /tmp/ve/[...]/radical/pilot/configs/resource_ncsa.json
+
+will result in a config dict like:
+
+  {
+    'xsede' : { 'foo' : 'bar' },
+    'ncsa'  : { 'fiz' : 'baz' }
+  }
+
+
+Queries
+-------
+
+We support two types of queries on the resulting parsed configs:
+
+  - `dict` like queries
+  - the `_query(key)` method returns a single value, or 'None' if not found.
+
+In the latter `_query()` case, the `key` can be specified as dot-separated
+path, so that the following two snippets are equivalent (assuming that a
+`foo.bar` section exists):
+
+  val = cfg['foo']['bar'].get('baz')
+  val = cfg._query('foo.bar.baz')
+
+
+Environment
+-----------
+
+Towards `os.environ` completion, we support the following syntax in all string
+*values* (not keys):
+
+  '${RADICAL_UTILS_ENV:default_value}'
+
+which will be replaced by
+
+  `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
+
+The default value is optional, an empty string is used if no default value is
+given.  Env evaluation is only performed at time of parsing, not at time of
+query.  RU attempts to convert env variables to float and int - if that fails,
+values are stored as strings.
+
+
+Validation
+----------
+
+It probably makes sense to switch to a json schema validator at some point,
+see for example https://pypi.python.org/pypi/json-schema-validator. For now
+this implementation remains schema-less, and will thus, in a very pythonesque
+way, only fail once values are queried or used.
+
+
+Implementation
+--------------
+
+This implementation is based on typed dictionaries which are accessed as
+`TypedDict`'ed object hierarchy.
+"""
+
+__author__    = 'RADICAL-Cybertools Team'
+__copyright__ = 'Copyright 2016-2022, The RADICAL-Cybertools Team'
+__license__   = 'MIT'
+
 import glob
+import os
 
 from .debug      import find_module
 from .misc       import expand_env as ru_expand_env
-from .json_io    import read_json
+from .json_io    import read_json, write_json
 from .dict_mixin import dict_merge
-from .munch      import Munch
+from .typeddict  import TypedDict, TypedDictMeta
 
 from .singleton  import Singleton
 
 
 # ------------------------------------------------------------------------------
 #
-class Config(Munch):
+class Config(TypedDict):
+    """Contents of a config (json) file from a module's config tree.
+
+    Fields
+    ------
+    module:    used to determine the module's config file location
+               - default: `radical.utils`
+    category:  name of config to be loaded from module's config path
+    name:      specify a specific configuration to be used
+    path:      path to app config json to be used for initialization
+    cfg:       application config dict to be used for initialization
+    from_dict: alias for cfg, to satisfy base class constructor
+    expand:    enable / disable environment var expansion
+               - default: True
+    env:       environment dictionary to be used for expansion
+               - default: `os.environ`
+
+    The naming of config files follows this rule:
+
+      `<category>_<name>.json`
+
+    For example, if the following is used in a system python installation:
+
+        ru.Config('radical.pilot', category='session', name='minimal')
+
+    it would attempt to load (depending on system details):
+
+        /usr/lib/python3/site-packages/\
+             radical/pilot/configs/session_minimal.json
+
+    NOTE: Keys containing an underscore are not exposed via the API.
+          Keys containing dots are split and interpreted as paths in the
+          configuration hierarchy.
+    """
 
     _self_default = True
 
@@ -150,10 +180,12 @@ class Config(Munch):
     def __init__(self, module=None, category=None, name=None, cfg=None,
                        from_dict=None, path=None, expand=True, env=None,
                        _internal=False):
-        '''
+        """
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
+        Parameters
+        ----------
         module:    used to determine the module's config file location
                    - default: `radical.utils`
         category:  name of config to be loaded from module's config path
@@ -177,12 +209,12 @@ class Config(Munch):
         it would attempt to load (depending on system details):
 
             /usr/lib/python3/site-packages/\
-                 radical/pilot/configs/session_mininmal.json
+                 radical/pilot/configs/session_minimal.json
 
         NOTE: Keys containing an underscore are not exposed via the API.
               Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
-        '''
+        """
 
         if from_dict:
             # if we could only overload constructors by signature... :-/
@@ -359,36 +391,53 @@ class Config(Munch):
 
         super().__init__(from_dict=cfg_dict)
 
+    # --------------------------------------------------------------------------
+    #
+    def write(self, fname):
+
+        write_json(self.as_dict(), fname)
+
 
 # ------------------------------------------------------------------------------
 #
-class DefaultConfig(Config, metaclass=Singleton):
-    '''
+class DefaultConfigMeta(TypedDictMeta, Singleton):
+    """
+    Metaclass inherited from `TypedDict`'s metaclass along with `Singleton` to
+    avoid metaclass conflict (the metaclass of a derived class must be a
+    subclass of the metaclasses of all its bases). `Singleton` metaclass allows
+    to have only one instance of a corresponding class.
+    """
+    pass
+
+
+# ------------------------------------------------------------------------------
+#
+class DefaultConfig(Config, metaclass=DefaultConfigMeta):
+    """
     The settings in this default config are, unsurprisingly, used as default
     values for various RU classes and methods, as for example for log file
     locations, log levels, profile locations, etc.
-    '''
+    """
 
-    _schema   = {
-                   'log_lvl'    : str,
-                   'log_tgt'    : str,
-                   'log_dir'    : str,
-                   'report'     : bool,
-                   'report_tgt' : str,
-                   'report_dir' : str,
-                   'profile'    : bool,
-                   'profile_dir': str,
-                 }
-
+    _schema = {
+        'log_lvl'    : str,
+        'log_tgt'    : str,
+        'log_dir'    : str,
+        'report'     : bool,
+        'report_tgt' : str,
+        'report_dir' : str,
+        'profile'    : bool,
+        'profile_dir': str,
+    }
 
     # --------------------------------------------------------------------------
     #
     def __init__(self):
 
-        super(DefaultConfig, self).__init__(module='radical.utils.utils',
+        super(DefaultConfig, self).__init__(module='radical.utils',
+                                            category='utils',
                                             name='default')
 
 
 # ------------------------------------------------------------------------------
-
 

@@ -120,6 +120,8 @@ def print_stacktraces(signum=None, sigframe=None):
         with ru_open('/tmp/ru.stacktrace.%s.log' % pid, 'w') as f:
             f.write('%s\n' % out)
 
+    sys.stdout.flush()
+
 
 # ------------------------------------------------------------------------------
 #
@@ -354,7 +356,7 @@ def attach_pudb(log=None):
 
 # ------------------------------------------------------------------------------
 #
-_SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('HOME', '/tmp')]
+_SNIPPET_PATHS = ['%s/.radical/snippets/' % os.environ.get('RADICAL_BASE', '/tmp')]
 
 
 def add_snippet_path(path):
@@ -385,7 +387,7 @@ def get_snippet(sid):
             exec(ru.get_snippet('my_class.init_hook'))
 
       * this will trigger RU to search for python files of the name
-        `my_class.init_hook.py` in `$HOME/.radical/snippets/' (default), and
+        `my_class.init_hook.py` in `$RADICAL_BASE/.radical/snippets/' (default), and
         return their content for injection.
 
     The snippet search path can be extended by calling.
