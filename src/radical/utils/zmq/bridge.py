@@ -1,10 +1,12 @@
 
+import os
 
 import threading as mt
 
-from ..logger  import Logger
-from ..config  import Config
-from ..json_io import read_json, write_json
+from ..logger   import Logger
+from ..profile  import Profiler
+from ..config   import Config
+from ..json_io  import read_json, write_json
 
 
 # ------------------------------------------------------------------------------
@@ -39,6 +41,17 @@ class Bridge(object):
         self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
+        self._prof    = Profiler(name=self._uid, path=self._pwd)
+
+        if self._pwd is None:
+            self._pwd = os.getcwd()
+
+        if 'hb' in self._uid or 'heartbeat' in self._uid:
+            self._prof.disable()
+        else:
+            self._prof.disable()
+
+        self._prof.prof('init', uid=self._uid, msg=self._pwd)
         self._log.debug('bridge %s init', self._uid)
 
         self._bridge_initialize()

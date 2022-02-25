@@ -1,10 +1,11 @@
+# pylint: disable=reimported
 
 # allow star import, unused symbols
 # flake8: noqa: F401
 
-__author__    = "Radical.Utils Development Team"
-__copyright__ = "Copyright 2013, RADICAL@Rutgers"
-__license__   = "MIT"
+__author__    = 'RADICAL-Cybertools Team'
+__copyright__ = 'Copyright 2013-2022, The RADICAL-Cybertools Team'
+__license__   = 'MIT'
 
 # we want atfork imported first, specifically before os and logging
 from .atfork         import *
@@ -27,19 +28,15 @@ from .url            import Url
 from .host           import get_hostip, get_hostname
 from .host           import get_hostlist, get_hostlist_by_range
 from .host           import create_hostfile, compress_hostlist, is_localhost
-from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
-from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .lockable       import Lockable
 from .lockfile       import Lockfile
 from .registry       import Registry, READONLY, READWRITE
 from .ru_regex       import ReString, ReSult
 from .lease_manager  import LeaseManager
 from .daemon         import Daemon, daemonize
-from .config         import Config, DefaultConfig
-from .munch          import Munch, demunch
-from .description    import Description
 from .poll           import Poller, POLLIN, POLLOUT, POLLERR, POLLALL
 from .poll           import POLLNVAL, POLLPRI, POLLHUP
+from .shell          import sh_quote
 from .shell          import sh_callout, sh_callout_bg, sh_callout_async
 from .testing        import sys_exit
 from .testing        import TestConfig
@@ -48,10 +45,18 @@ from .env            import env_read, env_write, env_read_lines, env_eval
 from .env            import env_prep, env_diff, EnvProcess
 from .stack          import stack
 
+from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
+from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
+from .typeddict      import TypedDict, TypedDictMeta, to_dict
+from .config         import Config, DefaultConfig
+# for backward compatibility keep the names of obsolete classes
+from .typeddict      import TypedDict as Description
+from .typeddict      import TypedDict as Munch, demunch
+
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber
-from .zmq            import Server, Client, Request, Response
+from .zmq            import Server, Client
 
 from .flux           import FluxHelper
 
