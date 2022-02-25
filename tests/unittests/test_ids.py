@@ -19,6 +19,8 @@ from unittest import TestCase
 TEST_CASES_PATH = 'tests/test_cases/ids.*.json'
 
 
+# ------------------------------------------------------------------------------
+#
 class IdsTestClass(TestCase):
 
     # --------------------------------------------------------------------------
