@@ -50,10 +50,6 @@ class TDError(TDErrorMixin, Exception):
     pass
 
 
-class TDAttributeError(TDErrorMixin, AttributeError):
-    pass
-
-
 class TDKeyError(TDErrorMixin, KeyError):
     pass
 
@@ -127,8 +123,6 @@ class TypedDict(metaclass=TypedDictMeta):
                   clear
                   get
                   items
-                  iterkeys
-                  itervalues
                   keys
                   pop
                   popitem
@@ -299,7 +293,8 @@ class TypedDict(metaclass=TypedDictMeta):
         return str(self._data)
 
     def __repr__(self):
-        return str(self)
+        return '<%s object, schema keys: %s>' % \
+               (type(self).__qualname__, tuple(self._schema.keys()))
 
     # --------------------------------------------------------------------------
     #
@@ -334,8 +329,8 @@ class TypedDict(metaclass=TypedDictMeta):
     # --------------------------------------------------------------------------
     #
     @classmethod
-    def __raise_attr_error(cls, k, v, t, level=4):
-        raise TDAttributeError(
+    def __raise_type_error(cls, k, v, t, level=4):
+        raise TDTypeError(
             'attribute "%s" - expected type %s, got %s' % (k, t, type(v)),
             level=level)
 
@@ -346,7 +341,7 @@ class TypedDict(metaclass=TypedDictMeta):
                 return t(v)
             except (TypeError, ValueError):
                 pass
-        cls.__raise_attr_error(k, v, t)
+        cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_bool(cls, k, v, t):
@@ -355,7 +350,7 @@ class TypedDict(metaclass=TypedDictMeta):
                 return True
             if str(v).lower() in ['false', 'no', '0']:
                 return False
-        cls.__raise_attr_error(k, v, t)
+        cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_tuple(cls, k, v, t):
@@ -366,7 +361,7 @@ class TypedDict(metaclass=TypedDictMeta):
         else:
             if isinstance(v, tuple):
                 return v
-            cls.__raise_attr_error(k, v, t)
+            cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_list(cls, k, v, t):
@@ -376,7 +371,7 @@ class TypedDict(metaclass=TypedDictMeta):
         else:
             if isinstance(v, list):
                 return v
-            cls.__raise_attr_error(k, v, t)
+            cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_dict(cls, k, v, t):
@@ -389,7 +384,7 @@ class TypedDict(metaclass=TypedDictMeta):
         else:
             if isinstance(v, dict):
                 return v
-            cls.__raise_attr_error(k, v, t)
+            cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_typeddict(cls, k, v, t):
@@ -400,7 +395,7 @@ class TypedDict(metaclass=TypedDictMeta):
         else:
             if issubclass(type(v), t):
                 return v
-        cls.__raise_attr_error(k, v, t)
+        cls.__raise_type_error(k, v, t)
 
     @classmethod
     def _verify_kvt(cls, k, v, t):
@@ -411,7 +406,7 @@ class TypedDict(metaclass=TypedDictMeta):
             if isinstance(v, t)        : return v
             if t in [str, int, float]  : return cls._verify_base(k, v, t)
             if t is bool               : return cls._verify_bool(k, v, t)
-            cls.__raise_attr_error(k, v, t, level=3)
+            cls.__raise_type_error(k, v, t, level=3)
         if isinstance(t, tuple)        : return cls._verify_tuple(k, v, t)
         if isinstance(t, list)         : return cls._verify_list(k, v, t)
         if isinstance(t, dict)         : return cls._verify_dict(k, v, t)
