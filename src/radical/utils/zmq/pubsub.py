@@ -163,7 +163,7 @@ class PubSub(Bridge):
                 self._pub.send(msg)
 
                 self._prof.prof('subscribe', uid=self._uid, msg=msg)
-              # log_bulk(self._log, msg, '~~ %s' % self.channel)
+              # log_bulk(self._log, msg, '~~1 %s' % self.channel)
 
 
             if self._pub in socks:
@@ -200,6 +200,7 @@ class Publisher(object):
 
         if not log:
             self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
+                              # level='debug')
 
         if not prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
@@ -447,7 +448,7 @@ class Subscriber(object):
 
         sock  = Subscriber._callbacks[self._url]['socket']
         topic = str(topic).replace(' ', '_')
-        log_bulk(self._log, topic, '~~ %s' % self.channel)
+      # log_bulk(self._log, topic, '~~2 %s' % topic)
 
         with self._lock:
             no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
