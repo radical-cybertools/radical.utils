@@ -387,7 +387,7 @@ def lazy_bisect(data, check,
   #         else                : hay += '.'
   #     if not hay.endswith('|'):
   #         hay += '|'
-  #     log.debug('=== %30s %s', '', hay)
+  #     log.debug('%30s %s', '', hay)
   # # --------------------------------------------------------------------------
   #
   # # --------------------------------------------------------------------------
@@ -404,7 +404,7 @@ def lazy_bisect(data, check,
   #     b = last_bad
   #     if g is None: g = '?'
   #     if b is None: b = '?'
-  #     log.debug('=== %3s - %3s %20s %s %s', g, b, ' ', needle, msg)
+  #     log.debug('%3s - %3s %20s %s %s', g, b, ' ', needle, msg)
   # # --------------------------------------------------------------------------
 
   # state_hay()
