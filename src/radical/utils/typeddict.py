@@ -43,6 +43,7 @@ class TDErrorMixin:
                                       f.f_code.co_name,
                                       msg and ' - %s' % msg or ''))
 
+
 # ------------------------------------------------------------------------------
 
 
@@ -107,7 +108,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     # --------------------------------------------------------------------------
     #
     def __init__(self, from_dict=None):
-        """
+        '''
         Create a typed dictionary (tree) from `from_dict`.
 
         from_dict: data to be used for initialization
@@ -130,15 +131,16 @@ class TypedDict(dict, metaclass=TypedDictMeta):
                   verify
 
               Names with a leading underscore are not supported.
-        """
+        '''
         self.__dict__['_data'] = {}
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
 
+
     # --------------------------------------------------------------------------
     #
     def update(self, other):
-        """
+        '''
         Overload `dict.update()`: the call is used to ensure that sub-dicts are
         instantiated as their respective TypedDict-inheriting class types,
         if so specified by the respective schema.
@@ -158,7 +160,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         parameter constructor like `ru.TypedDict`, or (b) the `data` value for
         `foo` cannot be used as `from_dict` parameter to the `BarTypedDict`
         constructor.
-        """
+        '''
         if not other:
             return
 
@@ -172,13 +174,17 @@ class TypedDict(dict, metaclass=TypedDictMeta):
                     continue
             self[k] = v
 
+
     # --------------------------------------------------------------------------
     #
     def __deepcopy__(self, memo):
-        # return a new instance of the same type, not an original TypedDict,
-        # otherwise if an instance of TypedDict-based has an attribute of other
-        # TypedDict-based type then `verify` method will raise an exception
+        '''
+        return a new instance of the same type, not an original TypedDict,
+        otherwise if an instance of TypedDict-based has an attribute of other
+        TypedDict-based type then `verify` method will raise an exception
+        '''
         return type(self)(from_dict=copy.deepcopy(self._data))
+
 
     # --------------------------------------------------------------------------
     #
@@ -214,6 +220,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     def clear(self):
         self._data.clear()
 
+
     # --------------------------------------------------------------------------
     #
     def get(self, key, default=None):
@@ -246,6 +253,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         else:
             raise TDError('no data')
 
+
     # --------------------------------------------------------------------------
     #
     # base functionality for attribute access
@@ -273,6 +281,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         del self._data[k]
 
+
     # --------------------------------------------------------------------------
     #
     def __str__(self):
@@ -282,35 +291,12 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         return '<%s object, schema keys: %s>' % \
                (type(self).__qualname__, tuple(self._schema.keys()))
 
+
     # --------------------------------------------------------------------------
     #
-    @classmethod
-    def _to_dict_value(cls, v):
-        return v.as_dict() if isinstance(v, TypedDict) else cls.to_dict(v)
-
-    @classmethod
-    def to_dict(cls, src):
-        """
-        Iterate given object and apply `TypedDict.as_dict()` to all typed
-        values, and return the result (effectively a shallow copy).
-        """
-        if isinstance(src, dict):
-            tgt = {k: cls._to_dict_value(v) for k, v in src.items()}
-        elif isinstance(src, list):
-            tgt = [cls._to_dict_value(x) for x in src]
-        elif isinstance(src, tuple):
-            tgt = tuple([cls._to_dict_value(x) for x in src])
-        else:
-            tgt = src
-        return tgt
-
     def as_dict(self):
-        return self.to_dict(self._data)
+        return as_dict(self._data)
 
-    # obsolete method name
-    @classmethod
-    def demunch(cls, src):
-        return cls.to_dict(src)
 
     # --------------------------------------------------------------------------
     #
@@ -414,6 +400,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         self._verify()
         return self
 
+
     # --------------------------------------------------------------------------
     #
     def _verify_setter(self, k, v):
@@ -425,18 +412,20 @@ class TypedDict(dict, metaclass=TypedDictMeta):
             raise TDKeyError('key "%s" not in schema' % k, level=2)
         return self._verify_kvt(k, v, self._schema[k])
 
+
     # --------------------------------------------------------------------------
     #
     def _verify(self):
-        """
+        '''
         Can be overloaded
-        """
+        '''
         pass
+
 
     # --------------------------------------------------------------------------
     #
     def _query(self, key, default=None, last_key=True):
-        """
+        '''
         For a query like
 
             typeddict.query('some.path.to.key', 'foo')
@@ -447,7 +436,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         flag `last_key` allows getting `default` value if any sub-key is missing
         (by default only if the last key is missing then return `default` value)
-        """
+        '''
         if not key:
             raise TDKeyError('empty key on query')
         key_seq = key.split('.') if is_string(key) else list(key)
@@ -475,10 +464,26 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 
 # ------------------------------------------------------------------------------
+#
+def _as_dict_value(v):
+    return v.as_dict() if isinstance(v, TypedDict) else as_dict(v)
 
-to_dict = TypedDict.to_dict
-# keep old name(s) for previously set calls
-demunch = TypedDict.to_dict
+
+def as_dict(src):
+    '''
+    Iterate given object, apply `as_dict()` to all typed
+    values, and return the result (effectively a shallow copy).
+    '''
+    if isinstance(src, dict):
+        tgt = {k: _as_dict_value(v) for k, v in src.items()}
+    elif isinstance(src, list):
+        tgt = [_as_dict_value(x) for x in src]
+    elif isinstance(src, tuple):
+        tgt = tuple([_as_dict_value(x) for x in src])
+    else:
+        tgt = src
+    return tgt
+
 
 # ------------------------------------------------------------------------------
 
