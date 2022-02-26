@@ -50,9 +50,6 @@ from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .typeddict      import TypedDict, TypedDictMeta, as_dict
 from .config         import Config, DefaultConfig
 
-# for backward compatibility keep the names of obsolete classes
-from .typeddict      import TypedDict as Description
-
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber

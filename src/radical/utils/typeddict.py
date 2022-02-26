@@ -297,11 +297,6 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     def as_dict(self):
         return as_dict(self._data)
 
-    # obsolete method name
-    @classmethod
-    def demunch(cls, src):
-        return as_dict(src)
-
 
     # --------------------------------------------------------------------------
     #
@@ -488,10 +483,6 @@ def as_dict(src):
     else:
         tgt = src
     return tgt
-
-
-# keep old name(s) for previously set calls
-demunch = TypedDict.as_dict
 
 
 # ------------------------------------------------------------------------------
