@@ -3,6 +3,15 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.12.0 Release                                                        2022-02-28
+--------------------------------------------------------------------------------
+
+  - add initialization command for `conda`
+  - ZMQServer/ZMQClient classes
+  - add `sh_quote()`
+  - introduced `TypedDict` module (`Munch`-successor)
+
+
 1.11.1 Hotfix Release                                                 2022-02-17
 --------------------------------------------------------------------------------
 
