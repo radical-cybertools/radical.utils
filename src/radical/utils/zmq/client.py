@@ -7,7 +7,7 @@ from typing import Any
 import threading as mt
 
 from ..json_io import read_json
-
+from ..misc    import as_string
 from .utils    import no_intr, sock_connect
 
 
@@ -68,9 +68,11 @@ class Client(object):
         no_intr(self._sock.send, req)
 
         msg = no_intr(self._sock.recv)
-        res = msgpack.unpackb(msg)
+        res = as_string(msgpack.unpackb(msg))
 
-        if res['err']:
+        # FIXME: assert proper res structure
+
+        if res.get('err'):
             err_msg = 'ERROR: %s' % res['err']
             if res['exc']:
                 err_msg += '\n%s' % ''.join(res['exc'])
