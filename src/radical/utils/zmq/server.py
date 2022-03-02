@@ -273,10 +273,11 @@ class Server(object):
 
             # default response
             rep = None
+            req = None
 
             try:
                 data = no_intr(self._sock.recv)
-                req  = msgpack.unpackb(data)
+                req  = as_string(msgpack.unpackb(data))
                 self._log.debug('req: %s', str(req)[:128])
 
                 if not isinstance(req, dict):
@@ -297,6 +298,7 @@ class Server(object):
                         rep = self._success(self._cbs[cmd](*args, **kwargs))
 
             except Exception as e:
+                self._log.exception('command failed: %s', req)
                 rep = self._error(err='command failed: %s' % str(e),
                                   exc='\n'.join(get_exception_trace()))
 
