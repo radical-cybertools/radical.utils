@@ -3,6 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.13.0 Release                                                        2022-03-21
+--------------------------------------------------------------------------------
+
+  - clean temporary setup files
+  - fix server protocol string types
+
+
 1.12.0 Release                                                        2022-02-28
 --------------------------------------------------------------------------------
 
