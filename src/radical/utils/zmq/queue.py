@@ -276,10 +276,10 @@ class Queue(Bridge):
                     data = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
 
-                    self._log.debug('==== get %s: %s', qname, list(buf.keys()))
-                    self._log.debug('==== get %s: %s', qname, list(buf.values()))
-                    self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
-                                           [[x, len(y)] for x,y in buf.items()])
+                  # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
+                  # self._log.debug('==== get %s: %s', qname, list(buf.values()))
+                  # self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
+                  #                        [[x, len(y)] for x,y in buf.items()])
                     no_intr(self._get.send_multipart, data)
                   # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
