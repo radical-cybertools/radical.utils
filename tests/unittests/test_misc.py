@@ -83,24 +83,23 @@ def test_sh_callout():
 #
 def test_sh_callout_async():
 
-    pass
 
-#     import t ime
-#     t_0 = time.time()
-#     p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
-#
-#     assert(p.stdout.get() == 'TRUE')
-#     assert(p.state        == ru.RUNNING)
-#
-#     t_1 = time.time()
-#
-#     assert(p.stdout.get() is None)
-#     assert(p.state        == ru.DONE)
-#
-#     t_2 = time.time()
-#
-#     assert(t_1 - t_0 < 0.1)
-#     assert(t_2 - t_0 > 1.0)
+    import time
+    t_0 = time.time()
+    p   = ru.sh_callout_async('echo TRUE && sleep 1', shell=True, stdout=True)
+
+    assert(p.stdout.get() == 'TRUE')
+    assert(p.state        == ru.RUNNING)
+
+    t_1 = time.time()
+
+    assert(p.stdout.get() is None)
+    assert(p.state        == ru.DONE)
+
+    t_2 = time.time()
+
+    assert(t_1 - t_0 < 0.1)
+    assert(t_2 - t_0 > 1.0)
 
 
 # ------------------------------------------------------------------------------
@@ -299,16 +298,16 @@ def test_ru_open():
 # run tests if called directly
 if __name__ == "__main__":
 
-    test_import_file()
-    test_round_to_base()
-    test_round_upper_bound()
-    test_sh_callout()
+  # test_import_file()
+  # test_round_to_base()
+  # test_round_upper_bound()
+  # test_sh_callout()
     test_sh_callout_async()
-    test_get_env_ns()
-    test_expand_env()
-    test_script_2_func()
-    test_base()
-    test_ru_open()
+  # test_get_env_ns()
+  # test_expand_env()
+  # test_script_2_func()
+  # test_base()
+  # test_ru_open()
 
 
 # ------------------------------------------------------------------------------
