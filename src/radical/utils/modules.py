@@ -1,14 +1,12 @@
 
-import os
-import inspect
-import pkgutil
 import builtins
+import inspect
+import os
+import pkgutil
 
-import importlib.util
+import importlib.util as imputil
 
 from typing import Any, Union, Optional
-
-
 
 _id_cnt = 0
 
@@ -68,8 +66,8 @@ def import_file(path):
     _id_cnt += 1
 
     uid  = 'mod_%d' % _id_cnt
-    spec = importlib.util.spec_from_file_location(uid, path)
-    mod  = importlib.util.module_from_spec(spec)
+    spec = imputil.spec_from_file_location(uid, path)
+    mod  = imputil.module_from_spec(spec)
 
     spec.loader.exec_module(mod)
 
@@ -117,14 +115,12 @@ def load_class(fpath: str,
     and return it (the class, not an instance).
     '''
 
-    from importlib import util as imp
-
     if not os.path.isfile(fpath):
         raise ValueError('no source file at [%s]' % fpath)
 
     pname  = os.path.splitext(os.path.basename(fpath))[0]
-    spec   = imp.spec_from_file_location(pname, fpath)
-    plugin = imp.module_from_spec(spec)
+    spec   = imputil.spec_from_file_location(pname, fpath)
+    plugin = imputil.module_from_spec(spec)
 
     spec.loader.exec_module(plugin)
 
