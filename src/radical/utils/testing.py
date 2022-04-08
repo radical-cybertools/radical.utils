@@ -8,7 +8,7 @@ import os
 import sys
 
 
-from .debug   import import_module
+from .modules import import_module
 from .json_io import read_json
 
 
