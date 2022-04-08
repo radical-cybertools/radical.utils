@@ -13,6 +13,12 @@ from unittest import TestCase
 
 # ------------------------------------------------------------------------------
 #
+class TestDict(ru.TypedDict):
+    pass
+
+
+# ------------------------------------------------------------------------------
+#
 class ModulesTC(TestCase):
 
     # --------------------------------------------------------------------------
@@ -23,10 +29,10 @@ class ModulesTC(TestCase):
                          ('list', list), ('tuple', tuple), ('dict', dict)]:
             self.assertIs(ru.get_type(tname), t)
 
-        class TestClass:
+        class LocalTestClass:
             pass
 
-        self.assertIs(ru.get_type('TestClass'), TestClass)
+        self.assertIs(ru.get_type('LocalTestClass'), LocalTestClass)
 
     # --------------------------------------------------------------------------
     #
@@ -44,9 +50,15 @@ class NewClass:
 """)
         obj = ru.load_class(fpath=fpath, cname='NewClass')()
         self.assertEqual(obj.hello(), 'hello')
-        # FIXME: review `get_type` for `load_class` (input parameter `ctype`)
 
         os.unlink(fpath)
+
+    # --------------------------------------------------------------------------
+    #
+    def test_load_class_with_type(self):
+
+        f = ru.load_class(fpath=__file__, cname='TestDict', ctype=ru.TypedDict)
+        self.assertIsInstance(f(), ru.TypedDict)
 
 # ------------------------------------------------------------------------------
 
