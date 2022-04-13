@@ -3,6 +3,16 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.14.0 Release                                                        2022-04-13
+--------------------------------------------------------------------------------
+
+  - added tests for `modules` module
+  - move some methods from RP.utils
+  - remove duplicated funcs from `debug` module and keep them in `modules`
+  - removed RG from the dependencies (RG is required for RP)
+  - silence chatty debug logs
+
+
 1.13.0 Release                                                        2022-03-21
 --------------------------------------------------------------------------------
 
