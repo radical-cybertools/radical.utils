@@ -276,10 +276,10 @@ class Queue(Bridge):
                     data = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
 
-                    self._log.debug('==== get %s: %s', qname, list(buf.keys()))
-                    self._log.debug('==== get %s: %s', qname, list(buf.values()))
-                    self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
-                                           [[x, len(y)] for x,y in buf.items()])
+                  # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
+                  # self._log.debug('==== get %s: %s', qname, list(buf.values()))
+                  # self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
+                  #                        [[x, len(y)] for x,y in buf.items()])
                     no_intr(self._get.send_multipart, data)
                   # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
@@ -671,7 +671,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:
                 if not self._requested:
-                    self._log.debug('=== => from %s[%s]', self._channel, qname)
+                  # self._log.debug('=== => from %s[%s]', self._channel, qname)
                     no_intr(self._q.send, as_bytes(qname))
                     self._requested = True
 
@@ -707,7 +707,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:  # need to protect self._requested
                 if not self._requested:
-                    self._log.debug('=== => from %s[%s]', self._channel, qname)
+                  # self._log.debug('=== => from %s[%s]', self._channel, qname)
                     no_intr(self._q.send_multipart, [as_bytes(qname)])
                     self._requested = True
 
