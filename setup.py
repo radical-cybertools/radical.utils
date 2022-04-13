@@ -244,7 +244,6 @@ setup_args = {
                             'ntplib',
                             'pymongo<4',
                             'pyzmq',
-                            'radical.gtod',
                             'regex',
                             'setproctitle',
                            ],
