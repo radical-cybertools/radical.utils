@@ -1,4 +1,6 @@
 
+import shelve
+
 from typing import List, Optional, Any
 
 from ..json_io    import write_json
@@ -11,7 +13,10 @@ from .client import Client
 # ------------------------------------------------------------------------------
 #
 class Registry(Server):
-
+    '''
+    The `ru.zmq.Registry` is a ZMQ service which provides a hirarchical
+    persistent data store.
+    '''
 
     # --------------------------------------------------------------------------
     #
@@ -20,7 +25,7 @@ class Registry(Server):
 
         super().__init__(url=url, uid=uid)
 
-        self._data = dict()
+        self._data = shelve.open('%s.db' % self._uid, writeback=True)
 
         self.register_request('put',  self.put)
         self.register_request('get',  self.get)
@@ -33,6 +38,7 @@ class Registry(Server):
     def stop(self) -> None:
 
         write_json(self._data, '%s.json' % self._uid)
+        self._data.close()
         super().stop()
 
 
@@ -51,6 +57,8 @@ class Registry(Server):
                 this = this[elem]
 
         this[elems[-1]] = val
+
+        self._data.sync()
 
 
     # --------------------------------------------------------------------------
@@ -85,11 +93,17 @@ class Registry(Server):
     def delitem(self, key: str) -> None:
 
         del(self._data[key])
+        self._data.sync()
 
 
 # ------------------------------------------------------------------------------
 #
 class RegistryClient(Client, DictMixin):
+    '''
+    The `ru.zmq.RegistryClient` class provides a simple dict-like interface to
+    a remote `ru.zmq.Registry` service.  Note that only top-level dict-actions
+    on the `RegistryClient` instance are synced with the remote service storage.
+    '''
 
 
     # --------------------------------------------------------------------------
@@ -121,12 +135,15 @@ class RegistryClient(Client, DictMixin):
     def __getitem__(self, key: str) -> Optional[Any]:
         return self.get(key)
 
+
     def __setitem__(self, key: str, val: Any) -> None:
         return self.put(key, val)
+
 
     def __delitem__(self, key: str) -> None:
         ret = self.request(cmd='del', key=key)
         assert(ret is None)
+
 
     def keys(self) -> List[str]:
         ret = self.request(cmd='keys')
