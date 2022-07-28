@@ -230,7 +230,7 @@ class Queue(Bridge):
                 if self._put in ev_put:
 
                     with self._lock:
-                        data = no_intr(self._put.recv_multipart)
+                        data = list(no_intr(self._put.recv_multipart))
 
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
@@ -273,7 +273,7 @@ class Queue(Bridge):
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
 
-                    data = [msgpack.packb(qname), msgpack.packb(msgs)]
+                    data   = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
 
                   # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
@@ -415,7 +415,7 @@ class Getter(object):
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
 
-                data = no_intr(info['socket'].recv_multipart)
+                data = list(no_intr(info['socket'].recv_multipart))
                 info['requested'] = False
 
                 qname = as_string(msgpack.unpackb(data[0]))
@@ -678,7 +678,7 @@ class Getter(object):
           # self._prof.prof('requested')
 
         with self._lock:
-            data = no_intr(self._q.recv_multipart)
+            data = list(no_intr(self._q.recv_multipart))
             self._requested = False
 
         qname = msgpack.unpackb(data[0])
@@ -713,7 +713,7 @@ class Getter(object):
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
             with self._lock:
-                data = no_intr(self._q.recv_multipart)
+                data = list(no_intr(self._q.recv_multipart))
                 self._requested = False
 
             qname = msgpack.unpackb(data[0])
