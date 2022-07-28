@@ -223,7 +223,7 @@ class Queue(Bridge):
                 active = False
 
                 # check for incoming messages, and buffer them
-                ev_put = dict(no_intr(self._poll_put.poll, timeout=10000))
+                ev_put = dict(no_intr(self._poll_put.poll, timeout=10))
               # self._prof.prof('poll_put', msg=len(ev_put))
                 self._log.debug('polled put: %s', ev_put)
 
@@ -250,7 +250,7 @@ class Queue(Bridge):
 
 
                 # check if somebody wants our messages
-                ev_get = dict(no_intr(self._poll_get.poll, timeout=10000))
+                ev_get = dict(no_intr(self._poll_get.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
                 self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
