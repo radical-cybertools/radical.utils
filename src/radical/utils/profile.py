@@ -554,6 +554,7 @@ def combine_profiles(profs):
                         'abs' : sync_abs}
 
         if not len(prof):
+          # print('empty        %s' % pname)
             continue
 
         for entry in prof:
@@ -563,7 +564,8 @@ def combine_profiles(profs):
         # we can have any number of sync_rel's - but if we find none, we expect
         # a sync_abs
         if not sync_rel and not sync_abs:
-            print('unsynced     %s' % pname)
+          # print('unsynced     %s' % pname)
+            continue
 
         syncs[pname] = {'rel' : sync_rel,
                         'abs' : sync_abs}
@@ -606,7 +608,7 @@ def combine_profiles(profs):
                     break
 
         if offset is None:
-            print('no rel sync  %s' % pname)
+          # print('no rel sync  %s' % pname)
             continue
 
       # print('sync profile %-100s : %20.3fs' % (pname, offset))
@@ -675,7 +677,7 @@ def combine_profiles(profs):
             continue
 
         if not syncs[pname]['abs']:
-            print('no sync_abs event: %s' % prof[0])
+          # print('no sync_abs event: %s' % prof[0])
             continue
 
         sync_abs = syncs[pname]['abs'][0]
@@ -713,8 +715,8 @@ def combine_profiles(profs):
       #     print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
 
         # Check for proper closure of profiling files
-        if c_end == 0:
-            print('WARNING: profile "%s" not correctly closed.' % pname)
+      # if c_end == 0:
+      #     print('WARNING: profile "%s" not correctly closed.' % pname)
       # elif c_end > 1:
       #     print('WARNING: profile "%s" closed %d times.' % (pname, c_end))
 
