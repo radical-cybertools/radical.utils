@@ -772,8 +772,8 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
         if name == 'advance':
 
             # this is a state progression
-            assert(state), 'cannot advance w/o state'
-            assert(uid),   'cannot advance w/o uid'
+            assert state, 'cannot advance w/o state'
+            assert uid,   'cannot advance w/o uid'
 
             # this is a state transition event
             event[EVENT] = 'state'
@@ -785,7 +785,7 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
                 # CANCELED state.
                 if  state_canceled and \
                     state_canceled in entities[uid]['states']:
-                    del(entities[uid]['states'][state_canceled])
+                    del entities[uid]['states'][state_canceled]
 
                 # vice-versa, we will not add CANCELED if a final
                 # state already exists:
