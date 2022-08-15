@@ -463,10 +463,21 @@ def combine_profiles(profs):
         syncs[pname] = list()
 
         if not len(prof):
+          # print('empty        %s' % pname)
             continue
 
         for entry in prof:
-            if entry[EVENT] == 'sync': syncs[pname].append(entry)
+            if entry[EVENT] == 'sync_abs': sync_abs.append(entry)
+            if entry[EVENT] == 'sync_rel': sync_rel.append(entry)
+
+        # we can have any number of sync_rel's - but if we find none, we expect
+        # a sync_abs
+        if not sync_rel and not sync_abs:
+          # print('unsynced     %s' % pname)
+            continue
+
+        syncs[pname] = {'rel' : sync_rel,
+                        'abs' : sync_abs}
 
   # for pname, prof in profs.items():
   #     if prof:
@@ -478,7 +489,49 @@ def combine_profiles(profs):
           # print('empty        %s' % pname)
             continue
 
-    # all profiles are rel-synced here.  Now we look at `sync` values to align
+        # if we have only sync_rel(s), then find the offset by the corresponding
+        # sync_rel in the other profiles, and determine the offset to use.  Use
+        # the first sync_rel that results in an offset, and only complain if
+        # none is found.
+        offset       = None
+        offset_event = None
+        if syncs[pname]['abs']:
+            offset = 0.0
+
+        else:
+            for sync_rel in syncs[pname]['rel']:
+                for _pname in syncs:
+
+                    if _pname == pname:
+                        continue
+
+                    for _sync_rel in syncs[_pname]['rel']:
+                        if _sync_rel[MSG] == sync_rel[MSG]:
+                            offset        = _sync_rel[TIME] - sync_rel[TIME]
+                            offset_event  = syncs[_pname]['abs'][0]
+
+                    if offset:
+                        break
+
+                if offset:
+                    break
+
+        if offset is None:
+          # print('no rel sync  %s' % pname)
+            continue
+
+      # print('sync profile %-100s : %20.3fs' % (pname, offset))
+        for event in prof:
+            event[TIME] += offset
+
+        # if we have an offset event, we append it to the profile.  This
+        # basically transplants an sync_abs event into a sync_rel profile
+        if offset_event:
+          # print('transplant sync_abs to %s: %s' % (pname, offset_event))
+            prof.append(offset_event)
+            syncs[pname]['abs'].append(offset_event)
+
+    # all profiles are rel-synced here.  Now we look at sync_abs values to align
     # across hosts and to determine accuracy.
     for pname in syncs:
 
@@ -532,8 +585,8 @@ def combine_profiles(profs):
           # print('empty prof: %s' % pname)
             continue
 
-        if not syncs[pname]:
-            print('unsynced %s' % pname)
+        if not syncs[pname]['abs']:
+          # print('no sync_abs event: %s' % prof[0])
             continue
 
         sync = syncs[pname][0]
@@ -567,8 +620,8 @@ def combine_profiles(profs):
       #     print('check        %-100s: %s' % (pname, prof[0][TIME:EVENT]))
 
         # Check for proper closure of profiling files
-        if c_end == 0:
-            print('WARNING: profile "%s" not correctly closed.' % pname)
+      # if c_end == 0:
+      #     print('WARNING: profile "%s" not correctly closed.' % pname)
       # elif c_end > 1:
       #     print('WARNING: profile "%s" closed %d times.' % (pname, c_end))
 
@@ -591,6 +644,74 @@ def clean_profile(profile, sid, state_final=None, state_canceled=None):
       - sort by time
     '''
 
+    entities = dict()  # things which have a uid
+
+    if not state_final:
+        state_final = []
+    elif not isinstance(state_final, list):
+        state_final = [state_final]
+
+    for event in profile:
+
+        uid   = event[UID  ]
+        state = event[STATE]
+        name  = event[EVENT]
+
+        # we derive entity_type from the uid -- but funnel
+        # some cases into the session
+        if uid:
+            event[ENTITY] = uid.split('.',1)[0]
+        else:
+            event[ENTITY] = 'session'
+            event[UID]    = sid
+            uid = sid
+
+        if uid not in entities:
+            entities[uid] = dict()
+            entities[uid]['states'] = dict()
+            entities[uid]['events'] = list()
+
+        if name == 'advance':
+
+            # this is a state progression
+            assert state, 'cannot advance w/o state'
+            assert uid,   'cannot advance w/o uid'
+
+            # this is a state transition event
+            event[EVENT] = 'state'
+
+            skip = False
+            if state in state_final and state != state_canceled:
+
+                # a final state other than CANCELED will cancel any previous
+                # CANCELED state.
+                if  state_canceled and \
+                    state_canceled in entities[uid]['states']:
+                    del entities[uid]['states'][state_canceled]
+
+                # vice-versa, we will not add CANCELED if a final
+                # state already exists:
+                if  state_canceled and \
+                    state_canceled == state:
+                    if any([s in entities[uid]['states']
+                              for s in state_final]):
+                        skip = True
+                        continue
+
+            if state in entities[uid]['states']:
+                # ignore duplicated recordings of state transitions
+                skip = True
+                continue
+              # raise ValueError('double state (%s) for %s' % (state, uid))
+
+            if not skip:
+                entities[uid]['states'][state] = event
+
+        entities[uid]['events'].append(event)
+
+
+    # we have evaluated, cleaned and sorted all events -- now we recreate
+    # a clean profile out of them
     ret = list()
     for event in profile:
 
