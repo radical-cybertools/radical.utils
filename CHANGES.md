@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.16.0 Release                                                        2022-08-15
+--------------------------------------------------------------------------------
+
+  - silence profile reading
+
+
 1.15.0 Release                                                        2022-07-29
 --------------------------------------------------------------------------------
 
