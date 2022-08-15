@@ -28,10 +28,11 @@ def read_json(fname, filter_comments=True):
     with ru_open(fname) as f:
 
         try:
-            return parse_json(f.read(), filter_comments)
-
+            output = parse_json(f.read(), filter_comments)
         except ValueError as e:
             raise ValueError('error parsing %s: %s' % (fname, e)) from e
+
+    return output
 
 
 # ------------------------------------------------------------------------------
