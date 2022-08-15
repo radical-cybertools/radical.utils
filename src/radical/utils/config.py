@@ -123,7 +123,7 @@ __license__   = 'MIT'
 import glob
 import os
 
-from .debug      import find_module
+from .modules    import find_module
 from .misc       import expand_env as ru_expand_env
 from .json_io    import read_json, write_json
 from .dict_mixin import dict_merge

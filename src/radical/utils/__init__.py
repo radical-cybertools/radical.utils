@@ -44,6 +44,8 @@ from .testing        import set_test_config, add_test_config, get_test_config
 from .env            import env_read, env_write, env_read_lines, env_eval
 from .env            import env_prep, env_diff, EnvProcess
 from .stack          import stack
+from .modules        import import_module, find_module, import_file
+from .modules        import get_type, load_class
 
 from .dict_mixin     import DictMixin, dict_merge, dict_stringexpand, dict_diff
 from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
