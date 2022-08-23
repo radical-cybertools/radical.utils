@@ -15,7 +15,7 @@ from ..logger  import Logger
 from ..profile import Profiler
 
 from .bridge   import Bridge
-from .utils    import no_intr, log_bulk
+from .utils    import no_intr  # , log_bulk
 
 
 # ------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ class Publisher(object):
     #
     def put(self, topic, msg):
 
-        assert(isinstance(topic, str )), 'invalid topic type'
+        assert isinstance(topic, str), 'invalid topic type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
