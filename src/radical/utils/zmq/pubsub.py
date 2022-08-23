@@ -17,7 +17,7 @@ from ..profile import Profiler
 from ..debug   import print_exception_trace
 
 from .bridge   import Bridge
-from .utils    import no_intr, log_bulk
+from .utils    import no_intr  # , log_bulk
 
 
 # ------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ class PubSub(Bridge):
         while not self._term.is_set():
 
             # timeout in ms
-            socks = dict(self._poll.poll(timeout=500))
+            socks = dict(self._poll.poll(timeout=10))
 
             if self._sub in socks:
 
@@ -163,7 +163,7 @@ class PubSub(Bridge):
                 self._pub.send(msg)
 
                 self._prof.prof('subscribe', uid=self._uid, msg=msg)
-              # log_bulk(self._log, msg, '~~1 %s' % self.channel)
+              # log_bulk(self._log, '~~1 %s' % self.channel, [msg])
 
 
             if self._pub in socks:
@@ -174,7 +174,7 @@ class PubSub(Bridge):
                 self._sub.send(msg)
 
               # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
-              # log_bulk(self._log, msg, '<> %s' % self.channel)
+              # log_bulk(self._log, '<> %s' % self.channel, [msg])
 
 
 # ------------------------------------------------------------------------------
@@ -237,11 +237,11 @@ class Publisher(object):
     #
     def put(self, topic, msg):
 
-        assert(isinstance(topic, str )), 'invalid topic type'
+        assert isinstance(topic, str), 'invalid topic type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
       # self._prof.prof('put', uid=self._uid, msg=msg)
-      # log_bulk(self._log, msg, '-> %s' % self.channel)
+      # log_bulk(self._log, '-> %s' % topic, [msg])
 
         btopic = as_bytes(topic.replace(' ', '_'))
         bmsg   = msgpack.packb(msg)
@@ -271,9 +271,11 @@ class Subscriber(object):
 
         if socket.poll(flags=zmq.POLLIN, timeout=timeout):
 
-            raw         = no_intr(socket.recv, flags=zmq.NOBLOCK)
-            topic, data = raw.split(b' ', 1)
-            msg         = msgpack.unpackb(data)
+            data        = no_intr(socket.recv, flags=zmq.NOBLOCK)
+            topic, bmsg = data.split(b' ', 1)
+            msg         = msgpack.unpackb(bmsg)
+
+          # log.debug(' <- %s: %s', topic, msg)
 
             return [as_string(topic), as_string(msg)]
 
@@ -300,6 +302,8 @@ class Subscriber(object):
                 # this list is dynamic
                 callbacks  = Subscriber._callbacks[url]['callbacks']
                 topic, msg = Subscriber._get_nowait(socket, lock, 500, log, prof)
+
+              # log.debug(' <- %s: %s', topic, msg)
 
                 if topic:
                     for cb, _lock in callbacks:
@@ -334,7 +338,7 @@ class Subscriber(object):
 
         self._channel  = channel
         self._url      = as_string(url)
-        self._topic    = as_list(topic)
+        self._topics   = as_list(topic)
         self._cb       = cb
         self._log      = log
         self._prof     = prof
@@ -378,7 +382,7 @@ class Subscriber(object):
         # only allow `get()` and `get_nowait()`
         self._interactive = True
 
-        if topic:
+        for topic in self._topics:
             self.subscribe(topic, cb)
 
 
@@ -441,17 +445,19 @@ class Subscriber(object):
         # The given lock (if any) is used to shield concurrent cb invokations.
 
         if cb:
-
             self._interactive = False
             self._start_listener()
             Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
 
         sock  = Subscriber._callbacks[self._url]['socket']
         topic = str(topic).replace(' ', '_')
-      # log_bulk(self._log, topic, '~~2 %s' % topic)
+      # log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
             no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+
+        if topic not in self._topics:
+            self._topics.append(topic)
 
 
     # --------------------------------------------------------------------------
@@ -487,12 +493,12 @@ class Subscriber(object):
         sock = Subscriber._callbacks[self._url]['socket']
 
         with self._lock:
-            raw = no_intr(sock.recv)
+            data = no_intr(sock.recv)
 
-        topic, data = raw.split(b' ', 1)
-        msg = msgpack.unpackb(data)
+        topic, bmsg = data.split(b' ', 1)
+        msg = msgpack.unpackb(bmsg)
 
-        log_bulk(self._log, msg, '<- %s' % self.channel)
+      # log_bulk(self._log, '<- %s' % topic, [msg])
 
         return [as_string(topic), as_string(msg)]
 
@@ -511,12 +517,12 @@ class Subscriber(object):
         if no_intr(sock.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                raw = no_intr(sock.recv, flags=zmq.NOBLOCK)
+                data = no_intr(sock.recv, flags=zmq.NOBLOCK)
 
-            topic, data = raw.split(b' ', 1)
-            msg = msgpack.unpackb(data)
+            topic, bmsg = data.split(b' ', 1)
+            msg = msgpack.unpackb(bmsg)
 
-            log_bulk(self._log, msg, '<- %s' % self.channel)
+          # log_bulk(self._log, '<- %s' % topic, [msg])
 
             return [as_string(topic), as_string(msg)]
 
