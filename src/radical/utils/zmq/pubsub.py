@@ -103,7 +103,7 @@ class PubSub(Bridge):
         self._url        = 'tcp://*:*'
         self._lock       = mt.Lock()
 
-        self._ctx        = zmq.Context()  # rely on GC for destruction
+        self._ctx        = zmq.Context.instance()  # rely on GC for destruction
         self._pub        = self._ctx.socket(zmq.XSUB)
         self._pub.linger = _LINGER_TIMEOUT
         self._pub.hwm    = _HIGH_WATER_MARK
@@ -209,7 +209,7 @@ class Publisher(object):
 
         self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
 
-        self._ctx           = zmq.Context()  # rely on GC for destruction
+        self._ctx           = zmq.Context.instance()  # rely on GC for destruction
         self._socket        = self._ctx.socket(zmq.PUB)
         self._socket.linger = _LINGER_TIMEOUT
         self._socket.hwm    = _HIGH_WATER_MARK
@@ -283,21 +283,20 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(url, log, prof):
+    def _listener(sock, url, log, prof):
 
       # assert(url in Subscriber._callbacks)
 
         try:
-          # uid    = Subscriber._callbacks.get(url, {}).get('uid')
-            lock   = Subscriber._callbacks.get(url, {}).get('lock')
-            term   = Subscriber._callbacks.get(url, {}).get('term')
-            socket = Subscriber._callbacks.get(url, {}).get('socket')
+          # uid  = Subscriber._callbacks.get(url, {}).get('uid')
+            lock = Subscriber._callbacks.get(url, {}).get('lock')
+            term = Subscriber._callbacks.get(url, {}).get('term')
 
             while not term.is_set():
 
                 # this list is dynamic
                 callbacks  = Subscriber._callbacks[url]['callbacks']
-                topic, msg = Subscriber._get_nowait(socket, lock, 500, log, prof)
+                topic, msg = Subscriber._get_nowait(sock, lock, 500, log, prof)
 
               # log.debug(' <- %s: %s', topic, msg)
 
@@ -352,18 +351,17 @@ class Subscriber(object):
 
         self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
-        self._lock     = mt.Lock()
-        self._ctx      = zmq.Context()  # rely on GC for destruction
+        self._lock        = mt.Lock()
+        self._ctx         = zmq.Context.instance()  # rely on GC for destruction
+        self._sock        = self._ctx.socket(zmq.SUB)
+        self._sock.linger = _LINGER_TIMEOUT
+        self._sock.hwm    = _HIGH_WATER_MARK
+        self._sock.connect(self._url)
+
 
         if self._url not in Subscriber._callbacks:
 
-            s        = self._ctx.socket(zmq.SUB)
-            s.linger = _LINGER_TIMEOUT
-            s.hwm    = _HIGH_WATER_MARK
-            s.connect(self._url)
-
             Subscriber._callbacks[self._url] = {'uid'      : self._uid,
-                                                'socket'   : s,
                                                 'channel'  : channel,
                                                 'lock'     : mt.Lock(),
                                                 'term'     : mt.Event(),
@@ -401,7 +399,7 @@ class Subscriber(object):
             return
 
         t = mt.Thread(target=Subscriber._listener,
-                      args=[self._url, self._log, self._prof])
+                      args=[self._sock, self._url, self._log, self._prof])
         t.daemon = True
         t.start()
 
@@ -440,12 +438,11 @@ class Subscriber(object):
             self._start_listener()
             Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
 
-        sock  = Subscriber._callbacks[self._url]['socket']
         topic = str(topic).replace(' ', '_')
       # log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
-            no_intr(sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
+            no_intr(self._sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
         if topic not in self._topics:
             self._topics.append(topic)
@@ -481,10 +478,8 @@ class Subscriber(object):
 
         # FIXME: add timeout to allow for graceful termination
         #
-        sock = Subscriber._callbacks[self._url]['socket']
-
         with self._lock:
-            data = no_intr(sock.recv)
+            data = no_intr(self._sock.recv)
 
         topic, bmsg = data.split(b' ', 1)
         msg = msgpack.unpackb(bmsg)
@@ -503,12 +498,10 @@ class Subscriber(object):
         if not self._interactive:
             raise RuntimeError('invalid get_nowait(): callbacks are registered')
 
-        sock = Subscriber._callbacks[self._url]['socket']
-
-        if no_intr(sock.poll, flags=zmq.POLLIN, timeout=timeout):
+        if no_intr(self._sock.poll, flags=zmq.POLLIN, timeout=timeout):
 
             with self._lock:
-                data = no_intr(sock.recv, flags=zmq.NOBLOCK)
+                data = no_intr(self._sock.recv, flags=zmq.NOBLOCK)
 
             topic, bmsg = data.split(b' ', 1)
             msg = msgpack.unpackb(bmsg)
