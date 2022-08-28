@@ -382,7 +382,7 @@ class Subscriber(object):
     def _start_listener(self):
 
         # only start if needed
-        if self._callbacks[self._url]['thread']:
+        if self._thread:
             return
 
         lock      = self._lock
