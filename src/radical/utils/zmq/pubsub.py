@@ -28,7 +28,8 @@ _HIGH_WATER_MARK =     0  # number of messages to buffer before dropping
 # ------------------------------------------------------------------------------
 #
 def _atfork_child():
-    Subscriber._callbacks = dict()                                        # noqa
+    for subscriber in Subscriber._instances:
+        subscriber._callbacks = list()                                    # noqa
 
 
 atfork(noop, noop, _atfork_child)
@@ -252,12 +253,10 @@ class Publisher(object):
 #
 class Subscriber(object):
 
-    # instead of creating a new listener thread for each endpoint which then, on
-    # incoming messages, calls a subscriber callback, we only create *one*
-    # listening thread per ZMQ endpoint address and call *all* registered
-    # callbacks in that thread.  We hold those endpoints in a class dict, so
-    # that all class instances share that information
-    _callbacks = dict()
+    # We need to clean out some data structures on fork to avoid invalid sockets
+    # and deadlock.  For that purpose we keep a list of Subscriber instances
+    # around
+    _instances = list()
 
 
     # --------------------------------------------------------------------------
@@ -283,19 +282,12 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(sock, url, log, prof):
-
-      # assert(url in Subscriber._callbacks)
+    def _listener(sock, url, log, prof, lock, term, callbacks):
 
         try:
-          # uid  = Subscriber._callbacks.get(url, {}).get('uid')
-            lock = Subscriber._callbacks.get(url, {}).get('lock')
-            term = Subscriber._callbacks.get(url, {}).get('term')
-
             while not term.is_set():
 
                 # this list is dynamic
-                callbacks  = Subscriber._callbacks[url]['callbacks']
                 topic, msg = Subscriber._get_nowait(sock, lock, 500, log, prof)
 
               # log.debug(' <- %s: %s', topic, msg)
@@ -326,15 +318,21 @@ class Subscriber(object):
         message will be the second argument to the cb.
         '''
 
-        self._channel  = channel
-        self._url      = as_string(url)
-        self._topics   = as_list(topic)
-        self._cb       = cb
-        self._log      = log
-        self._prof     = prof
+        Subscriber._instances.append(self)
 
-        self._uid      = generate_id('%s.sub.%s' % (self._channel,
-                                                   '%(counter)04d'), ID_CUSTOM)
+        self._channel   = channel
+        self._url       = as_string(url)
+        self._topics    = as_list(topic)
+        self._cb        = cb
+        self._log       = log
+        self._prof      = prof
+
+        self._lock      = mt.Lock()
+        self._term      = mt.Event()
+        self._callbacks = list()
+        self._thread    = None
+        self._uid       = generate_id('%s.sub.%s' % (self._channel,
+                                                    '%(counter)04d'), ID_CUSTOM)
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).sub
@@ -351,22 +349,11 @@ class Subscriber(object):
 
         self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
 
-        self._lock        = mt.Lock()
         self._ctx         = zmq.Context.instance()  # rely on GC for destruction
         self._sock        = self._ctx.socket(zmq.SUB)
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
         self._sock.connect(self._url)
-
-
-        if self._url not in Subscriber._callbacks:
-
-            Subscriber._callbacks[self._url] = {'uid'      : self._uid,
-                                                'channel'  : channel,
-                                                'lock'     : mt.Lock(),
-                                                'term'     : mt.Event(),
-                                                'thread'   : None,
-                                                'callbacks': list()}
 
         # only allow `get()` and `get_nowait()`
         self._interactive = True
@@ -395,15 +382,20 @@ class Subscriber(object):
     def _start_listener(self):
 
         # only start if needed
-        if Subscriber._callbacks[self._url]['thread']:
+        if self._callbacks[self._url]['thread']:
             return
 
+        lock      = self._lock
+        term      = self._term
+        callbacks = self._callbacks
+
         t = mt.Thread(target=Subscriber._listener,
-                      args=[self._sock, self._url, self._log, self._prof])
+                      args=[self._sock, self._url, self._log, self._prof, lock,
+                            term, callbacks])
         t.daemon = True
         t.start()
 
-        Subscriber._callbacks[self._url]['thread'] = t
+        self._thread = t
 
 
     # --------------------------------------------------------------------------
@@ -411,12 +403,12 @@ class Subscriber(object):
     def _stop_listener(self, force=False):
 
         # only stop listener if no callbacks remain registered (unless forced)
-        if force or not Subscriber._callbacks[self._url]['callbacks']:
-            if  Subscriber._callbacks[self._url]['thread']:
-                Subscriber._callbacks[self._url]['term'  ].set()
-                Subscriber._callbacks[self._url]['thread'].join()
-                Subscriber._callbacks[self._url]['term'  ].unset()
-                Subscriber._callbacks[self._url]['thread'] = None
+        if force or not self._callbacks:
+            if  self._thread:
+                self._term.set()
+                self._thread.join()
+                self._term.clear()
+                self._thread = None
 
 
     # --------------------------------------------------------------------------
@@ -436,7 +428,7 @@ class Subscriber(object):
         if cb:
             self._interactive = False
             self._start_listener()
-            Subscriber._callbacks[self._url]['callbacks'].append([cb, lock])
+            self._callbacks.append([cb, lock])
 
         topic = str(topic).replace(' ', '_')
       # log_bulk(self._log, '~~2 %s' % topic, [topic])
@@ -452,13 +444,13 @@ class Subscriber(object):
     #
     def unsubscribe(self, cb):
 
-        if self._url in Subscriber._callbacks:
-            for _cb, _lock in Subscriber._callbacks[self._url]['callbacks']:
-                if cb == _cb:
-                    Subscriber._callbacks[self._url]['callbacks'].remove([_cb, _lock])
-                    break
+        for _cb, _lock in self._callbacks:
+            if cb == _cb:
+                self._callbacks.remove([_cb, _lock])
+                break
 
-        self._stop_listener()
+        if not self._callbacks:
+            self._stop_listener()
 
 
     # --------------------------------------------------------------------------
