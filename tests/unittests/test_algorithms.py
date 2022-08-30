@@ -181,24 +181,24 @@ if __name__ == '__main__':
 
     tc = BisectTest()
 
-  # tc.test_lazy_bisect()
+    tc.test_lazy_bisect()
     tc.test_bisect_ratio()
-  # tc.test_collapse_ranges()
-  # tc.test_range_concurrency()
+    tc.test_collapse_ranges()
+    tc.test_range_concurrency()
 
-  # try:
-  #     import pprofile
-  #     profiler = pprofile.Profile()
-  # except ImportError:
-  #     pass
-  # else:
-  #     with profiler:
-  #         try:
-  #             tc.test_lazy_bisect()
-  #         except:
-  #             pass
-  #
-  #     profiler.print_stats()
+    try:
+        import pprofile
+        profiler = pprofile.Profile()
+    except ImportError:
+        pass
+    else:
+        with profiler:
+            try:
+                tc.test_lazy_bisect()
+            except:
+                pass
+
+        profiler.print_stats()
 
 
 # ------------------------------------------------------------------------------
