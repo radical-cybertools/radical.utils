@@ -288,7 +288,7 @@ class Queue(Bridge):
 
                     # remove sent messages from buffer
                     if msgs:
-                        del(buf[qname][:self._bulk_size])
+                        del buf[qname][:self._bulk_size]
 
 
         except Exception:
@@ -433,11 +433,11 @@ class Getter(object):
         if not qname:
             qname = 'default'
 
-      # assert(url in Getter._callbacks)
-      # time.sleep(1)
+        assert url in Getter._callbacks
+        time.sleep(1)
 
         try:
-            term = Getter._callbacks.get(url, {}).get('term')
+            term = Getter._callbacks.get(url, {})['term']
             idx  = 0  # round-robin cb index
             while not term.is_set():
 

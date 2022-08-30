@@ -276,7 +276,7 @@ class Subscriber(object):
     @staticmethod
     def _listener(url, log):
 
-      # assert(url in Subscriber._callbacks)
+      # assert url in Subscriber._callbacks
 
         try:
           # uid    = Subscriber._callbacks.get(url, {}).get('uid')

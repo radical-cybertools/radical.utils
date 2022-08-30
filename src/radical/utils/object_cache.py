@@ -146,7 +146,7 @@ class ObjectCache(object, metaclass=Singleton):
 
         with self:
 
-            assert(ns in self._cache)
+            assert ns in self._cache
 
             ns_cache = self._cache[ns]
             ns_cache [oid]['cnt'] -= 1
