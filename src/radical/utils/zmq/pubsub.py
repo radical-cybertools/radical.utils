@@ -101,19 +101,18 @@ class PubSub(Bridge):
 
         self._log.info('initialize bridge %s', self._uid)
 
-        self._url        = 'tcp://*:*'
         self._lock       = mt.Lock()
 
         self._ctx        = zmq.Context.instance()  # rely on GC for destruction
         self._pub        = self._ctx.socket(zmq.XSUB)
         self._pub.linger = _LINGER_TIMEOUT
         self._pub.hwm    = _HIGH_WATER_MARK
-        self._pub.bind(self._url)
+        self._pub.bind('tcp://*:*')
 
         self._sub        = self._ctx.socket(zmq.XPUB)
         self._sub.linger = _LINGER_TIMEOUT
         self._sub.hwm    = _HIGH_WATER_MARK
-        self._sub.bind(self._url)
+        self._sub.bind('tcp://*:*')
 
         # communicate the bridge ports to the parent process
         _addr_pub = as_string(self._pub.getsockopt(zmq.LAST_ENDPOINT))
@@ -228,6 +227,10 @@ class Publisher(object):
         return self._uid
 
     @property
+    def url(self):
+        return self._url
+
+    @property
     def channel(self):
         return self._channel
 
@@ -282,7 +285,7 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(sock, url, log, prof, lock, term, callbacks):
+    def _listener(sock, lock, term, callbacks, log, prof):
 
         try:
             while not term.is_set():
@@ -295,11 +298,14 @@ class Subscriber(object):
                 if topic:
                     for cb, _lock in callbacks:
                       # prof.prof('call_cb', uid=uid, msg=cb.__name__)
-                        if _lock:
-                            with _lock:
+                        try:
+                            if _lock:
+                                with _lock:
+                                    cb(topic, msg)
+                            else:
                                 cb(topic, msg)
-                        else:
-                            cb(topic, msg)
+                        except:
+                            log.exception('callback error')
         except:
             log.exception('listener died')
 
@@ -323,7 +329,6 @@ class Subscriber(object):
         self._channel   = channel
         self._url       = as_string(url)
         self._topics    = as_list(topic)
-        self._cb        = cb
         self._log       = log
         self._prof      = prof
 
@@ -336,6 +341,9 @@ class Subscriber(object):
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).sub
+
+        if not self._url:
+            raise ValueError('no contact url specified, no config found')
 
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
@@ -373,6 +381,10 @@ class Subscriber(object):
         return self._uid
 
     @property
+    def url(self):
+        return self._url
+
+    @property
     def channel(self):
         return self._channel
 
@@ -390,8 +402,8 @@ class Subscriber(object):
         callbacks = self._callbacks
 
         t = mt.Thread(target=Subscriber._listener,
-                      args=[self._sock, self._url, self._log, self._prof, lock,
-                            term, callbacks])
+                      args=[self._sock, lock, term, callbacks,
+                            self._log, self._prof])
         t.daemon = True
         t.start()
 

@@ -318,12 +318,14 @@ class Putter(object):
         self._log      = log
         self._prof     = prof
         self._lock     = mt.Lock()
-
         self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
                                      ID_CUSTOM)
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).put
+
+        if not self._url:
+            raise ValueError('no contact url specified, no config found')
 
         if not self._log:
             self._log  = Logger(name=self._uid, ns='radical.utils')
@@ -543,6 +545,9 @@ class Getter(object):
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).get
+
+        if not self._url:
+            raise ValueError('no contact url specified, no config found')
 
         if not self._log:
             self._log   = Logger(name=self._uid, ns='radical.utils')
