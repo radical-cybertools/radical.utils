@@ -288,7 +288,7 @@ class Queue(Bridge):
 
                     # remove sent messages from buffer
                     if msgs:
-                        del(buf[qname][:self._bulk_size])
+                        del buf[qname][:self._bulk_size]
 
                 if not active:
                   # self._prof.prof('sleep', msg=len(buf))
@@ -442,7 +442,7 @@ class Getter(object):
         if not qname:
             qname = 'default'
 
-        assert(url in Getter._callbacks)
+        assert url in Getter._callbacks
         time.sleep(1)
 
         try:
