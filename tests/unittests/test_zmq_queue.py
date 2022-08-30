@@ -45,9 +45,9 @@ def test_zmq_queue():
     b = ru.zmq.Queue(cfg)
     b.start()
 
-    assert(b.addr_in  != b.addr_out)
-    assert(b.addr_in  == b.addr_put)
-    assert(b.addr_out == b.addr_get)
+    assert b.addr_in  != b.addr_out
+    assert b.addr_in  == b.addr_put
+    assert b.addr_out == b.addr_get
 
     C = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get))
     D = ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get))
@@ -117,17 +117,17 @@ def test_zmq_queue():
   # print(len(data['C']))
   # print(len(data['D']))
 
-    assert(data['A'].count('A') == c_a)
-    assert(data['B'].count('B') == c_b)
-    assert(len(data['A'])       == c_a)
-    assert(len(data['B'])       == c_b)
+    assert data['A'].count('A') == c_a
+    assert data['B'].count('B') == c_b
+    assert len(data['A'])       == c_a
+    assert len(data['B'])       == c_b
 
-    assert(data['C'].count('A') + data['C'].count('B') +
-           data['D'].count('A') + data['D'].count('B') == c_a + c_b)
+    assert data['C'].count('A') + data['C'].count('B') + \
+           data['D'].count('A') + data['D'].count('B') == c_a + c_b
 
     avg = (c_a + c_b) / 2
-    assert(avg - 30 < data['C'].count('A') + data['C'].count('B') < avg + 30)
-    assert(avg - 30 < data['D'].count('A') + data['D'].count('B') < avg + 30)
+    assert avg - 30 < data['C'].count('A') + data['C'].count('B') < avg + 30
+    assert avg - 30 < data['D'].count('A') + data['D'].count('B') < avg + 30
 
 
 # ------------------------------------------------------------------------------
@@ -166,9 +166,9 @@ def disabled_test_zmq_queue_cb():
     b = ru.zmq.Queue(cfg)
     b.start()
 
-    assert(b.addr_in  != b.addr_out)
-    assert(b.addr_in  == b.addr_put)
-    assert(b.addr_out == b.addr_get)
+    assert b.addr_in  != b.addr_out
+    assert b.addr_in  == b.addr_put
+    assert b.addr_out == b.addr_get
 
     time.sleep(2.0)
 
@@ -219,21 +219,21 @@ def disabled_test_zmq_queue_cb():
   # print(len(data['C']))
   # print(len(data['D']))
 
-    assert(data['put']['A'].count('A') == c_a)
-    assert(data['put']['B'].count('B') == c_b)
-    assert(len(data['put']['A'])       == c_a)
-    assert(len(data['put']['B'])       == c_b)
+    assert data['put']['A'].count('A') == c_a
+    assert data['put']['B'].count('B') == c_b
+    assert len(data['put']['A'])       == c_a
+    assert len(data['put']['B'])       == c_b
 
   # print(data['get']['A'].count('A'))
   # print(data['get']['B'].count('B'))
   # print(c_a)
   # print(c_b)
 
-    assert(data['get']['A'].count('A') + data['get']['B'].count('B') == c_a + c_b)
+    assert data['get']['A'].count('A') + data['get']['B'].count('B') == c_a + c_b
 
     avg = (c_a + c_b) / 2
-    assert(avg - 5 < data['get']['A'].count('A') + data['get']['B'].count('B') < avg + 5)
-    assert(avg - 5 < data['get']['A'].count('A') + data['get']['B'].count('B') < avg + 5)
+    assert avg - 5 < data['get']['A'].count('A') + data['get']['B'].count('B') < avg + 5
+    assert avg - 5 < data['get']['A'].count('A') + data['get']['B'].count('B') < avg + 5
 
 
 # ------------------------------------------------------------------------------
@@ -268,9 +268,9 @@ def test_zmq_queue_cb():
     b = ru.zmq.Queue(cfg)
     b.start()
 
-    assert(b.addr_in  != b.addr_out)
-    assert(b.addr_in  == b.addr_put)
-    assert(b.addr_out == b.addr_get)
+    assert b.addr_in  != b.addr_out
+    assert b.addr_in  == b.addr_put
+    assert b.addr_out == b.addr_get
 
     ru.zmq.Getter(channel=cfg['channel'], url=str(b.addr_get), cb=get_msg_a)
 
@@ -305,17 +305,17 @@ def test_zmq_queue_cb():
   # import pprint
   # pprint.pprint(data)
 
-    assert(data['put']['A'].count('A') == c_a)
-    assert(data['put']['B'].count('B') == c_b)
-    assert(len(data['put']['A'])       == c_a)
-    assert(len(data['put']['B'])       == c_b)
+    assert data['put']['A'].count('A') == c_a
+    assert data['put']['B'].count('B') == c_b
+    assert len(data['put']['A'])       == c_a
+    assert len(data['put']['B'])       == c_b
 
   # print(data['get']['A'].count('A'))
   # print(data['get']['B'].count('B'))
   # print(c_a)
   # print(c_b)
 
-    assert(data['get']['A'].count('A') + data['get']['B'].count('B') == c_a + c_b)
+    assert data['get']['A'].count('A') + data['get']['B'].count('B') == c_a + c_b
 
 
 # ------------------------------------------------------------------------------

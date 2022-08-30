@@ -253,10 +253,10 @@ def env_eval(fname: str) -> Dict[str, str]:
             func_check = re_function.match(line)
             if func_check:
                 # detected start of function
-                assert(func_name is None)
+                assert func_name is None
                 func_name = func_check[1]
                 func_data = ''
-                assert(func_name)
+                assert func_name
                 continue
 
 
@@ -265,7 +265,7 @@ def env_eval(fname: str) -> Dict[str, str]:
                 k = spec.strip()
                 if k not in env:
                     continue
-                del(env[k])
+                del env[k]
 
             elif line.startswith('export ') :
                 _, spec = line.split(' ', 1)
@@ -495,7 +495,7 @@ class EnvProcess(object):
         if self._child:
 
             for k in os.environ:
-                del(os.environ[k])
+                del os.environ[k]
 
             for k, v in self._env.items():
                 os.environ[k] = v
