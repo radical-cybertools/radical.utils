@@ -17,24 +17,24 @@ def test_zmq_registry(mocked_prof):
     r.start()
 
     try:
-        assert(r.addr)
+        assert r.addr
         c = ru.zmq.RegistryClient(url=r.addr)
 
         c.put('foo.bar.buz', {'biz': 42})
-        assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
-        assert(c.get('foo.bar.buz.biz') == 42)
-        assert(c.get('foo.bar.buz.biz.boz') is None)
-        assert(c.get('foo') == {'bar': {'buz': {'biz': 42}}})
+        assert c.get('foo') == {'bar': {'buz': {'biz': 42}}}
+        assert c.get('foo.bar.buz.biz') == 42
+        assert c.get('foo.bar.buz.biz.boz') is None
+        assert c.get('foo') == {'bar': {'buz': {'biz': 42}}}
 
-        assert(c['foo.bar.buz.biz'] == 42)
-        assert(c['foo']['bar']['buz']['biz'] == 42)
-        assert(c['foo.bar.buz.biz.boz'] is None)
+        assert c['foo.bar.buz.biz'] == 42
+        assert c['foo']['bar']['buz']['biz'] == 42
+        assert c['foo.bar.buz.biz.boz'] is None
 
-        assert('foo' in c)
-        assert(c.keys() == ['foo'])
-        del(c['foo'])
-        assert('foo' not in c)
-        assert(c.keys() == [])
+        assert 'foo' in c
+        assert c.keys() == ['foo']
+        del c['foo']
+        assert 'foo' not in c
+        assert c.keys() == []
 
     finally:
 
