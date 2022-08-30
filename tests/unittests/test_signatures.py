@@ -21,11 +21,11 @@ __license__   = 'MIT'
 #
 #     try                  : ret = sigtest ('string', 2.4, 'hallo')
 #     except TypeError as e: pass
-#     except Exception as e: assert(0), 'TypeError != %s (%s)' % (type(e), e)
-#     else                 : assert(0), 'expected TypeError exception, got none'
+#     except Exception as e: assert 0, 'TypeError != %s (%s)' % (type(e), e)
+#     else                 : assert 0, 'expected TypeError exception, got none'
 #
 #     try                  : ret = sigtest ('string', 2, 1.1414)
-#     except Exception as e: assert(0), 'exception %s: %s' % (type(e), e)
+#     except Exception as e: assert 0, 'exception %s: %s' % (type(e), e)
 #
 #
 # # ----------------------------------------------------------------------------

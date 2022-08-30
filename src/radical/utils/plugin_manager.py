@@ -307,7 +307,7 @@ class PluginManager(object, metaclass=Singleton):
             pclass = pdescr['class']
             pinst  = getattr(plugin, pclass)(pdescr, *args, **kwargs)
 
-            assert(isinstance(pinst, PluginBase)), pinst
+            assert isinstance(pinst, PluginBase), pinst
 
         except Exception as e:
             self._log.exception('plugin init failed')

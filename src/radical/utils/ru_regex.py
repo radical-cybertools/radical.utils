@@ -249,8 +249,8 @@ class ReString(str):
             for i, r in enumerate(res):
                 print 'res %%d   : '%%s' ' %% (i, r)  # matches as iterable
 
-            assert(len(res) == 2)                     # number of matches
-            assert(res == [' qu', 'ick brown fox jumps'])  # compare to list
+            assert len(res) == 2                     # number of matches
+            assert res == [' qu', 'ick brown fox jumps']  # compare to list
 
         if txt // r'(rabbit)':                        # simple use in if / elif
             res = txt.get()                           # get ReSult of last match
@@ -324,8 +324,8 @@ def _example_re_string():
         for i, r in enumerate(res):
             print('res %d   : %s' % (i, r))  # matches as iterable
 
-        assert(len(res) == 2)                # number of matches
-        assert(res == [' qu', 'ick brown fox jumps'])  # compare to list
+        assert len(res) == 2                # number of matches
+        assert res == [' qu', 'ick brown fox jumps']  # compare to list
 
 
     if txt // '(rabbit)':                    # simple use in if / elif / ...

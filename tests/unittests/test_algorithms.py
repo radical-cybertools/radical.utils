@@ -69,20 +69,38 @@ class BisectTest(TestCase):
             self.call_count += 1
             return False
         # ----------------------------------------------------------------------
+        #
+        good, bad, fail = ru.lazy_bisect(list(), schedule)
+        assert not good
+        assert not bad
+        assert not fail
 
         things = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 
+        assert len(failed) == 12, [len(failed), failed]
+        assert len(things) == len(good) + len(bad) + len(fail), \
+              [len(things),   len(good),  len(bad),  len(fail)]
+
+        for task in good:
+            assert task not in bad, (task, bad)
+            assert schedule(task) is True, task
+
+        for task in bad:
+            assert task not in good, (task, good)
+            assert schedule(task) is False, task
+
+
         self.call_count = 0
         good, bad, fail = ru.lazy_bisect(things, schedule, ratio=0.5)
-        assert(self.call_count == 6)
+        assert self.call_count == 6
 
         self.call_count = 0
         good, bad, fail = ru.lazy_bisect(things, schedule, ratio=1.0)
-        assert(self.call_count == 10)
+        assert self.call_count == 10
 
         self.call_count = 0
         good, bad, fail = ru.lazy_bisect(things, schedule, ratio=0.0)
-        assert(self.call_count == 2)
+        assert self.call_count == 2
 
 
     # --------------------------------------------------------------------------
@@ -171,8 +189,8 @@ class BisectTest(TestCase):
 
         for case, check in tests:
             print(case)
-            assert(check == ru.range_concurrency(case)), '\n%s\n%s' \
-                          % (case, check)
+            assert check == ru.range_concurrency(case), \
+                   '\n%s\n%s' % (case, check)
 
 
 # ------------------------------------------------------------------------------

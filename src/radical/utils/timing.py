@@ -35,7 +35,7 @@ def dt_epoch(dt):
     convert a given datetime instance into seconds since EPOCH.
     '''
 
-    return(dt - _epoch).total_seconds()
+    return (dt - _epoch).total_seconds()
 
 
 # ------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ def timed_method(func):
 
         try:
             _ = obj.__timing
-            assert(_)
+            assert _
 
         except Exception:
 
