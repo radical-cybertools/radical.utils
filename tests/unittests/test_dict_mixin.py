@@ -143,7 +143,7 @@ def test_dict_diff():
     d2 = {'baz': {'k2': ['len(1) != len(2)'],
                   'k3': {'a': 3}}}
 
-    assert(d1 == d2)
+    assert d1 == d2
 
     with pytest.raises(AssertionError):
         ru.iter_diff(a, b)

@@ -50,11 +50,11 @@ def test_hb_default():
         def term_cb(uid):
 
             now = time.time()
-            assert(now >= t0 + dur), '%.1f > %.1f + %.1f' % (now, t0, dur)
+            assert now >= t0 + dur, '%.1f > %.1f + %.1f' % (now, t0, dur)
 
             cnt_tgt = dur / ival
             cnt_chk = cb(test=True)
-            assert(cnt_tgt * 0.8 < cnt_chk < cnt_tgt * 1.2), [cnt_tgt, cnt_chk]
+            assert cnt_tgt * 0.8 < cnt_chk < cnt_tgt * 1.2, [cnt_tgt, cnt_chk]
 
         hb = ru.Heartbeat('foo', timeout=tout, interval=ival,
                                  beat_cb=cb, term_cb=term_cb)
@@ -76,12 +76,12 @@ def test_hb_default():
 
         # proc should still be alive after 2 seconds
         time.sleep(2)
-        assert(p.is_alive())
+        assert p.is_alive()
 
         # but it should have a zero exit value after 2 more seconds
         time.sleep(2)
-        assert(not p.is_alive())
-        assert(p.exitcode)
+        assert not p.is_alive()
+        assert p.exitcode
 
     finally:
         try   : os.kill(p.pid, 9)
@@ -124,12 +124,12 @@ def test_hb_uid():
 
         # proc should still be alive after 2 seconds
         time.sleep(2)
-        assert(p.is_alive())
+        assert p.is_alive()
 
         # but it should have a zero exit value after 2 more seconds
         time.sleep(2)
-        assert(not p.is_alive())
-        assert(p.exitcode)
+        assert not p.is_alive()
+        assert p.exitcode
 
     finally:
         try   : os.kill(p.pid, 9)

@@ -30,7 +30,7 @@ def daemonize(main=None, args=None, stdout=None, stderr=None, stdin=None,
     '''
 
     if main:
-        assert(callable(main))
+        assert callable(main)
 
     pid   = None
     pid_q = mp.Queue()
@@ -137,7 +137,7 @@ class Daemon(object):
                        args=None):
 
         if target:
-            assert(callable(target))
+            assert callable(target)
 
         self.stdin   = stdin
         self.stdout  = stdout

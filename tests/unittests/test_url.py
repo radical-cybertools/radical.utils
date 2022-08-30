@@ -59,15 +59,15 @@ def test_contrib():
         result = urljoin(base, url)
 
         if check:
-            assert(result == check), '%s == %s' % (result, check)
+            assert result == check, '%s == %s' % (result, check)
 
         if not base:
             base = result
 
-        if url is None: assert(str(copy.deepcopy(u)) ==     ''), (u, url)
-        else          : assert(str(copy.deepcopy(u)) == str(u)), (u, url)
+        if url is None: assert str(copy.deepcopy(u)) ==     '', (u, url)
+        else          : assert str(copy.deepcopy(u)) == str(u), (u, url)
 
-        assert(bool(u) == bool(url)), (str(u), url, bool(u), bool(url))
+        assert bool(u) == bool(url), (str(u), url, bool(u), bool(url))
 
 
 # -------------------------------------------------------------------------

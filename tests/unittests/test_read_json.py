@@ -50,21 +50,21 @@ def test_read_json():
     filename  = _write_json(json.dumps(data))
     data_copy = ru.read_json(filename)
 
-    assert(data_copy)
+    assert data_copy
 
     for key in data:
-        assert(key in data_copy)
-        assert(data[key] == data_copy[key])
+        assert key in data_copy
+        assert data[key] == data_copy[key]
 
     for key in data_copy:
-        assert(key in data)
-        assert(data[key] == data_copy[key])
+        assert key in data
+        assert data[key] == data_copy[key]
 
 
     # ---------------------------------------------------------------------------
     # string read
     data_copy = ru.read_json_str(filename)
-    assert(isinstance(data_copy['test_2'], str))
+    assert isinstance(data_copy['test_2'], str)
 
 
     # ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ def test_read_json():
     ru.write_json(filename, data_copy)
     ru.write_json(data_copy, filename)
     data_copy = ru.read_json_str(filename)
-    assert(len(data_copy) == 3)
+    assert len(data_copy) == 3
 
     os.unlink(filename)
 
@@ -85,15 +85,15 @@ def test_read_json():
                   "test_3": [1, "one"]
               }'''
     data_copy = ru.parse_json(data, filter_comments=False)
-    assert(len(data_copy) == 3)
-    assert(data_copy['test_2'] == 'one')
+    assert len(data_copy) == 3
+    assert data_copy['test_2'] == 'one'
 
 
     # --------------------------------------------------------------------------
     # forced str conversion on manual parse
     data_copy = ru.parse_json_str(data)
-    assert(len(data_copy) == 3)
-    assert(isinstance(data_copy['test_2'], str))
+    assert len(data_copy) == 3
+    assert isinstance(data_copy['test_2'], str)
 
 
     # ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ BLACKLIST_LOCAL_SYS = ['XPC_SERVICE_NAME']
 #
 def test_env_prep():
 
-    try   : del(os.environ['TEST'])
+    try   : del os.environ['TEST']
     except: pass
 
     # clean `os.environ`
@@ -27,8 +27,8 @@ def test_env_prep():
     env = dict(os.environ)
     ret = ru.env_prep(env)
     only_env, only_ret, changed = ru.env_diff(env, ret)
-    assert(not only_ret), only_ret
-    assert(not changed), changed
+    assert not only_ret, only_ret
+    assert not changed, changed
 
     env = dict(os.environ)
 
@@ -39,13 +39,13 @@ def test_env_prep():
     env       ['ENV_ONLY'] = 'env_only'
 
     ret = ru.env_prep(environment=env, unset=['OS_ONLY'], script_path='/tmp/test.env')
-    assert('OS_ONLY' not in ret), ret['OS_ONLY']
-    assert(ret['ENV_ONLY'] == 'env_only')
-    assert(ret['SHARED'] == 'env_shared')
+    assert 'OS_ONLY' not in ret, ret['OS_ONLY']
+    assert ret['ENV_ONLY'] == 'env_only'
+    assert ret['SHARED'] == 'env_shared'
 
     only_env, only_ret, changed = ru.env_diff(env, ret)
-    assert(not only_ret), [only_env, only_ret, changed]
-    assert(not changed),  changed
+    assert not only_ret, [only_env, only_ret, changed]
+    assert not changed,  changed
 
     out, err, ret = ru.sh_callout('export OS_ONLY=x; . /tmp/test.env; echo $OS_ONLY',
                                  shell=True)
@@ -56,15 +56,15 @@ def test_env_prep():
     pprint.pprint(out)
     print('=== err')
     pprint.pprint(err)
-    assert(not out.strip()), out
-    assert(not err.strip()), err
-    assert(not ret), ret
+    assert not out.strip(), out
+    assert not err.strip(), err
+    assert not ret, ret
 
     out, _, ret = ru.sh_callout('unset ENV_ONLY; . /tmp/test.env; echo $ENV_ONLY',
                                   shell=True)
     out = out.strip()
-    assert(out == 'env_only'), out
-    assert(not ret), ret
+    assert out == 'env_only', out
+    assert not ret, ret
 
 
 # ------------------------------------------------------------------------------
@@ -77,14 +77,14 @@ def test_env_read():
         env = ru.env_read(fname)
 
         for k,v in env.items():
-            assert(os.environ[k] == v), [k, os.environ[k], v]
+            assert os.environ[k] == v, [k, os.environ[k], v]
 
         for k,v in os.environ.items():
             if k not in ru.env.BLACKLIST:
                 if k.startswith('BASH_FUNC_'):
                     # bash funcs are not exported to other shells
                     continue
-                assert(env[k] == v)
+                assert env[k] == v
 
     finally:
         try   : os.unlink(fname)
@@ -128,9 +128,9 @@ def test_env_proc():
         env_proc.put(ru.sh_callout('echo -n $%s' % key, shell=True))
     out = str(env_proc.get())
 
-    assert(isinstance(out, str))
-    assert(key not in os.environ)
-    assert(env[key] in out)
+    assert isinstance(out, str)
+    assert key not in os.environ
+    assert env[key] in out
 
 
 # ------------------------------------------------------------------------------

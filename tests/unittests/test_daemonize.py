@@ -28,8 +28,8 @@ def test_daemonize():
 
     pid = ru.daemonize(main=main)
 
-    assert(pid)
-    assert(os.kill(int(pid), 0) is None)  # process should exist
+    assert pid
+    assert os.kill(int(pid), 0) is None  # process should exist
 
     time.sleep(3)
     with pytest.raises(OSError):
@@ -59,8 +59,8 @@ def test_daemon_class():
 
     p = P()
     p.start()
-    assert(p.pid)
-    assert(os.kill(p.pid, 0) is None)  # process should exist
+    assert p.pid
+    assert os.kill(p.pid, 0) is None  # process should exist
 
     time.sleep(3)
     with pytest.raises(OSError):

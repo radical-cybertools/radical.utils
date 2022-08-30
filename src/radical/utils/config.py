@@ -219,13 +219,13 @@ class Config(TypedDict):
         if from_dict:
             # if we could only overload constructors by signature... :-/
             # As it is, we have to emulate that...
-            assert(not module   and
-                   not category and
-                   not name     and
-                   not cfg      and
-                   not path     and
-                   not env      and
-                   not _internal), 'from_dict must be exclusive'
+            assert (not module   and
+                    not category and
+                    not name     and
+                    not cfg      and
+                    not path     and
+                    not env      and
+                    not _internal), 'from_dict must be exclusive'
             super().__init__(from_dict=from_dict)
             return
 

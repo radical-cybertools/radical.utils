@@ -30,7 +30,7 @@ class ShellTestCase(TestCase):
         for cmd, out in test_cases:
 
             ret = ru.sh_callout(cmd, shell=True)
-            assert(ret[0] == out and not ret[1] and not ret[2]), [cmd, out, ret]
+            assert ret[0] == out and not ret[1] and not ret[2], [cmd, out, ret]
 
 
 # ------------------------------------------------------------------------------

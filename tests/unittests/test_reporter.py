@@ -76,11 +76,11 @@ def test_reporter():
     rep.error('error')
 
     try                  : rep.exit('exit', 1)
-    except SystemExit    : assert(True)
-    except Exception as e: assert(False), 'expected system exit, got %s' % e
+    except SystemExit    : assert True
+    except Exception as e: assert False, 'expected system exit, got %s' % e
 
-    assert(os.path.isfile(fname))
-    assert(_cmd('grep -e "header"    %s' % fname))
+    assert os.path.isfile(fname)
+    assert _cmd('grep -e "header"    %s' % fname)
 
     try   : os.unlink(fname)
     except: pass
@@ -99,8 +99,8 @@ def test_env():
         rep.info('foo')
 
         if fname:
-            assert(val == os.path.isfile(fname))
-            assert(val == _cmd('grep -e "foo" %s' % fname))
+            assert val == os.path.isfile(fname)
+            assert val == _cmd('grep -e "foo" %s' % fname)
 
             try   : os.unlink(fname)
             except: pass
@@ -113,7 +113,7 @@ def test_env():
 
         for k in list(os.environ.keys()):
             if k.startswith('RADICAL'):
-                del(os.environ[k])
+                del os.environ[k]
 
         pname = 'ru.%d'        % os.getpid()
         fname = '/tmp/%s.prof' % pname

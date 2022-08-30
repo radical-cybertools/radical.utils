@@ -90,7 +90,7 @@ class Network(object):
             entities = [entities]
 
         for entity in entities:
-            assert(entity.state == self._state_model['initial'])
+            assert entity.state == self._state_model['initial']
 
         self.feeder_queue.push(entities)
 

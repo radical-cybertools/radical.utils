@@ -41,14 +41,14 @@ def test_poll():
 
                 if event & ru.POLLIN:
                     msg = sp[0].recv(200)
-                    assert(msg in [b'foo', b'bar', b''])
+                    assert msg in [b'foo', b'bar', b'']
                     msgs.append(msg)
 
                 if  event & ru.POLLERR or event & ru.POLLHUP:
                     abort = True
-                    assert(msgs[0] == b'foo')
-                    assert(msgs[1] == b'bar')
-                    assert(msgs[2] == b'')
+                    assert msgs[0] == b'foo'
+                    assert msgs[1] == b'bar'
+                    assert msgs[2] == b''
                     break
 
         os.waitpid(child, 0)

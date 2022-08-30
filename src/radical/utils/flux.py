@@ -169,7 +169,7 @@ class _FluxService(object):
         if flux_proc.poll() is not None:
             raise RuntimeError('could not execute `flux start`')
 
-        assert('FLUX_URI' in flux_env), 'no FLUX_URI in env'
+        assert 'FLUX_URI' in flux_env, 'no FLUX_URI in env'
 
         # make sure that the flux url can be reched from other hosts
         # FIXME: this also routes local access via ssh which may slow comm
@@ -358,10 +358,10 @@ class FluxHelper(object):
                 self._term.set()
 
             for handle in self._handles:
-                del(handle)
+                del handle
 
             for exe in self._executors:
-                del(exe)
+                del exe
 
             self._exe    = None
             self._handle = None
@@ -484,7 +484,7 @@ class FluxHelper(object):
 
         with self._lock:
 
-            assert(self._uri), 'not initialized'
+            assert self._uri, 'not initialized'
 
             # start a listener thread so that we can serve callbacks
             self._term.clear()
@@ -608,7 +608,7 @@ class FluxHelper(object):
             # disconnect from the Flux instance on any event collection errors
             if handle:
                 handle.event_unsubscribe('job-state')
-                del(handle)
+                del handle
 
             self.reset()
 
@@ -625,7 +625,7 @@ class FluxHelper(object):
             if not self._uri:
                 raise RuntimeError('FluxHelper is not connected')
 
-            assert(self._exe), 'no executor'
+            assert self._exe, 'no executor'
 
             def jid_cb(fut, evt):
                 try:
@@ -683,7 +683,7 @@ class FluxHelper(object):
             if not self._uri:
                 raise RuntimeError('FluxHelper is not connected')
 
-            assert(self._exe), 'no executor'
+            assert self._exe, 'no executor'
 
             for flux_id in ids:
 
@@ -719,7 +719,7 @@ class FluxHelper(object):
 
         with self._lock:
 
-            assert(self._exe), 'no executor'
+            assert self._exe, 'no executor'
 
             for flux_id in flux_ids:
                 fut = self._exe.attach(flux_id)
@@ -738,7 +738,7 @@ class FluxHelper(object):
 
             try:
                 handle = self._flux.Flux(url=self._uri)
-                assert(handle), 'no handle'
+                assert handle, 'no handle'
 
             except Exception as e:
                 raise RuntimeError('failed to connect at %s' % self._uri) from e
@@ -760,7 +760,7 @@ class FluxHelper(object):
             try:
                 args = {'url': self._uri}
                 exe  = self._flux_job.executor.FluxExecutor(handle_kwargs=args)
-                assert(exe), 'no executor'
+                assert exe, 'no executor'
 
             except Exception as e:
                 raise RuntimeError('failed to connect at %s' % self._uri) from e

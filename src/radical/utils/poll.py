@@ -65,22 +65,22 @@ if _use_pypoll:
 
 
         def register(self, fd, eventmask=None):
-            assert(self._poll)
+            assert self._poll
             return self._poll.register(fd, eventmask)
 
 
         def modify(self, fd, eventmask=None):
-            assert(self._poll)
+            assert self._poll
             return self._poll.modify(fd, eventmask)
 
 
         def unregister(self, fd):
-            assert(self._poll)
+            assert self._poll
             return self._poll.unregister(fd)
 
 
         def poll(self, timeout=None):
-            assert(self._poll)
+            assert self._poll
             time.sleep(0.2)
             ret = self._poll.poll(timeout)
           # if self._log:
@@ -185,7 +185,7 @@ else:
                 eventmask = POLLIN | POLLOUT | POLLERR | POLLHUP
 
             with self._lock:
-                assert(self._exists(fd))
+                assert self._exists(fd)
                 self.register(fd, eventmask)
 
 
@@ -198,7 +198,7 @@ else:
                 exists = self._exists(fd)
 
                 if _assert_existence:
-                    assert(exists)
+                    assert exists
                 elif not exists:
                     return
 

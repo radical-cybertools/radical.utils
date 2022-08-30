@@ -470,29 +470,29 @@ class DebugHelper(object):
     # --------------------------------------------------------------------------
     #
     def register_lock(self, name, lock):
-        assert(name not in self.locks), name
+        assert name not in self.locks, name
         self.locks[name] = lock
 
 
     # --------------------------------------------------------------------------
     #
     def register_rlock(self, name, rlock):
-        assert(name not in self.rlocks), name
+        assert name not in self.rlocks, name
         self.rlocks[name] = rlock
 
 
     # --------------------------------------------------------------------------
     #
     def unregister_lock(self, name):
-        assert(name in self.locks), name
-        del(self.locks[name])
+        assert name in self.locks, name
+        del self.locks[name]
 
 
     # --------------------------------------------------------------------------
     #
     def unregister_rlock(self, name):
-        assert(name in self.rlocks), name
-        del(self.rlocks[name])
+        assert name in self.rlocks, name
+        del self.rlocks[name]
 
 
     # --------------------------------------------------------------------------

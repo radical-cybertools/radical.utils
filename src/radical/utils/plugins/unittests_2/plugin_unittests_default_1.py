@@ -34,7 +34,7 @@ class PLUGIN_CLASS(ru.PluginBase, metaclass=ru.Singleton):
         super(PLUGIN_CLASS, self).__init__(descr)
 
         if PLUGIN_CLASS._created:
-            assert(False), "singleton plugin created twice"
+            assert False, "singleton plugin created twice"
 
         PLUGIN_CLASS._created = True
 

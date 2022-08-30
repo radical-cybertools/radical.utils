@@ -49,7 +49,7 @@ def sys_exit(ret):
     else:
         sys.exit(ret)
 
-    assert(False)
+    assert False
 
 
 # ------------------------------------------------------------------------------

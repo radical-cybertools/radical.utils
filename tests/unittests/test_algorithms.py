@@ -36,24 +36,24 @@ def test_lazy_bisect():
     # --------------------------------------------------------------------------
 
     good, bad, fail = ru.lazy_bisect(list(), schedule)
-    assert(not good)
-    assert(not bad)
-    assert(not fail)
+    assert not good
+    assert not bad
+    assert not fail
 
     things = [Thing(x) for x in range(128)]
     good, bad, fail = ru.lazy_bisect(things, schedule)
 
-    assert(len(failed) == 12), [len(failed), failed]
-    assert(len(things) == len(good) + len(bad) + len(fail)), \
+    assert len(failed) == 12, [len(failed), failed]
+    assert len(things) == len(good) + len(bad) + len(fail), \
           [len(things),   len(good),  len(bad),  len(fail)]
 
     for task in good:
-        assert(task not in bad), (task, bad)
-        assert(schedule(task) is True), task
+        assert task not in bad, (task, bad)
+        assert schedule(task) is True, task
 
     for task in bad:
-        assert(task not in good), (task, good)
-        assert(schedule(task) is False), task
+        assert task not in good, (task, good)
+        assert schedule(task) is False, task
 
 
 # ------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ def test_collapse_ranges():
     ]
 
     for case, check in tests:
-        assert(check == ru.collapse_ranges(case)), '\n%s\n%s' % (case, check)
+        assert check == ru.collapse_ranges(case), '\n%s\n%s' % (case, check)
 
 
 # ------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ def test_range_concurrency():
 
     for case, check in tests:
         print(case)
-        assert(check == ru.range_concurrency(case)), '\n%s\n%s' % (case, check)
+        assert check == ru.range_concurrency(case), '\n%s\n%s' % (case, check)
 
 
 # ------------------------------------------------------------------------------
