@@ -61,7 +61,7 @@ def timed_method(func):
 
         try:
             _ = obj.__timing
-            assert(_)
+            assert _
 
         except Exception:
 

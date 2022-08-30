@@ -232,7 +232,7 @@ def dict_stringexpand(target, sources=None):
     specified.
     '''
 
-    assert(isinstance(target, dict))
+    assert isinstance(target, dict)
 
     # expand from self, and all given dicts, but only use
     # first-level primitive types (string, int, float)
@@ -286,8 +286,8 @@ def _generic_stringexpand(target, source):
 #
 def _list_stringexpand(target, source):
 
-    assert(isinstance(target, list))
-    assert(isinstance(source, dict))
+    assert isinstance(target, list)
+    assert isinstance(source, dict)
 
     all_again = 0
     for idx, elem in enumerate(target):
@@ -344,7 +344,7 @@ def iter_diff(a, b):
         for ea, eb in zip(a, b):
             iter_diff(ea, eb)
     elif isinstance(a, dict) and isinstance(b, dict):
-        assert(len(list(a.keys())) == len(list(b.keys()))), \
+        assert len(list(a.keys())) == len(list(b.keys())), \
                (len(a), sorted(list(a.keys())), len(b), sorted(list(b.keys())))
         for k in a:
             iter_diff(a[k], b[k])
@@ -353,7 +353,7 @@ def iter_diff(a, b):
             print('elem diff: %s' % a)
             print('elem diff: %s' % b)
             print()
-        assert(a == b), [a, b]
+        assert a == b, [a, b]
 
 
 # ------------------------------------------------------------------------------

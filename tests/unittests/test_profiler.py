@@ -15,7 +15,7 @@ import radical.utils as ru
 old_env = copy.deepcopy(os.environ)
 for _key in list(os.environ.keys()):
     if _key.startswith('RADICAL_'):
-        del(os.environ[_key])
+        del os.environ[_key]
 
 
 # ------------------------------------------------------------------------------
@@ -48,17 +48,17 @@ def test_profiler():
         prof.prof('buz', ts=now)
         prof.flush()
 
-        assert(os.path.isfile(fname))
+        assert os.path.isfile(fname)
 
         def _grep(pat):
             return _cmd('grep -e "%s" %s' % (pat, fname))
 
-        assert(_grep('^[0-9\\.]*,foo,%s,MainThread,,,$'    %       pname ))
-        assert(_grep('^[0-9\\.]*,bar,%s,MainThread,baz,,$' %       pname ))
-        assert(_grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname)))
+        assert _grep('^[0-9\\.]*,foo,%s,MainThread,,,$'    %       pname )
+        assert _grep('^[0-9\\.]*,bar,%s,MainThread,baz,,$' %       pname )
+        assert _grep('^%.7f,buz,%s,MainThread,,,$'         % (now, pname))
 
     finally:
-        try   : del(os.environ['RADICAL_PROFILE'])
+        try   : del os.environ['RADICAL_PROFILE']
         except: pass
         try   : os.unlink(fname)
         except: pass
@@ -82,7 +82,7 @@ def test_enable():
         prof.prof('buz')
         prof.flush()
 
-        assert(os.path.isfile(fname))
+        assert os.path.isfile(fname)
 
         def _grep(pat):
             return _cmd('grep -e "%s" %s' % (pat, fname))
@@ -92,7 +92,7 @@ def test_enable():
         assert     _grep('buz')
 
     finally:
-        try   : del(os.environ['RADICAL_PROFILE'])
+        try   : del os.environ['RADICAL_PROFILE']
         except: pass
         try   : os.unlink(fname)
         except: pass
@@ -109,6 +109,7 @@ def test_env():
     #
     def _assert_profiler(key, val, res):
 
+        fname = None
         try:
             os.environ[key] = val
 
@@ -119,15 +120,16 @@ def test_env():
             prof.prof('foo')
             prof.flush()
 
-            assert(res == os.path.isfile(fname))
-            assert(res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s'
-                              % (pname, fname)))
+            assert res == os.path.isfile(fname)
+            assert res == _cmd('grep -e "^[0-9\\.]*,foo,%s," %s'
+                              % (pname, fname))
 
         finally:
-            try   : del(os.environ[key])
-            except: pass
-            try   : os.unlink(fname)
-            except: pass
+            del os.environ[key]
+
+            if fname:
+                try   : os.unlink(fname)
+                except: pass
 
 
     # --------------------------------------------------------------------------
@@ -138,7 +140,7 @@ def test_env():
 
         for k in list(os.environ.keys()):
             if k.startswith('RADICAL'):
-                del(os.environ[k])
+                del os.environ[k]
 
         _assert_profiler('', '', True)
 
@@ -156,7 +158,7 @@ def test_env():
 
             for k in list(os.environ.keys()):
                 if k.startswith('RADICAL'):
-                    del(os.environ[k])
+                    del os.environ[k]
 
             os.environ[key] = val
             _assert_profiler(key, val, res)
