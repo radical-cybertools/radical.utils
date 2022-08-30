@@ -130,8 +130,8 @@ def range_concurrency(ranges):
     ret = list()
 
     # check initial conditions
-    assert(times[0][0] >= 0    ), 'negative time %s'       % times[0]
-    assert(times[0][1] == START), 'inconsistent ranges %s' % ranges
+    assert times[0][0] >= 0    , 'negative time %s'       % times[0]
+    assert times[0][1] == START, 'inconsistent ranges %s' % ranges
 
     last_time   = times[0][0]
     concurrency = 1
@@ -156,7 +156,7 @@ def range_concurrency(ranges):
 
     ret.append([last_time, concurrency])
 
-    assert(concurrency == 0), \
+    assert concurrency == 0, \
             'inconsistent range structure? %s : %s : %s' % (ranges, ret, times)
 
     return ret
@@ -312,12 +312,12 @@ def remove_common_prefix(data, extend=0):
 #   tasks = list(range(128 * 1024))
 #   good, bad = lazy_bisect(tasks, schedule)
 #
-#   assert(len(failed) == 25))
+#   assert len(failed) == 25)
 #   for task in good:
-#       assert(schedule(task) is True)
+#       assert schedule(task) is True
 #       task not in bad
 #   for task in bad:
-#       assert(schedule(task) is False)
+#       assert schedule(task) is False
 #       task not in good
 #   # --------------------------------------------------------------------------
 #
@@ -415,7 +415,7 @@ def lazy_bisect(data, check,
         if  last_good is None and \
             last_bad  is None:
 
-            assert(first)
+            assert first
             first = False
 
             idx = len(data) - 1
@@ -557,7 +557,7 @@ def lazy_bisect(data, check,
 
     state_hay()
 
-    assert(len(data) == len(check_good) + len(check_bad) + len(check_fail))
+    assert len(data) == len(check_good) + len(check_bad) + len(check_fail)
 
     return [ data[i]     for i   in check_good], \
            [ data[i]     for i   in check_bad],  \
@@ -584,6 +584,39 @@ if __name__ == '__main__':
     parts = partition(test_space, 8)
     for part in parts:
         print('%3d: %s' % (len(part), part))
+
+
+# ------------------------------------------------------------------------------
+#
+if __name__ == '__main__':
+
+    import time
+    scheduled = list()
+    def schedule(n, check=False):
+
+        if not check:
+            time.sleep(0.1)  # scheduling is slow (but not checks)
+            print(n)
+
+        if n in [61, 62, 63, 65]    or \
+           n in list(range(22, 42)) or \
+           n < 8:
+            scheduled.append(n)
+            if not check: print('ok')
+            return True
+
+        else:
+            if not check: print('--')
+            return False
+
+    tasks = list(range(128 * 1024))
+    tasks = lazy_bisect(tasks, schedule)
+
+    for task in tasks:
+        assert schedule(task, check=True) is False
+
+    for task in scheduled:
+        assert task not in tasks
 
 
 # ------------------------------------------------------------------------------

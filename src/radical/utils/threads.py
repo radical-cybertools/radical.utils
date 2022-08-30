@@ -51,7 +51,7 @@ def gettid():
 def is_main_thread(t=None):
 
     if t:
-        assert(isinstance(t, mt.Thread))
+        assert isinstance(t, mt.Thread)
     else:
         t = this_thread()
 
@@ -66,9 +66,9 @@ def is_this_thread(t):
     current thread of execution.
     '''
 
-    assert(isinstance(t, mt.Thread))
+    assert isinstance(t, mt.Thread)
 
-    return(t == this_thread())
+    return bool(t == this_thread())
 
 
 # ------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ def main_thread():
         if isinstance(t, mt._MainThread):                # pylint: disable=W0212
             return t
 
-    assert(False), 'main thread not found'
+    assert False, 'main thread not found'
 
 
 # ------------------------------------------------------------------------------
