@@ -79,7 +79,7 @@ class Server(object):
         #   '100-'   : any port equal or larger than 100
         #   '100-110': any port equal or larger than 100, up to 110
         tmp = self._url.split(':', 2)
-        assert(len(tmp) == 3)
+        assert len(tmp) == 3
         self._proto = tmp[0]
         self._iface = tmp[1].lstrip('/')
         self._ports = tmp[2].replace('+', '-')
@@ -129,8 +129,8 @@ class Server(object):
 
         else:
             # make type checker happy
-            assert(isinstance(self._port_this,  int))
-            assert(isinstance(self._port_start, int))
+            assert isinstance(self._port_this,  int)
+            assert isinstance(self._port_start, int)
 
             while self._port_this <= self._port_stop:
                 yield self._port_this
