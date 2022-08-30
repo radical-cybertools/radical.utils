@@ -223,14 +223,14 @@ class Queue(Bridge):
                 active = False
 
                 # check for incoming messages, and buffer them
-                ev_put = dict(no_intr(self._poll_put.poll, timeout=10000))
+                ev_put = dict(no_intr(self._poll_put.poll, timeout=10))
               # self._prof.prof('poll_put', msg=len(ev_put))
                 self._log.debug('polled put: %s', ev_put)
 
                 if self._put in ev_put:
 
                     with self._lock:
-                        data = no_intr(self._put.recv_multipart)
+                        data = list(no_intr(self._put.recv_multipart))
 
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
@@ -250,7 +250,7 @@ class Queue(Bridge):
 
 
                 # check if somebody wants our messages
-                ev_get = dict(no_intr(self._poll_get.poll, timeout=10000))
+                ev_get = dict(no_intr(self._poll_get.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
                 self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
@@ -273,7 +273,7 @@ class Queue(Bridge):
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
 
-                    data = [msgpack.packb(qname), msgpack.packb(msgs)]
+                    data   = [msgpack.packb(qname), msgpack.packb(msgs)]
                     active = True
 
                   # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
@@ -288,7 +288,7 @@ class Queue(Bridge):
 
                     # remove sent messages from buffer
                     if msgs:
-                        del(buf[qname][:self._bulk_size])
+                        del buf[qname][:self._bulk_size]
 
                 if not active:
                   # self._prof.prof('sleep', msg=len(buf))
@@ -415,7 +415,7 @@ class Getter(object):
 
             if no_intr(info['socket'].poll, flags=zmq.POLLIN, timeout=timeout):
 
-                data = no_intr(info['socket'].recv_multipart)
+                data = list(no_intr(info['socket'].recv_multipart))
                 info['requested'] = False
 
                 qname = as_string(msgpack.unpackb(data[0]))
@@ -440,7 +440,7 @@ class Getter(object):
         if not qname:
             qname = 'default'
 
-        assert(url in Getter._callbacks)
+        assert url in Getter._callbacks
         time.sleep(1)
 
         try:
@@ -678,7 +678,7 @@ class Getter(object):
           # self._prof.prof('requested')
 
         with self._lock:
-            data = no_intr(self._q.recv_multipart)
+            data = list(no_intr(self._q.recv_multipart))
             self._requested = False
 
         qname = msgpack.unpackb(data[0])
@@ -713,7 +713,7 @@ class Getter(object):
 
         if no_intr(self._q.poll, flags=zmq.POLLIN, timeout=timeout):
             with self._lock:
-                data = no_intr(self._q.recv_multipart)
+                data = list(no_intr(self._q.recv_multipart))
                 self._requested = False
 
             qname = msgpack.unpackb(data[0])

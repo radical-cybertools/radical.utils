@@ -426,7 +426,6 @@ def read_profiles(profiles, sid=None):
         tdiff('frame %s' % pname)
 
     tdiff('read done')
-
     return ret
 
 

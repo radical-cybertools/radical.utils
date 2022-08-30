@@ -36,7 +36,7 @@ def test_metric_expand():
                              6         : 'cancel_pilot'     },
                             {1         : 'bootstrap_0_stop' }]}
 
-    assert(ru.metric_expand(d_in) == d_out)
+    assert ru.metric_expand(d_in) == d_out
 
 
 # ------------------------------------------------------------------------------
