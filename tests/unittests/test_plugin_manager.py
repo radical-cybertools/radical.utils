@@ -17,8 +17,6 @@ def test_plugin_manager():
     '''
 
     pmgr = ru.PluginManager('radical.utils')
-    import pprint
-    pprint.pprint(pmgr._registry)
 
     plugin_2 = pmgr.load('unittests_1', 'default_2', 'a', 1)
     ret = plugin_2.run()
