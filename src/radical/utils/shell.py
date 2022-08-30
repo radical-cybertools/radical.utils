@@ -126,7 +126,7 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
     #       logging module interfers, too.  Either way, I am fed up debugging
     #       this shit, and give up.  This method does not work for threaded
     #       python applications.
-  # assert(False), 'this is broken for python apps'
+    assert(False), 'this is broken for python apps'
 
     # --------------------------------------------------------------------------
     #

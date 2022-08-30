@@ -164,7 +164,7 @@ class Heartbeat(object):
                         self._log.info('hb recover %s -> %s (%s)',
                                                         uid, ret, self._term_cb)
                         with self._lock:
-                            del(self._tstamps[uid])
+                            del self._tstamps[uid]
                             self._tstamps[ret] = time.time()
 
 
