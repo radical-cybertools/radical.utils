@@ -21,11 +21,15 @@ class Registry(Server):
     # --------------------------------------------------------------------------
     #
     def __init__(self, url=None,
-                       uid=None) -> None:
+                       uid=None,
+                       persistent='False') -> None:
 
         super().__init__(url=url, uid=uid)
 
-        self._data = shelve.open('%s.db' % self._uid, writeback=True)
+        if persistent:
+            self._data = shelve.open('%s.db' % self._uid, writeback=True)
+        else:
+            self._data = dict()
 
         self.register_request('put',  self.put)
         self.register_request('get',  self.get)
@@ -37,8 +41,11 @@ class Registry(Server):
     #
     def stop(self) -> None:
 
-        write_json(self._data, '%s.json' % self._uid)
-        self._data.close()
+        if isinstance(self._data, dict):
+            write_json(self._data, '%s.json' % self._uid)
+        else:
+            self._data.close()
+
         super().stop()
 
 
@@ -58,7 +65,8 @@ class Registry(Server):
 
         this[elems[-1]] = val
 
-        self._data.sync()
+        if not isinstance(self._data, dict):
+            self._data.sync()
 
 
     # --------------------------------------------------------------------------
@@ -93,7 +101,8 @@ class Registry(Server):
     def delitem(self, key: str) -> None:
 
         del(self._data[key])
-        self._data.sync()
+        if not isinstance(self._data, dict):
+            self._data.sync()
 
 
 # ------------------------------------------------------------------------------

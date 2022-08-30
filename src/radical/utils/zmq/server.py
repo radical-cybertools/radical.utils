@@ -149,9 +149,8 @@ class Server(object):
 
 
     @property
-    def addr(self) -> str:
+    def addr(self) -> Optional[str]:
 
-        assert(self._addr), 'address not yet known'
         return self._addr
 
 
