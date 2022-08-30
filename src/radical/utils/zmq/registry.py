@@ -100,7 +100,7 @@ class Registry(Server):
     #
     def delitem(self, key: str) -> None:
 
-        del(self._data[key])
+        del self._data[key]
         if not isinstance(self._data, dict):
             self._data.sync()
 
@@ -135,7 +135,7 @@ class RegistryClient(Client, DictMixin):
     def put(self, key: str,
                   val: Any) -> None:
         ret = self.request(cmd='put', key=key, val=val)
-        assert(ret is None)
+        assert ret is None
         return ret
 
 
@@ -151,12 +151,12 @@ class RegistryClient(Client, DictMixin):
 
     def __delitem__(self, key: str) -> None:
         ret = self.request(cmd='del', key=key)
-        assert(ret is None)
+        assert ret is None
 
 
     def keys(self) -> List[str]:
         ret = self.request(cmd='keys')
-        assert(isinstance(ret, list))
+        assert isinstance(ret, list)
         return ret
 
 

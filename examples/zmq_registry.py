@@ -12,7 +12,7 @@ if __name__ == '__main__':
     try:
         r.start()
 
-        assert(r.addr)
+        assert r.addr
         c = ru.zmq.RegistryClient(url=r.addr)
         c.put('foo.bar.buz', {'biz': 42})
         print(c.get('foo'))

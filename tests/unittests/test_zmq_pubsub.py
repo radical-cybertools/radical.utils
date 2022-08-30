@@ -43,9 +43,9 @@ def test_zmq_pubsub():
     b = ru.zmq.PubSub(cfg)
     b.start()
 
-    assert(b.addr_in  != b.addr_out)
-    assert(b.addr_in  == b.addr_pub)
-    assert(b.addr_out == b.addr_sub)
+    assert b.addr_in  != b.addr_out
+    assert b.addr_in  == b.addr_pub
+    assert b.addr_out == b.addr_sub
 
     data = dict()
     for i in 'ABCD':
@@ -97,11 +97,11 @@ def test_zmq_pubsub():
     b.stop()
     time.sleep(0.1)
 
-    assert(data['A']['A'] == c_a)
-    assert(data['B']['B'] == c_b)
+    assert data['A']['A'] == c_a
+    assert data['B']['B'] == c_b
 
-    assert(data['C']['A'] + data['C']['B'] +
-           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b))
+    assert data['C']['A'] + data['C']['B'] + \
+           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
 
 
 # ------------------------------------------------------------------------------
