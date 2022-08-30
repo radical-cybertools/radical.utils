@@ -297,7 +297,7 @@ class Lockfile(object):
         self._fd = None
 
         if self._delete:
-            self._remove()
+            self.remove()
 
         # release the lock
         os.unlink(self._lck)
