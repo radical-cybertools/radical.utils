@@ -59,23 +59,23 @@ def test_flux_startup():
     fh = ru.FluxHelper()
     fh.start_flux()
 
-    assert(fh.uri)
-    assert('FLUX_URI' in fh.env)
+    assert fh.uri
+    assert 'FLUX_URI' in fh.env
 
     specs = [spec] * njobs
     ids   = fh.submit_jobs(specs, cb=cb1)
-    assert(len(ids) == njobs), len(ids)
+    assert len(ids) == njobs, len(ids)
 
     time.sleep(5)
 
-    assert(len(events) == njobs), len(events)
+    assert len(events) == njobs, len(events)
     for jid in events:
         # we expect at least 4 events per job:
         # 'submit', 'start', 'finish', 'clean',
-        assert(len(events[jid]) >= 4), [jid, events[jid]]
+        assert len(events[jid]) >= 4, [jid, events[jid]]
 
     fh.reset()
-    assert(fh.uri is None)
+    assert fh.uri is None
 
 
 # ------------------------------------------------------------------------------
@@ -106,23 +106,23 @@ def test_flux_pickup():
     fh = ru.FluxHelper()
     fh.start_flux()
 
-    assert(fh.uri)
-    assert('FLUX_URI' in fh.env)
+    assert fh.uri
+    assert 'FLUX_URI' in fh.env
 
     specs = [spec] * njobs
     ids   = fh.submit_jobs(specs, cb=cb1)
-    assert(len(ids) == njobs), len(ids)
+    assert len(ids) == njobs, len(ids)
 
     time.sleep(5)
 
-    assert(len(events) == njobs), len(events)
+    assert len(events) == njobs, len(events)
     for jid in events:
         # we expect at least 4 events per job:
         # 'submit', 'start', 'finish', 'clean',
-        assert(len(events[jid]) >= 4), [jid, events[jid]]
+        assert len(events[jid]) >= 4, [jid, events[jid]]
 
     fh.reset()
-    assert(fh.uri is None)
+    assert fh.uri is None
 
     if outer_fh:
         outer_fh.reset()
