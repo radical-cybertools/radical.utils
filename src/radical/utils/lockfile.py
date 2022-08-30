@@ -50,7 +50,7 @@ class Lockfile(object):
 
         with open(fname, 'r') as fin:
             data = fin.read()
-            assert(data == 'test 1\ntest 2\n')
+            assert data == 'test 1\ntest 2\n'
 
     Example:
 
@@ -118,7 +118,7 @@ class Lockfile(object):
 
         if 'delete' in kwargs:
             self._delete = kwargs['delete']
-            del(kwargs['delete'])
+            del kwargs['delete']
         else:
             self._delete = False
 
@@ -270,7 +270,7 @@ class Lockfile(object):
         try:
             with ru_open(self._lck, 'r') as fin:
                 # strip newline
-                return(fin.readline()[:-1])
+                return fin.readline()[:-1]
 
         except OSError as e:
             if e.errno == errno.EEXIST:

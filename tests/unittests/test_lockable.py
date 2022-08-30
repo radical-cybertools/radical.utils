@@ -36,7 +36,7 @@ def test_lockable():
             self.val = False  # set a bogus value
             self.unlock()     # only now thread can set True
             thread_1.join()   # make sure the value was set
-            assert(self.val)  # make sure the value was set correctly
+            assert self.val   # make sure the value was set correctly
 
             self.lock()       # lock before spawning thread
             thread_2 = mt.Thread(target=self.test_2)
@@ -45,7 +45,7 @@ def test_lockable():
             self.val = False  # set a bogus value
             self.unlock()     # only now thread can set True
             thread_2.join()   # make sure the value was set
-            assert(self.val)  # make sure the value was set correctly
+            assert self.val   # make sure the value was set correctly
 
         # ----------------------------------------------------------------------
         def test_1(self):
@@ -67,21 +67,21 @@ def test_lockable():
         pass
 
     # check explicit and recursive lock/unlock
-    t.lock  (); assert(    t.locked())                                    # noqa
-    t.unlock(); assert(not t.locked())                                    # noqa
-    t.lock  (); assert(    t.locked())                                    # noqa
-    t.lock  (); assert(    t.locked())                                    # noqa
-    t.unlock(); assert(    t.locked())                                    # noqa
-    t.unlock(); assert(not t.locked())                                    # noqa
+    t.lock  (); assert     t.locked()                                     # noqa
+    t.unlock(); assert not t.locked()                                     # noqa
+    t.lock  (); assert     t.locked()                                     # noqa
+    t.lock  (); assert     t.locked()                                     # noqa
+    t.unlock(); assert     t.locked()                                     # noqa
+    t.unlock(); assert not t.locked()                                     # noqa
 
     # check locking over threads
     t.test()
 
     # check double unlock
-    try                  : t.unlock(); assert(not t.locked())             # noqa
+    try                  : t.unlock(); assert not t.locked()              # noqa
     except RuntimeError  : pass
-    except Exception as e: assert(False), "RuntimeError != %s" % type(e)
-    else                 : assert(False), "expected RuntimeError, got none"
+    except Exception as e: assert False, "RuntimeError != %s" % type(e)
+    else                 : assert False, "expected RuntimeError, got none"
 
 
 # ------------------------------------------------------------------------------
