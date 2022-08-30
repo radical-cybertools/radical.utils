@@ -26,9 +26,13 @@ class Bridge(object):
         if not pwd:
             pwd = '.'
 
-        cfg = Config(cfg=read_json('%s/%s.cfg' % (pwd, name)))
+        fname = '%s/%s.cfg' % (pwd, name)
 
-        return cfg
+        cfg = dict()
+        if os.path.isfile(fname):
+            cfg = read_json(fname)
+
+        return Config(from_dict=cfg)
 
 
     # --------------------------------------------------------------------------
