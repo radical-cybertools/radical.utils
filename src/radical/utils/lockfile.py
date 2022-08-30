@@ -25,7 +25,7 @@ class Lockfile(object):
     waiting for a lock owned by another process or thread - the call will return
     'unknown' otherwise.
 
-    Note that the file offset is not shared between owner of the lock file
+    Note that the file offset is not shared between owners of the lock file
     - a newly acquired lock on the file should prompt a seek to the desired
     file location (the initial offset is '0').
 
@@ -174,6 +174,20 @@ class Lockfile(object):
 
     # --------------------------------------------------------------------------
     #
+    def __bool__(self) -> bool:
+
+        return bool(self._fd)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def locked(self) -> bool:
+
+        return bool(self)
+
+
+    # --------------------------------------------------------------------------
+    #
     def acquire(self, timeout=None, owner=None):
         '''
         When the lock could not be acquired after `timeout` seconds, an
@@ -235,6 +249,8 @@ class Lockfile(object):
         # the link succeeded, so open the file and break
         self._fd = os.open(self._fname, os.O_RDWR | os.O_CREAT)
 
+        return self.locked()
+
 
     # --------------------------------------------------------------------------
     #
@@ -289,7 +305,7 @@ class Lockfile(object):
             self._fd = None
 
             if self._delete:
-                os.unlink(self._fname)
+                self.remove()
 
             # release the lock
             os.unlink(self._lck)
