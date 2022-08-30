@@ -254,7 +254,7 @@ class Lockfile(object):
         try:
             with ru_open(self._lck, 'r') as fin:
                 # strip newline
-                return(fin.readline()[:-1])
+                return fin.readline()[:-1]
 
         except OSError as e:
             if e.errno == errno.EEXIST:

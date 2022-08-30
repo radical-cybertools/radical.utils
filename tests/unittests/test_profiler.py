@@ -125,7 +125,8 @@ def test_env():
                               % (pname, fname))
 
         finally:
-            del os.environ[key]
+            try:    del os.environ[key]
+            except: pass
 
             if fname:
                 try   : os.unlink(fname)

@@ -68,7 +68,7 @@ def is_this_thread(t):
 
     assert isinstance(t, mt.Thread)
 
-    return(t == this_thread())
+    return bool(t == this_thread())
 
 
 # ------------------------------------------------------------------------------

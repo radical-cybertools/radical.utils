@@ -70,7 +70,7 @@ class DictMixin(dict):
 
     def items(self):
         for k in self:
-            yield(k, self[k])
+            yield k, self[k]
 
 
     # --------------------------------------------------------------------------

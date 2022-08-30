@@ -122,7 +122,7 @@ def test_zmq_queue():
     assert len(data['A'])       == c_a
     assert len(data['B'])       == c_b
 
-    assert data['C'].count('A') + data['C'].count('B') +
+    assert data['C'].count('A') + data['C'].count('B') + \
            data['D'].count('A') + data['D'].count('B') == c_a + c_b
 
     avg = (c_a + c_b) / 2

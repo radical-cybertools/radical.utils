@@ -100,7 +100,7 @@ def test_zmq_pubsub():
     assert data['A']['A'] == c_a
     assert data['B']['B'] == c_b
 
-    assert data['C']['A'] + data['C']['B'] +
+    assert data['C']['A'] + data['C']['B'] + \
            data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
 
 
