@@ -42,7 +42,7 @@ class Bridge(object):
         self._cfg     = cfg
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
-        self._pwd     = self._cfg.path or './'
+        self._pwd     = self._cfg.path
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
@@ -60,10 +60,17 @@ class Bridge(object):
 
         self._bridge_initialize()
 
-        write_json('%s/%s.cfg' % (self._pwd, self._cfg.uid),
-                   {'uid'        : self._cfg.uid,
-                    self.type_in : str(self.addr_in),
-                    self.type_out: str(self.addr_out)})
+
+    # --------------------------------------------------------------------------
+    #
+    def write_config(self, fname=None):
+
+        if not fname:
+            fname = '%s/%s.cfg' % (self._pwd, self._cfg.uid)
+
+        write_json(fname, {'uid'        : self._cfg.uid,
+                           self.type_in : str(self.addr_in),
+                           self.type_out: str(self.addr_out)})
 
 
     # --------------------------------------------------------------------------

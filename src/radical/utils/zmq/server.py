@@ -38,14 +38,13 @@ class Server(object):
         # worked upon and answered before the next request is received.
 
         self._url = url
-        self._uid = uid
         self._cbs = dict()
 
         if not path:
             path = './'
 
-        if not self._uid:
-            self._uid = generate_id('server', ns='radical.utils')
+        if uid: self._uid = uid
+        else  : self._uid = generate_id('server', ns='radical.utils')
 
         self._log    = Logger(self._uid,   path=path)
         self._prof   = Profiler(self._uid, path=path)
@@ -148,12 +147,14 @@ class Server(object):
     # --------------------------------------------------------------------------
     #
     @property
-    def uid(self) -> Optional[str]:
+    def uid(self) -> str:
+
         return self._uid
 
 
     @property
     def addr(self) -> Optional[str]:
+
         return self._addr
 
 
