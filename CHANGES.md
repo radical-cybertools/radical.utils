@@ -3,6 +3,17 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.17.0 Release                                                        2022-09-15
+--------------------------------------------------------------------------------
+
+  - doc strings
+  - fix double subscription on Subscribers which hold global zmq sockets
+  - fix pubsub logging, consistent variable names, shorter timeout
+  - fix `ratio` interpretation for bisect
+  - make bridge silent by default
+  - simpler server address inspection
+
+
 1.16.0 Release                                                        2022-08-15
 --------------------------------------------------------------------------------
 
