@@ -1,21 +1,15 @@
 
 #####################################
-radical.utils |version| documentation
+RADICAL-Utils |version| Documentation
 #####################################
 
 This is collection of lightweight utilities, used in various RADICAL
-python projects. 
+Cybertools projects.
 
-**Get involved or contact us:**
+**Links**
 
-+-------+---------------------+----------------------------------------------------+
-| |Git| | **GitHub project:** | https://github.com/saga-project/radical.utils/     |
-+-------+---------------------+----------------------------------------------------+
-| |Goo| | **Mailing List:**   | https://groups.google.com/forum/#!forum/saga-devel |
-+-------+---------------------+----------------------------------------------------+
-
-.. |Git| image:: images/github.jpg
-.. |Goo| image:: images/google.png
+* repository:     https://github.com/radical-cybertools/radical.utils
+* issues:         https://github.com/radical-cybertools/radical.utils/issues
 
 
 #########
@@ -24,9 +18,16 @@ Contents:
 
 .. toctree::
    :numbered:
-   :maxdepth: 3
+   :maxdepth: 2
 
-   library/plugin_manager.rst
+   modules.rst
+   utils.atfork.rst
+   utils.contrib.rst
+   utils.plugins.rst
+   utils.queue_network.rst
+   utils.rst
+   utils.scheduler.rst
+   utils.zmq.rst
 
 
 ##################
