@@ -2,6 +2,9 @@
 import zmq
 import msgpack
 
+MODE_PUSH = 'push'
+MODE_PULL = 'pull'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -26,19 +29,31 @@ class Pipe(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self) -> None:
+    def __init__(self, mode, url=None) -> None:
         '''
         Create a `Pipe` instance which can be used for either sending (`put()`)
-        or receiving (`get()` / `get_nowait()`) data.  The communication mode is
-        selected by calling *either* `Pipe.connect_push()` *or*
-        `Pipe.connect_pull()`.
+        or receiving (`get()` / `get_nowait()`) data. according to the specified
+        mode (`MODE_PUSH` or `MODE_PULL`).
+
+        An URL can be specified for one end of the pipe - that end will then be
+        in listening mode.  The other end of the pipe MUST use the connection
+        URL provided by the listening end (`Pipe.url`).
         '''
 
-        self._context = zmq.Context()
-        self._push    = None
-        self._pull    = None
-        self._poller  = zmq.Poller()
+        self._context = zmq.Context.instance()
+        self._mode    = mode
         self._url     = None
+        self._sock    = None
+        self._poller  = zmq.Poller()
+
+        if mode == MODE_PUSH:
+            self._connect_push(url)
+
+        elif mode == MODE_PULL:
+            self._connect_pull(url)
+
+        else:
+            raise ValueError('unsupported pipe mode [%s]' % mode)
 
 
     # --------------------------------------------------------------------------
@@ -50,12 +65,12 @@ class Pipe(object):
 
     # --------------------------------------------------------------------------
     #
-    def connect_push(self, url: str = None):
+    def _connect_push(self, url):
         '''
         Establish this pipe instance as sending endpoint.
         '''
 
-        if self._url:
+        if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
         if url:
@@ -64,22 +79,22 @@ class Pipe(object):
             bind = True
             url  = 'tcp://*:*'
 
-        self._push = self._context.socket(zmq.PUSH)
+        self._sock = self._context.socket(zmq.PUSH)
 
-        if bind: self._push.bind(url)
-        else   : self._push.connect(url)
+        if bind: self._sock.bind(url)
+        else   : self._sock.connect(url)
 
-        self._url = self._push.getsockopt(zmq.LAST_ENDPOINT)
+        self._url = self._sock.getsockopt(zmq.LAST_ENDPOINT)
 
 
     # --------------------------------------------------------------------------
     #
-    def connect_pull(self, url: str = None):
+    def _connect_pull(self, url):
         '''
         Establish this Pipe as receiving endpoint.
         '''
 
-        if self._url:
+        if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
         if url:
@@ -88,13 +103,13 @@ class Pipe(object):
             bind = True
             url  = 'tcp://*:*'
 
-        self._pull = self._context.socket(zmq.PULL)
+        self._sock = self._context.socket(zmq.PULL)
 
-        if bind: self._pull.bind(url)
-        else   : self._pull.connect(url)
+        if bind: self._sock.bind(url)
+        else   : self._sock.connect(url)
 
-        self._url = self._pull.getsockopt(zmq.LAST_ENDPOINT)
-        self._poller.register(self._pull, zmq.POLLIN)
+        self._url = self._sock.getsockopt(zmq.LAST_ENDPOINT)
+        self._poller.register(self._sock, zmq.POLLIN)
 
 
     # --------------------------------------------------------------------------
@@ -105,7 +120,8 @@ class Pipe(object):
         them will be able to receive that message.
         '''
 
-        self._push.send(msgpack.packb(msg))
+        assert self._mode == MODE_PUSH
+        self._sock.send(msgpack.packb(msg))
 
 
     # --------------------------------------------------------------------------
@@ -115,7 +131,8 @@ class Pipe(object):
         Receive a message.  This call blocks until a message is available.
         '''
 
-        return msgpack.unpackb(self._pull.recv())
+        assert self._mode == MODE_PULL
+        return msgpack.unpackb(self._sock.recv())
 
 
     # --------------------------------------------------------------------------
@@ -127,11 +144,13 @@ class Pipe(object):
         `None` is returned.
         '''
 
-        # zmq timeouts are in milliseconds
-        socks = dict(self._poller.poll(timeout=(timeout * 1000)))
+        assert self._mode == MODE_PULL
 
-        if self._pull in socks:
-            return msgpack.unpackb(self._pull.recv())
+        # zmq timeouts are in milliseconds
+        socks = dict(self._poller.poll(timeout=int(timeout * 1000)))
+
+        if self._sock in socks:
+            return msgpack.unpackb(self._sock.recv())
 
 
 # ------------------------------------------------------------------------------
