@@ -14,15 +14,15 @@ from .client import Client
 #
 class Registry(Server):
     '''
-    The `ru.zmq.Registry` is a ZMQ service which provides a hirarchical
+    The `ru.zmq.Registry` is a ZMQ service which provides a hierarchical
     persistent data store.
     '''
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url=None,
-                       uid=None,
-                       persistent='False') -> None:
+    def __init__(self, url       : Optional[str] = None,
+                       uid       : Optional[str] = None,
+                       persistent: bool          = False) -> None:
 
         super().__init__(url=url, uid=uid)
 
