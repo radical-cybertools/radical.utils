@@ -178,6 +178,10 @@ class FSHandler(logging.FileHandler):
 #
 class Logger(object):
 
+    '''
+    Logger documentation
+    '''
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, ns=None, path=None, targets=None, level=None,
