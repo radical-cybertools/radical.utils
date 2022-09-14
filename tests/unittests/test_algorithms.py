@@ -70,25 +70,7 @@ class BisectTest(TestCase):
             return False
         # ----------------------------------------------------------------------
         #
-        good, bad, fail = ru.lazy_bisect(list(), schedule)
-        assert not good
-        assert not bad
-        assert not fail
-
         things = [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-
-        assert len(failed) == 12, [len(failed), failed]
-        assert len(things) == len(good) + len(bad) + len(fail), \
-              [len(things),   len(good),  len(bad),  len(fail)]
-
-        for task in good:
-            assert task not in bad, (task, bad)
-            assert schedule(task) is True, task
-
-        for task in bad:
-            assert task not in good, (task, good)
-            assert schedule(task) is False, task
-
 
         self.call_count = 0
         good, bad, fail = ru.lazy_bisect(things, schedule, ratio=0.5)
