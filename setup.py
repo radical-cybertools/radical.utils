@@ -247,6 +247,7 @@ setup_args = {
                             'regex',
                             'setproctitle',
                            ],
+    'docs_require'       : ['sphinxcontrib-napoleon'],
     'tests_require'      : ['pytest',
                             'pylint',
                             'flake8',
