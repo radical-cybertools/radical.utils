@@ -145,7 +145,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         instantiated as their respective TypedDict-inheriting class types,
         if so specified by the respective schema.
 
-        So, if the schema contains:
+        So, if the schema contains::
 
           {
             ...
