@@ -1,5 +1,6 @@
 
 -r requirements.txt
 
+sphinx>=4.4
 sphinxcontrib-napoleon
 
