@@ -47,6 +47,8 @@ mod_root = 'src/radical/utils/'
 sdist_level = int(os.environ.get('SDIST_LEVEL', 0))
 os.environ['SDIST_LEVEL'] = str(sdist_level + 1)
 
+root = os.path.dirname(__file__) or '.'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -65,7 +67,7 @@ def sh_callout(cmd):
 #
 #   - version:          1.2.3            - is used for installation
 #   - version_detail:  v1.2.3-9-g0684b06 - is used for debugging
-#   - version is read from VERSION file in src_root, which then is copied to
+#   - version is read from VERSION file in root, which then is copied to
 #     module dir, and is getting installed from there.
 #   - version_detail is derived from the git tag, and only available when
 #     installed from git.  That is stored in mod_root/VERSION in the install
@@ -86,11 +88,7 @@ def get_version(_mod_root):
         _sdist_name     = None
 
         # get version from './VERSION'
-        src_root = os.path.dirname(__file__)
-        if not src_root:
-            src_root = '.'
-
-        with open(src_root + '/VERSION', 'r', encoding='utf-8') as f:
+        with open('%s/VERSION' % root, 'r', encoding='utf-8') as f:
             _version_base = f.readline().strip()
 
         # attempt to get version detail information from git
@@ -105,7 +103,7 @@ def get_version(_mod_root):
             'test -z `git rev-parse --show-prefix` || exit -1; '
             'tag=`git describe --tags --always` 2>/dev/null ; '
             'branch=`git branch | grep -e "^*" | cut -f 2- -d " "` 2>/dev/null ; '
-            'echo $tag@$branch' % src_root)
+            'echo $tag@$branch' % root)
         _version_detail = out.strip()
         _version_detail = _version_detail.decode()
         _version_detail = _version_detail.replace('detached from ', 'detached-')
@@ -127,7 +125,7 @@ def get_version(_mod_root):
             _version = _version_base
 
         # make sure the version files exist for the runtime version inspection
-        _path = '%s/%s' % (src_root, _mod_root)
+        _path = '%s/%s' % (root, _mod_root)
         with open(_path + '/VERSION', 'w', encoding='utf-8') as f:
             f.write(_version_base + '\n')
             f.write(_version      + '\n')
@@ -194,6 +192,12 @@ df = [('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}'  )),
 
 # ------------------------------------------------------------------------------
 #
+with open('%s/requirements.txt' % root, encoding='utf-8') as f:
+    requirements = f.readlines()
+
+
+# ------------------------------------------------------------------------------
+#
 setup_args = {
     'name'               : name,
     'namespace_packages' : ['radical'],
@@ -238,23 +242,7 @@ setup_args = {
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
                                  'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
   # 'setup_requires'     : ['pytest-runner'],
-    'install_requires'   : ['colorama',
-                            'msgpack',
-                            'netifaces',
-                            'ntplib',
-                            'pymongo<4',
-                            'pyzmq',
-                            'regex',
-                            'setproctitle',
-                           ],
-    'docs_require'       : ['sphinxcontrib-napoleon'],
-    'tests_require'      : ['pytest',
-                            'pylint',
-                            'flake8',
-                            'coverage',
-                            'mock==2.0.0.',
-                            'pudb',
-                           ],
+    'install_requires'   : requirements,
     'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : df,
