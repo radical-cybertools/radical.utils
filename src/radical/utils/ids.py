@@ -233,7 +233,6 @@ def _generate_fast_id(prefix, ns=None):
     info = {'prefix': prefix,
             'fast'  : counter}
 
-
     return TEMPLATE_FAST % info
 
 
