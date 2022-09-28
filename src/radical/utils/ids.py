@@ -19,6 +19,7 @@ TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
 TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
 TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
 TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
+TEMPLATE_FAST    = "%(prefix)s.%(fast)s"
 
 
 _cache = {'dir'       : list(),
@@ -33,6 +34,9 @@ if _cache['rank'] is None: _cache['rank'] = os.environ.get('OMPI_COMM_WORLD_RANK
 
 if _cache['rank'] is None: _cache['rank'] = 0
 else                     : _cache['rank'] = int(_cache['rank'])
+
+# fast ID counter cache
+_fast = dict()
 
 
 # ------------------------------------------------------------------------------
@@ -104,6 +108,7 @@ ID_UNIQUE  = 'unique'
 ID_PRIVATE = 'private'
 ID_CUSTOM  = 'custom'
 ID_UUID    = 'uuid'
+ID_FAST    = 'fast'
 
 
 # ------------------------------------------------------------------------------
@@ -125,6 +130,7 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     ID_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
     ID_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
     ID_UUID    = "%(prefix)s.%(uuid)s"
+    ID_FAST    = "%(prefix)s.%(fast)06d"
 
     Examples::
 
@@ -137,6 +143,8 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
         print(radical.utils.generate_id('item', mode=radical.utils.ID_PRIVATE))
         print(radical.utils.generate_id('item', mode=radical.utils.ID_PRIVATE))
         print(radical.utils.generate_id('item', mode=radical.utils.ID_UUID))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_FAST))
+        print(radical.utils.generate_id('item', mode=radical.utils.ID_FAST))
 
     The above will generate the IDs:
 
@@ -149,6 +157,8 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
         item.cameo.merzky.018375.0000
         item.cameo.merzky.018375.0001
         item.23cacb7e-0b08-11e5-9f0f-08002716eaa9
+        item.000000
+        item.000001
 
     where 'cameo' is the (short) hostname, 'merzky' is the username, and '18375'
     is 'days since epoch'.  The last element, the counter is unique for each id
@@ -179,6 +189,9 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     The namespaces are stored under ```$RADICAL_BASE/.radical/utils/```.
     If `RADICAL_BASE` is not set, then `$HOME` is used.
 
+    `FAST` ID counters are not stored on disk but in memory and are thus
+    process-locally unique only.
+
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
@@ -194,9 +207,33 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     elif mode == ID_SIMPLE : template = TEMPLATE_SIMPLE
     elif mode == ID_UNIQUE : template = TEMPLATE_UNIQUE
     elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
+    elif mode == ID_FAST   : return _generate_fast_id(prefix, ns)
     else: raise ValueError("unsupported mode '%s'", mode)
 
     return _generate_id(template, prefix, ns)
+
+
+# ------------------------------------------------------------------------------
+#
+def _generate_fast_id(prefix, ns=None):
+
+    if not ns:
+        ns = 'default'
+
+    if ns not in _fast:
+        _fast[ns] = dict()
+
+    if prefix not in _fast[ns]:
+        counter = 0
+    else:
+        counter = _fast[ns][prefix] + 1
+
+    info = {'prefix': prefix,
+            'fast'  : counter}
+
+    _fast[ns][prefix] = counter
+
+    return TEMPLATE_FAST % info
 
 
 # ------------------------------------------------------------------------------
