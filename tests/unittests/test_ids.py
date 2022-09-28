@@ -134,7 +134,7 @@ class IdsTestClass(TestCase):
 
     def test_generate_id_2nd_run(self):
         # check that counters got reset
-        self.test_generate_id(second=True)
+        self.test_generate_id()
 
 # ------------------------------------------------------------------------------
 
