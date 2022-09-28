@@ -217,8 +217,6 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 #
 def _generate_fast_id(prefix, ns=None):
 
-    print('generate fast', _fast)
-
     if not ns:
         ns = 'default'
 
