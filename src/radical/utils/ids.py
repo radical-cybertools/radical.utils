@@ -19,7 +19,7 @@ TEMPLATE_SIMPLE  = "%(prefix)s.%(counter)04d"
 TEMPLATE_UNIQUE  = "%(prefix)s.%(date)s.%(time)s.%(pid)06d.%(counter)04d"
 TEMPLATE_PRIVATE = "%(prefix)s.%(host)s.%(user)s.%(days)06d.%(day_counter)04d"
 TEMPLATE_UUID    = "%(prefix)s.%(uuid)s"
-TEMPLATE_FAST    = "%(prefix)s.%(fast)s"
+TEMPLATE_FAST    = "%(prefix)s.%(fast)06d"
 
 
 _cache = {'dir'       : list(),
@@ -217,6 +217,8 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
 #
 def _generate_fast_id(prefix, ns=None):
 
+    print('generate fast', _fast)
+
     if not ns:
         ns = 'default'
 
@@ -228,10 +230,11 @@ def _generate_fast_id(prefix, ns=None):
     else:
         counter = _fast[ns][prefix] + 1
 
+    _fast[ns][prefix] = counter
+
     info = {'prefix': prefix,
             'fast'  : counter}
 
-    _fast[ns][prefix] = counter
 
     return TEMPLATE_FAST % info
 
@@ -338,6 +341,10 @@ def _generate_id(template, prefix, ns=None):
 #
 def reset_id_counters(prefix=None, reset_all_others=False):
 
+    global _fast
+    _fast = dict()
+
+
     if not isinstance(prefix, list):
         prefix = [prefix]
 
@@ -345,5 +352,6 @@ def reset_id_counters(prefix=None, reset_all_others=False):
         if isinstance(p, str):
             p = p.replace('%', '')
         _id_registry.reset_counter(p, reset_all_others)
+
 
 # ------------------------------------------------------------------------------

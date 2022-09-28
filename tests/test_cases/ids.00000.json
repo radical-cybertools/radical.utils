@@ -19,6 +19,16 @@
         "result" : {"id_end"             : ".0001"}
     },
     {
+        "input"  : {"prefix"             : "b",
+                    "mode"               : "fast"},
+        "result" : {"id"                 : "b.000000"}
+    },
+    {
+        "input"  : {"prefix"             : "b",
+                    "mode"               : "fast"},
+        "result" : {"id"                 : "b.000001"}
+    },
+    {
         "input"  : {"prefix"             : "c",
                     "mode"               : "uuid"},
         "result" : {}

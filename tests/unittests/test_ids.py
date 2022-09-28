@@ -55,14 +55,16 @@ class IdsTestClass(TestCase):
     def setUp(self):
         pass
 
+
     # --------------------------------------------------------------------------
     #
     def tearDown(self):
         ru.reset_id_counters(prefix=None, reset_all_others=True)
 
+
     # --------------------------------------------------------------------------
     #
-    def test_generate_id(self):
+    def test_generate_id(self, second=False):
 
         for test_case in self._test_cases:
 
@@ -108,6 +110,9 @@ class IdsTestClass(TestCase):
                 uuid_str = id_str.split('%s.' % test_case['input']['prefix'])[1]
                 self.assertIsInstance(UUID(uuid_str), UUID)
 
+            elif test_case['input']['mode'] == ru.ID_FAST:
+                self.assertEqual(id_str, test_case['result']['id'])
+
             elif test_case['input']['mode'] == ru.ID_PRIVATE:
                 self.assertIn(self._user, id_str)
                 # check that corresponding file was created
@@ -129,6 +134,7 @@ class IdsTestClass(TestCase):
 
     def test_generate_id_2nd_run(self):
         # check that counters got reset
-        self.test_generate_id()
+        self.test_generate_id(second=True)
 
 # ------------------------------------------------------------------------------
+
