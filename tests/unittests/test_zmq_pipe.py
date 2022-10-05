@@ -37,14 +37,14 @@ def test_zmq_pipe():
         result_2.append(pipe_2.get_nowait(timeout=1.0))
         result_3.append(pipe_3.get_nowait(timeout=1.0))
 
-    assert(len(result_2) == 500)
-    assert(len(result_3) == 500)
+    assert len(result_2) == 500
+    assert len(result_3) == 500
 
     test_2 = result_2.append(pipe_2.get_nowait(timeout=1.0))
     test_3 = result_3.append(pipe_3.get_nowait(timeout=1.0))
 
-    assert(test_2 is None)
-    assert(test_3 is None)
+    assert test_2 is None
+    assert test_3 is None
 
 
 # ------------------------------------------------------------------------------
