@@ -6,10 +6,11 @@ __copyright__ = "Copyright 2018"
 __license__   = "GPL"
 
 
-from .client   import Client
 from .bridge   import Bridge
 from .queue    import Queue,  Putter,    Getter
 from .pubsub   import PubSub, Publisher, Subscriber
+from .pipe     import Pipe,   MODE_PUSH, MODE_PULL
+from .client   import Client
 from .server   import Server
 from .registry import Registry, RegistryClient
 
