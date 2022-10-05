@@ -81,7 +81,7 @@ class TypedDictMeta(type):
         }
 
         for _cls in bases:
-            for k in _base_namespace:
+            for k in _base_namespace.keys():
                 _cls_v = getattr(_cls, k, None)
                 if _cls_v is not None:
                     if   k == '_schema':

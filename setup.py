@@ -88,8 +88,8 @@ def get_version(_mod_root):
         _sdist_name     = None
 
         # get version from './VERSION'
-        with open('%s/VERSION' % root, 'r', encoding='utf-8') as f:
-            _version_base = f.readline().strip()
+        with open('%s/VERSION' % root, 'r', encoding='utf-8') as fin:
+            _version_base = fin.readline().strip()
 
         # attempt to get version detail information from git
         # We only do that though if we are in a repo root dir,
@@ -126,9 +126,9 @@ def get_version(_mod_root):
 
         # make sure the version files exist for the runtime version inspection
         _path = '%s/%s' % (root, _mod_root)
-        with open(_path + '/VERSION', 'w', encoding='utf-8') as f:
-            f.write(_version_base + '\n')
-            f.write(_version      + '\n')
+        with open(_path + '/VERSION', 'w', encoding='utf-8') as fout:
+            fout.write(_version_base + '\n')
+            fout.write(_version      + '\n')
 
         _sdist_name = '%s-%s.tar.gz' % (name, _version_base)
       # _sdist_name = _sdist_name.replace('/', '-')
@@ -151,8 +151,8 @@ def get_version(_mod_root):
                         '%s/%s'   % (_mod_root, _sdist_name))  # copy into tree
             shutil.move('VERSION.bak', 'VERSION')              # restore version
 
-        with open(_path + '/SDIST', 'w', encoding='utf-8') as f:
-            f.write(_sdist_name + '\n')
+        with open(_path + '/SDIST', 'w', encoding='utf-8') as fout:
+            fout.write(_sdist_name + '\n')
 
         return _version_base, _version_detail, _sdist_name, _path
 
@@ -192,8 +192,8 @@ df = [('share/%s/examples/'    % name, glob.glob('examples/*.{py,cfg}'  )),
 
 # ------------------------------------------------------------------------------
 #
-with open('%s/requirements.txt' % root, encoding='utf-8') as f:
-    requirements = f.readlines()
+with open('%s/requirements.txt' % root, encoding='utf-8') as freq:
+    requirements = freq.readlines()
 
 
 # ------------------------------------------------------------------------------
