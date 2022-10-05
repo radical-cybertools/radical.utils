@@ -13,16 +13,12 @@ import radical.utils as ru
 #
 def test_zmq_pipe():
 
-    pipe_1 = ru.zmq.Pipe()
-    pipe_1.connect_push()
+    pipe_1 = ru.zmq.Pipe(ru.zmq.MODE_PUSH)
 
     url = pipe_1.url
 
-    pipe_2 = ru.zmq.Pipe()
-    pipe_2.connect_pull(url)
-
-    pipe_3 = ru.zmq.Pipe()
-    pipe_3.connect_pull(url)
+    pipe_2 = ru.zmq.Pipe(ru.zmq.MODE_PULL, url)
+    pipe_3 = ru.zmq.Pipe(ru.zmq.MODE_PULL, url)
 
     # let ZMQ settle
     time.sleep(1)
