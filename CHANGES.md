@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.18.0 Release                                                        2022-10-11
+--------------------------------------------------------------------------------
+
+  - add zmq pipe implementation
+
+
 1.17.0 Release                                                        2022-09-15
 --------------------------------------------------------------------------------
 
