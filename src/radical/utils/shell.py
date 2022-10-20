@@ -34,8 +34,8 @@ def sh_quote(data):
 
     '''
 
-    if '\\' in data: data.replace('\\', '\\\\')
-    if '"'  in data: data.replace('"',  '\\"')
+    if '\\' in data: data = data.replace('\\', '\\\\')
+    if '"'  in data: data = data.replace('"',  '\\"')
 
     return '"%s"' % data
 
