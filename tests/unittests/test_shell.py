@@ -25,7 +25,8 @@ class ShellTestCase(TestCase):
         test_cases = [
             ['echo %s' % ru.sh_quote('$FOO $BAR'),         '=foo= =bar=\n'],
             ['echo %s' % ru.sh_quote('`echo $FOO $BAR`'),  '=foo= =bar=\n'],
-            ['echo %s' % ru.sh_quote('$(echo $FOO $BAR)'), '=foo= =bar=\n']]
+            ['echo %s' % ru.sh_quote('$(echo $FOO $BAR)'), '=foo= =bar=\n'],
+            ['echo %s' % ru.sh_quote('"$FOO; $BAR"'),      '"=foo=; =bar="\n']]
 
         for cmd, out in test_cases:
 
