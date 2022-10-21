@@ -68,7 +68,7 @@ jobs:
       run: |
         . testenv/bin/activate
         set -x
-        LOG=`git log -n 1 | grep Merge`
+        LOG=`git log -n 1 | grep Merge || true`
         NEW=`echo $LOG | cut -d ' ' -f2`
         OLD=`echo $LOG | cut -d ' ' -f3`
         test -z "$NEW" && NEW=HEAD
