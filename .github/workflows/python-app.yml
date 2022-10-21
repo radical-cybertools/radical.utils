@@ -70,6 +70,8 @@ jobs:
         LOG=`git log -n 1 | grep Merge`
         NEW=`echo $LOG | cut -d ' ' -f2`
         OLD=`echo $LOG | cut -d ' ' -f3`
+        test -z "$NEW" && NEW=HEAD
+        test -z "$OLD" && OLD=HEAD
         DIFF=`git diff  --name-only --diff-filter=db $NEW..$OLD`
         DIFF=$(echo $DIFF | grep -o -e '\b[^ ]*.py\b' | sed "s|^|$PWD/|")
         test -z "$DIFF" && echo 'nothing to flake8' || flake8 $DIFF
