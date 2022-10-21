@@ -67,6 +67,7 @@ jobs:
     - name: Lint with flake8 and pylint
       run: |
         . testenv/bin/activate
+        set -x
         LOG=`git log -n 1 | grep Merge`
         NEW=`echo $LOG | cut -d ' ' -f2`
         OLD=`echo $LOG | cut -d ' ' -f3`
