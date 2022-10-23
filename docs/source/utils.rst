@@ -209,30 +209,6 @@ radical.utils.profile module
    :undoc-members:
    :show-inheritance:
 
-radical.utils.pty module
-------------------------
-
-.. automodule:: radical.utils.pty
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-radical.utils.pty\_fork module
-------------------------------
-
-.. automodule:: radical.utils.pty_fork
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-radical.utils.pty\_process module
----------------------------------
-
-.. automodule:: radical.utils.pty_process
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 radical.utils.registry module
 -----------------------------
 
