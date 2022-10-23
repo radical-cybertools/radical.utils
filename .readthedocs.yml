@@ -4,10 +4,12 @@ version: 2
 formats: all
 
 python:
+  system_packages: true
   version: 3.6
   install:
     - requirements: requirements-docs.txt
-  system_packages: true
+    - method: pip
+      path: .
 
 sphinx:
   builder: html
