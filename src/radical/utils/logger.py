@@ -185,7 +185,7 @@ class Logger(object):
     # --------------------------------------------------------------------------
     #
     def __init__(self, name, ns=None, path=None, targets=None, level=None,
-                 verbose=False):
+                 debug=None, verbose=False):
 
         ru_def = DefaultConfig()
 
@@ -210,6 +210,7 @@ class Logger(object):
 
         `path`    file system location to write logfiles to (created as needed)
         `level`   log level (DEBUG, INFO, WARNING, ERROR, CRITICAL, OFF)
+        `debug`   debug level (0-9)
 
         If `ns` is, for example, set to `radical.utils`, then the following
         environment variables are evaluated:
@@ -264,7 +265,7 @@ class Logger(object):
         except:
             pass
 
-        self._debug_level = 0
+        self._debug_level = debug
         if isinstance(level, int):
             if level < 10:
                 self._debug_level = 10 - level
@@ -273,6 +274,9 @@ class Logger(object):
         elif level.upper().startswith('DEBUG_'):
             self._debug_level = int(level.split('_', 1)[1])
             level = 'DEBUG'
+
+        if level != 'DEBUG':
+            self._debug_level = 0
 
 
         # translate numeric levels into upper case symbolic ones
