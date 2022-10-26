@@ -380,6 +380,10 @@ class Logger(object):
         return self._level
 
     @property
+    def debug_level(self):
+        return self._debug_level
+
+    @property
     def targets(self):
         return self._targets
 
