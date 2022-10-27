@@ -265,7 +265,7 @@ class Logger(object):
         except:
             pass
 
-        self._debug_level = debug
+        self._debug_level = debug or 0
         if isinstance(level, int):
             if level < 10:
                 self._debug_level = 10 - level
