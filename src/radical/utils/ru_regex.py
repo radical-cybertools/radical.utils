@@ -232,7 +232,7 @@ class ReString(str):
     This is a string class which supports simplified regular expression
     matching. It is not thought that the regex language or expressions are
     simplified, but rather that the invokation of the matching is simple, as is
-    the handling of the match results:
+    the handling of the match results::
 
         txt = ReString('The quick brown fox jumps over the lazy dog')
 
