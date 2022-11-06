@@ -344,7 +344,7 @@ def read_profiles(profiles, sid=None, efilter=None):
     We read all profiles as CSV files and parse them.  For each profile,
     we back-calculate global time (epoch) from the synch timestamps.
 
-    The caller can provide a filter of the following structure
+    The caller can provide a filter of the following structure::
 
         filter = {ru.EVENT: ['event 1', 'event 2', ...],
                   ru.MSG  : ['msg 1',   'msg 2',   ...],
