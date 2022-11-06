@@ -1,4 +1,5 @@
-"""Config file parsing.
+'''
+Config file parsing.
 
 We provide a json based config file parser with following properties
 
@@ -24,12 +25,12 @@ to derive the exact locations:
 
 The `module` string is interpreted as follows:
 
-  module         = 'module'
-  module_path    = radical.utils.debug.find_module(module)
-  usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
-                   os.environ.get('HOME', '/tmp')
-  sys_config_dir = '%s/configs'     % (module_path)
-  usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
+    module         = 'module'
+    module_path    = radical.utils.debug.find_module(module)
+    usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
+                     os.environ.get('HOME', '/tmp')
+    sys_config_dir = '%s/configs'     % (module_path)
+    usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
 
 so the location of the module's `__init__.py` is used to derive the location
 of the installed system config files, and the module name is used to derive
@@ -37,13 +38,13 @@ the location of the user provided config files.
 
 For example, the module `radical.utils` will have the following config dirs:
 
-  sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
-  usr_config_dir = /home/merzky/.radical/utils/configs
+    sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
+    usr_config_dir = /home/merzky/.radical/utils/configs
 
 After loading the system level config file, any existing user level config
 file is merged into it, via
 
-  radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
+    radical.utils.dict_merge(user_cfg, system_cfg, mode='overwrite')
 
 so that the user config settings supersede the system config settings.
 
@@ -55,15 +56,13 @@ the value the '*' expands to (minus the `.json` extension).
 For example, the name `radical.pilot.resource_*` with the following config
 files:
 
-  /tmp/ve/[...]/radical/pilot/configs/resource_xsede.json
-  /tmp/ve/[...]/radical/pilot/configs/resource_ncsa.json
+    /tmp/ve/[...]/radical/pilot/configs/resource_xsede.json
+    /tmp/ve/[...]/radical/pilot/configs/resource_ncsa.json
 
-will result in a config dict like:
+will result in a config dict like::
 
-  {
-    'xsede' : { 'foo' : 'bar' },
-    'ncsa'  : { 'fiz' : 'baz' }
-  }
+    {'xsede' : { 'foo' : 'bar' },
+     'ncsa'  : { 'fiz' : 'baz' }}
 
 
 Queries
@@ -88,11 +87,11 @@ Environment
 Towards `os.environ` completion, we support the following syntax in all string
 *values* (not keys):
 
-  '${RADICAL_UTILS_ENV:default_value}'
+    `${RADICAL_UTILS_ENV:default_value}`
 
 which will be replaced by
 
-  `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
+    `os.environ.get('RADICAL_UTILS_ENV', 'default_value')`
 
 The default value is optional, an empty string is used if no default value is
 given.  Env evaluation is only performed at time of parsing, not at time of
@@ -114,7 +113,7 @@ Implementation
 
 This implementation is based on typed dictionaries which are accessed as
 `TypedDict`'ed object hierarchy.
-"""
+'''
 
 __author__    = 'RADICAL-Cybertools Team'
 __copyright__ = 'Copyright 2016-2022, The RADICAL-Cybertools Team'
@@ -137,23 +136,21 @@ from .singleton  import Singleton
 class Config(TypedDict):
     """Contents of a config (json) file from a module's config tree.
 
-    Fields
-    ------
-    module:    used to determine the module's config file location
-               - default: `radical.utils`
-    category:  name of config to be loaded from module's config path
-    name:      specify a specific configuration to be used
-    path:      path to app config json to be used for initialization
-    cfg:       application config dict to be used for initialization
-    from_dict: alias for cfg, to satisfy base class constructor
-    expand:    enable / disable environment var expansion
-               - default: True
-    env:       environment dictionary to be used for expansion
-               - default: `os.environ`
+    Attributes:
+        module:    used to determine the module's config file location
+                   (default: `radical.utils`)
+        category:  name of config to be loaded from module's config path
+        name:      specify a specific configuration to be used
+        path:      path to app config json to be used for initialization
+        cfg:       application config dict to be used for initialization
+        from_dict: alias for cfg, to satisfy base class constructor
+        expand:    enable / disable environment var expansion (default: True)
+        env:       environment dictionary to be used for expansion
+                   (default: `os.environ`)
 
     The naming of config files follows this rule:
 
-      `<category>_<name>.json`
+        `<category>_<name>.json`
 
     For example, if the following is used in a system python installation:
 
@@ -161,7 +158,7 @@ class Config(TypedDict):
 
     it would attempt to load (depending on system details):
 
-        /usr/lib/python3/site-packages/\
+        /usr/lib/python3/site-packages/ \
              radical/pilot/configs/session_minimal.json
 
     NOTE: Keys containing an underscore are not exposed via the API.

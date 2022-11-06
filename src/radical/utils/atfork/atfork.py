@@ -22,12 +22,13 @@ fork() calls made from the Python os module.  Any time a fork() is called
 from Python a set of unique callbacks will be made in each of the following
 three states:
 
-    Preparing to fork        - Immediately before the fork call is made.
-    In the parent after fork - Immediately after the fork (regardless of
-                               success or failure) in the parent process.
-    In the child after fork  - Immediately after the fork in the child process.
+  - Preparing to fork        - Immediately before the fork call is made.
+  - In the child after fork  - Immediately after the fork in the child process.
+  - In the parent after fork - Immediately after the fork in the parent process.
 
-To use this module, first import it early on your programs initialization:
+NOTE: The `parent` callback will executed also if the fork failed.
+
+To use this module, first import it early on your programs initialization::
 
     import atfork
     atfork.monkeypatch_os_fork_functions()
@@ -35,7 +36,7 @@ To use this module, first import it early on your programs initialization:
 That will stub out os.fork and os.forkpty with wrapped versions implementing
 the enhanced behavior.
 
-Next, register your atfork actions by calling atfork.atfork:
+Next, register your atfork actions by calling atfork.atfork::
 
     atfork.atfork(prepare=my_lock.acquire,
                   parent=my_lock.release,
