@@ -49,7 +49,7 @@ def Lockable(cls):
         locked: 1
         locked: 0
 
-    The class A can also internally use the lock, and can, for example, use:
+    The class A can also internally use the lock, and can, for example, use::
 
         @Lockable
         class A(object):

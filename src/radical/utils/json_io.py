@@ -105,13 +105,13 @@ def metric_expand(data):
     '''
     iterate through the given dictionary, and when encountering a key string of
     the form `ru.XYZ` or `rp.ABC`, expand them to their actually defined values.
-    This the following dict:
+    This the following dict::
 
         {
             "ru.EVENT" : "foo"
         }
 
-    becomes:
+    becomes::
 
         {
             2 : "foo"

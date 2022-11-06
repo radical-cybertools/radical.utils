@@ -126,11 +126,11 @@ def dict_merge(a, b, policy=None, wildcards=False, log=None, _path=None):
     This merges two dict in place, modifying the original dict in a.
 
     Merge Policies:
-        None (default) : raise an exception on conflicts
-        PRESERVE       : original value in a are preserved, new values
+      - None (default) : raise an exception on conflicts
+      - OVERWRITE      : values in a are overwritten by new values from b
+      - PRESERVE       : original value in a are preserved, new values
                          from b are only added where the original value
                          is not set.
-        OVERWRITE      : values in a are overwritten by new values from b
 
     '''
 
@@ -360,7 +360,7 @@ def iter_diff(a, b):
 #
 def dict_diff(a, b):
     '''
-    return a dict of the form:
+    return a dict of the form::
 
         {
            'k1': {'a': 'foo',
@@ -368,6 +368,7 @@ def dict_diff(a, b):
            'k2': {'a': 'foo'},
            'k3': {'b': 'bar'},
         }
+
     which contains only those keys which are different in the two given dicts.
     Keys which are missing in either one are not included (to distinguish from
     `None` values).  This methods operates recursively over the given dicts.

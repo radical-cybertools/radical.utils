@@ -81,7 +81,7 @@ def collapse_ranges (ranges):
 #
 def range_concurrency(ranges):
     '''
-    given a set of *un*collapsed ranges, return a series which describes the
+    given a set of uncollapsed ranges, return a series which describes the
     range-concurrency at any point.
 
     Example:

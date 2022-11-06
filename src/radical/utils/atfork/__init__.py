@@ -16,35 +16,6 @@
 #
 # Author: Gregory P. Smith <greg@krypto.org>
 
-"""
-This module implements a pthread_atfork() work-a-like mechanism for all
-fork() calls made from the Python os module.  Any time a fork() is called
-from Python a set of unique callbacks will be made in each of the following
-three states:
-    Preparing to fork - Immediately before the fork call is made.
-    In the parent after fork - Immediately after the fork (regardless of
-                               success or failure) in the parent process.
-    In the child after fork - Immediately after the fork in the child process.
-
-To use this module, first import it early on your programs initialization:
-
-    import atfork
-    atfork.monkeypatch_os_fork_functions()
-
-That will stub out os.fork and os.forkpty with wrapped versions implementing
-the enhanced behavior.
-
-Next, register your atfork actions by calling atfork.atfork:
-
-    atfork.atfork(prepare=my_lock.acquire,
-                  parent=my_lock.release,
-                  child=my_lock.release)
-
-No API to unregister an atfork call is provided.  If you are concerned
-about resource usage by references your callable holds, consider using
-weakref's within your callable.
-"""
-
 # flake8: noqa: F401
 
 from .atfork       import monkeypatch_os_fork_functions, atfork

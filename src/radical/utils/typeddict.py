@@ -81,7 +81,7 @@ class TypedDictMeta(type):
         }
 
         for _cls in bases:
-            for k in _base_namespace:
+            for k in _base_namespace.keys():
                 _cls_v = getattr(_cls, k, None)
                 if _cls_v is not None:
                     if   k == '_schema':
@@ -145,7 +145,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         instantiated as their respective TypedDict-inheriting class types,
         if so specified by the respective schema.
 
-        So, if the schema contains:
+        So, if the schema contains::
 
           {
             ...
