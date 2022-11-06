@@ -40,7 +40,7 @@ if _pytest_active:
 
 def sys_exit(ret):
     '''
-    call `pytest.exit(ret)` when running under pytest, `sys.exit(ret) otherwise
+    call `pytest.exit(ret)` when running under pytest, `sys.exit(ret)` otherwise
     '''
 
     if _pytest_active:

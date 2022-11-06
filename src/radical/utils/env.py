@@ -454,7 +454,7 @@ def env_diff(env_1 : Dict[str,str],
 #
 class EnvProcess(object):
     '''
-    run a code segment in a different os.environ
+    run a code segment in a different os.environ::
 
         env = {'foo': 'buz'}
         with ru.EnvProcess(env=env) as p:
