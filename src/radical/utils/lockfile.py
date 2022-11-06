@@ -29,29 +29,29 @@ class Lockfile(object):
     - a newly acquired lock on the file should prompt a seek to the desired
     file location (the initial offset is '0').
 
-    Example:
+    Example::
 
         with ru.Lockfile(fname) as lf0:
-            lf0.write('test 0\n')
+            lf0.write('test 0\\n')
 
         with ru.Lockfile(fname) as lf1:
             lf1.lseek(0, os.SEEK_SET)
-            lf1.write('test 1\n')
+            lf1.write('test 1\\n')
 
         with ru.Lockfile(fname) as lf2:
             lf2.lseek(0, os.SEEK_END)
-            lf2.write('test 2\n')
+            lf2.write('test 2\\n')
 
             # raises a RuntimeError, as we won't be able to acquire the lock
             with ru.Lockfile(fname) as lf3:
                 lf3.lseek(0, os.SEEK_END)
-                lf3.write('test 3\n')
+                lf3.write('test 3\\n')
 
         with open(fname, 'r') as fin:
             data = fin.read()
-            assert data == 'test 1\ntest 2\n'
+            assert data == 'test 1\\ntest 2\\n'
 
-    Example:
+    Example::
 
         lf1 = ru.Lockfile(fname)
         lf2 = ru.Lockfile(fname)
@@ -81,7 +81,7 @@ class Lockfile(object):
     that information is not reliable, but intented to be an informative help for
     debugging and tracing purposes.
 
-    Example:
+    Example::
         lf1 = ru.Lockfile(fname)
         lf2 = ru.Lockfile(fname)
 
@@ -199,7 +199,7 @@ class Lockfile(object):
 
         timeout:
             < 0 : wait forever
-              0 : try locking once and raise `RuntimeError` on failure
+            = 0 : try locking once and raise `RuntimeError` on failure
             > 0 : try for that many seconds, and raise `TimeoutError` on failure
             None: same as 0
 
