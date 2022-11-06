@@ -561,7 +561,7 @@ def read_profiles(profiles, sid=None, efilter=None):
     We read all profiles as CSV files and parse them.  For each profile,
     we back-calculate global time (epoch) from the synch timestamps.
 
-    The caller can provide a filter of the following structure
+    The caller can provide a filter of the following structure::
 
         filter = {ru.EVENT: ['event 1', 'event 2', ...],
                   ru.MSG  : ['msg 1',   'msg 2',   ...],
@@ -720,10 +720,10 @@ def combine_profiles(profs):
     offsets across all hosts.
 
     The `sync_rel` timestamps are expected to occur in pairs, one for a profile
-    with no other sync timestamp, and one profile which has
-    a `sync_abs`timestamp.  In that case, the time correction from the latter is
-    transfered to the former (the two time stamps are considered to have been
-    written at the exact same time).
+    with no other sync timestamp, and one profile which has a `sync_abs`
+    timestamp.  In that case, the time correction from the latter is transfered
+    to the former (the two time stamps are considered to have been written at
+    the exact same time).
 
     The method returnes the combined profile and accuracy, as tuple.
     '''
