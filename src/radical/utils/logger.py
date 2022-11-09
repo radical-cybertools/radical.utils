@@ -40,6 +40,8 @@ import threading
 import colorama
 import logging
 
+from typing import Dict
+
 from   .atfork    import atfork
 from   .misc      import get_env_ns       as ru_get_env_ns
 from   .modules   import import_module    as ru_import_module
@@ -53,7 +55,7 @@ WARNING  = logging.WARNING
 WARN     = logging.WARNING
 INFO     = logging.INFO
 DEBUG    = logging.DEBUG
-OFF      = -1
+OFF      = 60
 
 
 # ------------------------------------------------------------------------------
@@ -265,28 +267,28 @@ class Logger(object):
         except:
             pass
 
-        self._debug_level = debug or 0
+        debug_level = debug or 0
         if isinstance(level, int):
             if level < 10:
-                self._debug_level = 10 - level
+                debug_level = 10 - level
                 level = 'DEBUG'
 
         elif level.upper().startswith('DEBUG_'):
-            self._debug_level = int(level.split('_', 1)[1])
+            debug_level = int(level.split('_', 1)[1])
             level = 'DEBUG'
 
         if level != 'DEBUG':
-            self._debug_level = 0
+            debug_level = 0
 
 
         # translate numeric levels into upper case symbolic ones
-        levels  = {'50' : 'CRITICAL',
-                   '40' : 'ERROR',
-                   '30' : 'WARNING',
-                   '20' : 'INFO',
-                   '10' : 'DEBUG',
-                    '0' :  ru_def['log_lvl'],
-                   '-1' : 'OFF'}
+        levels   = {'60' : 'OFF',
+                    '50' : 'CRITICAL',
+                    '40' : 'ERROR',
+                    '30' : 'WARNING',
+                    '20' : 'INFO',
+                    '10' : 'DEBUG',
+                     '0' :  ru_def['log_lvl']}
 
 
         level   = levels.get(str(level), str(level)).upper()
@@ -303,7 +305,7 @@ class Logger(object):
                                       '%(levelname)-8s : '
                                       '%(message)s')
 
-      # print('%-30s -> %-10s %d' % (name, level, self._debug_level))
+      # print('%-30s -> %-10s %d' % (name, level, debug_level))
 
         # add a handler for each targets (using the same format)
         if not self._logger.handlers:
@@ -354,15 +356,67 @@ class Logger(object):
         # keep the handle a round, for cleaning up on fork
         _logger_registry.add(self._logger)
 
+        self._numerics : Dict[str, int] = {'off'     : 60,
+                                           'critical': 50,
+                                           'error'   : 40,
+                                           'warning' : 30,
+                                           'info'    : 20,
+                                           'debug'   : 10}
+
         # store properties
-        self._name    = name
-        self._ns      = ns
-        self._path    = path
-        self._level   = level
-        self._targets = targets
+        self._name        = name
+        self._ns          = ns
+        self._path        = path
+        self._level       = level
+        self._debug_level = debug_level
+        self._targets     = targets
+        self._num_level   = self._numerics.get(level.lower(), 0)
+
+        if self._level == 'DEBUG':
+            self._num_level -= self._debug_level
 
         # backward compatibility
         self._logger.warn = self._logger.warning
+
+        # treat `self.debug_1()`, `self.debug_2()` etc. the same as
+        # `self.debug()` if the respective `debug_level` is set, and ignore
+        # otherwise.  All other unknown method calls are forwarded to the nativ
+        # logger instance.  This is basically inheritance, but since the logger
+        # class has no constructor, we do it this way.
+
+        # disable all loggers
+        self.critical = lambda *args, **kwargs: None
+        self.error    = lambda *args, **kwargs: None
+        self.warn     = lambda *args, **kwargs: None
+        self.warning  = lambda *args, **kwargs: None
+        self.info     = lambda *args, **kwargs: None
+        self.debug    = lambda *args, **kwargs: None
+        self.debug_1  = lambda *args, **kwargs: None
+        self.debug_2  = lambda *args, **kwargs: None
+        self.debug_3  = lambda *args, **kwargs: None
+        self.debug_4  = lambda *args, **kwargs: None
+        self.debug_5  = lambda *args, **kwargs: None
+        self.debug_6  = lambda *args, **kwargs: None
+        self.debug_7  = lambda *args, **kwargs: None
+        self.debug_8  = lambda *args, **kwargs: None
+        self.debug_9  = lambda *args, **kwargs: None
+
+        # enable the ones we are configured for:
+        if self._num_level <= 50: self.critical = self._logger.critical
+        if self._num_level <= 40: self.error    = self._logger.error
+        if self._num_level <= 30: self.warn     = self._logger.warn
+        if self._num_level <= 30: self.warning  = self._logger.warning
+        if self._num_level <= 20: self.info     = self._logger.info
+        if self._num_level <= 10: self.debug    = self._logger.debug
+        if self._num_level <=  9: self.debug_1  = self._logger.debug
+        if self._num_level <=  8: self.debug_2  = self._logger.debug
+        if self._num_level <=  7: self.debug_3  = self._logger.debug
+        if self._num_level <=  6: self.debug_4  = self._logger.debug
+        if self._num_level <=  5: self.debug_5  = self._logger.debug
+        if self._num_level <=  4: self.debug_6  = self._logger.debug
+        if self._num_level <=  3: self.debug_7  = self._logger.debug
+        if self._num_level <=  2: self.debug_8  = self._logger.debug
+        if self._num_level <=  1: self.debug_9  = self._logger.debug
 
 
     # --------------------------------------------------------------------------
@@ -388,34 +442,12 @@ class Logger(object):
         return self._debug_level
 
     @property
+    def num_level(self):
+        return self._num_level
+
+    @property
     def targets(self):
         return self._targets
-
-
-    # --------------------------------------------------------------------------
-    #
-    # treat `self.debug_1()`, `self.debug_2()` etc. the same as `self.debug()`
-    # if the respective `debug_level` is set, and ignore otherwise.  All other
-    # unknown method calls are forwarded to the nativ logger instance.  This is
-    # basically inheritance, but since the logger class has no constructor, we
-    # do it this way.
-    #
-    def __getattr__(self, name):
-
-        if name.startswith('debug_'):
-            level = int(name.split('_', 1)[1])
-            if level > self._debug_level:
-                return self._ignore
-            else:
-                return self.debug
-        else:
-            return getattr(self._logger, name)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _ignore(self, *args, **kwargs):
-        pass
 
 
     # --------------------------------------------------------------------------
