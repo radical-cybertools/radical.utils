@@ -452,6 +452,17 @@ class Logger(object):
 
     # --------------------------------------------------------------------------
     #
+    # All unknown method calls are forwarded to the nativ logger instance.
+    # This is basically inheritance, but since the logger class has no
+    # constructor, we do it this way.
+    #
+    def __getattr__(self, name):
+
+        return getattr(self._logger, name)
+
+
+    # --------------------------------------------------------------------------
+    #
     # Add a close method to make sure we can close file handles etc.  This also
     # closes handles on all parent loggers (if those exist).
     #
