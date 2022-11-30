@@ -38,7 +38,6 @@ class LoggerTestCase(TestCase):
     #
     def test_init(self):
 
-        self._base_dir = '/tmp'
         logger_name = 'log_name_default'
         l = ru.Logger(logger_name)
         log_path = os.path.join(os.getcwd(), '%s.log' % logger_name)
@@ -77,11 +76,8 @@ class LoggerTestCase(TestCase):
     #
     def test_log_levels(self):
 
-        self._base_dir = '/tmp'
         log_path = os.path.join(self._base_dir, 'log_lvl.log')
         l = ru.Logger('log_lvl', targets=[log_path])
-        print(l)
-        print(dir(l))
 
         l.setLevel('INFO')
 
