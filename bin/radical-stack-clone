@@ -27,13 +27,13 @@ usage() {
 
     if ! test -z "$msg"
     then
-        printf "\n    error: $msg\n" 
+        printf "\n    error: $msg\n"
     fi
 
     cat <<EOT
-    
-    usage: $0 -v ve_location 
-             [-s stackfile] 
+
+    usage: $0 -v ve_location
+             [-s stackfile]
              [-b branch]
              [-t tag]
              [-p python]
@@ -45,7 +45,7 @@ usage() {
     specified in two ways: as a stackfile or as command line parameters.
 
       -s stackfile: stackfile to use
-                    The file must be formatted as is the output of the 
+                    The file must be formatted as is the output of the
                     'radical-stack' command.
 
       -b branch   : branch to install
@@ -78,7 +78,7 @@ radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     de
 radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
 
 installed:
-python            : 3.6+
+python            : 3.7+
 virtualenv        : /home/merzky/radical/radical.utils/ve_test
 radical.utils     : titan@HEAD-detached-at-titan
 radical.saga      : titan@HEAD-detached-at-titan
@@ -165,9 +165,9 @@ install() {
     test -z "$commit" || sha1="$commit"
 
     if ! test -z "$sha1"
-    then 
+    then
         tgt="-b $sha1"
-    else 
+    else
         tgt=""
     fi
 
@@ -198,14 +198,14 @@ then
     printf "create virtualenv $veloc\n"
     if ! test -z "$conda"
     then
-        if test -z "$python" 
+        if test -z "$python"
         then
-            conda create -y -p "$veloc" python=3.6 >> $log 2>&1
+            conda create -y -p "$veloc" python=3.7 >> $log 2>&1
         else
             conda create -y -p "$veloc" python="&python" >> $log 2>&1
         fi
     else
-        if test -z "$python" 
+        if test -z "$python"
         then
             virtualenv              "$veloc" >> $log 2>&1
         else
@@ -262,7 +262,7 @@ else
         repo="https://github.com/radical-cybertools/$mod.git"
 
         install "$mod" "$repo" "$branch" "$tag" "$commit"
-        
+
     done
 fi
 
