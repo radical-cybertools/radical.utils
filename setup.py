@@ -20,8 +20,9 @@ from setuptools import setup, Command, find_namespace_packages
 
 
 # ------------------------------------------------------------------------------
-name     = 'radical.utils'
-mod_root = 'src/radical/utils/'
+base     = 'utils'
+name     = 'radical.%s'      % base
+mod_root = 'src/radical/%s/' % base
 
 # ------------------------------------------------------------------------------
 #
@@ -207,11 +208,11 @@ setup_args = {
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'The RADICAL Group',
     'maintainer_email'   : 'radical@rutgers.edu',
-    'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
+    'url'                : 'http://radical-cybertools.github.io/%s/' % name,
     'project_urls'       : {
-        'Documentation': 'https://radicalutils.readthedocs.io/en/latest/',
-        'Source'       : 'https://github.com/radical-cybertools/radical.utils/',
-        'Issues'       : 'https://github.com/radical-cybertools/radical.utils/issues'
+        'Documentation': 'https://radical%s.readthedocs.io/en/latest/' % base,
+        'Source'       : 'https://github.com/radical-cybertools/%s/'   % name,
+        'Issues' : 'https://github.com/radical-cybertools/%s/issues'   % name'
     },
     'license'            : 'MIT',
     'keywords'           : 'radical utils',
