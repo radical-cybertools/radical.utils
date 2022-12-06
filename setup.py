@@ -2,7 +2,7 @@
 
 __author__    = 'RADICAL-Cybertools Team'
 __email__     = 'info@radical-cybertools.org'
-__copyright__ = 'Copyright 2013-22, The RADICAL-Cybertools Team'
+__copyright__ = 'Copyright 2013-23, The RADICAL-Cybertools Team'
 __license__   = 'MIT'
 
 
@@ -20,8 +20,9 @@ from setuptools import setup, Command, find_namespace_packages
 
 
 # ------------------------------------------------------------------------------
-name     = 'radical.utils'
-mod_root = 'src/radical/utils/'
+base     = 'utils'
+name     = 'radical.%s'      % base
+mod_root = 'src/radical/%s/' % base
 
 # ------------------------------------------------------------------------------
 #
@@ -207,7 +208,12 @@ setup_args = {
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'The RADICAL Group',
     'maintainer_email'   : 'radical@rutgers.edu',
-    'url'                : 'https://www.github.com/radical-cybertools/radical.utils/',
+    'url'                : 'http://radical-cybertools.github.io/%s/' % name,
+    'project_urls'       : {
+        'Documentation': 'https://radical%s.readthedocs.io/en/latest/' % base,
+        'Source'       : 'https://github.com/radical-cybertools/%s/'   % name,
+        'Issues' : 'https://github.com/radical-cybertools/%s/issues'   % name,
+    },
     'license'            : 'MIT',
     'keywords'           : 'radical utils',
     'python_requires'    : '>=3.6',
@@ -242,10 +248,8 @@ setup_args = {
                             'tests/bin/ru-runcheck.sh',
                            ],
     'package_data'       : {'': ['*.txt', '*.sh', '*.json', '*.gz', '*.c',
-                                 'VERSION', 'CHANGES.md', 'SDIST', sdist_name]},
-  # 'setup_requires'     : ['pytest-runner'],
+                                 '*.md', 'VERSION', 'SDIST', sdist_name]},
     'install_requires'   : requirements,
-    'test_suite'         : '%s.tests' % name,
     'zip_safe'           : False,
     'data_files'         : df,
     'cmdclass'           : {'upload': RunTwine},
