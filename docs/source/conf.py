@@ -19,7 +19,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'RADICAL-Utils'
-copyright = '2021, The RADICAL-Cybertools Team (info@radical-cybertools.org)'
+copyright = '2023, The RADICAL-Cybertools Team (info@radical-cybertools.org)'
 author = 'RADICAL-Cybertools Team'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -27,10 +27,10 @@ author = 'RADICAL-Cybertools Team'
 # built documents.
 #
 # The short X.Y version.
-with open('../../VERSION', 'r') as f:
+with open('../../VERSION', 'r', encoding='utf-8') as f:
     version = str(f.readlines()[0])
 # The full version, including alpha/beta/rc tags.
-with open('../../VERSION', 'r') as f:
+with open('../../VERSION', 'r', encoding='utf-8') as f:
     release = str(f.readlines()[0])
 
 # -- General configuration ---------------------------------------------------
