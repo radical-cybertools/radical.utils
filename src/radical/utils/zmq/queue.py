@@ -192,8 +192,8 @@ class Queue(Bridge):
         self._addr_put.host = get_hostip()
         self._addr_get.host = get_hostip()
 
-        self._log.info('bridge in  %s: %s'  % (self._uid, self._addr_put))
-        self._log.info('bridge out %s: %s'  % (self._uid, self._addr_get))
+        self._log.info('bridge in  %s: %s', self._uid, self._addr_put)
+        self._log.info('bridge out %s: %s', self._uid, self._addr_get)
 
         # start polling senders
         self._poll_put = zmq.Poller()
@@ -339,7 +339,7 @@ class Putter(object):
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
 
-        self._log.info('connect put to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect put to %s: %s', self._channel, self._url)
 
         self._ctx      = zmq.Context()  # rely on GC for destruction
         self._q        = self._ctx.socket(zmq.PUSH)
@@ -563,7 +563,7 @@ class Getter(object):
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
 
-        self._log.info('connect get to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect get to %s: %s', self._channel, self._url)
 
         self._requested = False          # send/recv sync
         self._ctx       = zmq.Context()  # rely on GC for destruction
