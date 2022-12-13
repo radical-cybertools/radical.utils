@@ -231,6 +231,7 @@ class Queue(Bridge):
 
                     with self._lock:
                         data = list(no_intr(self._put.recv_multipart))
+                  # self._log.debug('recvd  put: %s', data)
 
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
@@ -252,7 +253,7 @@ class Queue(Bridge):
                 # check if somebody wants our messages
                 ev_get = dict(no_intr(self._poll_get.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
-                self._log.debug('polled get: %s [%s]', ev_get, self._get)
+              # self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
                 if self._get in ev_get:
 
@@ -328,10 +329,11 @@ class Putter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log  = Logger(name=self._uid, ns='radical.utils')
+            self._log = Logger(name=self._uid, ns='radical.utils',
+                               level='DEBUG', path=path)
 
         if not self._prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils')
+            self._prof = Profiler(name=self._uid, ns='radical.utils', path=path)
             self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
@@ -405,7 +407,7 @@ class Getter(object):
 
         with info['lock']:
 
-          # logger  = Logger(name=qname, ns='radical.utils', level='DEBUG')
+          # logger = Logger(name=qname, ns='radical.utils', level='DEBUG')
 
             if not info['requested']:
 
@@ -551,10 +553,11 @@ class Getter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log   = Logger(name=self._uid, ns='radical.utils')
+            self._log = Logger(name=self._uid, ns='radical.utils',
+                               level='DEBUG', path=path)
 
         if not self._prof:
-            self._prof  = Profiler(name=self._uid, ns='radical.utils')
+            self._prof  = Profiler(name=self._uid, ns='radical.utils', path=path)
             self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
