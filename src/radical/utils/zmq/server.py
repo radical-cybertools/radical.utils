@@ -30,8 +30,9 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url: Optional[str] = None,
-                       uid: Optional[str] = None) -> None:
+    def __init__(self, url:  Optional[str] = None,
+                       uid:  Optional[str] = None,
+                       path: Optional[str] = None) -> None:
 
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
@@ -39,11 +40,14 @@ class Server(object):
         self._url = url
         self._cbs = dict()
 
+        if not path:
+            path = './'
+
         if uid: self._uid = uid
         else  : self._uid = generate_id('server', ns='radical.utils')
 
-        self._log    = Logger(self._uid, level='debug', targets='.')
-        self._prof   = Profiler(self._uid, path='.')
+        self._log    = Logger(self._uid,   path=path)
+        self._prof   = Profiler(self._uid, path=path)
 
         self._addr   = None
         self._thread = None
