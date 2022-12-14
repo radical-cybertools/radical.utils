@@ -8,7 +8,7 @@ from unittest import TestCase
 
 from radical.utils.typeddict import TDError, TDKeyError
 from radical.utils.typeddict import TDTypeError, TDValueError
-from radical.utils           import TypedDict
+from radical.utils           import TypedDict, as_dict
 
 
 # ------------------------------------------------------------------------------
@@ -591,5 +591,56 @@ class TypedDictTestCase(TestCase):
 
         with self.assertRaises(ValueError):
             raise TDValueError
+
+    # --------------------------------------------------------------------------
+    #
+    def test_none(self):
+
+        class TDSchemaNone(TypedDict):
+
+            _schema = {
+                'any_data': None
+            }
+
+            _defaults = {
+                'any_data': None
+            }
+
+        class TDSchemaNotNone(TypedDict):
+
+            _schema = {
+                'any_data': TypedDict
+            }
+
+            _defaults = {
+                'any_data': None
+            }
+
+        # ----------------------------------------------------------------------
+
+        input_data = {'any_data': {'test_key': 'test_value'}}
+
+        td = TDSchemaNone(from_dict=input_data)
+
+        # value of `any_data` is converted into TypedDict class
+        self.assertIsInstance(td.any_data, TypedDict)
+        self.assertEqual(as_dict(td.any_data), input_data['any_data'])
+
+        td = TDSchemaNone()
+        td.any_data = input_data['any_data']
+        td.verify()
+
+        # value of `any_data` is not converted into TypedDict-based class
+        self.assertIsInstance(td.any_data, dict)
+        self.assertIs(td.any_data, input_data['any_data'])
+
+        td = TDSchemaNotNone()
+
+        td.any_data = input_data['any_data']
+        td.verify()
+
+        # value of `any_data` is converted into TypedDict-based class
+        self.assertIsInstance(td.any_data, TypedDict)
+        self.assertIsNot(td.any_data, input_data['any_data'])
 
 # ------------------------------------------------------------------------------
