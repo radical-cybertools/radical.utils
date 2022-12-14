@@ -170,7 +170,9 @@ class TypedDict(dict, metaclass=TypedDictMeta):
                     (type(self) if self._self_default else TypedDict)
                 if isinstance(t, type) and issubclass(t, TypedDict):
                     # cast to expected TypedDict type
-                    self.setdefault(k, t()).update(v)
+                    if not self.get(k):
+                        self[k] = t()
+                    self[k].update(v)
                     continue
             self[k] = v
 
