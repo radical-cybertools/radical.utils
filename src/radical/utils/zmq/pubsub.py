@@ -126,8 +126,8 @@ class PubSub(Bridge):
         self._addr_pub.host = get_hostip()
         self._addr_sub.host = get_hostip()
 
-        self._log.info('bridge pub on  %s: %s'  % (self._uid, self._addr_pub))
-        self._log.info('       sub on  %s: %s'  % (self._uid, self._addr_sub))
+        self._log.info('bridge pub on  %s: %s', self._uid, self._addr_pub)
+        self._log.info('       sub on  %s: %s', self._uid, self._addr_sub)
 
         # start polling for messages
         self._poll = zmq.Poller()
@@ -207,7 +207,7 @@ class Publisher(object):
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
 
-        self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect pub to %s: %s', self._channel, self._url)
 
         self._ctx           = zmq.Context.instance()  # rely on GC for destruction
         self._socket        = self._ctx.socket(zmq.PUB)
@@ -355,7 +355,7 @@ class Subscriber(object):
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
 
-        self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect sub to %s: %s', self._channel, self._url)
 
         self._ctx         = zmq.Context.instance()  # rely on GC for destruction
         self._sock        = self._ctx.socket(zmq.SUB)
