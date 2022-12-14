@@ -125,8 +125,8 @@ class PubSub(Bridge):
         self._addr_pub.host = get_hostip()
         self._addr_sub.host = get_hostip()
 
-        self._log.info('bridge pub on  %s: %s'  % (self._uid, self._addr_pub))
-        self._log.info('       sub on  %s: %s'  % (self._uid, self._addr_sub))
+        self._log.info('bridge pub on  %s: %s', self._uid, self._addr_pub)
+        self._log.info('       sub on  %s: %s', self._uid, self._addr_sub)
 
         # start polling for messages
         self._poll = zmq.Poller()
@@ -182,15 +182,15 @@ class Publisher(object):
     #
     def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
-        self._channel  = channel
-        self._url      = as_string(url)
-        self._log      = log
-        self._lock     = mt.Lock()
+        self._channel = channel
+        self._url     = as_string(url)
+        self._log     = log
+        self._lock    = mt.Lock()
+        self._prof    = prof
 
         # FIXME: no uid ns
         self._uid      = generate_id('%s.pub.%s' % (self._channel,
                                                    '%(counter)04d'), ID_CUSTOM)
-
         if not self._url:
             self._url = Bridge.get_config(channel, path).pub
 
@@ -198,7 +198,7 @@ class Publisher(object):
             self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
                               # level='debug')
 
-        self._log.info('connect pub to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect pub to %s: %s', self._channel, self._url)
 
         self._ctx           = zmq.Context.instance()  # rely on GC for destruction
         self._socket        = self._ctx.socket(zmq.PUB)
@@ -338,7 +338,7 @@ class Subscriber(object):
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
 
-        self._log.info('connect sub to %s: %s'  % (self._channel, self._url))
+        self._log.info('connect sub to %s: %s', self._channel, self._url)
 
         self._ctx         = zmq.Context.instance()  # rely on GC for destruction
         self._sock        = self._ctx.socket(zmq.SUB)
