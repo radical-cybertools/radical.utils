@@ -3,6 +3,23 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.19.0 Release                                                        2022-12-16
+--------------------------------------------------------------------------------
+
+  - bump python test env to 3.7
+  - cfg update
+  - default value for debug level
+  - fixed error related to default value `None`
+  - fix sphinx errors / warnings
+  - format fix
+  - lint the linter
+  - make logger debug level inspectable
+  - newer sphinx
+  - recover `logging.Logger` inheritance
+  - speed up logger
+  - switch to requirements files to make RTD happy
+
+
 1.18.1 Hotfix Release                                                 2022-10-20
 --------------------------------------------------------------------------------
 
