@@ -55,15 +55,17 @@ class Registry(Server):
 
         this  = self._data
         elems = key.split('.')
+        path  = elems[:-1]
+        leaf  = elems[-1]
 
-        for elem in elems[:-1]:
-            step = this.get(elem)
-            if step is None:
-                step = dict()
-                this[elem] = step
-                this = this[elem]
+        for elem in path:
 
-        this[elems[-1]] = val
+            if elem not in this:
+                this[elem] = dict()
+
+            this = this[elem]
+
+        this[leaf] = val
 
         if not isinstance(self._data, dict):
             self._data.sync()
@@ -73,20 +75,20 @@ class Registry(Server):
     #
     def get(self, key: str) -> Optional[str]:
 
-        try:
-            this  = self._data
-            elems = key.split('.')
-            for elem in elems[:-1]:
-                step = this.get(elem)
-                if step is None:
-                    return None
-                this = step
+        self._log.debug('==== get %s', key)
 
-            ret = this.get(elems[-1])
-            return ret
+        this  = self._data
+        elems = key.split('.')
+        path  = elems[:-1]
+        leaf  = elems[-1]
 
-        except AttributeError:
-            return None
+        for elem in path:
+
+            this = this.get(elem)
+            if not this:
+                return None
+
+        return this.get(leaf)
 
 
     # --------------------------------------------------------------------------
