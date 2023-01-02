@@ -20,6 +20,12 @@ def test_zmq_registry(mocked_prof):
         assert r.addr
         c = ru.zmq.RegistryClient(url=r.addr)
 
+        c.put('foo.bar.buz', {'biz': 11})
+        assert c.get('foo') == {'bar': {'buz': {'biz': 11}}}
+        assert c.get('foo.bar.buz.biz') == 11
+        assert c.get('foo.bar.buz.biz.boz') is None
+        assert c.get('foo') == {'bar': {'buz': {'biz': 11}}}
+
         c.put('foo.bar.buz', {'biz': 42})
         assert c.get('foo') == {'bar': {'buz': {'biz': 42}}}
         assert c.get('foo.bar.buz.biz') == 42
