@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.20.1 Release                                                        2023-01-03
+--------------------------------------------------------------------------------
+
+  - fix registry key insertion on path overwrite
+
+
 1.20.0 Release                                                        2022-12-16
 --------------------------------------------------------------------------------
 
@@ -791,4 +797,3 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
-  - ensure requirements are added to sdist
