@@ -75,8 +75,6 @@ class Registry(Server):
     #
     def get(self, key: str) -> Optional[str]:
 
-        self._log.debug('==== get %s', key)
-
         this  = self._data
         elems = key.split('.')
         path  = elems[:-1]
