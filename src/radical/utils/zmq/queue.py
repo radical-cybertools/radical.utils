@@ -1,4 +1,4 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access, abstract-class-instantiated
 
 import sys
 import zmq
@@ -233,7 +233,7 @@ class Queue(Bridge):
                 # check for incoming messages, and buffer them
                 events = dict(no_intr(self._poll.poll, timeout=timeout))
               # self._prof.prof('poll_put', msg=len(events))
-                self._log.debug('polled put: %s', events)
+              # self._log.debug('polled put: %s', events)
 
                 if self._put in events:
 
