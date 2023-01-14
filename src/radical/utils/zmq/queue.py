@@ -1,4 +1,4 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access, abstract-class-instantiated
 
 import sys
 import zmq
