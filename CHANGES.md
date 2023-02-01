@@ -3,7 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
-1.20.1 Release                                                        2023-01-03
+1.21.0 Release                                                        2023-02-01
+--------------------------------------------------------------------------------
+
+  - remove a high-requency debug message
+
+
+1.20.1 Hotfix Release                                                 2023-01-03
 --------------------------------------------------------------------------------
 
   - fix registry key insertion on path overwrite
