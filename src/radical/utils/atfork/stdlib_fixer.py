@@ -92,9 +92,8 @@ def fix_logging_module():
         # these exist, other loggers or not yet added handlers could as well.
         # Its safer to insist that this fix is applied before logging has been
         # configured.
-        _warn('Import `radical.utils` before `logging` to avoid the '
+        _warn('Import `radical` modules before `logging` to avoid the '
               'application to deadlock on `fork()`!')
-      # raise Error('logging handlers already registered.')
 
     logging._acquireLock()
     try:
