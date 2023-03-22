@@ -12,6 +12,24 @@ from radical.utils           import TypedDict, as_dict
 
 
 # ------------------------------------------------------------------------------
+# pickle only handles top-level module objects, thus define the simple dict here
+#
+class TDSimple(TypedDict):
+
+    _schema = {
+        'attr_str' : str,
+        'attr_int' : int,
+        'attr_dict': {str: None}
+    }
+
+    _defaults = {
+        'attr_str' : 'string_default',
+        'attr_int' : '1',
+        'attr_dict': {'dict_key_00': 100}
+    }
+
+
+# ------------------------------------------------------------------------------
 #
 class TypedDictTestCase(TestCase):
 
@@ -22,20 +40,6 @@ class TypedDictTestCase(TestCase):
 
         class TDEmpty(TypedDict):
             pass
-
-        class TDSimple(TypedDict):
-
-            _schema = {
-                'attr_str' : str,
-                'attr_int' : int,
-                'attr_dict': {str: None}
-            }
-
-            _defaults = {
-                'attr_str' : 'string_default',
-                'attr_int' : '1',
-                'attr_dict': {'dict_key_00': 100}
-            }
 
         class TDDoubleLevel(TypedDict):
 
@@ -642,5 +646,23 @@ class TypedDictTestCase(TestCase):
         # value of `any_data` is converted into TypedDict-based class
         self.assertIsInstance(td.any_data, TypedDict)
         self.assertIsNot(td.any_data, input_data['any_data'])
+
+    # --------------------------------------------------------------------------
+    #
+    def test_pickle(self):
+
+        import pickle
+
+        td = TDSimple({
+            'attr_str' : 'foo',
+            'attr_dict': {'bar': 'buz'}})
+
+        ser = pickle.dumps(td)
+        td2 = pickle.loads(ser)
+        td2.verify()
+
+        self.assertEqual(td2.attr_str, 'foo')
+        self.assertEqual(td2.attr_int, 1)
+        self.assertEqual(td2.attr_dict['bar'], 'buz')
 
 # ------------------------------------------------------------------------------
