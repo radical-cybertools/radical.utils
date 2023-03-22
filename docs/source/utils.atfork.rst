@@ -1,8 +1,11 @@
+============================
 radical.utils.atfork package
 ============================
 
+.. py:module:: radical.utils.atfork
+
 Submodules
-----------
+==========
 
 radical.utils.atfork.atfork module
 ----------------------------------
@@ -19,12 +22,3 @@ radical.utils.atfork.stdlib\_fixer module
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: radical.utils.atfork
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
