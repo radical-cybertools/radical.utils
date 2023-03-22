@@ -1,8 +1,11 @@
+=====================
 radical.utils package
-=============--------
+=====================
+
+.. py:module:: radical.utils
 
 Subpackages
------------
+===========
 
 .. toctree::
    :maxdepth: 4
@@ -15,7 +18,7 @@ Subpackages
    utils.zmq
 
 Submodules
-----------
+==========
 
 radical.utils.algorithms module
 -------------------------------
@@ -317,14 +320,6 @@ radical.utils.which module
 --------------------------
 
 .. automodule:: radical.utils.which
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: radical.utils
    :members:
    :undoc-members:
    :show-inheritance:
