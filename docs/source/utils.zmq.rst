@@ -1,8 +1,11 @@
+=================
 utils.zmq package
 =================
 
+.. py:module:: radical.utils.zmq
+
 Submodules
-----------
+==========
 
 radical.utils.zmq.bridge module
 -------------------------------
@@ -59,12 +62,3 @@ radical.utils.zmq.utils module
    :members:
    :undoc-members:
    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: radical.utils.zmq
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
