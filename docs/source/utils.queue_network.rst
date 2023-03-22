@@ -1,8 +1,11 @@
+============================
 utils.queue\_network package
 ============================
 
+.. py:module:: radical.utils.queue_network
+
 Submodules
-----------
+==========
 
 radical.utils.queue\_network.network module
 -------------------------------------------
@@ -24,14 +27,6 @@ radical.utils.queue\_network.queue module
 -----------------------------------------
 
 .. automodule:: radical.utils.queue_network.queue
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: radical.utils.queue_network
    :members:
    :undoc-members:
    :show-inheritance:

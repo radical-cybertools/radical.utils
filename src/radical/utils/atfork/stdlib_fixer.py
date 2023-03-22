@@ -43,15 +43,33 @@ In 2.4.5 the following additional stdlib modules use locks:
 
 import os
 import sys
-import warnings
 
 from .atfork import atfork
 
 
+# ------------------------------------------------------------------------------
+#
+def _warn(msg):
+
+    import warnings
+
+    def custom_formatwarning(msg, *args, **kwargs):
+        return 'WARNING: %s\n' % str(msg)
+
+    orig_formatwarning     = warnings.formatwarning
+    warnings.formatwarning = custom_formatwarning
+    warnings.warn(msg)
+    warnings.formatwarning = orig_formatwarning
+
+
+# ------------------------------------------------------------------------------
+#
 class Error(Exception):
     pass
 
 
+# ------------------------------------------------------------------------------
+#
 def fix_logging_module():
 
     # monkeypatching can be disabled by setting RADICAL_UTILS_NO_ATFORK
@@ -74,8 +92,8 @@ def fix_logging_module():
         # these exist, other loggers or not yet added handlers could as well.
         # Its safer to insist that this fix is applied before logging has been
         # configured.
-        warnings.warn('logging handlers already registered.')
-      # raise Error('logging handlers already registered.')
+        _warn('Import `radical` modules before `logging` to avoid the '
+              'application to deadlock on `fork()`!')
 
     logging._acquireLock()
     try:

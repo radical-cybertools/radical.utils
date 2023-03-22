@@ -172,9 +172,9 @@ if 'RADICAL_DEBUG_SIG' in os.environ:
 # ------------------------------------------------------------------------------
 
 from traceback import extract_stack
-from inspect   import getargspec, isclass
 from re        import compile as regex
 from functools import wraps
+from inspect   import getfullargspec, isclass
 
 # NOTE: Python 3: type NoneType does not exist anymore. Test against None.
 # from types     import NoneType
@@ -505,7 +505,7 @@ def takes(*args, **kwargs):
 
         def takes_proxy(method):
 
-            method_args, method_defaults = getargspec(method)[0::3]
+            method_args, method_defaults = getfullargspec(method)[0::3]
 
             @wraps(method)
             def signature_check(*pargs, **pkwargs):

@@ -3,6 +3,15 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.22.0 Release                                                        2023-03-22
+--------------------------------------------------------------------------------
+
+  - clean up RST doctree.
+  - fix deprecated import statement and inspect call
+  - nicer and more informative warning on logging import order
+  - support pickle/unpickle for typed dicts
+
+
 1.21.0 Release                                                        2023-02-01
 --------------------------------------------------------------------------------
 

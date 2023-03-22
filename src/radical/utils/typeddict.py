@@ -132,7 +132,6 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
               Names with a leading underscore are not supported.
         '''
-        self.__dict__['_data'] = {}
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
 
@@ -261,6 +260,14 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     # base functionality for attribute access
     #
     def __getattr__(self, k):
+
+        if k == '_data':
+            if '_data' not in self.__dict__:
+                self.__dict__['_data'] = dict()
+            return self.__dict__['_data']
+
+        if k.startswith('__'):
+            return object.__getattribute__(self, k)
 
         data   = self._data
         schema = self._schema

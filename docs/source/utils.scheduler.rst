@@ -1,8 +1,11 @@
+=======================
 utils.scheduler package
 =======================
 
+.. py:module:: radical.utils.scheduler
+
 Submodules
-----------
+==========
 
 radical.utils.scheduler.scheduler\_base module
 ----------------------------------------------
@@ -16,14 +19,6 @@ radical.utils.scheduler.scheduler\_bitarray module
 --------------------------------------------------
 
 .. automodule:: radical.utils.scheduler.scheduler_bitarray
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: radical.utils.scheduler
    :members:
    :undoc-members:
    :show-inheritance:

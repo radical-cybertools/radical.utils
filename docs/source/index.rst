@@ -20,14 +20,7 @@ Contents:
    :numbered:
    :maxdepth: 2
 
-   modules.rst
-   utils.atfork.rst
-   utils.contrib.rst
-   utils.plugins.rst
-   utils.queue_network.rst
-   utils.rst
-   utils.scheduler.rst
-   utils.zmq.rst
+   utils
 
 
 ##################
@@ -37,4 +30,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
