@@ -240,6 +240,7 @@ setup_args = {
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-env.sh',
+                            'bin/radical-utils-create-ve',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.json.sh',

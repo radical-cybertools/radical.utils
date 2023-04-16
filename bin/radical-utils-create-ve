@@ -10,15 +10,6 @@ then
     RADICAL_BASE="$HOME/.radical"
 fi
 
-ru_env=$(which radical-utils-env.sh)
-if test -z "$ru_env"
-then
-    echo "$0 needs radical.utils installed"
-    exit 1
-fi
-
-. $ru_env
-
 
 # ------------------------------------------------------------------------------
 #
@@ -212,14 +203,9 @@ virtenv_update()
     which pip
     ve_type="$1"
 
-    echo "foo"
     # try ensurepip
     run_cmd "try to get pip via 'ensurepip'" \
             "$PYTHON -m ensurepip"
-
-    echo "foo"
-
-    env | grep ve
 
     # update some basic modules
     if test "$ve_type" = "conda"
@@ -291,7 +277,7 @@ help()
 
     Options:
       -P <pre_exec> - command to be run before creation (can be repeated)
-      -p <prefix>   - path to use for environment
+      -t <path>     - path to create the environment at
       -v <version>  - python version to be used
       -V <verify>   - command to run for verification (can be repeated)
       -m <module>   - module to install (can be repeated)
@@ -319,6 +305,17 @@ while getopts "P:p:v:V:m:t:r" OPTION; do
             exit 1;;
     esac
 done
+
+
+ru_env=$(which radical-utils-env.sh)
+if test -z "$ru_env"
+then
+    echo "$0 needs radical.utils installed"
+    exit 1
+fi
+
+. $ru_env
+
 
 test -z "$VIRTENV" \
     && VIRTENV="$RADICAL_BASE/utils/ve"
