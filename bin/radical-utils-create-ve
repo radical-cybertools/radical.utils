@@ -203,9 +203,9 @@ virtenv_update()
     which pip
     ve_type="$1"
 
-    # try ensurepip
-    run_cmd "try to get pip via 'ensurepip'" \
-            "$PYTHON -m ensurepip"
+  # # try ensurepip
+  # run_cmd "try to get pip via 'ensurepip'" \
+  #         "$PYTHON -m ensurepip"
 
     # update some basic modules
     if test "$ve_type" = "conda"
