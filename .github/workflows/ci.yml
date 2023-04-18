@@ -64,10 +64,11 @@ jobs:
       env:
         RADICAL_DEBUG: TRUE
         RADICAL_DEBUG_HELPER: TRUE
+        LOC: testenv/lib/python${{ matrix.python-version }}/site-packages
       run: |
         . testenv/bin/activate
         radical-stack
-        coverage run --source=radical.utils -m pytest -ra -vvv --showlocals tests/unittests/
+        coverage run --include=$LOC/radical/utils/* -m pytest -ra -vvv --showlocals tests/unittests/
         coverage xml
     - uses: codecov/codecov-action@v3
       if: ${{ matrix.python-version == '3.7' }}
