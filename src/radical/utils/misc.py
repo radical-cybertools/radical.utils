@@ -756,6 +756,9 @@ def rec_makedir(target):
     recursive makedir which ignores errors if dir already exists
     '''
 
+    if os.path.isdir(target):
+        return
+
     try:
         os.makedirs(target)
 
