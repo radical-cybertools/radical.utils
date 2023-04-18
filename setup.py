@@ -241,6 +241,7 @@ setup_args = {
                             'bin/radical-utils-service',
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-env.sh',
+                            'bin/radical-utils-create-ve',
                             'bin/radical-bridge',
                             'bin/radical-stack',
                             'bin/ru.json.sh',

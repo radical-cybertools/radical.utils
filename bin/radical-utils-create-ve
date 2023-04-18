@@ -1,0 +1,367 @@
+#!/bin/sh
+
+
+# ------------------------------------------------------------------------------
+#
+# us RU shell utilities
+#
+if test -z "$RADICAL_BASE"
+then
+    RADICAL_BASE="$HOME/.radical"
+fi
+
+
+# ------------------------------------------------------------------------------
+#
+# global variables
+#
+SCRIPT="$0"
+VIRTENV=        # full path or virtenv name
+VERSION=        # python version (e.g., 2.7, 3.7, etc.)
+MODULES=        # alternative list of pre-installed modules/packages
+DEFAULTS=       # install default modules
+VE_TYPE='venv'  # type of environment: 'virtualenv'/'venv' or 'anaconda'/'conda'
+VERIFY=         # set of commands which need to suceed for the env to be valid
+VE_REMOVE=      # flag if existing ve shouold be removed
+
+TMPDIR=$(mktemp -d)  # FIXME: clean out on exit
+
+CONDA_INSTALL='conda install --update-deps -y'
+PIP_INSTALL='pip --no-cache-dir install --upgrade'
+
+# ------------------------------------------------------------------------------
+#
+# run a command, log command line and I/O, return success/failure
+#
+run_cmd()
+{
+    msg="$1"
+    cmd="$2"
+    fallback="$3"
+
+    printf "\n# ------------------------------------------\n# $msg\n# $cmd\n"
+    eval "$cmd" 2>&1; ret=$?
+
+    if test $ret = 0
+    then
+        printf "# -- SUCESS --------------------------------\n"
+        return 0
+    fi
+
+    if test -z "$fallback"
+    then
+        printf "# -- ERROR - NO FALLBACK -------------------\n"
+        return $ret
+    fi
+
+    printf "# -- ERROR - USE FALLBACK ------------------\n# $fallback\n"
+    eval "$fallback" 2>&1; ret=$?
+
+    if test "$ret" = 0
+    then
+        printf "# -- SUCESS - FALLBACK ---------------------\n"
+        return 0
+    fi
+
+
+    printf "# -- ERROR - FALLBACK ----------------------\n"
+    return 1
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# collect verification commands for execution after ve got created
+#
+verify_add()
+{
+    VERIFY="$VERIFY$*\n"
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# collect modules to install after creation
+#
+module_add()
+{
+    MODULES="$MODULES$1 "
+}
+
+
+# ------------------------------------------------------------------------------
+#
+# create virtualenv
+#
+# Args:
+#
+#   - virtenv: the path to the ve to create
+#     It is an error if the path exists
+#
+#   - ve_type: `default` or `conda`
+#     `default` will use `python -m venv` or, as fallback, `virtualenv`.
+#     `conda` will use `conda create`
+#
+virtenv_create()
+{
+    ve_type="$1"
+    virtenv="$2"
+
+    if test -d "$virtenv"
+    then
+        printf "virtenv $virtenv exists - reuse\n"
+        return
+    fi
+
+    if test "$ve_type" = "venv"
+    then
+
+        # check if the `venv` module is usable
+        run_cmd "Create ve with system venv" \
+                "$PYTHON -m venv $virtenv"
+
+        if ! test "$?" = 0
+        then
+            # the `venv` module is not available - fall back to virtualenv.
+            # check if the system virtualenv works
+            test -d $virtenv && rm -rf $virtenv
+
+            run_cmd "create ve with system virtualenv" \
+                    "virtualenv $virtenv"
+        fi
+
+        if ! test "$?" = 0
+        then
+            # the systems `virtualenv` command did not work either.
+            # download a virtualenv release for local deployment
+            test -d $virtenv && rm -rf $virtenv
+
+            ve_pack='virtualenv.pyz'
+            ve_url="https://bootstrap.pypa.io/$ve_pack"
+            run_cmd "download virtualenv zippapp" \
+                    "curl -o '$TMPDIR/$ve_pack' '$ve_url'" \
+                    "wget -O '$TMPDIR/$ve_pack' '$ve_url'" \
+                && \
+            run_cmd "create ve with virtualenv zipapp" \
+                    "$PYTHON '$TMPDIR/$ve_pack' '$virtenv'"
+        fi
+
+        if ! test "$?" = 0
+        then
+            # none of the options worked, give up
+            exit 1
+        fi
+
+        # one of the above options *did* work - store activation command
+        echo ". $virtenv/bin/activate" > "$virtenv/ru_ve_activate.sh"
+
+    elif test "$ve_type" = "conda"
+    then
+        run_cmd "Create virtualenv" \
+                "conda create -y -p $virtenv python=$VERSION" \
+            ||  exit 1
+
+        # store activation command
+        echo "conda activate $virtenv" > "$virtenv/ru_ve_activate.sh"
+
+    else
+        echo "ERROR: invalid ve_type option ($ve_type)"
+        exit 1
+    fi
+}
+
+# ------------------------------------------------------------------------------
+#
+# activate the given virtualenv, using the prepared activation script
+#
+virtenv_activate()
+{
+    virtenv="$1"
+
+    if ! test -d "$virtenv"
+    then
+        echo "ERROR: no virtualenv at $virtenv"
+        exit 1
+    fi
+
+    if ! test -f "$virtenv/ru_ve_activate.sh"
+    then
+        echo "ERROR: the virtualenv ($virtenv) has no RU activation script"
+        exit 1
+    fi
+
+    . "$virtenv/ru_ve_activate.sh"
+}
+
+
+# ------------------------------------------------------------------------------
+#
+virtenv_update()
+{
+
+    which python
+    which pip
+    ve_type="$1"
+
+  # # try ensurepip
+  # run_cmd "try to get pip via 'ensurepip'" \
+  #         "$PYTHON -m ensurepip"
+
+    # update some basic modules
+    if test "$ve_type" = "conda"
+    then
+        run_cmd "update pip" \
+                "$CONDA_INSTALL pip setuptools wheel" \
+                "$PIP_INSTALL   pip setuptools wheel" || exit 1
+    else
+        run_cmd "update pip" \
+                "$PIP_INSTALL   pip setuptools wheel" || exit 1
+    fi
+}
+
+
+# ------------------------------------------------------------------------------
+#
+virtenv_install()
+{
+    ve_type="$1"; shift
+
+    for mod in "$@"
+    do
+        if test "$ve_type" = "conda"
+        then
+            run_cmd "install $mod" \
+                    "$CONDA_INSTALL $mod" \
+                    "$PIP_INSTALL   $mod" || exit 1
+        else
+            run_cmd "install $mod" \
+                    "$PIP_INSTALL $mod" || exit 1
+        fi
+
+    done
+}
+
+
+# ------------------------------------------------------------------------------
+#
+virtenv_verify()
+{
+    printf "$1" \ | while IFS= read -r cmd
+    do
+       run_cmd 'verification command' \
+               "$cmd" || exit 1
+    done
+}
+
+
+# ------------------------------------------------------------------------------
+#
+help()
+{
+
+    err="$1"
+    ret=0
+
+    if ! test -z "$err"
+    then
+        ret=1
+        printf "\n    ERROR: $err\n"
+    fi
+
+    cat <<EOT
+
+    $0
+
+    This script creates a virtual environment (conda or venv) at the given
+    path.
+
+    Options:
+      -P <pre_exec> - command to be run before creation (can be repeated)
+      -t <path>     - path to create the environment at
+      -v <version>  - python version to be used
+      -V <verify>   - command to run for verification (can be repeated)
+      -m <module>   - module to install (can be repeated)
+      -t <type>     - environment type to create (venv, conda)
+
+EOT
+    exit $ret
+}
+
+
+# ==============================================================================
+#
+# main
+#
+while getopts "P:p:v:V:m:t:r" OPTION; do
+    case $OPTION in
+        P)  run_cmd "pre exec" "$OPTARG" ;;
+        p)  VIRTENV="$OPTARG"     ;;
+        v)  VERSION="$OPTARG"     ;;
+        V)  verify_add "$OPTARG"  ;;
+        m)  module_add "$OPTARG"  ;;
+        t)  VE_TYPE="$OPTARG"     ;;
+        r)  VE_REMOVE="TRUE"      ;;
+        *)  echo "Unknown option: '$OPTION'='$OPTARG'"
+            exit 1;;
+    esac
+done
+
+
+ru_env=$(which radical-utils-env.sh)
+if test -z "$ru_env"
+then
+    echo "$0 needs radical.utils installed"
+    exit 1
+fi
+
+. $ru_env
+
+
+test -z "$VIRTENV" \
+    && VIRTENV="$RADICAL_BASE/utils/ve"
+
+if test -z "$VERSION"
+then
+    PYTHON=$(which python3 || which python)
+    VERSION=$($PYTHON -V | cut -f 2 -d ' ' | cut -f 1,2 -d '.')
+else
+    # only use major and minor version numbers, ignore subminor
+    VERSION=$(echo $VERSION | cut -f 1,2 -d '.')
+    PYTHON=$(which "python$VERSION")
+fi
+
+test "$VE_REMOVE" = "TRUE" \
+    && run_cmd "purge old virtualenv at $VIRTENV" \
+               "rm -rf $VIRTENV"
+
+
+virtenv_create   "$VE_TYPE" "$VIRTENV" || exit 1
+virtenv_activate "$VIRTENV"            || exit 2
+virtenv_update   "$VE_TYPE"            || exit 3
+virtenv_install  "$VE_TYPE"  $MODULES  || exit 4
+virtenv_verify   "$VERIFY"             || exit 5
+
+env_dump -t "$VIRTENV/ru_ve_activate.env"
+
+
+# ------------------------------------------------------------------------------
+#
+# print the ve information for verification
+#
+echo
+echo "# -----------------------------------------------------------------------"
+echo
+echo "PWD        : $(pwd)"
+echo "SCRIPT     : $SCRIPT"
+echo "VIRTENV    : $VIRTENV"
+echo "VERSION    : $VERSION"
+echo "PYTHON     : $PYTHON"
+echo "PYTHONPATH : $PYTHONPATH"
+echo "VE_ACTIVATE: $VIRTENV/ru_ve_activate.sh"
+echo "VE_ENV     : $VIRTENV/ru_ve_activate.env"
+echo
+echo "# -----------------------------------------------------------------------"
+echo
+#
+# ------------------------------------------------------------------------------
+
