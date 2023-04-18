@@ -204,9 +204,12 @@ def main() -> None:
     if not pid:
         pid, status = start_service(base, name, cmd, tout)
 
-    if not pid:
+    if not pid or status is None:
         print('ERROR: service startup failed')
         sys.exit(1)
+
+    sys.stdout.write(status)
+    sys.stdout.flush()
 
     sys.exit(0)
 
