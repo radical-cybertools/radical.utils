@@ -168,6 +168,8 @@ virtenv_create()
         echo "ERROR: invalid ve_type option ($ve_type)"
         exit 1
     fi
+
+    virtenv_update "$ve_type" || exit 3
 }
 
 # ------------------------------------------------------------------------------
@@ -198,9 +200,6 @@ virtenv_activate()
 #
 virtenv_update()
 {
-
-    which python
-    which pip
     ve_type="$1"
 
   # # try ensurepip
@@ -337,7 +336,6 @@ test "$VE_REMOVE" = "TRUE" \
 
 virtenv_create   "$VE_TYPE" "$VIRTENV" || exit 1
 virtenv_activate "$VIRTENV"            || exit 2
-virtenv_update   "$VE_TYPE"            || exit 3
 virtenv_install  "$VE_TYPE"  $MODULES  || exit 4
 virtenv_verify   "$VERIFY"             || exit 5
 
