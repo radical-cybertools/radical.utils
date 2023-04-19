@@ -73,10 +73,16 @@ def stop_service(base, name) -> None:
         except:
             pass
 
-    try   : os.unlink(lockfile)
+    try   : os.unlink(lockfile + '.bak')
     except: pass
 
-    try   : os.unlink(statfile)
+    try   : os.unlink(statfile + '.bak')
+    except: pass
+
+    try   : os.rename(lockfile, lockfile + '.bak')
+    except: pass
+
+    try   : os.rename(statfile, statfile + '.bak')
     except: pass
 
 
@@ -161,20 +167,14 @@ def start_service(base, name, cmd, tout) \
         pid = ru.daemonize(run_service, [cmd], stdout=statfile, stderr=statfile,
                 stdin='/dev/null', timeout=1)
 
-        print(1)
         assert pid
-        print(2)
 
         with open(lockfile, 'w') as fout:
-            print(3)
             fout.write('%d\n' % pid)
-        print(4)
 
     except Exception:
         stop_service(base, name)
         raise
-
-    print('pid', pid, lockfile)
 
     return check_service(base, name, tout)
 
