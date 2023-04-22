@@ -277,8 +277,6 @@ class Server(object):
             if self._sock not in event:
                 continue
 
-            print('event', event)
-
             # default response
             rep = None
             req = None

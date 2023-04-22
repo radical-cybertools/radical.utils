@@ -17,7 +17,6 @@ _registries = list()
 #
 def _flush_registries():
     for _reg in _registries:
-        print('=== stop %s' % _reg.uid)
         _reg.stop()
 
 
@@ -81,8 +80,6 @@ class Registry(Server):
         path  = elems[:-1]
         leaf  = elems[-1]
 
-        print('=== put %s' % key)
-
         for elem in path:
 
             if elem not in this:
@@ -111,7 +108,6 @@ class Registry(Server):
                 break
 
         val = this.get(leaf)
-        print('=== get %s: %s' % (key, val))
         return val
 
 
@@ -135,9 +131,17 @@ class Registry(Server):
     #
     def delitem(self, key: str) -> None:
 
-        del self._data[key]
-        if not isinstance(self._data, dict):
-            self._data.sync()
+        this = self._data
+
+        if key:
+            path = key.split('.')
+            for elem in path[:-1]:
+                this = this.get(elem, {})
+                if not this:
+                    break
+
+            if this:
+                del this[path[-1]]
 
 
 # ------------------------------------------------------------------------------
@@ -155,8 +159,7 @@ class RegistryClient(Client, DictMixin):
     def __init__(self, url: str,
                        pwd: Optional[str] = None) -> None:
 
-        if not pwd: self._pwd = ''
-        else      : self._pwd = '%s.' % pwd
+        self._pwd = pwd
 
         super().__init__(url=url)
 
@@ -166,7 +169,8 @@ class RegistryClient(Client, DictMixin):
     def get(self, key    : str,
                   default: Optional[str] = None) -> Optional[Any]:
 
-        key = self._pwd + key
+        if self._pwd:
+            key = self._pwd + '.' + key
 
         try:
             return self.request(cmd='get', key=key)
@@ -177,7 +181,8 @@ class RegistryClient(Client, DictMixin):
     def put(self, key: str,
                   val: Any) -> None:
 
-        key = self._pwd + key
+        if self._pwd:
+            key = self._pwd + '.' + key
         ret = self.request(cmd='put', key=key, val=val)
 
         assert ret is None
@@ -198,7 +203,8 @@ class RegistryClient(Client, DictMixin):
 
     def __delitem__(self, key: str) -> None:
 
-        key = self._pwd + key
+        if self._pwd:
+            key = self._pwd + '.' + key
         ret = self.request(cmd='del', key=key)
         assert ret is None
 

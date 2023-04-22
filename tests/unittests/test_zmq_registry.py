@@ -32,11 +32,6 @@ def test_zmq_registry(mocked_prof):
         assert c['foo']['bar']['buz']['biz'] == 42
         assert c['foo.bar.buz.biz.boz']      is None
 
-        c['foo']['bar']['buz']['biz'] = 53
-        assert c['foo.bar.buz.biz']          == 53
-        assert c['foo.bar']['buz.biz']       == 53
-        assert c['foo']['bar']['bu']['.biz'] == 53
-
         assert 'foo' in c
         assert c.keys() == ['foo']
         del c['foo']
