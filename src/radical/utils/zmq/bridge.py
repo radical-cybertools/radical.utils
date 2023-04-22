@@ -135,7 +135,8 @@ class Bridge(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def create(channel : str):
+    def create(channel : str,
+               kind    : str = None):
 
         # FIXME: add other config parameters: batch size, log level, etc.
 
@@ -150,9 +151,10 @@ class Bridge(object):
         _btypemap = {PUBSUB: PubSub,
                      QUEUE : Queue}
 
-        if   'queue'  in channel.lower(): kind = QUEUE
-        elif 'pubsub' in channel.lower(): kind = PUBSUB
-        else                            : kind = UNKNOWN
+        if not kind:
+            if   'queue'  in channel.lower(): kind = QUEUE
+            elif 'pubsub' in channel.lower(): kind = PUBSUB
+            else                            : kind = UNKNOWN
 
         if kind not in _btypemap:
             raise ValueError('unknown bridge type (%s)' % kind)
