@@ -271,12 +271,13 @@ class Server(object):
 
         while not self._term.is_set():
 
-            print('do 0')
 
             event = dict(no_intr(self._poll.poll, timeout=100))
 
             if self._sock not in event:
                 continue
+
+            print('event', event)
 
             # default response
             rep = None

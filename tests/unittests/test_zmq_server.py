@@ -217,7 +217,7 @@ class TestZMQServer(TestCase):
                 c.request('no_registered_cmd')
 
             with self.assertRaisesRegex(RuntimeError,
-                    '.* _test_0.* takes 1 positional argument'):
+                    '.*_test_0.* takes 1 positional argument'):
                 c.request('test_0', None)
 
             ret = c.request('test_0')
