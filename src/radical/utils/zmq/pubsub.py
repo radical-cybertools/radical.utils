@@ -45,19 +45,11 @@ class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, cfg=None, channel=None):
+    def __init__(self, channel : str):
 
-        if cfg and not channel and is_string(cfg):
-            # allow construction with only channel name
-            channel = cfg
-            cfg     = None
+        # FIXME: add other config parameters: batch size, log level, etc.
 
-        if   cfg    : cfg = Config(cfg=cfg)
-        elif channel: cfg = Config(cfg={'channel': channel})
-        else: raise RuntimeError('PubSub needs cfg or channel parameter')
-
-        if not cfg.channel:
-            raise ValueError('no channel name provided for pubsub')
+        cfg = Config(cfg={'channel': channel})
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,

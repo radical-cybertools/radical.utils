@@ -85,7 +85,7 @@ atfork(noop, noop, _atfork_child)
 #
 class Queue(Bridge):
 
-    def __init__(self, cfg=None, channel=None):
+    def __init__(self, channel : str):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -106,17 +106,9 @@ class Queue(Bridge):
         addresses as obj.addr_put and obj.addr_get.
         '''
 
-        if cfg and not channel and is_string(cfg):
-            # allow construction with only channel name
-            channel = cfg
-            cfg     = None
+        # FIXME: add other config parameters: batch size, log level, etc.
 
-        if   cfg    : cfg = Config(cfg=cfg)
-        elif channel: cfg = Config(cfg={'channel': channel})
-        else: raise RuntimeError('Queue needs cfg or channel parameter')
-
-        if not cfg.channel:
-            raise ValueError('no channel name provided for queue')
+        cfg = Config(cfg={'channel': channel})
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,

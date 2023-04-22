@@ -1,4 +1,5 @@
 
+import atexit
 import shelve
 
 from typing import List, Optional, Any
@@ -8,6 +9,19 @@ from ..dict_mixin import DictMixin
 
 from .server import Server
 from .client import Client
+
+_registries = list()
+
+
+# ------------------------------------------------------------------------------
+#
+def _flush_registries():
+    for _reg in _registries:
+        print('=== stop %s' % _reg.uid)
+        _reg.stop()
+
+
+atexit.register(_flush_registries)
 
 
 # ------------------------------------------------------------------------------
@@ -22,9 +36,10 @@ class Registry(Server):
     #
     def __init__(self, url       : Optional[str] = None,
                        uid       : Optional[str] = None,
+                       path      : Optional[str] = None,
                        persistent: bool          = False) -> None:
 
-        super().__init__(url=url, uid=uid)
+        super().__init__(url=url, uid=uid, path=path)
 
         if persistent:
             self._data = shelve.open('%s.db' % self._uid, writeback=True)
@@ -39,11 +54,19 @@ class Registry(Server):
 
     # --------------------------------------------------------------------------
     #
-    def stop(self) -> None:
+    def dump(self) -> None:
 
         if isinstance(self._data, dict):
             write_json(self._data, '%s.json' % self._uid)
-        else:
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self) -> None:
+
+        self.dump()
+
+        if isinstance(self._data, shelve.Shelf):
             self._data.close()
 
         super().stop()
@@ -57,6 +80,8 @@ class Registry(Server):
         elems = key.split('.')
         path  = elems[:-1]
         leaf  = elems[-1]
+
+        print('=== put %s' % key)
 
         for elem in path:
 
@@ -81,19 +106,29 @@ class Registry(Server):
         leaf  = elems[-1]
 
         for elem in path:
-
-            this = this.get(elem)
+            this = this.get(elem, {})
             if not this:
-                return None
+                break
 
-        return this.get(leaf)
+        val = this.get(leaf)
+        print('=== get %s: %s' % (key, val))
+        return val
 
 
     # --------------------------------------------------------------------------
     #
-    def keys(self) -> List[str]:
+    def keys(self, pwd: Optional[str] = None) -> List[str]:
 
-        return list(self._data.keys())
+        this = self._data
+
+        if pwd:
+            path = pwd.split('.')
+            for elem in path:
+                this = this.get(elem, {})
+                if not this:
+                    break
+
+        return list(this.keys())
 
 
     # --------------------------------------------------------------------------
@@ -117,14 +152,21 @@ class RegistryClient(Client, DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str,
+                       pwd: Optional[str] = None) -> None:
+
+        if not pwd: self._pwd = ''
+        else      : self._pwd = '%s.' % pwd
 
         super().__init__(url=url)
 
 
     # --------------------------------------------------------------------------
     # verbose API
-    def get(self, key: str, default: Optional[str] = None) -> Optional[Any]:
+    def get(self, key    : str,
+                  default: Optional[str] = None) -> Optional[Any]:
+
+        key = self._pwd + key
 
         try:
             return self.request(cmd='get', key=key)
@@ -134,7 +176,10 @@ class RegistryClient(Client, DictMixin):
 
     def put(self, key: str,
                   val: Any) -> None:
+
+        key = self._pwd + key
         ret = self.request(cmd='put', key=key, val=val)
+
         assert ret is None
         return ret
 
@@ -142,20 +187,25 @@ class RegistryClient(Client, DictMixin):
     # --------------------------------------------------------------------------
     # dict mixin API
     def __getitem__(self, key: str) -> Optional[Any]:
+
         return self.get(key)
 
 
     def __setitem__(self, key: str, val: Any) -> None:
+
         return self.put(key, val)
 
 
     def __delitem__(self, key: str) -> None:
+
+        key = self._pwd + key
         ret = self.request(cmd='del', key=key)
         assert ret is None
 
 
     def keys(self) -> List[str]:
-        ret = self.request(cmd='keys')
+
+        ret = self.request(cmd='keys', pwd=self._pwd)
         assert isinstance(ret, list)
         return ret
 

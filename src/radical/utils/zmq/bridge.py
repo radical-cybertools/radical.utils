@@ -8,6 +8,10 @@ from ..profile import Profiler
 from ..config  import Config
 from ..json_io import read_json, write_json
 
+QUEUE   = 'QUEUE'
+PUBSUB  = 'PUBSUB'
+UNKNOWN = 'UNKNOWN'
+
 
 # ------------------------------------------------------------------------------
 #
@@ -131,25 +135,30 @@ class Bridge(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def create(cfg):
+    def create(channel : str):
+
+        # FIXME: add other config parameters: batch size, log level, etc.
 
         # NOTE: I'd rather have this as class data than as stack data, but
         #       python stumbles over circular imports at that point :/
         #       Another option though is to discover and dynamically load
         #       components.
+
         from .pubsub import PubSub
         from .queue  import Queue
 
-        _btypemap = {'pubsub' : PubSub,
-                     'queue'  : Queue}
+        _btypemap = {PUBSUB: PubSub,
+                     QUEUE : Queue}
 
-        kind = cfg['kind']
+        if   'queue'  in channel.lower(): kind = QUEUE
+        elif 'pubsub' in channel.lower(): kind = PUBSUB
+        else                            : kind = UNKNOWN
 
         if kind not in _btypemap:
             raise ValueError('unknown bridge type (%s)' % kind)
 
         btype  = _btypemap[kind]
-        bridge = btype(cfg)
+        bridge = btype(channel)
 
         return bridge
 
