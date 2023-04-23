@@ -218,7 +218,7 @@ env_prep(){
             func=$(expr "$k" : '^BASH_FUNC_\(.*\)\(()\|%%\)$')
             if ! test -z "$func"
             then
-                functions=$(printf "$func $v\nexport -f $func\n\n$functions")
+                functions="$func $v\nexport -f $func\n\n$functions"
             else
                 v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/"/\\"/g')
                 echo "export $k=\"$v\""
@@ -229,7 +229,8 @@ env_prep(){
         # add functions if any were found
         if ! test -z "$functions"
         then
-            printf "# functions\n$functions\n\n"
+            echo "# functions" | sed -e 's/\\n/\n/g'
+            echo "$functions"  | sed -e 's/\\n/\n/g'
         fi
 
         # run all remaining arguments as `pre_exec` commands
