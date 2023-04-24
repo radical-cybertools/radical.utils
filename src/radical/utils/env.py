@@ -152,7 +152,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
                 env[key] = val
 
             key = this_key
-            val = this_val.strip()
+            val = this_val
 
         elif re_bash_function.match(this_key):
             # function definitions
@@ -161,7 +161,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
                 env[key] = val
 
             key = this_key
-            val = this_val.strip()
+            val = this_val
 
         else:
             # invalid key - append linebreak and line to value
