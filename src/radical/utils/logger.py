@@ -188,9 +188,6 @@ class Logger(object):
     #
     def __init__(self, name, ns=None, path=None, targets=None, level=None,
                  debug=None, verbose=False):
-
-        ru_def = DefaultConfig()
-
         """
         Get a logging handle.
 
@@ -227,58 +224,80 @@ class Logger(object):
         settings.
         """
 
-        self._logger = logging.getLogger(name)
+        self._name        = name
+        self._ns          = ns
+        self._path        = path
+        self._targets     = targets
+        self._level       = level
+        self._debug_level = debug
+        self._debug       = debug
+        self._verbose     = verbose
+        self._num_level   = 0
+        self._logger      = None
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _ensure_handler(self):
+
+        if self._logger:
+            return
+
+        ru_def = DefaultConfig()
+
+        # make sure handlers are attached.  If they are not, attach them!
+        self._logger = logging.getLogger(self._name)
         self._logger.propagate = False   # let messages not trickle upward
-        self._logger.name      = name
+        self._logger.name      = self._name
 
         # otherwise configure this logger
-        if not path:
-            path = ru_def['log_dir']
+        if not self._path:
+            self._path = ru_def['log_dir']
 
-        if not ns:
-            ns = name
+        if not self._ns:
+            self._ns = self._name
 
-        if not targets:
-            targets = ru_get_env_ns('log_tgt', ns)
-            if not targets:
-                targets = ru_def['log_tgt']
+        if not self._targets:
+            self._targets = ru_get_env_ns('log_tgt', self._ns)
+            if not self._targets:
+                self._targets = ru_def['log_tgt']
 
-        if isinstance(targets, str):
-            targets = targets.split(',')
+        if isinstance(self._targets, str):
+            self._targets = self._targets.split(',')
 
-        if not isinstance(targets, list):
-            targets = [targets]
+        if not isinstance(self._targets, list):
+            self._targets = [self._targets]
 
-        if not level:
-            level = ru_get_env_ns('log_lvl', ns)
+        if not self._level:
+            self._level = ru_get_env_ns('log_lvl', self._ns)
 
-        if not level:
+        if not self._level:
             # backward compatibility
-            level = ru_get_env_ns('verbose', ns)
+            self._level = ru_get_env_ns('verbose', self._ns)
 
-        if not level:
-            level = ru_def['log_lvl']
+        if not self._level:
+            self._level = ru_def['log_lvl']
 
-        if level in [OFF, 'OFF']:
-            targets = ['null']
+        if self._level in [OFF, 'OFF']:
+            self._targets = ['null']
 
         try:
-            level = int(level)
+            self._level = int(self._level)
         except:
             pass
 
-        debug_level = debug or 0
-        if isinstance(level, int):
-            if level < 10:
-                debug_level = 10 - level
-                level = 'DEBUG'
+        self._debug_level = self._debug or 0
+        if isinstance(self._level, int):
+            if self._level < 10:
+                self._debug_level = 10 - self._level
+                self._level = 'DEBUG'
 
-        elif level.upper().startswith('DEBUG_'):
-            debug_level = int(level.split('_', 1)[1])
-            level = 'DEBUG'
+        elif self._level.upper().startswith('DEBUG_'):
+            self._debug_level = int(self._level.split('_', 1)[1])
+            self._level = 'DEBUG'
 
-        if level != 'DEBUG':
-            debug_level = 0
+        if self._level != 'DEBUG':
+            self._debug_level = 0
 
 
         # translate numeric levels into upper case symbolic ones
@@ -291,12 +310,12 @@ class Logger(object):
                      '0' :  ru_def['log_lvl']}
 
 
-        level   = levels.get(str(level), str(level)).upper()
-        warning = None
-        if level not in list(levels.values()):
-            warning = "invalid loglevel '%s', use '%s'" \
-                                      % (level, ru_def['log_lvl'])
-            level   = ru_def['log_lvl']
+        self._level   = levels.get(str(self._level), str(self._level)).upper()
+        self._warning = None
+        if self._level not in list(levels.values()):
+            self._warning = "invalid loglevel '%s', use '%s'" \
+                                      % (self._level, ru_def['log_lvl'])
+            self._level   = ru_def['log_lvl']
 
         formatter = logging.Formatter('%(created).3f : '
                                       '%(name)-20s : '
@@ -309,9 +328,9 @@ class Logger(object):
 
         # add a handler for each targets (using the same format)
         if not self._logger.handlers:
-            p = path
-            n = name
-            for t in targets:
+            p = self._path
+            n = self._name
+            for t in self._targets:
                 if   t in ['0', 'null']       : h = logging.NullHandler()
                 elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
                 elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
@@ -323,26 +342,29 @@ class Logger(object):
                 h.name = self._logger.name
                 self._logger.addHandler(h)
 
-            if level != 'OFF':
-                self._logger.setLevel(level)
+            if self._level != 'OFF':
+                self._logger.setLevel(self._level)
 
-            if warning:
-                self._logger.warning(warning)
+            if self._warning:
+                self._logger.warning(self._warning)
 
         # if `name` points to module, try to log its version info
-        if verbose:
+        if self._verbose:
+
+            self._ensure_handler()
+
             try:
                 self._logger.info("%-20s version: %s", 'python.interpreter',
                                   ' '.join(sys.version.split()))
 
-                mod = ru_import_module(name)
+                mod = ru_import_module(self._name)
                 if hasattr(mod, 'version_detail'):
                     self._logger.info("%-20s version: %s",
-                                      name, getattr(mod, 'version_detail'))
+                                      self._name, getattr(mod, 'version_detail'))
 
                 elif hasattr(mod, 'version'):
                     self._logger.info("%-20s version: %s",
-                                      name, getattr(mod, 'version'))
+                                      self._name, getattr(mod, 'version'))
             except:
                 pass
 
@@ -352,6 +374,7 @@ class Logger(object):
                             threading.current_thread().name)
             except:
                 pass
+
 
         # keep the handle a round, for cleaning up on fork
         _logger_registry.add(self._logger)
@@ -364,13 +387,7 @@ class Logger(object):
                                            'debug'   : 10}
 
         # store properties
-        self._name        = name
-        self._ns          = ns
-        self._path        = path
-        self._level       = level
-        self._debug_level = debug_level
-        self._targets     = targets
-        self._num_level   = self._numerics.get(level.lower(), 0)
+        self._num_level = self._numerics.get(self._level.lower(), 0)
 
         if self._level == 'DEBUG':
             self._num_level -= self._debug_level
@@ -419,6 +436,7 @@ class Logger(object):
         if self._num_level <=  1: self.debug_9  = self._logger.debug
 
 
+
     # --------------------------------------------------------------------------
     #
     @property
@@ -458,6 +476,8 @@ class Logger(object):
     #
     def __getattr__(self, name):
 
+        print('---- %s' % name)
+        self._ensure_handler()
         return getattr(self._logger, name)
 
 
