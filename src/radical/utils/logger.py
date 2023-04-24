@@ -418,10 +418,6 @@ class Logger(object):
         self.debug_8  = lambda *args, **kwargs: None
         self.debug_9  = lambda *args, **kwargs: None
 
-        print('init!!')
-        print('===', getattr(self, 'debug_1'))
-
-
         # enable the ones we are configured for:
         if self._num_level <= 50: self.critical = self._logger.critical
         if self._num_level <= 40: self.error    = self._logger.error
