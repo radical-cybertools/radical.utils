@@ -476,7 +476,6 @@ class Logger(object):
     #
     def __getattr__(self, name):
 
-        print('---- %s' % name)
         self._ensure_handler()
         return getattr(self._logger, name)
 
