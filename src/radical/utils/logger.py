@@ -418,6 +418,10 @@ class Logger(object):
         self.debug_8  = lambda *args, **kwargs: None
         self.debug_9  = lambda *args, **kwargs: None
 
+        print('init!!')
+        print('===', getattr(self, 'debug_1'))
+
+
         # enable the ones we are configured for:
         if self._num_level <= 50: self.critical = self._logger.critical
         if self._num_level <= 40: self.error    = self._logger.error
@@ -477,7 +481,10 @@ class Logger(object):
     def __getattr__(self, name):
 
         self._ensure_handler()
-        return getattr(self._logger, name)
+        try:
+            return getattr(self, name)
+        except:
+            return getattr(self._logger, name)
 
 
     # --------------------------------------------------------------------------
