@@ -812,3 +812,11 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
+  - avoid `printf` on functions 
+  - devel version bump 
+  - fix getter 
+  - fix tests 
+  - remove debug print 
+  - remove invalid strip 
+  - remove prints 
+  - rename a helper class 
