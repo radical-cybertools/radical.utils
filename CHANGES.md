@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.33.0 Release                                                        2023-04-25
+--------------------------------------------------------------------------------
+
+  - avoid `printf` on functions
+
+
 1.22.0 Release                                                        2023-03-22
 --------------------------------------------------------------------------------
 
