@@ -41,6 +41,9 @@ class LoggerTestCase(TestCase):
         logger_name = 'log_name_default'
         l = ru.Logger(logger_name)
         log_path = os.path.join(os.getcwd(), '%s.log' % logger_name)
+
+        self.assertFalse(os.path.isfile(log_path))
+        l.error('test')
         self.assertTrue(os.path.isfile(log_path))
 
         self.assertEqual(l.name,    logger_name)
@@ -57,6 +60,8 @@ class LoggerTestCase(TestCase):
         # set log directory as an input parameter `path`
         l = ru.Logger(name='log_base', path=self._base_dir)
         log_path = os.path.join(self._base_dir, 'log_base.log')
+        self.assertFalse(os.path.isfile(log_path))
+        l.error('test')
         self.assertTrue(os.path.isfile(log_path))
         l.close()
 
@@ -65,6 +70,7 @@ class LoggerTestCase(TestCase):
         log_path = os.path.join(self._base_dir, 'log_base_tgt.log')
         os.environ['RADICAL_UTILS_LOG_TGT'] = log_path
         l = ru.Logger('log_base_tgt', ns='radical.utils')
+        l.error('test')
         self.assertTrue(os.path.isfile(log_path))
         l.close()
         if log_env_tgt_saved == -1:

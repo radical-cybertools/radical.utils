@@ -13,7 +13,7 @@ from unittest import TestCase
 
 # ------------------------------------------------------------------------------
 #
-class TestDict(ru.TypedDict):
+class TempDict(ru.TypedDict):
     pass
 
 
@@ -57,7 +57,7 @@ class NewClass:
     #
     def test_load_class_with_type(self):
 
-        f = ru.load_class(fpath=__file__, cname='TestDict', ctype=ru.TypedDict)
+        f = ru.load_class(fpath=__file__, cname='TempDict', ctype=ru.TypedDict)
         self.assertIsInstance(f(), ru.TypedDict)
 
 # ------------------------------------------------------------------------------
