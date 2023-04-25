@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.33.0 Release                                                        2023-04-25
+--------------------------------------------------------------------------------
+
+  - avoid `printf` on functions
+
+
 1.22.0 Release                                                        2023-03-22
 --------------------------------------------------------------------------------
 
@@ -812,11 +818,3 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
-  - avoid `printf` on functions 
-  - devel version bump 
-  - fix getter 
-  - fix tests 
-  - remove debug print 
-  - remove invalid strip 
-  - remove prints 
-  - rename a helper class 
