@@ -3,6 +3,8 @@ import os
 
 import threading as mt
 
+from typing import Optional
+
 from ..logger  import Logger
 from ..profile import Profiler
 from ..config  import Config
@@ -47,6 +49,10 @@ class Bridge(object):
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
+
+        if not self._pwd:
+            self._pwd = os.getcwd()
+
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
@@ -136,7 +142,8 @@ class Bridge(object):
     #
     @staticmethod
     def create(channel : str,
-               kind    : str = None):
+               kind    : Optional[str]  = None,
+               cfg     : Optional[dict] = None):
 
         # FIXME: add other config parameters: batch size, log level, etc.
 
@@ -160,7 +167,7 @@ class Bridge(object):
             raise ValueError('unknown bridge type (%s)' % kind)
 
         btype  = _btypemap[kind]
-        bridge = btype(channel)
+        bridge = btype(channel, cfg=cfg)
 
         return bridge
 

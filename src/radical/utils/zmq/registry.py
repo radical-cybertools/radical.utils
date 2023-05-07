@@ -49,14 +49,18 @@ class Registry(Server):
         self.register_request('get',  self.get)
         self.register_request('keys', self.keys)
         self.register_request('del',  self.delitem)
+        self.register_request('dump', self.dump)
 
 
     # --------------------------------------------------------------------------
     #
-    def dump(self) -> None:
+    def dump(self, name: str = None) -> None:
 
         if isinstance(self._data, dict):
-            write_json(self._data, '%s.json' % self._uid)
+            if name:
+                write_json(self._data, '%s.%s.json' % (self._uid, name))
+            else:
+                write_json(self._data, '%s.json' % self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -162,6 +166,13 @@ class RegistryClient(Client, DictMixin):
         self._pwd = pwd
 
         super().__init__(url=url)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def dump(self, name: str = None) -> None:
+
+        return self.request(cmd='dump', name=name)
 
 
     # --------------------------------------------------------------------------

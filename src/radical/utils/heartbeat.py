@@ -233,7 +233,7 @@ class Heartbeat(object):
                     self._log.debug('wait time: %s', nok)
                     break
 
-            time.sleep(0.05)
+            time.sleep(0.25)
 
         if len(ok) != len(uids):
             nok = [uid for uid in uids if uid not in ok]

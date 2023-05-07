@@ -7,6 +7,8 @@ import msgpack
 
 import threading as mt
 
+from typing import Optional
+
 from ..atfork  import atfork
 from ..config  import Config
 from ..ids     import generate_id, ID_CUSTOM
@@ -85,7 +87,7 @@ atfork(noop, noop, _atfork_child)
 #
 class Queue(Bridge):
 
-    def __init__(self, channel : str):
+    def __init__(self, channel: str, cfg: Optional[dict] = None):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -106,9 +108,11 @@ class Queue(Bridge):
         addresses as obj.addr_put and obj.addr_get.
         '''
 
-        # FIXME: add other config parameters: batch size, log level, etc.
-
-        cfg = Config(cfg={'channel': channel})
+        if cfg:
+            # create deep copy
+            cfg = Config(cfg=cfg)
+        else:
+            cfg = Config(cfg={'channel': channel})
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
