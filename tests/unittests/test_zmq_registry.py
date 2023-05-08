@@ -44,7 +44,7 @@ def test_zmq_registry(mocked_prof):
 
     try:
         c = ru.zmq.RegistryClient(url=r.addr)
-        c.keys() == ['oops']
+        assert c.keys() == ['oops']
 
     finally:
         if c:
