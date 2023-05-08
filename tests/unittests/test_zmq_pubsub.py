@@ -40,7 +40,7 @@ def test_zmq_pubsub():
                          'stall_hwm': 1,
                         })
 
-    b = ru.zmq.PubSub(cfg)
+    b = ru.zmq.PubSub('test', cfg)
     b.start()
 
     assert b.addr_in  != b.addr_out
