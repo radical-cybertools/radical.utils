@@ -169,6 +169,7 @@ virtenv_create()
         exit 1
     fi
 
+    virtenv_activate "$virtenv"
     virtenv_update "$ve_type" || exit 3
 }
 
@@ -306,18 +307,9 @@ while getopts "P:p:v:V:m:t:r" OPTION; do
 done
 
 
-ru_env=$(which radical-utils-env.sh)
-if test -z "$ru_env"
-then
-    echo "$0 needs radical.utils installed"
-    exit 1
-fi
-
-. $ru_env
-
-
 test -z "$VIRTENV" \
     && VIRTENV="$RADICAL_BASE/utils/ve"
+
 
 if test -z "$VERSION"
 then
@@ -329,6 +321,7 @@ else
     PYTHON=$(which "python$VERSION")
 fi
 
+
 test "$VE_REMOVE" = "TRUE" \
     && run_cmd "purge old virtualenv at $VIRTENV" \
                "rm -rf $VIRTENV"
@@ -338,8 +331,6 @@ virtenv_create   "$VE_TYPE" "$VIRTENV" || exit 1
 virtenv_activate "$VIRTENV"            || exit 2
 virtenv_install  "$VE_TYPE"  $MODULES  || exit 4
 virtenv_verify   "$VERIFY"             || exit 5
-
-env_dump -t "$VIRTENV/ru_ve_activate.env"
 
 
 # ------------------------------------------------------------------------------

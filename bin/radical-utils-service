@@ -15,7 +15,6 @@ import radical.utils as ru
 #
 #   - create a lock file
 #   - start the instance if it does not exist
-#   - print content of status file after startup
 #   - exit when process is alive
 #
 # If the lockfile exists but the pid stored in the lockfile is not an active
@@ -24,20 +23,18 @@ import radical.utils as ru
 #   - proceed through the startup routine as above
 #
 # If the lockfile exists and the process is still alive:
-#   - print content of status file
 #   - exit when process is alive
 #
 #
 # Arguments to the script are:
 #
-#   -n: name of the service (name of lock and status file)
-#   -b: base directory (where to store lock and status file)
+#   -n: name of the service (name of lock and output file)
+#   -b: base directory (where to store lock and output file)
 #   -c: command to use to start the service
 #   -s: seconds to wait (default: 1)
 #
-# The service is nohup'ed.  Output is redirected to the status file.  We wait
-# 'n' seconds before reading that status file.  The default base directory is
-# `$RADICAL_BASE/var` or `$HOME/.radical/var`
+# The service is nohup'ed.  stdout and stderr are redirected to the output file.
+# The default base directory is `$RADICAL_BASE/var` or `$HOME/.radical/var`.
 
 
 # ------------------------------------------------------------------------------
@@ -45,16 +42,16 @@ import radical.utils as ru
 def get_fnames(base, name) -> Tuple[str, str]:
 
     lockfile = '%s/%s.lock' % (base, name)
-    statfile = '%s/%s.stat' % (base, name)
+    outfile  = '%s/%s.out'  % (base, name)
 
-    return lockfile, statfile
+    return lockfile, outfile
 
 
 # ------------------------------------------------------------------------------
 #
 def stop_service(base, name) -> None:
 
-    lockfile, statfile = get_fnames(base, name)
+    lockfile, outfile = get_fnames(base, name)
 
     pid = None
     try:
@@ -67,35 +64,28 @@ def stop_service(base, name) -> None:
 
     if pid:
         try:
-            os.kill(pid, signal.SIGTERM)
+            os.killpg(pid, signal.SIGTERM)
             time.sleep(0.1)
-            os.kill(pid, signal.SIGKILL)
+            os.killpg(pid, signal.SIGKILL)
         except:
             pass
 
-    try   : os.unlink(lockfile + '.bak')
-    except: pass
-
-    try   : os.unlink(statfile + '.bak')
-    except: pass
-
     try   : os.rename(lockfile, lockfile + '.bak')
-    except: pass
+    except Exception: pass
 
-    try   : os.rename(statfile, statfile + '.bak')
-    except: pass
+    try   : os.rename(outfile, outfile + '.bak')
+    except Exception: pass
 
 
 # ------------------------------------------------------------------------------
 #
-def check_service(base, name, tout) \
-                 -> Tuple[Union[int, None], Union[str, None]]:
+def check_service(base, name, tout) -> Union[int, None]:
 
-    lockfile, statfile = get_fnames(base, name)
+    lockfile, _ = get_fnames(base, name)
 
     t_zero = time.time()
     pid    = None
-    stats  = None
+    output = None
 
     first = True
     while first or time.time() <= t_zero + tout:
@@ -111,35 +101,21 @@ def check_service(base, name, tout) \
             time.sleep(0.1)
             continue
 
-
-    first = True
-    while first or time.time() <= t_zero + tout:
-        first = False
-
-        try:
-            # try to get service status
-            with ru.ru_open(statfile) as fin:
-                stats = fin.read()
-
-        except FileNotFoundError:
-            time.sleep(0.1)
-            continue
-
-
-    if pid:
-        try:
-            os.kill(pid, 0)
-
-        except OSError:
-            # process is dead
-            pid = None
-
-    if not pid or stats is None:
+    if not pid:
         stop_service(base, name)
-        return None, None
+        return None
 
-    # lockfile existed, pid found, stats found, process is alive - success!
-    return pid, stats
+
+    try:
+        os.kill(pid, 0)
+
+    except OSError:
+        # process is dead
+        stop_service(base, name)
+        return None
+
+    # lockfile existed, pid found, process is alive - success!
+    return pid
 
 
 # ------------------------------------------------------------------------------
@@ -147,6 +123,7 @@ def check_service(base, name, tout) \
 def run_service(cmd) -> None:
 
     args = shlex.split(cmd)
+    print('===> %s' % args)
     os.execvp(args[0], args)
 
     assert False
@@ -157,15 +134,19 @@ def run_service(cmd) -> None:
 def start_service(base, name, cmd, tout) \
                   -> Tuple[Union[int, None], Union[str, None]]:
 
-    lockfile, statfile = get_fnames(base, name)
+    lockfile, outfile = get_fnames(base, name)
 
-    if os.path.isfile(lockfile):
-        raise RuntimeError('ERROR: lockfile exists [%s]' % lockfile)
+    # check if the service is still running
+    pid = check_service(base, name, tout=tout)
+    if pid:
+        return pid
 
+    # service is not running - start it
     pid = None
     try:
-        pid = ru.daemonize(run_service, [cmd], stdout=statfile, stderr=statfile,
-                stdin='/dev/null', timeout=1)
+        pid = ru.daemonize(run_service, [cmd], stdout=outfile,
+                stderr=outfile + '.err',
+                stdin='/dev/null', timeout=4)
 
         assert pid
 
@@ -206,17 +187,12 @@ def main() -> None:
     ru.rec_makedir(sbox)
     os.chdir(base + '/' + name)
 
-    pid, status = check_service(base, name, tout=0.0)
+    pid = start_service(base, name, cmd, tout)
 
     if not pid:
-        pid, status = start_service(base, name, cmd, tout)
-
-    if not pid or status is None:
         print('ERROR: service startup failed')
+        stop_service(base, name)
         sys.exit(1)
-
-    sys.stdout.write(status)
-    sys.stdout.flush()
 
     sys.exit(0)
 
