@@ -178,7 +178,7 @@ class RegistryClient(Client, DictMixin):
     # --------------------------------------------------------------------------
     # verbose API
     def get(self, key    : str,
-                  default: Optional[str] = None) -> Optional[Any]:
+                  default: Optional[Any] = None) -> Optional[Any]:
 
         if self._pwd:
             key = self._pwd + '.' + key
