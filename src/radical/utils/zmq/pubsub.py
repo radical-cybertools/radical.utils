@@ -53,7 +53,13 @@ class PubSub(Bridge):
             # create deep copy
             cfg = Config(cfg=cfg)
         else:
-            cfg = Config(cfg={'channel': channel})
+            cfg = Config()
+
+        # ensure channel is set in config
+        if cfg.channel:
+            assert cfg.channel == channel
+        else:
+            cfg.channel = channel
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,

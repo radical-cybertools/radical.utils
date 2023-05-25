@@ -86,7 +86,7 @@ class Registry(Server):
 
         for elem in path:
 
-            if elem not in this:
+            if elem not in this or this[elem] is None:
                 this[elem] = dict()
 
             this = this[elem]
@@ -111,6 +111,9 @@ class Registry(Server):
             if not this:
                 break
 
+        if this is None:
+            this = dict()
+
         val = this.get(leaf)
         return val
 
@@ -127,6 +130,9 @@ class Registry(Server):
                 this = this.get(elem, {})
                 if not this:
                     break
+
+        if this is None:
+            this = dict()
 
         return list(this.keys())
 

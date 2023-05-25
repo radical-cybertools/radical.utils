@@ -22,11 +22,11 @@ from ..debug   import print_exception_trace
 from .bridge   import Bridge
 from .utils    import no_intr
 
+# NOTE: the log bulk method is frequently called and slow
 # from .utils    import log_bulk
 # from .utils    import prof_bulk
 
 
-# FIXME: the log bulk method is frequently called and slow
 
 # --------------------------------------------------------------------------
 #
@@ -112,7 +112,13 @@ class Queue(Bridge):
             # create deep copy
             cfg = Config(cfg=cfg)
         else:
-            cfg = Config(cfg={'channel': channel})
+            cfg = Config()
+
+        # ensure channel is set in config
+        if cfg.channel:
+            assert cfg.channel == channel
+        else:
+            cfg.channel = channel
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
@@ -236,7 +242,7 @@ class Queue(Bridge):
                     msgs  = msgpack.unpackb(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
                   # log_bulk(self._log, '<> %s' % qname, msgs)
-                    self._log.debug('put %s: %s ! ', qname, len(msgs))
+                  # self._log.debug('put %s: %s ! ', qname, len(msgs))
 
                     if qname not in buf:
                         buf[qname] = list()
@@ -266,6 +272,8 @@ class Queue(Bridge):
                     if qname in buf:
                         msgs = buf[qname][:self._bulk_size]
                     else:
+                      # self._log.debug('get: %s not in %s', qname,
+                      #                                      list(buf.keys()))
                         msgs = list()
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
@@ -408,6 +416,7 @@ class Getter(object):
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
+                # FIXME: why is this sent repeatedly?
               # logger.debug('=== => from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
@@ -456,7 +465,6 @@ class Getter(object):
                     continue
 
                 msgs = Getter._get_nowait(url, qname=qname, timeout=500, uid=uid)
-
                 BULK = True
                 if msgs:
 
