@@ -108,7 +108,7 @@ ID_UUID    = 'uuid'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE, ns=None):
+def generate_id(prefix: str, mode=ID_SIMPLE, ns=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -182,9 +182,6 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     Note that for docker containers, we try to avoid hostname / username clashes
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
-
-    if not prefix or not isinstance(prefix, str):
-        raise TypeError("ID generation expect prefix in basestring type")
 
     if _cache['dockerized'] and mode == ID_PRIVATE:
         mode = ID_UUID

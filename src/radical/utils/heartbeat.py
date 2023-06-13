@@ -103,6 +103,15 @@ class Heartbeat(object):
 
     # --------------------------------------------------------------------------
     #
+    def watch(self, uid):
+
+        with self._lock:
+            if uid not in self._tstamps:
+                self._tstamps[uid] = None
+
+
+    # --------------------------------------------------------------------------
+    #
     def _watch(self):
 
         # initial heartbeat without delay
@@ -148,7 +157,7 @@ class Heartbeat(object):
                         # avoiding termination
                         ret = True
 
-                    if ret is None:
+                    if ret in [None, False]:
                         # could not recover: abandon mothership
                         self._log.warn('hb fail %s: fatal (%d)', uid, self._pid)
                         os.kill(self._pid, signal.SIGTERM)
@@ -161,6 +170,7 @@ class Heartbeat(object):
                         # information for the old uid and register a new
                         # heartbeat for the new one, so that we can immediately
                         # begin to watch it.
+                        assert isinstance(ret, str)
                         self._log.info('hb recover %s -> %s (%s)',
                                                         uid, ret, self._term_cb)
                         with self._lock:
@@ -178,9 +188,10 @@ class Heartbeat(object):
         if not uid:
             uid = 'default'
 
-      # self._log.debug('hb %s beat [%s]', self._uid, uid)
         with self._lock:
-            self._tstamps[uid] = timestamp
+            if uid in self._tstamps:
+              # self._log.debug('hb %s beat [%s]', self._uid, uid)
+                self._tstamps[uid] = timestamp
 
 
   # # --------------------------------------------------------------------------

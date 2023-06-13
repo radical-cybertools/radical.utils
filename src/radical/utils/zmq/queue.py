@@ -327,7 +327,7 @@ class Putter(object):
                                      ID_CUSTOM)
 
         if not self._url:
-            self._url = Bridge.get_config(channel, path).put
+            self._url = Bridge.get_config(channel, path).get('put')
 
         if not self._url:
             raise ValueError('no contact url specified, no config found')
@@ -551,7 +551,7 @@ class Getter(object):
                                       ID_CUSTOM)
 
         if not self._url:
-            self._url = Bridge.get_config(channel, path).get
+            self._url = Bridge.get_config(channel, path).get('get')
 
         if not self._url:
             raise ValueError('no contact url specified, no config found')
