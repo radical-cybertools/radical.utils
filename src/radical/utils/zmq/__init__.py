@@ -13,6 +13,7 @@ from .pipe     import Pipe,   MODE_PUSH, MODE_PULL
 from .client   import Client
 from .server   import Server
 from .registry import Registry, RegistryClient
+from .message  import Message
 
 
 # ------------------------------------------------------------------------------
