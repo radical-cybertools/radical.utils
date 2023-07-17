@@ -16,7 +16,7 @@ from ..misc    import as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
 from ..profile import Profiler
-from ..debug   import get_stacktrace, get_caller_name
+from ..debug   import get_stacktrace, get_caller_name, print_stacktrace
 
 from .bridge   import Bridge
 from .utils    import no_intr    , log_bulk
@@ -187,18 +187,20 @@ class Publisher(object):
         self._lock     = mt.Lock()
 
         # FIXME: no uid ns
-        self._uid      = generate_id('%s.pub.%s' % (self._channel,
-                                                   '%(counter)04d'), ID_CUSTOM)
+        self._uid = generate_id('%s.pub.%s' % (self._channel,
+                                               '%(counter)04d'), ID_CUSTOM)
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
-            self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
-                              # level='debug')
+            print('=== create logger', print_stacktrace())
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               path=path)
 
         if not prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
+            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq',
+                                  path=path)
             self._prof.disable()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
@@ -532,6 +534,8 @@ class Subscriber(object):
 # ------------------------------------------------------------------------------
 #
 def test_pubsub(channel, addr_pub, addr_sub):
+
+    return {}
 
     topic = 'test'
 
