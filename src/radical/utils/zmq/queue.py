@@ -740,4 +740,69 @@ class Getter(object):
 
 
 # ------------------------------------------------------------------------------
+#
+def test_queue(channel, addr_pub, addr_sub):
+
+    c_a  = 200
+    c_b  = 400
+    data = dict()
+
+    for i in 'ABCD':
+        data[i] = dict()
+        for j in 'AB':
+            data[i][j] = 0
+
+    def cb(uid, msg):
+        if msg['idx'] is None:
+            return False
+        data[uid][msg['src']] += 1
+
+    cb_C = lambda t,m: cb('C', m)
+    cb_D = lambda t,m: cb('D', m)
+
+    Getter(channel=channel, url=addr_sub, cb=cb_C)
+    Getter(channel=channel, url=addr_sub, cb=cb_D)
+
+    # --------------------------------------------------------------------------
+    def work_pub(uid, n, delay):
+
+        pub = Putter(channel=channel, url=addr_pub)
+        idx = 0
+
+        while idx < n:
+            time.sleep(delay)
+            pub.put({'src': uid,
+                     'idx': idx})
+            idx += 1
+            data[uid][uid] += 1
+
+        # send EOF
+        pub.put({'src': uid,
+                 'idx': None})
+    # --------------------------------------------------------------------------
+
+    t_a = mt.Thread(target=work_pub, args=['A', c_a, 0.001])
+    t_b = mt.Thread(target=work_pub, args=['B', c_b, 0.001])
+
+    t_a.start()
+    t_b.start()
+
+    t_a.join()
+    t_b.join()
+
+    time.sleep(0.1)
+
+    import pprint
+    pprint.pprint(data)
+
+    assert data['A']['A'] == c_a
+    assert data['B']['B'] == c_b
+
+    assert data['C']['A'] + data['C']['B'] + \
+           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
+
+    return data
+
+
+# ------------------------------------------------------------------------------
 

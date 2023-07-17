@@ -169,6 +169,7 @@ class RegistryClient(Client, DictMixin):
     def __init__(self, url: str,
                        pwd: Optional[str] = None) -> None:
 
+        self._url = url
         self._pwd = pwd
 
         super().__init__(url=url)
