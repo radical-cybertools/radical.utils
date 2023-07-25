@@ -24,9 +24,8 @@ class Message(TypedDict):
 
 
     # --------------------------------------------------------------------------
-    def verify(self):
+    def _verify(self):
         assert self.msg_type
-        super().verify()
 
 
     @staticmethod
