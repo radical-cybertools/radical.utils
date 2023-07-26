@@ -211,6 +211,10 @@ class Profiler(object):
         except OSError:
             pass  # already exists
 
+        # don't open the file on disabled profilers
+        if not self._enabled:
+            return
+
         # we set `buffering` to `1` to force line buffering.  That is not idea
         # performance wise - but will not do an `fsync()` after writes, so OS
         # level buffering should still apply.  This is supposed to shield

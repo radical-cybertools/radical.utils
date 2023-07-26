@@ -11,19 +11,18 @@ from ..typeddict import TypedDict
 class Message(TypedDict):
 
     _schema = {
-        'msg_type': str,
-        'payload' : {str, None}
+        '_msg_type': str,
     }
 
     _defaults = {
-        'msg_type': None,
-        'payload' : None
+        '_msg_type': None,
     }
 
     _msg_types = dict()
 
 
     # --------------------------------------------------------------------------
+    #
     def _verify(self):
         assert self.msg_type
 
