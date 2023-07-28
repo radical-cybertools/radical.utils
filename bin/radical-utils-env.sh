@@ -38,6 +38,86 @@ env_grep(){
 
 # ------------------------------------------------------------------------------
 #
+env_diff(){
+
+    # This method compares to environments and returns those elements which
+    # appear in only the first, those which only appear in the secondm and those
+    # whose value changed from one env to the other.  Keys in the `BLACKLIST`
+    # will be ignored.
+    #
+    # The two parameters are expected to be file names pointing to dumped
+    # environments (see `env_dump`).
+    #
+    # The output format is:
+    #
+    #     only_1: KEY_1=value
+    #     only_1: KEY_2=value
+    #     only_2: KEY_3=value
+    #     change: KEY_4=value_1
+    #     change: KEY_4=value_2
+
+    env_1=$1
+    env_2=$2
+
+    slurp_1=$(cat $env_1)
+    slurp_2=$(cat $env_2)
+
+    only_1=''
+    only_2=''
+    changed=''
+
+    to_check=$((printf '%s\n' "$slurp_1"; printf '%s' "$slurp_2") \
+             | sort \
+             | uniq -c \
+             | grep -v -e '^\s*2 ')
+
+    keys_1=$(printf '%s' "$slurp_1" | cut -f 1 -d '=')
+    keys_2=$(printf '%s' "$slurp_2" | cut -f 1 -d '=')
+    all_keys=$(echo $keys_1 $keys_2 | xargs -n 1 echo | sort -u)
+
+    for k in $all_keys
+    do
+        v1=$(printf '%s' "$env_1" | grep -e "^$k=" | cut -f 2 -d =)
+        v2=$(printf '%s' "$env_2" | grep -e "^$k=" | cut -f 2 -d =)
+
+        found_1=0
+        for k1 in $keys_1
+        do
+            if test $k = $k1
+            then
+                found_1=1
+                break
+            fi
+        done
+        test $found_1 = 1 || echo "only_2: $k=$v2"
+
+        found_2=0
+        for k2 in $keys_2
+        do
+            if test $k = $k2
+            then
+                found_2=1
+                break
+            fi
+        done
+        test $found_2 = 1 || echo "only_1: $k=$v1"
+
+        if test $found_1 = 1 -a $found_2 = 1
+        then
+            if ! test "$v1" = "$v2"
+            then
+                changed="$changed$k "
+                echo "change: $k=$v1"
+                echo "change: $k=$v2"
+            fi
+        fi
+
+    done
+}
+
+
+# ------------------------------------------------------------------------------
+#
 env_dump(){
 
     # The purpose of this method is to dump the environment of the current shell

@@ -414,12 +414,11 @@ def env_diff(env_1 : Dict[str,str],
              env_2 : Dict[str,str]
             ) -> Tuple[Dict[str,str], Dict[str,str], Dict[str,str]]:
     '''
-    This method serves debug purposes: it compares to environments and returns
-    those elements which appear in only either one or the other env, and which
-    changed from one env to another.
+    This method compares to environments and returns those elements which appear
+    in only the first, those which only appear in the secondm and those whose
+    value changed from one env to the other.
 
-    It will ignore any keys in the `BLACKLIST` and will also ignore
-    `BASH_FUNC_*` keys which point to bash function definitions.
+    It will ignore any keys in the `BLACKLIST`.
     '''
 
     only_1  = dict()
@@ -432,8 +431,8 @@ def env_diff(env_1 : Dict[str,str],
     for k in keys_1:
         if k in BLACKLIST:
             continue
-        if k.startswith('BASH_FUNC_'):
-            continue
+      # if k.startswith('BASH_FUNC_'):
+      #     continue
         v = env_1[k]
         if   k not in env_2: only_1[k]  = v
         elif v != env_2[k] : changed[k] = [v, env_2[k]]
@@ -441,8 +440,8 @@ def env_diff(env_1 : Dict[str,str],
     for k in keys_2:
         if k in BLACKLIST:
             continue
-        if k.startswith('BASH_FUNC_'):
-            continue
+      # if k.startswith('BASH_FUNC_'):
+      #     continue
         v = env_2[k]
         if k not in env_1: only_2[k]  = v
         # else is checked in keys_1 loop above
