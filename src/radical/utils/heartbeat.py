@@ -137,6 +137,7 @@ class Heartbeat(object):
             with self._lock:
                 uids = list(self._tstamps.keys())
 
+            self._log.debug('=== hb %s uids %s', self._uid, uids)
             for uid in uids:
 
                 self._log.debug('=== hb %s check %s', self._uid, uid)
@@ -197,9 +198,8 @@ class Heartbeat(object):
             uid = 'default'
 
         with self._lock:
-            if uid in self._tstamps:
-                self._log.debug('hb %s beat [%s]', self._uid, uid)
-                self._tstamps[uid] = timestamp
+            self._log.debug('hb %s beat [%s]', self._uid, uid)
+            self._tstamps[uid] = timestamp
 
 
   # # --------------------------------------------------------------------------

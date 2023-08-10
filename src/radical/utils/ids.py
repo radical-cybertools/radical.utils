@@ -183,6 +183,9 @@ def generate_id(prefix: str, mode=ID_SIMPLE, ns=None):
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
 
+    if not isinstance(prefix, str):
+        raise TypeError('"prefix" must be a string, not %s' % type(prefix))
+
     if _cache['dockerized'] and mode == ID_PRIVATE:
         mode = ID_UUID
 

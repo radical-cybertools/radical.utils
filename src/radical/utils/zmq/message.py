@@ -24,7 +24,7 @@ class Message(TypedDict):
     # --------------------------------------------------------------------------
     #
     def _verify(self):
-        assert self.msg_type
+        assert self._msg_type
 
 
     @staticmethod
@@ -35,13 +35,14 @@ class Message(TypedDict):
     @staticmethod
     def deserialize(data: Dict[str, Any]):
 
-        msg_type = data.get('msg_type')
+        msg_type = data.get('_msg_type')
 
         if msg_type is None:
             raise ValueError('no message type defined')
 
         if msg_type not in Message._msg_types:
-            raise ValueError('unknown message type [%s]' % msg_type)
+            known = list(Message._msg_types.keys())
+            raise ValueError('unknown message type [%s]: %s' % (msg_type, known))
 
         return Message._msg_types[msg_type](from_dict=data)
 

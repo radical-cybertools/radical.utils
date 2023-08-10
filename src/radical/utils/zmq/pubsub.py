@@ -194,7 +194,6 @@ class Publisher(object):
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
-            print('=== create logger', print_stacktrace())
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
                                path=path)
 
