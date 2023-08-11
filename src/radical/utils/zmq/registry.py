@@ -1,4 +1,5 @@
 
+import atexit
 import shelve
 
 from typing import List, Optional, Any
@@ -8,6 +9,18 @@ from ..dict_mixin import DictMixin
 
 from .server import Server
 from .client import Client
+
+_registries = list()
+
+
+# ------------------------------------------------------------------------------
+#
+def _flush_registries():
+    for _reg in _registries:
+        _reg.stop()
+
+
+atexit.register(_flush_registries)
 
 
 # ------------------------------------------------------------------------------
@@ -22,9 +35,10 @@ class Registry(Server):
     #
     def __init__(self, url       : Optional[str] = None,
                        uid       : Optional[str] = None,
+                       path      : Optional[str] = None,
                        persistent: bool          = False) -> None:
 
-        super().__init__(url=url, uid=uid)
+        super().__init__(url=url, uid=uid, path=path)
 
         if persistent:
             self._data = shelve.open('%s.db' % self._uid, writeback=True)
@@ -35,15 +49,27 @@ class Registry(Server):
         self.register_request('get',  self.get)
         self.register_request('keys', self.keys)
         self.register_request('del',  self.delitem)
+        self.register_request('dump', self.dump)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def dump(self, name: str = None) -> None:
+
+        if isinstance(self._data, dict):
+            if name:
+                write_json(self._data, '%s.%s.json' % (self._uid, name))
+            else:
+                write_json(self._data, '%s.json' % self._uid)
 
 
     # --------------------------------------------------------------------------
     #
     def stop(self) -> None:
 
-        if isinstance(self._data, dict):
-            write_json(self._data, '%s.json' % self._uid)
-        else:
+        self.dump()
+
+        if isinstance(self._data, shelve.Shelf):
             self._data.close()
 
         super().stop()
@@ -60,7 +86,7 @@ class Registry(Server):
 
         for elem in path:
 
-            if elem not in this:
+            if elem not in this or this[elem] is None:
                 this[elem] = dict()
 
             this = this[elem]
@@ -81,28 +107,51 @@ class Registry(Server):
         leaf  = elems[-1]
 
         for elem in path:
-
-            this = this.get(elem)
+            this = this.get(elem, {})
             if not this:
-                return None
+                break
 
-        return this.get(leaf)
+        if this is None:
+            this = dict()
+
+        val = this.get(leaf)
+        return val
 
 
     # --------------------------------------------------------------------------
     #
-    def keys(self) -> List[str]:
+    def keys(self, pwd: Optional[str] = None) -> List[str]:
 
-        return list(self._data.keys())
+        this = self._data
+
+        if pwd:
+            path = pwd.split('.')
+            for elem in path:
+                this = this.get(elem, {})
+                if not this:
+                    break
+
+        if this is None:
+            this = dict()
+
+        return list(this.keys())
 
 
     # --------------------------------------------------------------------------
     #
     def delitem(self, key: str) -> None:
 
-        del self._data[key]
-        if not isinstance(self._data, dict):
-            self._data.sync()
+        this = self._data
+
+        if key:
+            path = key.split('.')
+            for elem in path[:-1]:
+                this = this.get(elem, {})
+                if not this:
+                    break
+
+            if this:
+                del this[path[-1]]
 
 
 # ------------------------------------------------------------------------------
@@ -117,14 +166,29 @@ class RegistryClient(Client, DictMixin):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str,
+                       pwd: Optional[str] = None) -> None:
+
+        self._url = url
+        self._pwd = pwd
 
         super().__init__(url=url)
 
 
     # --------------------------------------------------------------------------
+    #
+    def dump(self, name: str = None) -> None:
+
+        return self.request(cmd='dump', name=name)
+
+
+    # --------------------------------------------------------------------------
     # verbose API
-    def get(self, key: str, default: Optional[str] = None) -> Optional[Any]:
+    def get(self, key    : str,
+                  default: Optional[Any] = None) -> Optional[Any]:
+
+        if self._pwd:
+            key = self._pwd + '.' + key
 
         try:
             return self.request(cmd='get', key=key)
@@ -134,7 +198,11 @@ class RegistryClient(Client, DictMixin):
 
     def put(self, key: str,
                   val: Any) -> None:
+
+        if self._pwd:
+            key = self._pwd + '.' + key
         ret = self.request(cmd='put', key=key, val=val)
+
         assert ret is None
         return ret
 
@@ -142,20 +210,26 @@ class RegistryClient(Client, DictMixin):
     # --------------------------------------------------------------------------
     # dict mixin API
     def __getitem__(self, key: str) -> Optional[Any]:
+
         return self.get(key)
 
 
     def __setitem__(self, key: str, val: Any) -> None:
+
         return self.put(key, val)
 
 
     def __delitem__(self, key: str) -> None:
+
+        if self._pwd:
+            key = self._pwd + '.' + key
         ret = self.request(cmd='del', key=key)
         assert ret is None
 
 
     def keys(self) -> List[str]:
-        ret = self.request(cmd='keys')
+
+        ret = self.request(cmd='keys', pwd=self._pwd)
         assert isinstance(ret, list)
         return ret
 

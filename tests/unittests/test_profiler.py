@@ -143,8 +143,6 @@ def test_env():
             if k.startswith('RADICAL'):
                 del os.environ[k]
 
-        _assert_profiler('', '', True)
-
         for val, res in [
                          ['false', False],
                          ['',      True ],

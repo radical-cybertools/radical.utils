@@ -40,8 +40,14 @@ def test_zmq_pubsub():
                          'stall_hwm': 1,
                         })
 
-    b = ru.zmq.PubSub(cfg)
+    b = ru.zmq.PubSub('test', cfg)
     b.start()
+
+    assert b.type_in  == 'pub'
+    assert b.type_out == 'sub'
+
+    assert b.addr_in  == b.addr_pub
+    assert b.addr_out == b.addr_sub
 
     assert b.addr_in  != b.addr_out
     assert b.addr_in  == b.addr_pub
@@ -102,6 +108,9 @@ def test_zmq_pubsub():
 
     assert data['C']['A'] + data['C']['B'] + \
            data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
+
+    import pprint
+    pprint.pprint(data)
 
 
 # ------------------------------------------------------------------------------

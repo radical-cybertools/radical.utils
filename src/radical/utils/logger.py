@@ -331,6 +331,7 @@ class Logger(object):
             p = self._path
             n = self._name
             for t in self._targets:
+
                 if   t in ['0', 'null']       : h = logging.NullHandler()
                 elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
                 elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)

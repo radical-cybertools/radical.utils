@@ -6,7 +6,7 @@
     "report"     : "${RADICAL_DEFAULT_REPORT:TRUE}",
     "report_tgt" : "${RADICAL_DEFAULT_REPORT_TGT:stderr}",
     "report_dir" : "${RADICAL_DEFAULT_REPORT_DIR:$PWD}",
-    "profile"    : "${RADICAL_DEFAULT_PROFILE:TRUE}",
+    "profile"    : "${RADICAL_DEFAULT_PROFILE:FALSE}",
     "profile_dir": "${RADICAL_DEFAULT_PROFILE_DIR:$PWD}"
 }
 
