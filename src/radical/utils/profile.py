@@ -194,6 +194,10 @@ class Profiler(object):
 
         if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
+
+        # don't open the file on disabled profilers
+        if not self._enabled:
+            self._handle = None
             return
 
         # profiler is enabled - set properties, sync time, open handle
@@ -210,10 +214,6 @@ class Profiler(object):
             os.makedirs(self._path)
         except OSError:
             pass  # already exists
-
-        # don't open the file on disabled profilers
-        if not self._enabled:
-            return
 
         # we set `buffering` to `1` to force line buffering.  That is not idea
         # performance wise - but will not do an `fsync()` after writes, so OS
