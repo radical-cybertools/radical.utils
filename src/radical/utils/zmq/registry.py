@@ -41,7 +41,8 @@ class Registry(Server):
         super().__init__(url=url, uid=uid, path=path)
 
         if persistent:
-            self._data = shelve.open('%s.db' % self._uid, writeback=True)
+            self._data = shelve.open('%s/%s.db' % (self._path, self._uid),
+                                                   writeback=True)
         else:
             self._data = dict()
 
@@ -58,9 +59,10 @@ class Registry(Server):
 
         if isinstance(self._data, dict):
             if name:
-                write_json(self._data, '%s.%s.json' % (self._uid, name))
+                write_json(self._data, '%s/%s.%s.json' % (self._path, self._uid,
+                                                          name))
             else:
-                write_json(self._data, '%s.json' % self._uid)
+                write_json(self._data, '%s/%s.json' % (self._path, self._uid))
 
 
     # --------------------------------------------------------------------------
