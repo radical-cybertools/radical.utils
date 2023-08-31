@@ -276,7 +276,7 @@ class Subscriber(object):
             topic, bmsg = data.split(b' ', 1)
             msg         = msgpack.unpackb(bmsg)
 
-            log.debug(' <- %s: %s', topic, msg)
+          # log.debug(' <- %s: %s', topic, msg)
 
             return [as_string(topic), as_string(msg)]
 
@@ -294,7 +294,7 @@ class Subscriber(object):
                 # this list is dynamic
                 topic, msg = Subscriber._get_nowait(sock, lock, 500, log, prof)
 
-                log.debug(' <- %s: %s', topic, msg)
+              # log.debug(' <- %s: %s', topic, msg)
 
                 if topic:
                     for cb, _lock in callbacks:
