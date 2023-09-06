@@ -17,8 +17,6 @@ from .threads   import get_thread_name as ru_get_thread_name
 from .config    import DefaultConfig
 from .atfork    import atfork
 
-from .zmq.queue import Putter
-
 
 
 # ------------------------------------------------------------------------------
@@ -258,6 +256,9 @@ class Profiler(object):
         # ----------------------------------------------------------------------
         #
         def _work(self, target):
+
+            # bridge is being profiles - avoid circular import
+            from .zmq.queue import Putter
 
             self._handle = Putter(channel='tracer_queue', url=target)
 
