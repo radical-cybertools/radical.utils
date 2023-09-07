@@ -15,6 +15,7 @@ from ..url     import Url
 from ..misc    import as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
+
 from ..profile import Profiler
 from ..debug   import get_stacktrace, get_caller_name, print_stacktrace
 
@@ -180,13 +181,14 @@ class Publisher(object):
     #
     def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
-        self._channel  = channel
-        self._url      = as_string(url)
-        self._log      = log
-        self._prof     = prof
-        self._lock     = mt.Lock()
+        self._channel = channel
+        self._url     = as_string(url)
+        self._log     = log
+        self._lock    = mt.Lock()
+        self._prof    = prof
 
         # FIXME: no uid ns
+
         self._uid = generate_id('%s.pub.%s' % (self._channel,
                                                '%(counter)04d'), ID_CUSTOM)
 
@@ -266,7 +268,7 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _get_nowait(socket, lock, timeout, log, prof):
+    def _get_nowait(socket, lock, timeout, log, prof=None):
 
         # FIXME: add logging
 
@@ -286,13 +288,12 @@ class Subscriber(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def _listener(sock, lock, term, callbacks, log, prof):
+    def _listener(sock, lock, term, callbacks, log):
 
         try:
             while not term.is_set():
 
-                # this list is dynamic
-                topic, msg = Subscriber._get_nowait(sock, lock, 500, log, prof)
+                topic, msg = Subscriber._get_nowait(sock, lock, 500, log)
 
               # log.debug(' <- %s: %s', topic, msg)
 
@@ -318,8 +319,8 @@ class Subscriber(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel, url=None, topic=None, cb=None,
-                                log=None, prof=None, path=None):
+    def __init__(self, channel, url=None, topic=None, cb=None, prof=None,
+                                log=None, path=None):
         '''
         If a `topic` is given, the channel will subscribe to that topic
         immediately.
@@ -356,13 +357,6 @@ class Subscriber(object):
 
         if not self._log:
             self._log = Logger(name=self._uid, ns='radical.utils.zmq')
-
-        if not self._prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq')
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
 
         self._log.info('connect sub to %s: %s', self._channel, self._url)
 
@@ -413,8 +407,7 @@ class Subscriber(object):
         callbacks = self._callbacks
 
         t = mt.Thread(target=Subscriber._listener,
-                      args=[self._sock, lock, term, callbacks,
-                            self._log, self._prof])
+                      args=[self._sock, lock, term, callbacks, self._log])
         t.daemon = True
         t.start()
 

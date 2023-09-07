@@ -23,14 +23,14 @@ from ..misc import ru_open
 #
 def no_intr(f, *args, **kwargs):
 
-    _max = 3
+    _max = 1
     cnt  = 0
     while True:
         try:
             return f(*args, **kwargs)
 
-        except zmq.ContextTerminated:
-            return None    # connect closed or otherwise became unusable
+      # except zmq.ContextTerminated:
+      #     return None    # connect closed or otherwise became unusable
 
         except zmq.ZMQError as e:
             if e.errno == errno.EINTR:

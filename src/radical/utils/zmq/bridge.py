@@ -5,10 +5,10 @@ import threading as mt
 
 from typing import Optional
 
-from ..logger  import Logger
-from ..profile import Profiler
-from ..config  import Config
-from ..json_io import read_json, write_json
+from ..logger   import Logger
+from ..profile  import Profiler
+from ..config   import Config
+from ..json_io  import read_json, write_json
 
 QUEUE   = 'QUEUE'
 PUBSUB  = 'PUBSUB'
@@ -175,7 +175,6 @@ class Bridge(object):
 
         self._term.set()
       # self._bridge_thread.join(timeout=timeout)
-        self._prof.prof('term', uid=self._uid)
 
       # if timeout is not None:
       #     return not self._bridge_thread.is_alive()

@@ -3,15 +3,20 @@
 import os
 import csv
 import time
+import queue
 
-from .ids     import get_radical_base
-from .misc    import as_string, as_list, ru_open
-from .misc    import get_env_ns      as ru_get_env_ns
-from .host    import get_hostname    as ru_get_hostname
-from .host    import get_hostip      as ru_get_hostip
-from .threads import get_thread_name as ru_get_thread_name
-from .config  import DefaultConfig
-from .atfork  import atfork
+import threading as mt
+
+from .ids       import get_radical_base
+from .url       import Url
+from .misc      import as_string, as_list, ru_open
+from .misc      import get_env_ns      as ru_get_env_ns
+from .host      import get_hostname    as ru_get_hostname
+from .host      import get_hostip      as ru_get_hostip
+from .threads   import get_thread_name as ru_get_thread_name
+from .config    import DefaultConfig
+from .atfork    import atfork
+
 
 
 # ------------------------------------------------------------------------------
@@ -41,6 +46,7 @@ PROF_KEY_MAX = 8  # iteration helper: `for _ in range(PROF_KEY_MAX):`
 # STATE      = 5  # state of entity involved                    optional
 # EVENT      = 1  # event ID (string)                           mandatory
 # MSG        = 6  # message describing the event                optional
+
 
 # ------------------------------------------------------------------------------
 #
@@ -173,10 +179,217 @@ class Profiler(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, ns=None, path=None):
+    class ZMQHandler(object):
+
+        # --------------------------------------------------------------------------
+        #
+        def _stats(self):
+
+            with open('./profiler.stats', 'w') as fout:
+                while True:
+                    fout.write('%10.1f  %10d  %10d  %10d\n' % (time.time(),
+                        self._count, len(self._buffer_1), len(self._buffer_2)))
+                    time.sleep(0.1)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self, target, stats=False):
+
+            self._target      = None
+            self._queue       = None
+            self._work_thread = None
+            self._buffer_1    = list()
+            self._buffer_2    = list()
+            self._count       = 0
+
+            if stats:
+                self._stats_thread = mt.Thread(target=self._stats)
+                self._stats_thread.daemon = True
+                self._stats_thread.start()
+
+            # use url immediately if it is complete
+            if str(target) not in ['tcp://', 'zmq://']:
+                self.reconfigure(target=target)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def trace(self, ts, event, comp, thread, uid, state, msg):
+
+            data = (ts, event, comp, thread, uid, state, msg)
+
+            if self._queue: self._queue.put([data])
+            else          : self._buffer_1.append(data)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def reconfigure(self, target):
+
+            target = str(target)
+
+            # this handle can only be configured once
+            if self._target and self._target != target:
+                from .debug import print_stacktrace
+                print_stacktrace()
+                print(target, '!=', self._target)
+                raise RuntimeError('profiler already configured')
+
+            self._target      = target
+            self._queue       = queue.Queue()
+            self._work_thread = mt.Thread(target=self._work, args=[target])
+
+            self._work_thread.daemon = True
+            self._work_thread.start()
+            time.sleep(1)
+
+            if self._buffer_1:
+                print('flushing buffer 1: %s : %s' % (len(self._buffer_1),
+                    str(self._buffer_1)[:100]))
+                self._queue.put(self._buffer_1)
+                self._buffer_1 = list()
+            else:
+                print('no flushing buffer 1')
+
+
+        # ----------------------------------------------------------------------
+        #
+        def _work(self, target):
+
+            # bridge is being profiles - avoid circular import
+            from .zmq.queue import Putter
+
+            self._handle = Putter(channel='tracer_queue', url=target)
+
+            buff_time = 1.0  # max time to buffer data
+            buff_last = 0.0  # we never sent a buffer out
+            while True:
+
+                try:
+                    data = self._queue.get(block=True, timeout=0.1)
+                    if data:
+                        self._buffer_2 += data
+
+                except:
+                    pass
+
+                if self._buffer_2:
+                    now = time.time()
+                    if (now - buff_last) > buff_time:
+                        self._handle.put(self._buffer_2)
+                        self._count += len(self._buffer_2)
+                        self._buffer_2 = list()
+                        buff_last = now
+
+
+        # ----------------------------------------------------------------------
+        #
+        def flush(self):
+
+            pass
+
+
+        # ----------------------------------------------------------------------
+        #
+        def close(self):
+
+            pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    class FileHandler(object):
+
+        # ----------------------------------------------------------------------
+        #
+        def __init__(self, target, stats=None):
+
+            self._target = None
+            self._handle = None
+            self._buffer_1 = list()
+
+            if target:
+                self.reconfigure(target)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def reconfigure(self, target):
+
+            target = str(target)
+
+            # this handle can only be configured once
+            if self._target and self._target != target:
+                from .debug import print_stacktrace
+                print_stacktrace()
+                print(target, '!=', self._target)
+                raise RuntimeError('profiler already configured')
+
+            self._target = target
+
+            try:
+                os.makedirs(os.path.dirname(self._target))
+            except OSError:
+                pass  # already exists
+
+            # we set `buffering` to `1` to force line buffering.  That is not idea
+            # performance wise - but will not do an `fsync()` after writes, so OS
+            # level buffering should still apply.  This is supposed to shield
+            # against incomplete profiles.
+            self._handle = open(self._target, 'a', buffering=1024)
+            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
+
+            # register for cleanup after fork
+            global _profilers
+            _profilers.append([self, self._target])
+
+            for data in self._buffer_1:
+                self._handle.write(data)
+
+            self._buffer_1 = None
+
+
+        # ----------------------------------------------------------------------
+        #
+        def trace(self, ts, event, comp, thread, uid, state, msg):
+
+            data = '%.7f,%s,%s,%s,%s,%s,%s\n' % \
+                   (ts, event, comp, thread, uid, state, msg)
+
+            if self._handle: self._handle.write(data)
+            else           : self._buffer_1.append(data)
+
+
+        # ----------------------------------------------------------------------
+        #
+        def flush(self):
+
+            # see https://docs.python.org/2/library/stdtypes.html#file.flush
+            self._handle.flush()
+            os.fsync(self._handle.fileno())
+
+
+        # ----------------------------------------------------------------------
+        #
+        def close(self):
+
+            self._handle.close()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, name, ns=None, target=None, path=None, stats=False):
         '''
         Open the file handle, sync the clock, and write timestam_zero
         '''
+
+        # backward compatibility
+        if target is None and path:
+            target = path
+
+        # backward compatibility
+        self.path = target
 
         ru_def = DefaultConfig()
 
@@ -202,49 +415,34 @@ class Profiler(object):
 
         # profiler is enabled - set properties, sync time, open handle
         self._enabled = True
-        self._path    = path
         self._name    = name
 
-        if not self._path:
-            self._path = ru_def['profile_dir']
+        if target: self._target = Url(target)
+        else     : self._target = Url(ru_def['profile_dir'])
 
+        if self._target.schema == 'tcp':
+            self._handle = Profiler.ZMQHandler(self._target, stats=stats)
+        else:
+            fname = '%s/%s.prof' % (self._target.path, self._name)
+            self._handle = Profiler.FileHandler(fname, stats=stats)
+
+        # write time normalization info
         self._ts_zero, self._ts_abs, self._ts_mode = self._timestamp_init()
 
-        try:
-            os.makedirs(self._path)
-        except OSError:
-            pass  # already exists
-
-        # we set `buffering` to `1` to force line buffering.  That is not idea
-        # performance wise - but will not do an `fsync()` after writes, so OS
-        # level buffering should still apply.  This is supposed to shield
-        # against incomplete profiles.
-        fname = '%s/%s.prof' % (self._path, self._name)
-        self._handle = ru_open(fname, 'a', buffering=1024)
-
-        # register for cleanup after fork
-        _profilers.append([self, fname])
-
-
-        # write header and time normalization info
-        if self._handle:
-            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
-            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
-                           (self.timestamp(), 'sync_abs', self._name,
-                            ru_get_thread_name(), '', '',
-                            '%s:%s:%s:%s:%s' % (ru_get_hostname(),
-                                                ru_get_hostip(),
-                                                self._ts_zero,
-                                                self._ts_abs,
-                                                self._ts_mode)))
+        self._handle.trace(self.timestamp(), 'sync_abs', self._name,
+                        ru_get_thread_name(), '', '',
+                        '%s:%s:%s:%s:%s' % (ru_get_hostname(),
+                                            ru_get_hostip(),
+                                            self._ts_zero,
+                                            self._ts_abs,
+                                            self._ts_mode))
 
 
     # --------------------------------------------------------------------------
     #
     def __del__(self):
 
-      # self.close()
-        pass
+        self.close()
 
 
     # --------------------------------------------------------------------------
@@ -256,15 +454,22 @@ class Profiler(object):
 
 
     @property
-    def path(self):
+    def target(self):
 
-        return self._path
+        return self._target
 
 
     # --------------------------------------------------------------------------
     #
     def enable(self):  self._enabled = True
     def disable(self): self._enabled = False
+
+
+    # --------------------------------------------------------------------------
+    #
+    def reconfigure(self, target):
+
+        self._handle.reconfigure(target)
 
 
     # --------------------------------------------------------------------------
@@ -277,9 +482,10 @@ class Profiler(object):
 
             if self._enabled and self._handle:
                 self.prof('END')
-                self.flush()
+                self._handle.flush()
                 self._handle.close()
-                self._handle = None
+                self._enabled = False
+                self._handle  = None
 
         except:
             pass
@@ -290,14 +496,8 @@ class Profiler(object):
     def flush(self, verbose=False):
 
         if not self._enabled: return
-        if not self._handle : return
 
-        if verbose:
-            self.prof('flush')
-
-        # see https://docs.python.org/2/library/stdtypes.html#file.flush
         self._handle.flush()
-        os.fsync(self._handle.fileno())
 
 
     # --------------------------------------------------------------------------
@@ -319,11 +519,7 @@ class Profiler(object):
 
         # if uid is a list, then recursively call self.prof for each uid given
         for _uid in as_list(uid):
-
-            data = '%.7f,%s,%s,%s,%s,%s,%s\n' \
-                    % (ts, event, comp, tid, _uid, state, msg)
-            self._handle.write(data)
-            self._handle.flush()
+            self._handle.trace(ts, event, comp, tid, _uid, state, msg)
 
 
     # --------------------------------------------------------------------------

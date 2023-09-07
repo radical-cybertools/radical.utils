@@ -16,8 +16,8 @@ from ..url     import Url
 from ..misc    import as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
-from ..profile import Profiler
 from ..debug   import print_exception_trace
+from ..threads import get_thread_name, get_thread_id
 
 from .bridge   import Bridge
 from .utils    import no_intr
@@ -25,7 +25,6 @@ from .utils    import no_intr
 # NOTE: the log bulk method is frequently called and slow
 # from .utils    import log_bulk
 # from .utils    import prof_bulk
-
 
 
 # --------------------------------------------------------------------------
@@ -42,6 +41,13 @@ def _atfork_child():
 
 
 atfork(noop, noop, _atfork_child)
+
+
+# ------------------------------------------------------------------------------
+#
+def _tinfo():
+    return {'id'  : get_thread_id(),
+            'name': get_thread_name()}
 
 
 # ------------------------------------------------------------------------------
@@ -171,10 +177,11 @@ class Queue(Bridge):
         self._url        = 'tcp://*:*'
         self._lock       = mt.Lock()
 
+        self._tinfo      = _tinfo()
         self._ctx        = zmq.Context()  # rely on GC for destruction
-        self._put         = self._ctx.socket(zmq.PULL)
-        self._put.linger  = _LINGER_TIMEOUT
-        self._put.hwm     = _HIGH_WATER_MARK
+        self._put        = self._ctx.socket(zmq.PULL)
+        self._put.linger = _LINGER_TIMEOUT
+        self._put.hwm    = _HIGH_WATER_MARK
         self._put.bind(self._url)
 
         self._get        = self._ctx.socket(zmq.REP)
@@ -198,12 +205,9 @@ class Queue(Bridge):
         self._log.info('bridge out %s: %s', self._uid, self._addr_get)
 
         # start polling senders
-        self._poll_put = zmq.Poller()
-        self._poll_put.register(self._put, zmq.POLLIN)
-
-        # start polling receivers
-        self._poll_get = zmq.Poller()
-        self._poll_get.register(self._get, zmq.POLLIN)
+        self._poll = zmq.Poller()
+        self._poll.register(self._put, zmq.POLLIN)
+        self._poll.register(self._get, zmq.POLLIN)
 
 
     # --------------------------------------------------------------------------
@@ -215,21 +219,25 @@ class Queue(Bridge):
 
         try:
 
+            # FIXME: bridge_work runs in a thread, context should be created
+            #        here
+          # assert(get_thread_id() == self._tinfo['id']), \
+          #         [self._tinfo, _tinfo()]
+
             self.nin  = 0
             self.nout = 0
             self.last = 0
 
-            buf = dict()
+            buf     = dict()
+            timeout = 0.1
             while not self._term.is_set():
 
-                active = False
-
                 # check for incoming messages, and buffer them
-                ev_put = dict(no_intr(self._poll_put.poll, timeout=10))
-              # self._prof.prof('poll_put', msg=len(ev_put))
-              # self._log.debug('polled put: %s', ev_put)
+                events = dict(no_intr(self._poll.poll, timeout=timeout))
+              # self._prof.prof('poll_put', msg=len(events))
+              # self._log.debug('polled put: %s', events)
 
-                if self._put in ev_put:
+                if self._put in events:
 
                     with self._lock:
                         data = list(no_intr(self._put.recv_multipart))
@@ -249,15 +257,13 @@ class Queue(Bridge):
                     buf[qname] += msgs
                     self.nin   += len(msgs)
 
-                    active = True
-
 
                 # check if somebody wants our messages
-                ev_get = dict(no_intr(self._poll_get.poll, timeout=10))
+                events = dict(no_intr(self._poll.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
               # self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
-                if self._get in ev_get:
+                if self._get in events:
 
                     # send up to `bulk_size` messages from the buffer
                     # NOTE: this sends partial bulks on buffer underrun
@@ -278,15 +284,13 @@ class Queue(Bridge):
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
 
-                    data   = [msgpack.packb(qname), msgpack.packb(msgs)]
-                    active = True
+                    data = [msgpack.packb(qname), msgpack.packb(msgs)]
 
                   # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
                   # self._log.debug('==== get %s: %s', qname, list(buf.values()))
                   # self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
                   #                        [[x, len(y)] for x,y in buf.items()])
                     no_intr(self._get.send_multipart, data)
-                  # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
 
                     self.nout += len(msgs)
                     self.last  = time.time()
@@ -295,13 +299,6 @@ class Queue(Bridge):
                     if msgs:
                         del buf[qname][:self._bulk_size]
 
-                if not active:
-                  # self._prof.prof('sleep', msg=len(buf))
-                    # let CPU sleep a bit when there is nothing to do
-                    # We don't want to use poll timouts since we use two
-                    # competing polls and don't want the idle channel slow down
-                    # the busy one.
-                    time.sleep(0.1)
 
         except Exception:
             self._log.exception('bridge failed')
@@ -318,13 +315,13 @@ class Putter(object):
     #
     def __init__(self, channel, url=None, log=None, prof=None, path=None):
 
-        self._channel  = channel
-        self._url      = as_string(url)
-        self._log      = log
-        self._prof     = prof
-        self._lock     = mt.Lock()
-        self._uid      = generate_id('%s.put.%%(counter)04d' % self._channel,
-                                     ID_CUSTOM)
+        self._channel = channel
+        self._url     = as_string(url)
+        self._log     = log
+        self._lock    = mt.Lock()
+        self._prof    = prof
+        self._uid     = generate_id('%s.put.%%(counter)04d' % self._channel,
+                                    ID_CUSTOM)
 
         if not self._url:
             self._url = Bridge.get_config(channel, path).get('put')
@@ -336,15 +333,9 @@ class Putter(object):
             self._log = Logger(name=self._uid, ns='radical.utils',
                                level='DEBUG', path=path)
 
-        if not self._prof:
-            self._prof = Profiler(name=self._uid, ns='radical.utils', path=path)
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
-
         self._log.info('connect put to %s: %s', self._channel, self._url)
 
+        self._tinfo    = _tinfo()
         self._ctx      = zmq.Context()  # rely on GC for destruction
         self._q        = self._ctx.socket(zmq.PUSH)
         self._q.linger = _LINGER_TIMEOUT
@@ -379,12 +370,19 @@ class Putter(object):
         if not qname:
             qname = 'default'
 
+      # assert(get_thread_id() == self._tinfo['id']), \
+      #         [self._tinfo, _tinfo()]
+
+      # from .utils import log_bulk
       # log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
         data = [msgpack.packb(qname), msgpack.packb(msgs)]
 
-        with self._lock:
-            no_intr(self._q.send_multipart, data)
-      # prof_bulk(self._prof, 'put', msgs)
+      # with self._lock:
+          # if self._channel == 'tracer_queue':
+          #     return
+
+          # no_intr(self._q.send_multipart, data)
+        self._q.send_multipart(data)
 
 
 # ------------------------------------------------------------------------------
@@ -453,7 +451,7 @@ class Getter(object):
         time.sleep(1)
 
         try:
-            term = Getter._callbacks.get(url, {}).get('term')
+            term = Getter._callbacks.get(url, {})['term']
             idx  = 0  # round-robin cb index
             while not term.is_set():
 
@@ -546,7 +544,6 @@ class Getter(object):
         self._url       = as_string(url)
         self._lock      = mt.Lock()
         self._log       = log
-        self._prof      = prof
         self._uid       = generate_id('%s.get.%%(counter)04d' % self._channel,
                                       ID_CUSTOM)
 
@@ -560,16 +557,10 @@ class Getter(object):
             self._log = Logger(name=self._uid, ns='radical.utils',
                                level='DEBUG', path=path)
 
-        if not self._prof:
-            self._prof  = Profiler(name=self._uid, ns='radical.utils', path=path)
-            self._prof.disable()
-
-        if 'hb' in self._uid or 'heartbeat' in self._uid:
-            self._prof.disable()
-
         self._log.info('connect get to %s: %s', self._channel, self._url)
 
         self._requested = False          # send/recv sync
+        self._tinfo     = _tinfo()
         self._ctx       = zmq.Context()  # rely on GC for destruction
         self._q         = self._ctx.socket(zmq.REQ)
         self._q.linger  = _LINGER_TIMEOUT
@@ -675,6 +666,9 @@ class Getter(object):
         if not self._interactive:
             raise RuntimeError('invalid get(): callbacks are registered')
 
+      # assert(get_thread_id() == self._tinfo['id']), \
+      #         [self._tinfo, _tinfo()]
+
         if not qname:
             qname = 'default'
 
@@ -687,8 +681,6 @@ class Getter(object):
                   # self._log.debug('=== => from %s[%s]', self._channel, qname)
                     no_intr(self._q.send, as_bytes(qname))
                     self._requested = True
-
-          # self._prof.prof('requested')
 
         with self._lock:
             data = list(no_intr(self._q.recv_multipart))
@@ -708,6 +700,9 @@ class Getter(object):
 
         if not self._interactive:
             raise RuntimeError('invalid get(): callbacks are registered')
+
+      # assert(get_thread_id() == self._tinfo['id']), \
+      #         [self._tinfo, _tinfo()]
 
         # backward compatibility to `get_nowait(timeout=None)`
         if timeout is None and isinstance(qname, int):
