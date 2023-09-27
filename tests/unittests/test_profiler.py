@@ -145,7 +145,7 @@ def test_env():
 
         for val, res in [
                          ['false', False],
-                         ['',      True ],
+                         ['',      False],
                          ['1',     True ],
                          ['true',  True ],
                          ['True',  True ],
