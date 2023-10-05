@@ -174,6 +174,10 @@ class Profiler(object):
 
         if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
+
+        # don't open the file on disabled profilers
+        if not self._enabled:
+            self._handle = None
             return
 
         # profiler is enabled - set properties, sync time, open handle
