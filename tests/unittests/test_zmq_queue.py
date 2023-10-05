@@ -265,7 +265,7 @@ def test_zmq_queue_cb():
                 data['get'][uid] = list()
             data['get'][uid].append(uid)
 
-    b = ru.zmq.Queue(cfg)
+    b = ru.zmq.Queue('test', cfg)
     b.start()
 
     assert b.addr_in  != b.addr_out

@@ -37,17 +37,18 @@ class Server(object):
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
-        self._url = url
-        self._cbs = dict()
+        self._url  = url
+        self._cbs  = dict()
+        self._path = path
 
-        if not path:
-            path = './'
+        if not self._path:
+            self._path = './'
 
         if uid: self._uid = uid
         else  : self._uid = generate_id('server', ns='radical.utils')
 
-        self._log    = Logger(self._uid,   path=path)
-        self._prof   = Profiler(self._uid, path=path)
+        self._log    = Logger(self._uid,   path=self._path)
+        self._prof   = Profiler(self._uid, path=self._path)
 
         self._addr   = None
         self._thread = None
@@ -270,6 +271,7 @@ class Server(object):
         self._poll.register(self._sock, zmq.POLLIN)
 
         while not self._term.is_set():
+
 
             event = dict(no_intr(self._poll.poll, timeout=100))
 

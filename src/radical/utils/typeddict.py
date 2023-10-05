@@ -107,7 +107,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, from_dict=None):
+    def __init__(self, from_dict=None, **kwargs):
         '''
         Create a typed dictionary (tree) from `from_dict`.
 
@@ -131,9 +131,18 @@ class TypedDict(dict, metaclass=TypedDictMeta):
                   verify
 
               Names with a leading underscore are not supported.
+
+              Supplied `from_dict` and kwargs are used to initialize the object
+              data -- the `kwargs` take preceedence over the `from_dict` if both
+              are specified (note that `from_dict` and `self` are invalid
+              `kwargs`).
         '''
+
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
+
+        if kwargs:
+            self.update(kwargs)
 
 
     # --------------------------------------------------------------------------
@@ -297,8 +306,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         return str(self._data)
 
     def __repr__(self):
-        return '<%s object, schema keys: %s>' % \
-               (type(self).__qualname__, tuple(self._schema.keys()))
+        return '%s: %s' % (type(self).__qualname__, str(self))
 
 
     # --------------------------------------------------------------------------

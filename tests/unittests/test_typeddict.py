@@ -335,7 +335,7 @@ class TypedDictTestCase(TestCase):
         self.assertIsNone(tds.attr_str)
         with self.assertRaises(KeyError):
             # not defined earlier and not from schema
-            _ = tds.unknown_key
+            _ = tds.unknown_key                                      # noqa F841
 
         tds.unknown_key = 'unknown_key_value'
         self.assertEqual(tds.unknown_key, 'unknown_key_value')
@@ -346,7 +346,7 @@ class TypedDictTestCase(TestCase):
         # `__str__` method checked
         self.assertEqual('%s' % tds, '{}')
         # `__repr__` method checked
-        self.assertIn('TDSchemed object, schema keys', '%r' % tds)
+        self.assertIn('TDSchemed: ', '%r' % tds)
 
     # --------------------------------------------------------------------------
     #
@@ -480,11 +480,13 @@ class TypedDictTestCase(TestCase):
             _cast = False
 
             _schema = {
-                'base_int': float
+                'base_int': float,
+                'sub_bool': bool
             }
 
             _defaults = {
-                'base_int': .5
+                'base_int': .5,
+                'sub_bool': True
             }
 
         class TD3Base(TD2Base):
@@ -510,6 +512,9 @@ class TypedDictTestCase(TestCase):
         self.assertIs(getattr(TD2Base, '_schema')['base_int'], float)
         self.assertIs(getattr(TD1Base, '_schema')['base_int'], int)
 
+        self.assertIs(getattr(TD2Base, '_schema')['sub_bool'], bool)
+        self.assertIs(getattr(TD3Base, '_schema')['sub_bool'], bool)
+
         # inherited "_self_default" from TD1Base (default value is False)
         self.assertTrue(getattr(TD3Base, '_self_default'))
 
@@ -520,7 +525,7 @@ class TypedDictTestCase(TestCase):
         self.assertTrue(getattr(TD1Base, '_cast'))
 
         # inherited from TD1Base ("_schema")
-        td3 = TD3Base({'base_int': 10, 'base_str': 20})
+        td3 = TD3Base({'base_int': 10, 'base_str': 20, 'sub_bool': False})
         # exception due to `TD3Base._cast = False` (inherited from TD2Base)
         with self.assertRaises(TypeError):
             td3.verify()
@@ -532,8 +537,10 @@ class TypedDictTestCase(TestCase):
         td3.verify()
         self.assertIsInstance(td3.base_int, float)
         self.assertIsInstance(td3.base_str, str)
+        self.assertIsInstance(td3.sub_bool, bool)
         self.assertEqual(td3.base_int, 10.)
         self.assertEqual(td3.base_str, '20')
+        self.assertEqual(td3.sub_bool, False)
 
     # --------------------------------------------------------------------------
     #
