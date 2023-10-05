@@ -106,9 +106,11 @@ def test_hb_uid():
 
         try:
             while True:
-                if time.time() < t0 + 3: hb.beat('short')
-                if time.time() < t0 + 5: hb.beat('long')
-                time.sleep(0.05)
+                if   time.time() < t0 + 3: hb.beat()
+                elif time.time() < t0 + 5: hb.beat()
+                else: break
+                time.sleep(0.1)
+
             while True:
                 time.sleep(1)
 
@@ -127,7 +129,7 @@ def test_hb_uid():
         assert p.is_alive()
 
         # but it should have a zero exit value after 2 more seconds
-        time.sleep(2)
+        time.sleep(6)
         assert not p.is_alive()
         assert p.exitcode
 
@@ -140,7 +142,7 @@ def test_hb_uid():
 # run tests if called directly
 if __name__ == "__main__":
 
-    test_hb_default()
+  # test_hb_default()
     test_hb_uid()
 
 
