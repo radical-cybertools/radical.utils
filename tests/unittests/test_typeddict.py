@@ -335,7 +335,7 @@ class TypedDictTestCase(TestCase):
         self.assertIsNone(tds.attr_str)
         with self.assertRaises(KeyError):
             # not defined earlier and not from schema
-            _ = tds.unknown_key
+            _ = tds.unknown_key                                      # noqa F841
 
         tds.unknown_key = 'unknown_key_value'
         self.assertEqual(tds.unknown_key, 'unknown_key_value')

@@ -17,10 +17,9 @@ from ..host    import get_hostip
 from ..logger  import Logger
 
 from ..profile import Profiler
-from ..debug   import get_stacktrace, get_caller_name, print_stacktrace
 
 from .bridge   import Bridge
-from .utils    import no_intr    , log_bulk
+from .utils    import no_intr
 
 
 # ------------------------------------------------------------------------------
@@ -524,7 +523,7 @@ class Subscriber(object):
 
 
 # ------------------------------------------------------------------------------
-#
+# pylint: disable=unreachable
 def test_pubsub(channel, addr_pub, addr_sub):
 
     return {}
