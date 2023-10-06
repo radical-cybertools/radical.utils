@@ -55,6 +55,7 @@ def get_hostip(req=None, log=None):
     req = as_list(req)
 
     white_list = [
+        'hsn0',     # Frontier (HPE Cray EX)
         'ipogif0',  # Cray's
         'br0',      # SuperMIC
         'eth0',     # desktops etc.
