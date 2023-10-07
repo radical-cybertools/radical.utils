@@ -7,11 +7,13 @@ import msgpack
 
 import threading as mt
 
+from typing import Optional
+
 from ..atfork  import atfork
 from ..config  import Config
 from ..ids     import generate_id, ID_CUSTOM
 from ..url     import Url
-from ..misc    import is_string, as_string, as_bytes, as_list, noop
+from ..misc    import as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
 from ..debug   import print_exception_trace
@@ -20,10 +22,10 @@ from ..threads import get_thread_name, get_thread_id
 from .bridge   import Bridge
 from .utils    import no_intr
 
+# NOTE: the log bulk method is frequently called and slow
 # from .utils    import log_bulk
 # from .utils    import prof_bulk
 
-# FIXME: the log bulk method is frequently called and slow
 
 # --------------------------------------------------------------------------
 #
@@ -91,7 +93,7 @@ def _tinfo():
 #
 class Queue(Bridge):
 
-    def __init__(self, cfg=None, channel=None):
+    def __init__(self, channel: str, cfg: Optional[dict] = None):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -112,17 +114,17 @@ class Queue(Bridge):
         addresses as obj.addr_put and obj.addr_get.
         '''
 
-        if cfg and not channel and is_string(cfg):
-            # allow construction with only channel name
-            channel = cfg
-            cfg     = None
+        if cfg:
+            # create deep copy
+            cfg = Config(cfg=cfg)
+        else:
+            cfg = Config()
 
-        if   cfg    : cfg = Config(cfg=cfg)
-        elif channel: cfg = Config(cfg={'channel': channel})
-        else: raise RuntimeError('Queue needs cfg or channel parameter')
-
-        if not cfg.channel:
-            raise ValueError('no channel name provided for queue')
+        # ensure channel is set in config
+        if cfg.channel:
+            assert cfg.channel == channel
+        else:
+            cfg.channel = channel
 
         if not cfg.uid:
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
@@ -257,7 +259,7 @@ class Queue(Bridge):
 
 
                 # check if somebody wants our messages
-                events = dict(no_intr(self._poll_get.poll, timeout=10))
+                events = dict(no_intr(self._poll.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
               # self._log.debug('polled get: %s [%s]', ev_get, self._get)
 
@@ -276,6 +278,8 @@ class Queue(Bridge):
                     if qname in buf:
                         msgs = buf[qname][:self._bulk_size]
                     else:
+                      # self._log.debug('get: %s not in %s', qname,
+                      #                                      list(buf.keys()))
                         msgs = list()
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
@@ -320,7 +324,7 @@ class Putter(object):
                                     ID_CUSTOM)
 
         if not self._url:
-            self._url = Bridge.get_config(channel, path).put
+            self._url = Bridge.get_config(channel, path).get('put')
 
         if not self._url:
             raise ValueError('no contact url specified, no config found')
@@ -410,6 +414,7 @@ class Getter(object):
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
+                # FIXME: why is this sent repeatedly?
               # logger.debug('=== => from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
@@ -458,7 +463,6 @@ class Getter(object):
                     continue
 
                 msgs = Getter._get_nowait(url, qname=qname, timeout=500, uid=uid)
-
                 BULK = True
                 if msgs:
 
@@ -544,7 +548,7 @@ class Getter(object):
                                       ID_CUSTOM)
 
         if not self._url:
-            self._url = Bridge.get_config(channel, path).get
+            self._url = Bridge.get_config(channel, path).get('get')
 
         if not self._url:
             raise ValueError('no contact url specified, no config found')
@@ -728,6 +732,71 @@ class Getter(object):
 
         else:
             return None
+
+
+# ------------------------------------------------------------------------------
+#
+def test_queue(channel, addr_pub, addr_sub):
+
+    c_a  = 200
+    c_b  = 400
+    data = dict()
+
+    for i in 'ABCD':
+        data[i] = dict()
+        for j in 'AB':
+            data[i][j] = 0
+
+    def cb(uid, msg):
+        if msg['idx'] is None:
+            return False
+        data[uid][msg['src']] += 1
+
+    cb_C = lambda t,m: cb('C', m)
+    cb_D = lambda t,m: cb('D', m)
+
+    Getter(channel=channel, url=addr_sub, cb=cb_C)
+    Getter(channel=channel, url=addr_sub, cb=cb_D)
+
+    # --------------------------------------------------------------------------
+    def work_pub(uid, n, delay):
+
+        pub = Putter(channel=channel, url=addr_pub)
+        idx = 0
+
+        while idx < n:
+            time.sleep(delay)
+            pub.put({'src': uid,
+                     'idx': idx})
+            idx += 1
+            data[uid][uid] += 1
+
+        # send EOF
+        pub.put({'src': uid,
+                 'idx': None})
+    # --------------------------------------------------------------------------
+
+    t_a = mt.Thread(target=work_pub, args=['A', c_a, 0.001])
+    t_b = mt.Thread(target=work_pub, args=['B', c_b, 0.001])
+
+    t_a.start()
+    t_b.start()
+
+    t_a.join()
+    t_b.join()
+
+    time.sleep(0.1)
+
+    import pprint
+    pprint.pprint(data)
+
+    assert data['A']['A'] == c_a
+    assert data['B']['B'] == c_b
+
+    assert data['C']['A'] + data['C']['B'] + \
+           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
+
+    return data
 
 
 # ------------------------------------------------------------------------------

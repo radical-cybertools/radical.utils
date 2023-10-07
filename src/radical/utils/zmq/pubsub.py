@@ -1,20 +1,24 @@
 # pylint: disable=protected-access
 
 import zmq
+import time
 import msgpack
 
 import threading as mt
+
+from typing    import Optional
 
 from ..atfork  import atfork
 from ..config  import Config
 from ..ids     import generate_id, ID_CUSTOM
 from ..url     import Url
-from ..misc    import is_string, as_string, as_bytes, as_list, noop
+from ..misc    import as_string, as_bytes, as_list, noop
 from ..host    import get_hostip
 from ..logger  import Logger
+from ..profile import Profiler
 
 from .bridge   import Bridge
-from .utils    import no_intr  # , log_bulk
+from .utils    import no_intr
 
 
 # ------------------------------------------------------------------------------
@@ -36,30 +40,20 @@ atfork(noop, noop, _atfork_child)
 
 # ------------------------------------------------------------------------------
 #
-# Notifications between components are based on pubsub channels.  Those channels
-# have different scope (bound to the channel name).  Only one specific topic is
-# predefined: 'state' will be used for unit state updates.
-#
 class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, cfg=None, channel=None):
+    def __init__(self, channel: str, cfg: Optional[dict] = None):
 
-        if cfg and not channel and is_string(cfg):
-            # allow construction with only channel name
-            channel = cfg
-            cfg     = None
-
-        if   cfg    : cfg = Config(cfg=cfg)
-        elif channel: cfg = Config(cfg={'channel': channel})
-        else: raise RuntimeError('PubSub needs cfg or channel parameter')
-
-        if not cfg.channel:
-            raise ValueError('no channel name provided for pubsub')
+        if cfg:
+            # create deep copy
+            cfg = Config(cfg=cfg)
+        else:
+            cfg = Config()
 
         if not cfg.uid:
-            cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
+            cfg.uid = generate_id('%s.bridge.%%(counter)04d' % channel,
                                   ID_CUSTOM)
 
         super(PubSub, self).__init__(cfg)
@@ -103,19 +97,19 @@ class PubSub(Bridge):
         self._lock       = mt.Lock()
 
         self._ctx        = zmq.Context.instance()  # rely on GC for destruction
-        self._pub        = self._ctx.socket(zmq.XSUB)
-        self._pub.linger = _LINGER_TIMEOUT
-        self._pub.hwm    = _HIGH_WATER_MARK
-        self._pub.bind('tcp://*:*')
+        self._xpub        = self._ctx.socket(zmq.XSUB)
+        self._xpub.linger = _LINGER_TIMEOUT
+        self._xpub.hwm    = _HIGH_WATER_MARK
+        self._xpub.bind('tcp://*:*')
 
-        self._sub        = self._ctx.socket(zmq.XPUB)
-        self._sub.linger = _LINGER_TIMEOUT
-        self._sub.hwm    = _HIGH_WATER_MARK
-        self._sub.bind('tcp://*:*')
+        self._xsub        = self._ctx.socket(zmq.XPUB)
+        self._xsub.linger = _LINGER_TIMEOUT
+        self._xsub.hwm    = _HIGH_WATER_MARK
+        self._xsub.bind('tcp://*:*')
 
         # communicate the bridge ports to the parent process
-        _addr_pub = as_string(self._pub.getsockopt(zmq.LAST_ENDPOINT))
-        _addr_sub = as_string(self._sub.getsockopt(zmq.LAST_ENDPOINT))
+        _addr_pub = as_string(self._xpub.getsockopt(zmq.LAST_ENDPOINT))
+        _addr_sub = as_string(self._xsub.getsockopt(zmq.LAST_ENDPOINT))
 
         # store addresses
         self._addr_pub = Url(_addr_pub)
@@ -128,10 +122,13 @@ class PubSub(Bridge):
         self._log.info('bridge pub on  %s: %s', self._uid, self._addr_pub)
         self._log.info('       sub on  %s: %s', self._uid, self._addr_sub)
 
+        # make sure bind is active
+        time.sleep(0.1)
+
         # start polling for messages
         self._poll = zmq.Poller()
-        self._poll.register(self._pub, zmq.POLLIN)
-        self._poll.register(self._sub, zmq.POLLIN)
+        self._poll.register(self._xpub, zmq.POLLIN)
+        self._poll.register(self._xsub, zmq.POLLIN)
 
 
     # --------------------------------------------------------------------------
@@ -150,28 +147,28 @@ class PubSub(Bridge):
             # timeout in ms
             socks = dict(self._poll.poll(timeout=10))
 
-            if self._sub in socks:
+            if self._xsub in socks:
 
                 # if the sub socket signals a message, it's likely
                 # a topic subscription.  Forward that to the pub
                 # channel, so the bridge subscribes for the respective
                 # message topic.
-                msg = self._sub.recv()
-                self._pub.send(msg)
+                msg = self._xsub.recv()
+                self._xpub.send(msg)
 
                 self._prof.prof('subscribe', uid=self._uid, msg=msg)
-              # log_bulk(self._log, '~~1 %s' % self.channel, [msg])
+              # log_bulk(self._log, '~~1 %s' % self.uid, [msg])
 
 
-            if self._pub in socks:
+            if self._xpub in socks:
 
                 # if the pub socket signals a message, get the message
                 # and forward it to the sub channel, no questions asked.
-                msg = self._pub.recv()
-                self._sub.send(msg)
+                msg = self._xpub.recv()
+                self._xsub.send(msg)
 
               # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
-              # log_bulk(self._log, '<> %s' % self.channel, [msg])
+              # log_bulk(self._log, '<> %s' % self.uid, [msg])
 
 
 # ------------------------------------------------------------------------------
@@ -189,14 +186,25 @@ class Publisher(object):
         self._prof    = prof
 
         # FIXME: no uid ns
-        self._uid      = generate_id('%s.pub.%s' % (self._channel,
-                                                   '%(counter)04d'), ID_CUSTOM)
+
+        self._uid = generate_id('%s.pub.%s' % (self._channel,
+                                               '%(counter)04d'), ID_CUSTOM)
+
+
         if not self._url:
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
-            self._log  = Logger(name=self._uid, ns='radical.utils.zmq')
-                              # level='debug')
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               path=path)
+
+        if not prof:
+            self._prof = Profiler(name=self._uid, ns='radical.utils.zmq',
+                                  path=path)
+            self._prof.disable()
+
+        if 'hb' in self._uid or 'heartbeat' in self._uid:
+            self._prof.disable()
 
         self._log.info('connect pub to %s: %s', self._channel, self._url)
 
@@ -205,6 +213,8 @@ class Publisher(object):
         self._socket.linger = _LINGER_TIMEOUT
         self._socket.hwm    = _HIGH_WATER_MARK
         self._socket.connect(self._url)
+
+        time.sleep(0.1)
 
 
     # --------------------------------------------------------------------------
@@ -233,6 +243,7 @@ class Publisher(object):
         assert isinstance(topic, str), 'invalid topic type'
 
       # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
+      # self._log.debug('=== put %s: %s', msg, get_stacktrace())
       # self._prof.prof('put', uid=self._uid, msg=msg)
       # log_bulk(self._log, '-> %s' % topic, [msg])
 
@@ -294,6 +305,11 @@ class Subscriber(object):
                                     cb(topic, msg)
                             else:
                                 cb(topic, msg)
+                        except SystemExit:
+                            log.info('callback called sys.exit')
+                            term.set()
+                            break
+
                         except:
                             log.exception('callback error')
         except:
@@ -329,6 +345,9 @@ class Subscriber(object):
         self._uid       = generate_id('%s.sub.%s' % (self._channel,
                                                     '%(counter)04d'), ID_CUSTOM)
 
+        if not self._topics:
+            self._topics = []
+
         if not self._url:
             self._url = Bridge.get_config(channel, path).sub
 
@@ -345,6 +364,8 @@ class Subscriber(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
         self._sock.connect(self._url)
+
+        time.sleep(0.1)
 
         # only allow `get()` and `get_nowait()`
         self._interactive = True
@@ -428,6 +449,7 @@ class Subscriber(object):
       # log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
+          # self._log.debug('==== subscribe for %s', topic)
             no_intr(self._sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
         if topic not in self._topics:
@@ -498,6 +520,72 @@ class Subscriber(object):
 
         else:
             return [None, None]
+
+
+# ------------------------------------------------------------------------------
+# pylint: disable=unreachable
+def test_pubsub(channel, addr_pub, addr_sub):
+
+    topic = 'test'
+
+    c_a  = 1
+    c_b  = 2
+    data = dict()
+
+    for i in 'ABCD':
+        data[i] = dict()
+        for j in 'AB':
+            data[i][j] = 0
+
+    def cb(uid, topic, msg):
+        if 'idx' not in msg:
+            return
+        if msg['idx'] is None:
+            return False
+        data[uid][msg['src']] += 1
+
+    cb_C = lambda t,m: cb('C', t, m)
+    cb_D = lambda t,m: cb('D', t, m)
+
+    Subscriber(channel=channel, url=addr_sub, topic=topic, cb=cb_C)
+    Subscriber(channel=channel, url=addr_sub, topic=topic, cb=cb_D)
+
+    # --------------------------------------------------------------------------
+    def work_pub(uid, n, delay):
+
+        pub = Publisher(channel=channel, url=addr_pub)
+        idx = 0
+
+        while idx < n:
+            time.sleep(delay)
+            pub.put(topic, {'src': uid, 'idx': idx})
+            idx += 1
+            data[uid][uid] += 1
+
+        # send EOF
+        pub.put(topic, {'src': uid, 'idx': None})
+    # --------------------------------------------------------------------------
+
+    t_a = mt.Thread(target=work_pub, args=['A', c_a, 0.001])
+    t_b = mt.Thread(target=work_pub, args=['B', c_b, 0.001])
+
+    t_a.start()
+    t_b.start()
+
+    t_a.join()
+    t_b.join()
+
+    time.sleep(0.1)
+
+    assert data['A']['A'] == c_a
+    assert data['B']['B'] == c_b
+
+    assert data['C']['A'] + data['C']['B'] + \
+           data['D']['A'] + data['D']['B'] == 2 * (c_a + c_b)
+
+  # print('==== %.1f %s [%s]' % (time.time(), channel, get_caller_name()))
+
+    return data
 
 
 # ------------------------------------------------------------------------------
