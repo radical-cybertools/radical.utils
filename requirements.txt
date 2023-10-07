@@ -4,7 +4,6 @@ msgpack
 netifaces
 ntplib
 psutil
-pymongo<4
 pyzmq
 regex
 setproctitle

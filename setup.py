@@ -235,7 +235,6 @@ setup_args = {
     'packages'           : find_namespace_packages('src', include=['radical.*']),
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
-                            'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-pylint.sh',
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
