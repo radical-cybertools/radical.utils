@@ -10,8 +10,6 @@ import itertools
 
 from typing import List, Tuple, Union, Any
 
-from urllib.parse import unquote_plus
-
 from .         import url       as ruu
 from .ru_regex import ReString
 
@@ -31,121 +29,6 @@ _RU_stdout = None
 _RU_stderr = None
 _RU_except = None
 _RU_exit   = None
-
-
-# ------------------------------------------------------------------------------
-#
-def split_dburl(dburl, default_dburl=None):
-    '''
-    we split the url into the base mongodb URL, and the path element, whose
-    first element is the database name, and the remainder is interpreted as
-    collection id.
-    '''
-
-    # if the given URL does not contain schema nor host, the default URL is used
-    # as base, and the given URL string is appended to the path element.
-
-    url = ruu.Url(dburl)
-
-    if not url.schema and not url.host:
-        url      = ruu.Url(default_dburl)
-        url.path = dburl
-
-    # NOTE: add other data base schemes here...
-    if 'mongodb' not in url.schema.split('+'):
-        raise ValueError("expected 'mongodb[+ssl]://' url, not '%s'" % dburl)
-
-    host = url.host
-    port = url.port
-    path = url.path
-    user = url.username
-    pwd  = unquote_plus(url.password)
-
-    query_options = {'ssl': False}
-
-    if 'ssl' in url.schema.split('+'):
-        query_options['ssl'] = True
-        url.schema = 'mongodb'
-
-    if not host:
-        host = 'localhost'
-
-    if url.query:
-        from urllib.parse import parse_qsl
-        # get dict query from url.query (str)
-        q = dict(parse_qsl(url.query))
-        # control of which options are transferred
-        query_options['tlsAllowInvalidCertificates'] = bool(
-            q.get('tlsAllowInvalidCertificates', '0').lower() in ['true', '1'])
-
-    if  path.startswith('/'):
-        path = path[1:]
-    path_elems = path.split('/')
-
-    dbname = None
-    cname  = None
-    pname  = None
-
-    if  len(path_elems)  >  0:
-        dbname = path_elems[0]
-
-    if  len(path_elems)  >  1:
-        dbname = path_elems[0]
-        cname  = path_elems[1]
-
-    if  len(path_elems)  >  2:
-        dbname = path_elems[0]
-        cname  = path_elems[1]
-        pname  = '.'.join(path_elems[2:])
-
-    if  dbname == '.':
-        dbname = None
-
-    return [host, port, dbname, cname, pname, user, pwd, query_options]
-
-
-# ------------------------------------------------------------------------------
-#
-def mongodb_connect(dburl, default_dburl=None):
-    '''
-    connect to the given mongodb, perform auth for the database (if a database
-    was given).
-    '''
-
-    try:
-        import pymongo
-
-    except ImportError as e:
-        msg  = " \n\npymongo is not available -- install RU with: \n\n"
-        msg += "  (1) pip install --upgrade -e '.[pymongo]'\n"
-        msg += "  (2) pip install --upgrade    'radical.utils[pymongo]'\n\n"
-        msg += "to resolve that dependency (or install pymongo manually).\n"
-        msg += "The first version will work for local installation, \n"
-        msg += "the second one for installation from pypi.\n\n"
-        raise ImportError(msg) from e
-
-    [host, port, dbname, cname, pname,
-           user, pwd,    options] = split_dburl(dburl, default_dburl)
-
-    mongo = pymongo.MongoClient(host=host, port=port, **options)
-    db    = None
-
-    if  dbname:
-        db = mongo[dbname]
-
-        if  user and pwd:
-            db.authenticate(user, pwd)
-
-    else:
-
-        # if no DB is given, we try to auth against all databases.
-        for dbname in mongo.database_names():
-            try:
-                mongo[dbname].authenticate(user, pwd)
-            except:
-                pass
-
-    return mongo, db, dbname, cname, pname
 
 
 # ------------------------------------------------------------------------------

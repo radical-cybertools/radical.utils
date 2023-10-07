@@ -3,7 +3,6 @@ colorama
 msgpack
 netifaces
 ntplib
-pymongo<4
 pyzmq
 regex
 setproctitle

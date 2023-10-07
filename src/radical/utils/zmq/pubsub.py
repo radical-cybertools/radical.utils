@@ -533,8 +533,6 @@ class Subscriber(object):
 # pylint: disable=unreachable
 def test_pubsub(channel, addr_pub, addr_sub):
 
-    return {}
-
     topic = 'test'
 
     c_a  = 1
