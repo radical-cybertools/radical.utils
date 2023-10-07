@@ -28,7 +28,7 @@ The `module` string is interpreted as follows:
     module         = 'module'
     module_path    = radical.utils.debug.find_module(module)
     usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
-                     os.environ.get('HOME', '/tmp')
+                     os.environ.get('HOME', '/tmp/radical.%(user_id)')
     sys_config_dir = '%s/configs'     % (module_path)
     usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
 
@@ -282,7 +282,7 @@ class Config(TypedDict):
             if not modpath:
                 raise ValueError("Cannot find module %s" % module)
 
-            home    = os.environ.get('HOME', '/tmp')
+            home    = os.environ.get('HOME', '/tmp/radical.%d' % os.getuid())
             home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
             sys_dir = "%s/configs"     % (modpath)
             usr_dir = "%s/.%s/configs" % (home, module.replace('.', '/'))
