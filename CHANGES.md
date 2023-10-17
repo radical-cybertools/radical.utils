@@ -3,9 +3,10 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
-1.40.0 Release                                                        2023-10-17
+1.41.0 Release                                                        2023-10-17
 --------------------------------------------------------------------------------
 
+  - fix RTD
   - add message base class
   - add `ifaddress` to prioritize net interface for Frontier
   - ensure path is used by registry
@@ -833,3 +834,5 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
+  - (HEAD -> master, origin/devel, origin/HEAD, devel) fix RTD
+  - (origin/project/scalems, project/scalems) devel version bump
