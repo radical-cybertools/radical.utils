@@ -2,7 +2,10 @@
 
 # pylint: disable=protected-access
 
+import glob
 import os
+import shutil
+import tempfile
 
 from unittest import TestCase
 
@@ -12,6 +15,25 @@ import radical.utils as ru
 # ------------------------------------------------------------------------------
 #
 class ConfigTestCase(TestCase):
+
+    _cleanup_files = []
+
+    # --------------------------------------------------------------------------
+    #
+    @classmethod
+    def tearDownClass(cls) -> None:
+
+        for p in cls._cleanup_files:
+            if p is None:
+                continue
+            for f in glob.glob(p):
+                if os.path.isdir(f):
+                    try:
+                        shutil.rmtree(f)
+                    except OSError as e:
+                        print('[ERROR] %s - %s' % (e.filename, e.strerror))
+                else:
+                    os.unlink(f)
 
     # --------------------------------------------------------------------------
     #
@@ -67,6 +89,34 @@ class ConfigTestCase(TestCase):
         dc2 = ru.DefaultConfig()  # check that there is ony one instance
         self.assertEqual(id(dc1), id(dc2))
         self.assertEqual(dc1, dc2)
+
+    # --------------------------------------------------------------------------
+    #
+    def test_user_config(self):
+
+        cfg_dir = tempfile.mkdtemp()
+        self._cleanup_files.append(cfg_dir)
+
+        os.environ['RADICAL_CONFIG_USER_DIR'] = cfg_dir
+        self.assertNotEquals(os.environ['RADICAL_CONFIG_USER_DIR'],
+                             os.environ['HOME'])
+
+        cfg_dir += '/.radical/utils/configs'
+        ru.rec_makedir(cfg_dir)
+
+        cfg = {'foo_0': {'foo_1': {'foo2': 'bar'}}}
+        ru.write_json(cfg, cfg_dir + '/user_default.json')
+
+        c = ru.Config(module='radical.utils', category='user')
+        self.assertEqual(c.foo_0.foo_1.foo2, 'bar')
+        self.assertIsInstance(c.foo_0.foo_1, ru.Config)
+
+        del os.environ['RADICAL_CONFIG_USER_DIR']
+        del os.environ['HOME']
+
+        c2 = ru.Config(module='radical.utils', category='user')
+        # no config data collected
+        self.assertFalse(c2.as_dict())
 
 # ------------------------------------------------------------------------------
 
