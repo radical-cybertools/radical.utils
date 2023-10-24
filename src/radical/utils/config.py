@@ -27,10 +27,12 @@ The `module` string is interpreted as follows:
 
     module         = 'module'
     module_path    = radical.utils.debug.find_module(module)
-    usr_base_dir   = os.environ.get('RADICAL_CONFIG_USER_DIR') or \
-                     os.environ.get('HOME', '/tmp/radical.%(user_id)')
-    sys_config_dir = '%s/configs'     % (module_path)
-    usr_config_dir = '%s/.%s/configs' % (usr_base_dir, module.replace('.', '/'))
+    sys_config_dir = '%s/configs' % module_path
+    usr_base_dir   = os.getenv('RADICAL_CONFIG_USER_DIR') or \
+                     os.getenv('HOME')
+    if usr_base_dir:
+        usr_config_dir = '%s/.%s/configs' % \
+            (usr_base_dir, module.replace('.', '/'))
 
 so the location of the module's `__init__.py` is used to derive the location
 of the installed system config files, and the module name is used to derive
@@ -282,14 +284,18 @@ class Config(TypedDict):
             if not modpath:
                 raise ValueError("Cannot find module %s" % module)
 
-            home    = os.environ.get('HOME', '/tmp/radical.%d' % os.getuid())
-            home    = os.environ.get('RADICAL_CONFIG_USER_DIR', home)
-            sys_dir = "%s/configs"     % (modpath)
-            usr_dir = "%s/.%s/configs" % (home, module.replace('.', '/'))
-            fname   = '%s_%s.json'     % (category.replace('.', '/'), name)
+            fname     = '%s_%s.json' % (category.replace('.', '/'), name)
 
-            sys_fspec = '%s/%s' % (sys_dir, fname)
-            usr_fspec = '%s/%s' % (usr_dir, fname)
+            sys_dir   = '%s/configs' % modpath
+            sys_fspec = '%s/%s'      % (sys_dir, fname)
+
+            home = os.getenv('RADICAL_CONFIG_USER_DIR') or os.getenv('HOME')
+            if home:
+                usr_dir   = '%s/.%s/configs' % (home, module.replace('.', '/'))
+                usr_fspec = '%s/%s'          % (usr_dir, fname)
+            else:
+                usr_dir   = None
+                usr_fspec = None
 
             if '*' in fname: starred = True
             else           : starred = False
@@ -371,10 +377,13 @@ class Config(TypedDict):
 
             fname     = '%s.json' % (category.replace('.', '/'))
             sys_fname = '%s/%s'   % (sys_dir, fname)
-            usr_fname = '%s/%s'   % (usr_dir, fname)
+            if os.path.isfile(sys_fname):
+                sys_cfg = read_json(sys_fname)
 
-            if os.path.isfile(sys_fname): sys_cfg = read_json(sys_fname)
-            if os.path.isfile(usr_fname): usr_cfg = read_json(usr_fname)
+            if usr_dir:
+                usr_fname = '%s/%s' % (usr_dir, fname)
+                if os.path.isfile(usr_fname):
+                    usr_cfg = read_json(usr_fname)
 
 
         # merge sys, usr and app cfg before expansion
