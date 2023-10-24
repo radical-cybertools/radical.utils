@@ -111,12 +111,15 @@ class ConfigTestCase(TestCase):
         self.assertEqual(c.foo_0.foo_1.foo2, 'bar')
         self.assertIsInstance(c.foo_0.foo_1, ru.Config)
 
-        del os.environ['RADICAL_CONFIG_USER_DIR']
+        saved_home_dir = os.environ['HOME']
         del os.environ['HOME']
+        del os.environ['RADICAL_CONFIG_USER_DIR']
 
         c2 = ru.Config(module='radical.utils', category='user')
         # no config data collected
         self.assertFalse(c2.as_dict())
+
+        os.environ['HOME'] = saved_home_dir
 
 # ------------------------------------------------------------------------------
 
