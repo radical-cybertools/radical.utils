@@ -98,8 +98,8 @@ class ConfigTestCase(TestCase):
         self._cleanup_files.append(cfg_dir)
 
         os.environ['RADICAL_CONFIG_USER_DIR'] = cfg_dir
-        self.assertNotEquals(os.environ['RADICAL_CONFIG_USER_DIR'],
-                             os.environ['HOME'])
+        self.assertNotEqual(os.environ['RADICAL_CONFIG_USER_DIR'],
+                            os.environ['HOME'])
 
         cfg_dir += '/.radical/utils/configs'
         ru.rec_makedir(cfg_dir)
