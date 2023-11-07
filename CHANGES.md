@@ -3,6 +3,29 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.42.0 Release                                                        2023-10-27
+--------------------------------------------------------------------------------
+
+  - fix for amarel betwork setup
+  - updated handling of directory with user-defined configs
+
+
+1.41.0 Release                                                        2023-10-17
+--------------------------------------------------------------------------------
+
+  - fix RTD
+  - add message base class
+  - add `ifaddress` to prioritize net interface for Frontier
+  - ensure path is used by registry
+  - keep profiling ON by default
+  - create fewer logfiles
+  - reduce log load
+  - no config files for zmq bridges
+  - remove deprecated option for ReadTheDocs config
+  - remove mongodb helpers
+  - remove obsolete mongo-related module
+
+
 1.33.0 Release                                                        2023-04-25
 --------------------------------------------------------------------------------
 

@@ -3,10 +3,16 @@ import os
 
 import threading as mt
 
+from typing import Optional
+
 from ..logger  import Logger
 from ..profile import Profiler
 from ..config  import Config
 from ..json_io import read_json, write_json
+
+QUEUE   = 'QUEUE'
+PUBSUB  = 'PUBSUB'
+UNKNOWN = 'UNKNOWN'
 
 
 # ------------------------------------------------------------------------------
@@ -43,12 +49,13 @@ class Bridge(object):
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
+
+        if not self._pwd:
+            self._pwd = os.getcwd()
+
         self._log     = Logger(name=self._uid, ns='radical.utils',
                                level=self._cfg.log_lvl, path=self._pwd)
         self._prof    = Profiler(name=self._uid, path=self._pwd)
-
-        if self._pwd is None:
-            self._pwd = os.getcwd()
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
@@ -131,25 +138,33 @@ class Bridge(object):
     # --------------------------------------------------------------------------
     #
     @staticmethod
-    def create(cfg):
+    def create(channel : str,
+               kind    : Optional[str]  = None,
+               cfg     : Optional[dict] = None):
+
+        # FIXME: add other config parameters: batch size, log level, etc.
 
         # NOTE: I'd rather have this as class data than as stack data, but
         #       python stumbles over circular imports at that point :/
         #       Another option though is to discover and dynamically load
         #       components.
+
         from .pubsub import PubSub
         from .queue  import Queue
 
-        _btypemap = {'pubsub' : PubSub,
-                     'queue'  : Queue}
+        _btypemap = {PUBSUB: PubSub,
+                     QUEUE : Queue}
 
-        kind = cfg['kind']
+        if not kind:
+            if   'queue'  in channel.lower(): kind = QUEUE
+            elif 'pubsub' in channel.lower(): kind = PUBSUB
+            else                            : kind = UNKNOWN
 
         if kind not in _btypemap:
             raise ValueError('unknown bridge type (%s)' % kind)
 
         btype  = _btypemap[kind]
-        bridge = btype(cfg)
+        bridge = btype(channel, cfg=cfg)
 
         return bridge
 

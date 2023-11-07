@@ -52,6 +52,7 @@ from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .typeddict      import TypedDict, TypedDictMeta, as_dict
 from .config         import Config, DefaultConfig
 
+from .zmq            import Message
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber
