@@ -90,7 +90,7 @@ class Reporter(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, name, ns=None, path=None, targets=None):
+    def __init__(self, name, ns=None, path=None, targets=None, enabled=None):
         '''
         settings.style:
           E : empty line
@@ -106,16 +106,23 @@ class Reporter(object):
             ns = name
 
         # check if this profile is enabled via an env variable
-        self._enabled = str(ru_def['report']).lower()
-        if ru_get_env_ns('report', ns) is not None:
-            self._enabled = str(ru_get_env_ns('report', ns)).lower()
+        if enabled is not None:
+            self._enabled = bool(enabled)
+        else:
+            self._enabled = str(ru_def['report']).lower()
 
-        if self._enabled in ['0', 'false', 'off', False, None]:
-            self._enabled = False
+            if ru_get_env_ns('report', ns) is not None:
+                self._enabled = str(ru_get_env_ns('report', ns)).lower()
+
+            if self._enabled in ['0', 'false', 'off', 'none']:
+                self._enabled = False
+            else:
+                self._enabled = True
+
+
+        if not self._enabled:
             # disabled
             return
-        else:
-            self._enabled = True
 
 
         self._use_color = ru_get_env_ns('report_color', ns, default='True')
