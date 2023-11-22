@@ -114,7 +114,7 @@ class Reporter(object):
             if ru_get_env_ns('report', ns) is not None:
                 self._enabled = str(ru_get_env_ns('report', ns)).lower()
 
-            if self._enabled in ['0', 'false', 'off', False, None]:
+            if self._enabled in ['0', 'false', 'off', 'none']:
                 self._enabled = False
             else:
                 self._enabled = True
