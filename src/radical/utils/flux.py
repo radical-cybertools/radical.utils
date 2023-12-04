@@ -61,7 +61,6 @@ class _FluxService(object):
             raise
 
 
-
     # --------------------------------------------------------------------------
     #
     @property
@@ -129,25 +128,16 @@ class _FluxService(object):
                               env: Optional[Dict[str,str]] = None
                              ) -> Optional[str]:
 
-        check = 'flux env; echo "OK"; while true; do echo "ok"; sleep 1; done'
-        start = 'flux start -o,-v,-S,log-filename=%s.log' % self._uid
-        cmd   = '/bin/bash -c "echo \\\"%s\\\" | %s"' % (check, start)
+        cmd = ['flux', 'start', 'bash', '-c', 'echo URI:$FLUX_URI && sleep inf']
 
-        penv  = None
-        if env:
-            penv = {k:v for k,v in os.environ.items()}
-            for k,v in env.items():
-                penv[k] = v
+        flux_proc = sp.Popen(cmd, encoding="utf-8",
+                             stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
 
-        flux_env  = dict()
-        flux_proc = sp.Popen(cmd, shell=True, env=penv,
-                             stdin=sp.PIPE, stdout=sp.PIPE, stderr=sp.STDOUT)
-
+        flux_env = dict()
         while flux_proc.poll() is None:
 
             try:
                 line = flux_proc.stdout.readline()
-                line = bytes.decode(line, 'utf-8').strip()
 
             except Exception as e:
                 self._log.exception('flux service failed to start')
@@ -156,22 +146,23 @@ class _FluxService(object):
             if not line:
                 continue
 
-            self._log.debug('%s', line)
+            self._log.debug('flux output: %s', line)
 
-            if line.startswith('export '):
-                k, v = line.split(' ', 1)[1].strip().split('=', 1)
-                flux_env[k] = v.strip('"')
-                self._log.debug('%s = %s' % (k, v.strip('"')))
-
-            elif line == 'OK':
+            if line.startswith('URI:'):
+                flux_uri = line.split(':', 1)[1].strip()
+                flux_env['FLUX_URI'] = flux_uri
                 break
 
         if flux_proc.poll() is not None:
             raise RuntimeError('could not execute `flux start`')
 
+      # fr  = self._flux.uri.uri.FluxURIResolver()
+      # ret = fr.resolve('pid:%d' % flux_proc.pid)
+      # flux_env = {'FLUX_URI': ret}
+
         assert 'FLUX_URI' in flux_env, 'no FLUX_URI in env'
 
-        # make sure that the flux url can be reched from other hosts
+        # make sure that the flux url can be reached from other hosts
         # FIXME: this also routes local access via ssh which may slow comm
         flux_url             = Url(flux_env['FLUX_URI'])
         flux_url.host        = get_hostname()
