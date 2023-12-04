@@ -3,6 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.43.0 Release                                                        2023-12-04
+--------------------------------------------------------------------------------
+
+  - disable reporter by default
+  - enable/disable reporter on construction
+
+
 1.42.0 Release                                                        2023-10-27
 --------------------------------------------------------------------------------
 
