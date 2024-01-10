@@ -109,7 +109,7 @@ class Heartbeat(object):
 
         with self._lock:
             if uid not in self._tstamps:
-              # self._log.debug('=== hb %s watch %s', self._uid, uid)
+              # self._log.debug('hb %s watch %s', self._uid, uid)
                 self._tstamps[uid] = None
 
 
@@ -119,41 +119,41 @@ class Heartbeat(object):
 
         # initial heartbeat without delay
         if  self._beat_cb:
-          # self._log.debug('=== hb %s beat cb init', self._uid)
+          # self._log.debug('hb %s beat cb init', self._uid)
             self._beat_cb()
 
         while not self._term.is_set():
 
-          # self._log.debug('=== hb %s loop %s', self._uid, self._interval)
+          # self._log.debug('hb %s loop %s', self._uid, self._interval)
 
             time.sleep(self._interval)
             now = time.time()
 
             if  self._beat_cb:
-              # self._log.debug('=== hb %s beat cb', self._uid)
+              # self._log.debug('hb %s beat cb', self._uid)
                 self._beat_cb()
 
             # avoid iteration over changing dict
             with self._lock:
                 uids = list(self._tstamps.keys())
 
-          # self._log.debug('=== hb %s uids %s', self._uid, uids)
+          # self._log.debug('hb %s uids %s', self._uid, uids)
             for uid in uids:
 
-              # self._log.debug('=== hb %s check %s', self._uid, uid)
+              # self._log.debug('hb %s check %s', self._uid, uid)
 
                 with self._lock:
                     last = self._tstamps.get(uid)
 
                 if last is None:
-                    self._log.warn('=== hb %s inval %s', self._uid, uid)
+                    self._log.warn('hb %s inval %s', self._uid, uid)
                     continue
 
                 if now - last > self._timeout:
 
-                    if self._log:
-                        self._log.warn('=== hb %s tout  %s: %.1f - %.1f > %1.f',
-                                       self._uid, uid, now, last, self._timeout)
+                  # if self._log:
+                  #     self._log.warn('hb %s tout  %s: %.1f - %.1f > %1.f',
+                  #                    self._uid, uid, now, last, self._timeout)
 
                     ret = None
                     if self._timeout:
@@ -167,7 +167,7 @@ class Heartbeat(object):
 
                     if ret in [None, False]:
                         # could not recover: abandon mothership
-                        self._log.warn('=== hb %s fail  %s: fatal (%d)',
+                        self._log.warn('hb %s fail  %s: fatal (%d)',
                                        self._uid, uid, self._pid)
                         os.kill(self._pid, signal.SIGTERM)
                         time.sleep(1)
@@ -180,7 +180,7 @@ class Heartbeat(object):
                         # heartbeat for the new one, so that we can immediately
                         # begin to watch it.
                         assert isinstance(ret, str)
-                        self._log.info('=== hb %s recov %s -> %s (%s)',
+                        self._log.info('hb %s recov %s -> %s (%s)',
                                         self._uid, uid, ret, self._term_cb)
                         with self._lock:
                             del self._tstamps[uid]
@@ -198,7 +198,7 @@ class Heartbeat(object):
             uid = 'default'
 
         with self._lock:
-          # self._log.debug('=== hb %s beat [%s]', self._uid, uid)
+          # self._log.debug('hb %s beat [%s]', self._uid, uid)
             self._tstamps[uid] = timestamp
 
 
