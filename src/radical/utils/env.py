@@ -389,7 +389,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             raise RuntimeError('error running "%s": %s' % (cmd, err))
 
         env = env_read_lines(out.split('\n'))
-      # os.unlink(tmp_name)
+        os.unlink(tmp_name)
 
         _env_cache[cache_md5] = env
 
@@ -402,7 +402,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
-
         env_write(script_path, env=env, unset=unset, pre_exec=pre_exec)
 
     return env

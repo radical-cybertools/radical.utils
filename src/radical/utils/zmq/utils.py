@@ -133,11 +133,11 @@ def log_bulk(log, token, msgs):
 
     if isinstance(msgs[0], dict) and 'uid' in msgs[0]:
         for msg in msgs:
-            log.debug("=== %s: %s [%s]", token, msg['uid'], msg.get('state'))
+            log.debug("%s: %s [%s]", token, msg['uid'], msg.get('state'))
 
     else:
         for msg in msgs:
-            log.debug("=== %s: %s", token, str(msg)[0:32])
+            log.debug("%s: %s", token, str(msg)[0:32])
 
 
 # ------------------------------------------------------------------------------
