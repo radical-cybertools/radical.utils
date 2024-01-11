@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.46.0 Release                                                        2024-01-11
+--------------------------------------------------------------------------------
+
+  - pypi fix
+
+  
 1.44.0 Release                                                        2024-01-10
 --------------------------------------------------------------------------------
   
