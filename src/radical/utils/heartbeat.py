@@ -151,6 +151,9 @@ class Heartbeat(object):
 
                 if now - last > self._timeout:
 
+                    if self._log:
+                        self._log.warn('hb %s tout  %s: %.1f - %.1f > %1.f',
+                                       self._uid, uid, now, last, self._timeout)
                   # if self._log:
                   #     self._log.warn('hb %s tout  %s: %.1f - %.1f > %1.f',
                   #                    self._uid, uid, now, last, self._timeout)
