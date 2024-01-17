@@ -54,6 +54,7 @@ class _IDRegistry(object, metaclass=Singleton):
         self._rlock    = threading.RLock()
         self._registry = dict()
 
+
     # --------------------------------------------------------------------------
     def get_counter(self, prefix):
         """
@@ -70,7 +71,8 @@ class _IDRegistry(object, metaclass=Singleton):
 
             self._registry[prefix] += 1
 
-            return ret
+        return ret
+
 
     # --------------------------------------------------------------------------
     def reset_counter(self, prefix, reset_all_others=False):
