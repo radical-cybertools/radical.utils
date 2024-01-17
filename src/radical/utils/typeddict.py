@@ -157,7 +157,8 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
           {
             ...
-            'foo': BarTypedDict
+            'foo' : BarTypedDict
+            'foos': [BarTypedDict]
             ...
           }
 
