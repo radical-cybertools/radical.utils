@@ -88,6 +88,9 @@ class _FluxService(object):
             for k,v in self._env.items():
                 os.environ[k] = v
 
+        out, err, ret = sh_callout('flux resource list')
+        self._log.info('flux resources [ %d %s]:\n%s', ret, err, out)
+
         while not self._term.is_set():
 
             time.sleep(1)
