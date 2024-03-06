@@ -6,8 +6,7 @@ __license__   = "MIT"
 # ------------------------------------------------------------------------------
 #
 # NOTE: ForkingPickler does not like lambdas nor local functions, thus use
-#       a module level function to disable loggers
-#       to disable loggers.
+#       a module level function to disable loggers.
 #
 def _tmp(*args, **kwargs):
     pass
