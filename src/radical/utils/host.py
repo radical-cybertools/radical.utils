@@ -192,7 +192,7 @@ def get_hostlist_by_range(hoststring, prefix='', width=0):
         id_width = max(id_width, *[len(n) for n in num_range])
 
     width = width or id_width
-    return ['%s%0*d' % (prefix, width, hid) for hid in host_ids]
+    return ['%s%d' % (prefix, hid) for hid in host_ids]
 
 
 # ------------------------------------------------------------------------------
