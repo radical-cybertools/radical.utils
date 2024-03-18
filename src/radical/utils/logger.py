@@ -3,12 +3,13 @@
 __copyright__ = "Copyright 2013-2014, http://radical.rutgers.edu"
 __license__   = "MIT"
 
+
 # ------------------------------------------------------------------------------
 #
 # NOTE: ForkingPickler does not like lambdas nor local functions, thus use
 #       a module level function to disable loggers.
 #
-def _tmp(*args, **kwargs):
+def _noop(*args, **kwargs):
     pass
 
 
@@ -411,21 +412,21 @@ class Logger(object):
         # class has no constructor, we do it this way.
 
         # disable all loggers
-        self.critical = _tmp
-        self.error    = _tmp
-        self.warn     = _tmp
-        self.warning  = _tmp
-        self.info     = _tmp
-        self.debug    = _tmp
-        self.debug_1  = _tmp
-        self.debug_2  = _tmp
-        self.debug_3  = _tmp
-        self.debug_4  = _tmp
-        self.debug_5  = _tmp
-        self.debug_6  = _tmp
-        self.debug_7  = _tmp
-        self.debug_8  = _tmp
-        self.debug_9  = _tmp
+        self.critical = _noop
+        self.error    = _noop
+        self.warn     = _noop
+        self.warning  = _noop
+        self.info     = _noop
+        self.debug    = _noop
+        self.debug_1  = _noop
+        self.debug_2  = _noop
+        self.debug_3  = _noop
+        self.debug_4  = _noop
+        self.debug_5  = _noop
+        self.debug_6  = _noop
+        self.debug_7  = _noop
+        self.debug_8  = _noop
+        self.debug_9  = _noop
 
         # enable the ones we are configured for:
         if self._num_level <= 50: self.critical = self._logger.critical
