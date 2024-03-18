@@ -6,15 +6,6 @@ __license__   = "MIT"
 
 # ------------------------------------------------------------------------------
 #
-# NOTE: ForkingPickler does not like lambdas nor local functions, thus use
-#       a module level function to disable loggers.
-#
-def _noop(*args, **kwargs):
-    pass
-
-
-# ------------------------------------------------------------------------------
-#
 """
 Using the RU logging module can lead to deadlocks when used in multiprocess and
 multithreaded environments.  This is due to the native python logging library
@@ -39,6 +30,15 @@ Logging locks are 'threading.RLock' instances.  As such they can be locked
 multiple times (from within the same thread), and we have to unlock them that
 many times.  We use a shortcut, and create a new, unlocked lock.
 """
+
+
+# ------------------------------------------------------------------------------
+#
+# NOTE: ForkingPickler does not like lambdas nor local functions, thus use
+#       a module level function to disable loggers.
+#
+def _noop(*args, **kwargs):
+    pass
 
 
 # ------------------------------------------------------------------------------
