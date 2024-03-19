@@ -2,6 +2,7 @@
 # pylint: disable=cell-var-from-loop
 
 import os
+import sys
 import time
 import json
 
@@ -49,6 +50,16 @@ class _FluxService(object):
         self._watcher = None
 
         try:
+            cmd = 'flux python -c "import flux; print(flux.__file__)"'
+            out, err, ret = sh_callout(cmd)
+
+            if ret:
+                raise RuntimeError('flux not found: %s' % err)
+
+            flux_path = os.path.dirname(out.strip())
+            mod_path  = os.path.dirname(flux_path)
+            sys.path.append(mod_path)
+
             self._flux     = import_module('flux')
             self._flux_job = import_module('flux.job')
 
@@ -297,6 +308,16 @@ class FluxHelper(object):
         self._executors = list()  # TODO
 
         try:
+            cmd = 'flux python -c "import flux; print(flux.__file__)"'
+            out, err, ret = sh_callout(cmd)
+
+            if ret:
+                raise RuntimeError('flux not found: %s' % err)
+
+            flux_path = os.path.dirname(out.strip())
+            mod_path  = os.path.dirname(flux_path)
+            sys.path.append(mod_path)
+
             self._flux     = import_module('flux')
             self._flux_job = import_module('flux.job')
 
