@@ -3,6 +3,14 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.48.0 Release                                                        2024-03-24
+--------------------------------------------------------------------------------
+
+  - add flux module path
+  - dragon does not like lambdas
+  - dump flux resources after startup
+
+
 1.47.0 Release                                                        2024-02-08
 --------------------------------------------------------------------------------
 
