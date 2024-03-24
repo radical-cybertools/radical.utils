@@ -174,9 +174,13 @@ def get_exception_trace(msg=None):
 
 # ------------------------------------------------------------------------------
 #
-def print_exception_trace(msg=None):
+def print_exception_trace(msg=None, exc=None):
 
-    print_stacktrace(msg=msg, _stack=get_exception_trace())
+    if not exc:
+        print_stacktrace(msg=msg, _stack=get_exception_trace())
+    else:
+        print_stacktrace(msg=msg,
+                         _stack=traceback.extract_tb(exc.__traceback__))
 
 
 # ------------------------------------------------------------------------------
