@@ -36,19 +36,30 @@ def register_serializable(cls, encode=None, decode=None):
 
 # ------------------------------------------------------------------------------
 #
+def _prep_typed_dict(d):
+    from .typeddict import TypedDict
+    tmp = dict()
+    for k,v in d.items():
+        if isinstance(v, TypedDict):
+            tmp[k] = _prep_typed_dict(v)
+        else:
+            tmp[k] = v
+    tmp['_xtype'] = type(d).__name__
+    return tmp
 
+
+# ------------------------------------------------------------------------------
+#
 class _json_encoder(json.JSONEncoder):
     '''
     internal methods to encode registered classes to json
     '''
 
     def encode(self, o, *args, **kw):
-
         from .typeddict import TypedDict
         if isinstance(o, TypedDict):
-          # print('TypedDict: %s' % type(o).__name__)
-            o = copy.deepcopy(o)
-            o['_xtype'] = type(o).__name__
+            tmp = _prep_typed_dict(o)
+            return super().encode(tmp, *args, **kw)
         return super().encode(o, *args, **kw)
 
     def default(self, obj):
