@@ -4,8 +4,6 @@ __author__    = "Radical.Utils Development Team (Andre Merzky)"
 __copyright__ = "Copyright 2024, RADICAL@Rutgers"
 __license__   = "MIT"
 
-import os
-
 import radical.utils as ru
 
 
@@ -43,6 +41,8 @@ def test_serialization():
     assert old == new
 
 
+# ------------------------------------------------------------------------------
+#
 def test_serialization_typed_dict():
 
     class A(ru.TypedDict):
@@ -51,7 +51,7 @@ def test_serialization_typed_dict():
     class B(ru.TypedDict):
         _schema = {'a': A}
 
-    old = B(a=A(i=42, s='buz'))
+    old = B(a=A(s='buz', i=42))
     new = ru.from_json(ru.to_json(old))
 
     assert old == new
