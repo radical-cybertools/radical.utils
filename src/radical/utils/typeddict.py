@@ -20,7 +20,8 @@ __license__   = 'MIT'
 import copy
 import sys
 
-from .misc import as_list, as_tuple, is_string
+from .serialize import register_serializable
+from .misc      import as_list, as_tuple, is_string
 
 
 # ------------------------------------------------------------------------------
@@ -137,6 +138,8 @@ class TypedDict(dict, metaclass=TypedDictMeta):
               are specified (note that `from_dict` and `self` are invalid
               `kwargs`).
         '''
+
+        register_serializable(self.__class__)
 
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)

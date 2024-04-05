@@ -1,4 +1,5 @@
 
+import copy
 import json
 import msgpack
 
@@ -16,7 +17,7 @@ _ctypes = dict()
 
 # ------------------------------------------------------------------------------
 #
-def register_serializable(cls, encode, decode):
+def register_serializable(cls, encode=None, decode=None):
     '''
     register a class for json and msgpack serialization / deserialization.
 
@@ -26,21 +27,36 @@ def register_serializable(cls, encode, decode):
         decode (callable): recreates the class instance from that data structure
     '''
 
+    if encode is None: encode = cls
+    if decode is None: decode = cls
+
     global _ctypes
     _ctypes[cls.__name__] = _CType(cls, encode, decode)
 
 
 # ------------------------------------------------------------------------------
 #
+
 class _json_encoder(json.JSONEncoder):
     '''
     internal methods to encode registered classes to json
     '''
+
+    def encode(self, o, *args, **kw):
+
+        from .typeddict import TypedDict
+        if isinstance(o, TypedDict):
+          # print('TypedDict: %s' % type(o).__name__)
+            o = copy.deepcopy(o)
+            o['_xtype'] = type(o).__name__
+        return super().encode(o, *args, **kw)
+
     def default(self, obj):
+      # print('encode: %s' % obj)
         for cname,methods in _ctypes.items():
             if isinstance(obj, methods.ctype):
-                return {'__%s__' % cname: True,
-                        'as_str'        : methods.encode(obj)}
+                return {'_xtype': cname,
+                        'as_str': methods.encode(obj)}
         return super().default(obj)
 
 # ------------------------------------------------------------------------------
@@ -49,10 +65,15 @@ def _json_decoder(obj):
     '''
     internal methods to decode registered classes from json
     '''
+  # print('decode: %s' % obj)
     for cname, methods in _ctypes.items():
-        if '__%s__' % cname in obj:
-            print('found %s' % cname)
-            return methods.decode(obj['as_str'])
+      # print('check %s' % cname)
+        if '_xtype' in obj and obj['_xtype'] == cname:
+            del obj['_xtype']
+          # print('found %s' % cname)
+            if 'as_str' in obj:
+                return methods.decode(obj['as_str'])
+            return methods.decode(obj)
     return obj
 
 
