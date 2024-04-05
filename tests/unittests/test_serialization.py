@@ -33,31 +33,30 @@ def test_serialization():
     ru.register_serializable(Complex, encode=Complex.serialize,
                                       decode=Complex.deserialize)
 
-    data     = {'foo': {'complex_number': Complex(1, 2)}}
-    json_str = ru.to_json(data)
-    new_data = ru.from_json(json_str)
+    old = {'foo': {'complex_number': Complex(1, 2)}}
+    new = ru.from_json(ru.to_json(old))
 
-    assert data == new_data
+    assert old == new
 
-    msgpack_str = ru.to_msgpack(data)
-    new_data    = ru.from_msgpack(msgpack_str)
+    new = ru.from_msgpack(ru.to_msgpack(old))
 
-    assert data == new_data
+    assert old == new
+
+
+def test_serialization_typed_dict():
 
     class A(ru.TypedDict):
-        _schema = {'s': str,
-                   'i': int}
+        _schema = {'s': str, 'i': int}
 
     class B(ru.TypedDict):
         _schema = {'a': A}
 
-    old_data = B(a=A(i=42, s='buz'))
-    tmp      = ru.to_json(old_data)
-    new_data = ru.from_json(tmp )
+    old = B(a=A(i=42, s='buz'))
+    new = ru.from_json(ru.to_json(old))
 
-    assert old_data == new_data
-    assert type(old_data) == type(new_data)
-    assert type(old_data['a']) == type(new_data['a'])
+    assert old == new
+    assert type(old) == type(new)
+    assert type(old['a']) == type(new['a'])
 
 
 # ------------------------------------------------------------------------------
@@ -65,6 +64,7 @@ def test_serialization():
 if __name__ == '__main__':
 
     test_serialization()
+    test_serialization_typed_dict()
 
 
 # ------------------------------------------------------------------------------
