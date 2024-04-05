@@ -11,6 +11,23 @@ import json
 from .misc import as_string, ru_open
 
 
+_json_classes = dict()
+
+def register_json_class(cls, check, convert):
+
+    global _json_classes
+    _json_classes[cls.__name__] = [check, convert]
+
+
+class _json_encoder(json.JSONEncoder):
+
+        def default(self, o):
+            for cls, (check, convert) in _json_classes.items():
+                if check(o):
+                    return convert(o)
+            return super().default(o)
+
+
 # ------------------------------------------------------------------------------
 #
 def read_json(fname, filter_comments=True):
@@ -61,9 +78,22 @@ def write_json(data, fname):
         fname = tmp
 
     with ru_open(fname, 'w') as f:
-        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
+        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False,
+                  cls=_json_encoder)
         f.write('\n')
         f.flush()
+
+
+# ------------------------------------------------------------------------------
+#
+def dumps_json(data):
+    '''
+    thin wrapper around python's json write, for consistency of interface
+
+    '''
+
+    return json.dumps(data, sort_keys=True, indent=4, ensure_ascii=False,
+                      cls=_json_encoder)
 
 
 # ------------------------------------------------------------------------------
