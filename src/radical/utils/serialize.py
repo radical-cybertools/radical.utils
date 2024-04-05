@@ -3,7 +3,11 @@ import copy
 import json
 import msgpack
 
+from .typeddict import as_dict
 
+
+# ------------------------------------------------------------------------------
+#
 class _CType:
 
     def __init__(self, ctype, encode, decode):
@@ -37,15 +41,8 @@ def register_serializable(cls, encode=None, decode=None):
 # ------------------------------------------------------------------------------
 #
 def _prep_typed_dict(d):
-    from .typeddict import TypedDict
-    tmp = dict()
-    for k,v in d.items():
-        if isinstance(v, TypedDict):
-            tmp[k] = _prep_typed_dict(v)
-        else:
-            tmp[k] = v
-    tmp['_xtype'] = type(d).__name__
-    return tmp
+    from .typeddict import as_dict
+    return as_dict(d, _annotate=True)
 
 
 # ------------------------------------------------------------------------------
@@ -56,17 +53,14 @@ class _json_encoder(json.JSONEncoder):
     '''
 
     def encode(self, o, *args, **kw):
-        from .typeddict import TypedDict
-        if isinstance(o, TypedDict):
-            tmp = _prep_typed_dict(o)
-            return super().encode(tmp, *args, **kw)
-        return super().encode(o, *args, **kw)
+        tmp = as_dict(o, _annotate=True)
+        return super().encode(tmp, *args, **kw)
 
     def default(self, obj):
       # print('encode: %s' % obj)
         for cname,methods in _ctypes.items():
             if isinstance(obj, methods.ctype):
-                return {'_xtype': cname,
+                return {'_type': cname,
                         'as_str': methods.encode(obj)}
         return super().default(obj)
 
@@ -79,8 +73,8 @@ def _json_decoder(obj):
   # print('decode: %s' % obj)
     for cname, methods in _ctypes.items():
       # print('check %s' % cname)
-        if '_xtype' in obj and obj['_xtype'] == cname:
-            del obj['_xtype']
+        if '_type' in obj and obj['_type'] == cname:
+            del obj['_type']
           # print('found %s' % cname)
             if 'as_str' in obj:
                 return methods.decode(obj['as_str'])

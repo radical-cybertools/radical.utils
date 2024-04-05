@@ -17,10 +17,10 @@ __license__   = 'MIT'
 #   - optional runtime type checking
 #
 
+import collections
 import copy
 import sys
 
-from .serialize import register_serializable
 from .misc      import as_list, as_tuple, is_string
 
 
@@ -138,6 +138,8 @@ class TypedDict(dict, metaclass=TypedDictMeta):
               are specified (note that `from_dict` and `self` are invalid
               `kwargs`).
         '''
+
+        from .serialize import register_serializable
 
         register_serializable(self.__class__)
 
@@ -315,8 +317,8 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
-    def as_dict(self):
-        return as_dict(self._data)
+    def as_dict(self, _annotate=False):
+        return as_dict(self._data, _annotate)
 
 
     # --------------------------------------------------------------------------
@@ -486,21 +488,27 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 # ------------------------------------------------------------------------------
 #
-def _as_dict_value(v):
-    return v.as_dict() if isinstance(v, TypedDict) else as_dict(v)
+def _as_dict_value(v, _annotate=False):
+    if isinstance(v, TypedDict):
+        ret = copy.deepcopy(v)
+        if _annotate:
+            ret['_type'] = type(v).__name__
+        return ret
+    else:
+        return as_dict(v, _annotate)
 
 
-def as_dict(src):
+def as_dict(src, _annotate=False):
     '''
     Iterate given object, apply `as_dict()` to all typed
     values, and return the result (effectively a shallow copy).
     '''
     if isinstance(src, dict):
-        tgt = {k: _as_dict_value(v) for k, v in src.items()}
-    elif isinstance(src, list):
-        tgt = [_as_dict_value(x) for x in src]
-    elif isinstance(src, tuple):
-        tgt = tuple([_as_dict_value(x) for x in src])
+        tgt = {k: _as_dict_value(v, _annotate) for k, v in src.items()}
+        if _annotate:
+            tgt['_type'] = type(src).__name__
+    elif isinstance(src, collections.abc.Iterable):
+        tgt = [_as_dict_value(x, _annotate) for x in src]
     else:
         tgt = src
     return tgt
