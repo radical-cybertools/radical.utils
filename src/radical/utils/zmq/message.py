@@ -2,7 +2,7 @@
 from typing import Dict, Any
 
 from ..typeddict import TypedDict
-from ..serialize import to_msgpack, from_msgpack, register_serialization
+from ..serialize import to_msgpack, from_msgpack, register_serializable
 
 
 # ------------------------------------------------------------------------------

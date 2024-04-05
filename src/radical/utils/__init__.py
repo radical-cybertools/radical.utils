@@ -75,7 +75,7 @@ from .tracer         import trace, untrace
 from .get_version    import get_version
 
 from .serialize      import to_json, from_json, to_msgpack, from_msgpack
-from .serialize      import register_serialization
+from .serialize      import register_serializable
 
 
 # import various utility methods

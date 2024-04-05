@@ -16,7 +16,7 @@ _ctypes = dict()
 
 # ------------------------------------------------------------------------------
 #
-def register_serialization(cls, encode, decode):
+def register_serializable(cls, encode, decode):
     '''
     register a class for json and msgpack serialization / deserialization.
 

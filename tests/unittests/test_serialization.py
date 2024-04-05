@@ -30,8 +30,8 @@ def test_serialization():
             return cls(data['real'], data['imag'])
 
 
-    ru.register_serialization(Complex, encode=Complex.serialize,
-                                       decode=Complex.deserialize)
+    ru.register_serializable(Complex, encode=Complex.serialize,
+                                      decode=Complex.deserialize)
 
     data     = {'foo': {'complex_number': Complex(1, 2)}}
     json_str = ru.to_json(data)
