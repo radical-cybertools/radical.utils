@@ -3,8 +3,6 @@ import os
 import zmq
 import errno
 
-import msgpack
-
 from ..url  import Url
 from ..misc import as_list
 from ..misc import ru_open

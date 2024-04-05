@@ -8,24 +8,8 @@ __license__   = 'MIT'
 import re
 import json
 
-from .misc import as_string, ru_open
-
-
-_json_classes = dict()
-
-def register_json_class(cls, check, convert):
-
-    global _json_classes
-    _json_classes[cls.__name__] = [check, convert]
-
-
-class _json_encoder(json.JSONEncoder):
-
-        def default(self, o):
-            for cls, (check, convert) in _json_classes.items():
-                if check(o):
-                    return convert(o)
-            return super().default(o)
+from .serialize import to_json, from_json
+from .misc      import as_string, ru_open
 
 
 # ------------------------------------------------------------------------------
@@ -78,8 +62,7 @@ def write_json(data, fname):
         fname = tmp
 
     with ru_open(fname, 'w') as f:
-        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False,
-                  cls=_json_encoder)
+        f.write(to_json(data))
         f.write('\n')
         f.flush()
 
@@ -92,8 +75,7 @@ def dumps_json(data):
 
     '''
 
-    return json.dumps(data, sort_keys=True, indent=4, ensure_ascii=False,
-                      cls=_json_encoder)
+    return to_json(data)
 
 
 # ------------------------------------------------------------------------------
@@ -116,7 +98,7 @@ def parse_json(json_str, filter_comments=True):
             content += re.sub(r'^\s*#.*$', '', line)
             content += '\n'
 
-        return json.loads(content)
+        return from_json(content)
 
 
 # ------------------------------------------------------------------------------
@@ -127,54 +109,6 @@ def parse_json_str(json_str):
     '''
 
     return as_string(parse_json(json_str))
-
-
-# ------------------------------------------------------------------------------
-#
-def metric_expand(data):
-    '''
-    iterate through the given dictionary, and when encountering a key string of
-    the form `ru.XYZ` or `rp.ABC`, expand them to their actually defined values.
-    This the following dict::
-
-        {
-            "ru.EVENT" : "foo"
-        }
-
-    becomes::
-
-        {
-            2 : "foo"
-        }
-    '''
-
-    try   : import radical.pilot as rp                              # noqa: F401
-    except: pass
-    try   : import radical.saga  as rs                              # noqa: F401
-    except: pass
-    try   : import radical.utils as ru                              # noqa: F401
-    except: pass
-
-    if isinstance(data, str):
-
-        if data.count('.') == 1:
-            elems = data.split('.')
-            if len(elems[0]) == 2 and elems[0][0] == 'r':
-                try:
-                    data = eval(data)
-                finally:
-
-                    pass
-        return data
-
-    elif isinstance(data, list):
-        return [metric_expand(elem) for elem in data]
-
-    elif isinstance(data, dict):
-        return {metric_expand(k) : metric_expand(v) for k,v in data.items()}
-
-    else:
-        return data
 
 
 # ------------------------------------------------------------------------------
