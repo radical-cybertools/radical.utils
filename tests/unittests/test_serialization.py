@@ -44,6 +44,21 @@ def test_serialization():
 
     assert data == new_data
 
+    class A(ru.TypedDict):
+        _schema = {'s': str,
+                   'i': int}
+
+    class B(ru.TypedDict):
+        _schema = {'a': A}
+
+    old_data = B(a=A(i=42, s='buz'))
+    tmp      = ru.to_json(old_data)
+    new_data = ru.from_json(tmp )
+
+    assert old_data == new_data
+    assert type(old_data) == type(new_data)
+    assert type(old_data['a']) == type(new_data['a'])
+
 
 # ------------------------------------------------------------------------------
 #
