@@ -55,8 +55,8 @@ def test_serialization_typed_dict():
     new = ru.from_json(ru.to_json(old))
 
     assert old == new
-    assert type(old) == type(new)
-    assert type(old['a']) == type(new['a'])
+    assert isinstance(old, B)      and isinstance(new, B)
+    assert isinstance(old['a'], A) and isinstance(new['a'], A)
 
 
 # ------------------------------------------------------------------------------

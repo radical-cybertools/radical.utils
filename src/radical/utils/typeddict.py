@@ -17,7 +17,6 @@ __license__   = 'MIT'
 #   - optional runtime type checking
 #
 
-import collections
 import copy
 import sys
 

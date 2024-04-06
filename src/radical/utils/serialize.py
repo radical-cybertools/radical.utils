@@ -1,5 +1,4 @@
 
-import copy
 import json
 import msgpack
 
@@ -15,6 +14,7 @@ class _CType:
         self.ctype : type     = ctype
         self.encode: callable = encode
         self.decode: callable = decode
+
 
 _ctypes = dict()
 
@@ -34,14 +34,12 @@ def register_serializable(cls, encode=None, decode=None):
     if encode is None: encode = cls
     if decode is None: decode = cls
 
-    global _ctypes
     _ctypes[cls.__name__] = _CType(cls, encode, decode)
 
 
 # ------------------------------------------------------------------------------
 #
 def _prep_typed_dict(d):
-    from .typeddict import as_dict
     return as_dict(d, _annotate=True)
 
 
@@ -56,13 +54,14 @@ class _json_encoder(json.JSONEncoder):
         tmp = as_dict(o, _annotate=True)
         return super().encode(tmp, *args, **kw)
 
-    def default(self, obj):
-      # print('encode: %s' % obj)
+    def default(self, o):
+      # print('encode: %s' % o)
         for cname,methods in _ctypes.items():
-            if isinstance(obj, methods.ctype):
+            if isinstance(o, methods.ctype):
                 return {'_type': cname,
-                        'as_str': methods.encode(obj)}
-        return super().default(obj)
+                        'as_str': methods.encode(o)}
+        return super().default(o)
+
 
 # ------------------------------------------------------------------------------
 #
