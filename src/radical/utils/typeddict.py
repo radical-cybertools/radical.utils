@@ -488,27 +488,21 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 # ------------------------------------------------------------------------------
 #
-def _as_dict_value(v, _annotate=False):
-    if isinstance(v, TypedDict):
-        ret = copy.deepcopy(v)
-        if _annotate:
-            ret['_type'] = type(v).__name__
-        return ret
-    else:
-        return as_dict(v, _annotate)
-
-
 def as_dict(src, _annotate=False):
     '''
     Iterate given object, apply `as_dict()` to all typed
     values, and return the result (effectively a shallow copy).
     '''
-    if isinstance(src, dict):
-        tgt = {k: _as_dict_value(v, _annotate) for k, v in src.items()}
+    if isinstance(src, TypedDict):
+        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
         if _annotate:
             tgt['_type'] = type(src).__name__
-    elif isinstance(src, collections.abc.Iterable):
-        tgt = [_as_dict_value(x, _annotate) for x in src]
+    elif isinstance(src, dict):
+        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
+    elif isinstance(src, list):
+        tgt = [as_dict(x, _annotate) for x in src]
+    elif isinstance(src, tuple):
+        tgt = tuple([as_dict(x, _annotate) for x in src])
     else:
         tgt = src
     return tgt
