@@ -292,15 +292,15 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     def __setattr__(self, k, v):
 
-        # if k.startswith('_'):
-        #     return object.__setattr__(self, k, v)
+        if k.startswith('__'):
+            return object.__setattr__(self, k, v)
 
         self._data[k] = self._verify_setter(k, v)
 
     def __delattr__(self, k):
 
-        # if k.startswith('_'):
-        #     return object.__delattr__(self, k)
+        if k.startswith('__'):
+            return object.__delattr__(self, k)
 
         del self._data[k]
 
