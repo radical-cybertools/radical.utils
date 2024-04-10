@@ -2,6 +2,7 @@
 
 import re
 import os
+import sys
 import queue
 import hashlib
 import tempfile
