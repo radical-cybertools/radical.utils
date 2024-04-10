@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import json
+import shlex
 
 from typing import Optional, List, Dict, Any, Callable
 
@@ -119,7 +120,7 @@ class _FluxService(object):
     # --------------------------------------------------------------------------
     #
     def start_service(self,
-                      launcher: Optional[str]           = None
+                      launcher: Optional[str]           = None,
                       env     : Optional[Dict[str,str]] = None
                      ) -> Optional[str]:
 
@@ -136,7 +137,7 @@ class _FluxService(object):
     # --------------------------------------------------------------------------
     #
     def _locked_start_service(self,
-                              launcher: Optional[str]           = None
+                              launcher: Optional[str]           = None,
                               env     : Optional[Dict[str,str]] = None
                              ) -> Optional[str]:
 
