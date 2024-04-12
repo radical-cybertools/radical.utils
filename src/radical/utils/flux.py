@@ -446,10 +446,10 @@ class FluxHelper(object):
 
         with self._lock:
 
-            with ru_open(self._uid + '.dump', 'a') as fout:
-                fout.write('connect flux %d: %s\n' % (os.getpid(),  uri))
-                for l in get_stacktrace():
-                    fout.write(l + '\n')
+          # with ru_open(self._uid + '.dump', 'a') as fout:
+          #     fout.write('connect flux %d: %s\n' % (os.getpid(),  uri))
+          #     for l in get_stacktrace():
+          #         fout.write(l + '\n')
 
             if self._uri:
                 raise RuntimeError('service already connected: %s' % self._uri)
