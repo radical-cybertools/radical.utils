@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.50.0 Release                                                        2024-04-15
+--------------------------------------------------------------------------------
+
+  - fix for setuptools upgrade
+
+
 1.48.0 Release                                                        2024-03-24
 --------------------------------------------------------------------------------
 
