@@ -3,7 +3,7 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
-1.50.0 Release                                                        2024-04-15
+1.51.0 Release                                                        2024-04-15
 --------------------------------------------------------------------------------
 
   - fix for setuptools upgrade
@@ -881,3 +881,5 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
+  - (HEAD -> master, origin/devel, origin/HEAD, devel) fix the fix
+  - (origin/project/scalems, project/scalems) devel version bump
