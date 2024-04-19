@@ -20,9 +20,7 @@ def get_version(paths=None):
     """
     paths:
         a VERSION file containing the detailed version is checked for in every
-        directory listed in paths.   When we find a VERSION file, we also look
-        for an SDIST file, and return the found name and location as absolute
-        path to the sdist.
+        directory listed in paths.
     """
 
     if not paths:
@@ -38,8 +36,6 @@ def get_version(paths=None):
     version_detail = None
     version_base   = None
     version_branch = None
-    sdist_name     = None
-    sdist_path     = None
     err            = ''
 
     # if in any of the paths a VERSION file exists, we use the detailed version
@@ -63,6 +59,9 @@ def get_version(paths=None):
                     version_detail = match.group('detail').strip()
                     version_base   = match.group('base').strip()
                     version_branch = match.group('branch').strip()
+
+                    version_base.lstrip('-')
+                    version_branch.lstrip('@')
                     break
 
         except Exception as e:
@@ -70,22 +69,10 @@ def get_version(paths=None):
             # the error message
             err += '%s\n' % repr(e)
 
-    if version_detail:
-        # check if there is also an SDIST near the version_path
-        sdist_path = version_path.replace('/VERSION', '/SDIST')
-        try:
-            with ru_open(sdist_path) as fh:
-                sdist_name = fh.read().strip()
-        except Exception:
-            # ignore missing SDIST file
-            pass
-
-        sdist_path = version_path.replace('/VERSION', '/%s' % sdist_name)
-
     # check if any one worked ok
     if version_detail:
-        return (version_short, version_detail, version_base, version_branch,
-                sdist_name, sdist_path)
+        return (version_short, version_detail, version_base, version_branch)
+
     else:
         raise RuntimeError("Cannot determine version from %s (%s)"
                           % (paths, err.strip()))
