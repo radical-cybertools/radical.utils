@@ -69,7 +69,7 @@ from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
 from .profile        import PROF_KEY_MAX
 
 from .json_io        import read_json, read_json_str, write_json
-from .json_io        import parse_json, parse_json_str, metric_expand
+from .json_io        import parse_json, parse_json_str
 from .which          import which
 from .tracer         import trace, untrace
 from .get_version    import get_version
