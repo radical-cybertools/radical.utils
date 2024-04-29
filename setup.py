@@ -10,8 +10,6 @@ __license__   = 'MIT'
 
 import re
 import os
-import sys
-import shutil
 
 import subprocess as sp
 
@@ -52,9 +50,11 @@ def get_version(_mod_root):
     information.
     '''
 
+    out = None
+    err = None
     ret = None
     try:
-        path           = '%s/%s' % (root, _mod_root)
+        version_path   = '%s/%s' % (root, _mod_root)
         version_base   = None
         version_detail = None
 
@@ -75,11 +75,11 @@ def get_version(_mod_root):
         version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', version_detail)
 
         # make sure the version files exist for the runtime version inspection
-        with open(path + '/VERSION', 'w', encoding='utf-8') as fout:
+        with open(version_path + '/VERSION', 'w', encoding='utf-8') as fout:
             fout.write(version_base   + '\n')
             fout.write(version_detail + '\n')
 
-        return version_base, version_detail, path
+        return version_base, version_detail, version_path
 
     except Exception as e:
         msg = 'Could not extract/set version: %s' % e
