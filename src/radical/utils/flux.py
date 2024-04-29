@@ -19,9 +19,7 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .misc    import ru_open
 from .host    import get_hostname
-from .debug   import get_stacktrace
 
 
 # --------------------------------------------------------------------------

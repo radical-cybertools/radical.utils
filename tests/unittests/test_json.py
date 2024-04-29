@@ -3,8 +3,6 @@
 # noqa: E201
 
 
-import radical.utils as ru
-
 
 # ------------------------------------------------------------------------------
 # run tests if called directly
