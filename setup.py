@@ -50,42 +50,42 @@ def get_version(_mod_root):
     information.
     '''
 
-    out = None
-    err = None
-    ret = None
+    _out = None
+    _err = None
+    _ret = None
     try:
-        version_path   = '%s/%s' % (root, _mod_root)
-        version_base   = None
-        version_detail = None
+        _version_path   = '%s/%s' % (root, _mod_root)
+        _version_base   = None
+        _version_detail = None
 
         # get version_base from './VERSION'
         with open('%s/VERSION' % root, 'r', encoding='utf-8') as fin:
-            version_base = fin.readline().strip()
+            _version_base = fin.readline().strip()
 
         # get version detail from git
-        out, err, ret = sh_callout(
+        _out, _err, _ret = sh_callout(
             'cd %s                               && '
             'tag=$(git describe --tags --always) && '
             'branch=$(git branch --show-current) && '
             'echo $tag@$branch' % root)
-        version_detail = out.strip()
-        version_detail = version_detail.decode()
-        version_detail = version_detail.replace('detached from ', 'detached-')
-        version_detail = re.sub('[/ ]+', '-', version_detail)
-        version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', version_detail)
+        _version_detail = _out.strip()
+        _version_detail = _version_detail.decode()
+        _version_detail = _version_detail.replace('detached from ', 'detached-')
+        _version_detail = re.sub('[/ ]+', '-', _version_detail)
+        _version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', _version_detail)
 
         # make sure the version files exist for the runtime version inspection
-        with open(version_path + '/VERSION', 'w', encoding='utf-8') as fout:
-            fout.write(version_base   + '\n')
-            fout.write(version_detail + '\n')
+        with open(_version_path + '/VERSION', 'w', encoding='utf-8') as fout:
+            fout.write(_version_base   + '\n')
+            fout.write(_version_detail + '\n')
 
-        return version_base, version_detail, version_path
+        return _version_base, _version_detail, _version_path
 
     except Exception as e:
-        msg = 'Could not extract/set version: %s' % e
-        if ret:
-            msg += '\n' + out + '\n\n' + err
-        raise RuntimeError(msg) from e
+        _msg = 'Could not extract/set version: %s' % e
+        if _ret:
+            _msg += '\n' + _out + '\n\n' + _err
+        raise RuntimeError(_msg) from e
 
 
 # ------------------------------------------------------------------------------
