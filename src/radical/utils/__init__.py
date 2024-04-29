@@ -100,11 +100,6 @@ version_short, version_detail, version_base, version_branch = get_version(_mod_r
 version      = version_short
 __version__  = version_detail
 
-print('version:', version)
-print('version:', version_detail)
-print('version:', version_base)
-print('version:', version_branch)
-
 
 # ------------------------------------------------------------------------------
 
