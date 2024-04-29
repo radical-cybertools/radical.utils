@@ -132,8 +132,7 @@ def metric_expand(data):
             if len(elems[0]) == 2 and elems[0][0] == 'r':
                 try:
                     data = eval(data)
-                finally:
-
+                except:
                     pass
         return data
 
