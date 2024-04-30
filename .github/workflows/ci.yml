@@ -23,12 +23,12 @@ jobs:
           python -m venv testenv
           . testenv/bin/activate
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade .
-          python -m pip install -r requirements-tests.txt
+          python -m pip install -r requirements-ci.txt
       - name: Lint with flake8 and pylint
         run: |
           . testenv/bin/activate
-          LOG=`git log -n 1 | grep Merge`
+          radical-stack
+          LOG=`git log -n 1 | grep Merge` || echo 'no merging' && exit 0
           NEW=`echo $LOG | cut -d ' ' -f2`
           OLD=`echo $LOG | cut -d ' ' -f3`
           (test -z "$NEW" || test -z "$OLD") && echo 'nothing to lint' && exit 0
@@ -56,10 +56,7 @@ jobs:
         python -m venv testenv
         . testenv/bin/activate
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install --upgrade .
-        python -m pip install git+https://github.com/radical-cybertools/radical.saga.git@devel
-        python -m pip install git+https://github.com/radical-cybertools/radical.pilot.git@devel
-        python -m pip install -r requirements-tests.txt
+        python -m pip install -r requirements-ci.txt
     - name: Test with pytest
       env:
         RADICAL_DEBUG: TRUE
