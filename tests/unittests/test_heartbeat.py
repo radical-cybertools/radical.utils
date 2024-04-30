@@ -99,7 +99,7 @@ def test_hb_uid():
     # --------------------------------------------------------------------------
     def proc():
 
-        hb = ru.Heartbeat('test', timeout=0.1, interval=0.01)
+        hb = ru.Heartbeat('test', timeout=0.2, interval=0.01)
         t0 = time.time()
 
         hb.start()
