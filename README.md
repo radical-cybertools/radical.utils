@@ -1,6 +1,6 @@
 # RADICAL-Utils (RU)
 
-[![Build Status](https://github.com/radical-cybertools/radical.utils/actions/workflows/python-app.yml/badge.svg)](https://github.com/radical-cybertools/radical.utils/actions/workflows/python-app.yml)
+[![Build Status](https://github.com/radical-cybertools/radical.utils/actions/workflows/ci.yml/badge.svg)](https://github.com/radical-cybertools/radical.utils/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/radical-cybertools/radical.utils/branch/devel/graph/badge.svg)](https://codecov.io/gh/radical-cybertools/radical.utils)
 
 RADICAL-Utils (RU) is a Python package, which contains shared code and tools for
