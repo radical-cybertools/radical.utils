@@ -28,6 +28,8 @@ jobs:
         run: |
           . testenv/bin/activate
           radical-stack
+          du -a testenv | grep utils/VERSION | cut -f 2- | xargs cat
+          git branch
           LOG=`git log -n 1 | grep Merge` || echo 'no merging' && exit 0
           NEW=`echo $LOG | cut -d ' ' -f2`
           OLD=`echo $LOG | cut -d ' ' -f3`
