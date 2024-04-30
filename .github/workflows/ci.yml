@@ -1,0 +1,76 @@
+
+name: CI
+
+on:
+  push:
+    branches: [ devel ]
+  pull_request:
+    branches: [ devel ]
+
+jobs:
+
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: |
+          python -m venv testenv
+          . testenv/bin/activate
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements-ci.txt
+      - name: Lint with flake8 and pylint
+        run: |
+          . testenv/bin/activate
+          radical-stack
+          LOG=`git log -n 1 | grep Merge` || echo 'no merging' && exit 0
+          NEW=`echo $LOG | cut -d ' ' -f2`
+          OLD=`echo $LOG | cut -d ' ' -f3`
+          (test -z "$NEW" || test -z "$OLD") && echo 'nothing to lint' && exit 0
+          DIFF=`git diff --name-only --diff-filter=db $NEW..$OLD`
+          FILTERED=$(for f in $DIFF; do echo $f; done | \
+                     grep -e '\.py$' |  sed "s|^|$PWD/|")
+          test -z "$FILTERED" && echo 'nothing to lint' && exit 0
+          flake8 $FILTERED
+          pylint $FILTERED
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11' ]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m venv testenv
+        . testenv/bin/activate
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install -r requirements-ci.txt
+    - name: Test with pytest
+      env:
+        RADICAL_DEBUG: TRUE
+        RADICAL_DEBUG_HELPER: TRUE
+        LOC: testenv/lib/python${{ matrix.python-version }}/site-packages
+      run: |
+        . testenv/bin/activate
+        radical-stack
+        coverage run --include=$LOC/radical/utils/* -m pytest -ra -vvv --showlocals tests/unittests/
+        coverage xml
+    - uses: codecov/codecov-action@v3
+      if: ${{ matrix.python-version == '3.7' }}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        files: ./coverage.xml
+
