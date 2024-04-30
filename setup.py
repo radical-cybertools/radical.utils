@@ -67,11 +67,13 @@ def get_version(_mod_root):
             'cd %s                               && '
             'tag=$(git describe --tags --always) && '
             'branch=$(git branch --show-current) && '
+            'branch=$(git branch --show-current) && '
             'echo $tag@$branch' % root)
         _version_detail = _out.strip()
         _version_detail = _version_detail.decode()
         _version_detail = _version_detail.replace('detached from ', 'detached-')
-        _version_detail = re.sub('[/ ]+', '-', _version_detail)
+        _version_detail = re.sub('@$', '@detached'       , _version_detail)
+        _version_detail = re.sub('[/ ]+', '-'            , _version_detail)
         _version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', _version_detail)
 
         # make sure the version files exist for the runtime version inspection
