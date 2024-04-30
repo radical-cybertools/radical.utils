@@ -4,8 +4,8 @@
 
 # default RCT branch for CI runs is "devel"
 
-radical.saga @ git+https://github.com/radical-cybertools/radical.utils@devel
-radical.pilot @ git+https://github.com/radical-cybertools/radical.gtod@devel
+radical.saga @ git+https://github.com/radical-cybertools/radical.saga@devel
+radical.pilot @ git+https://github.com/radical-cybertools/radical.pilot@devel
 
 # RP from the current branch
 .
