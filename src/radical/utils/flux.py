@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import json
+import shlex
 
 from typing import Optional, List, Dict, Any, Callable
 
@@ -18,9 +19,7 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .misc    import ru_open
 from .host    import get_hostname
-from .debug   import get_stacktrace
 
 
 # --------------------------------------------------------------------------
@@ -119,7 +118,8 @@ class _FluxService(object):
     # --------------------------------------------------------------------------
     #
     def start_service(self,
-                      env: Optional[Dict[str,str]] = None
+                      launcher: Optional[str]           = None,
+                      env     : Optional[Dict[str,str]] = None
                      ) -> Optional[str]:
 
         with self._lock:
@@ -129,16 +129,22 @@ class _FluxService(object):
 
             self._term.clear()
 
-            return self._locked_start_service(env)
+            return self._locked_start_service(launcher, env)
 
 
     # --------------------------------------------------------------------------
     #
     def _locked_start_service(self,
-                              env: Optional[Dict[str,str]] = None
+                              launcher: Optional[str]           = None,
+                              env     : Optional[Dict[str,str]] = None
                              ) -> Optional[str]:
 
-        cmd = ['flux', 'start', 'bash', '-c', 'echo URI:$FLUX_URI && sleep inf']
+        cmd  = list()
+
+        if launcher:
+            cmd += shlex.split(launcher)
+
+        cmd += ['flux', 'start', 'bash', '-c', 'echo URI:$FLUX_URI && sleep inf']
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
                              stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -403,7 +409,7 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def start_flux(self) -> None:
+    def start_flux(self, launcher: Optional[str] = None) -> None:
         '''
         Start a private Flux instance
 
@@ -416,7 +422,7 @@ class FluxHelper(object):
                 raise RuntimeError('service already connected: %s' % self._uri)
 
             self._service = _FluxService(self._uid, self._log, self._prof)
-            self._service.start_service()
+            self._service.start_service(launcher=launcher)
 
             self._uri = self._service.check_service()
             self._env = self._service.env
@@ -438,10 +444,10 @@ class FluxHelper(object):
 
         with self._lock:
 
-            with ru_open(self._uid + '.dump', 'a') as fout:
-                fout.write('connect flux %d: %s\n' % (os.getpid(),  uri))
-                for l in get_stacktrace():
-                    fout.write(l + '\n')
+          # with ru_open(self._uid + '.dump', 'a') as fout:
+          #     fout.write('connect flux %d: %s\n' % (os.getpid(),  uri))
+          #     for l in get_stacktrace():
+          #         fout.write(l + '\n')
 
             if self._uri:
                 raise RuntimeError('service already connected: %s' % self._uri)
