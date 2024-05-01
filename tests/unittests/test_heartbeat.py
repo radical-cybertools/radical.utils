@@ -99,6 +99,9 @@ def test_hb_uid():
     # --------------------------------------------------------------------------
     def proc():
 
+        start = time.time()
+        print('proc start: %.2f' % (time.time() - start))
+
         hb = ru.Heartbeat('test', timeout=0.1, interval=0.01)
         t0 = time.time()
 
@@ -112,7 +115,7 @@ def test_hb_uid():
                 time.sleep(0.1)
 
             while True:
-                time.sleep(1)
+                time.sleep(0.1)
 
         finally:
             if time.time() > t0 + 3.2:
@@ -129,7 +132,7 @@ def test_hb_uid():
         assert p.is_alive()
 
         # but it should have a zero exit value after 2 more seconds
-        time.sleep(6)
+        time.sleep(3)
         assert not p.is_alive()
         assert p.exitcode
 
