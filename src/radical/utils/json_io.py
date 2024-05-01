@@ -89,16 +89,11 @@ def parse_json(json_str, filter_comments=True):
     are stripped from json before parsing
     '''
 
-    if not filter_comments:
-        return json.loads(json_str)
+    if filter_comments:
+        json_str = '\n'.join([re.sub(r'^\s*#.*$', '', line)
+                         for line in json_str.split('\n')])
 
-    else:
-        content = ''
-        for line in json_str.split('\n'):
-            content += re.sub(r'^\s*#.*$', '', line)
-            content += '\n'
-
-        return from_json(content)
+    return from_json(json_str)
 
 
 # ------------------------------------------------------------------------------
