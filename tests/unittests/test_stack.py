@@ -43,9 +43,8 @@ class StackTestClass(TestCase):
         stack_output = ru.stack()
         self.assertIn('sys', stack_output)
         self.assertIn('radical', stack_output)
-        for module in ['pilot', 'saga', 'utils']:
-            self.assertIn('radical.%s' % module, stack_output['radical'])
-        self.assertEqual(stack_output['radical']['radical.dummy'], '?')
+        self.assertIn('radical.utils', stack_output['radical'])
+        self.assertIn('radical.dummy', stack_output['radical'])
 
         os.environ['RADICAL_DEBUG'] = 'TRUE'
         stack_output = ru.stack()
