@@ -42,7 +42,7 @@ from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
 from .env            import env_read, env_write, env_read_lines, env_eval
-from .env            import env_prep, env_diff, EnvProcess
+from .env            import env_prep, env_diff, EnvProcess, env_dump
 from .stack          import stack
 from .modules        import import_module, find_module, import_file
 from .modules        import get_type, load_class
