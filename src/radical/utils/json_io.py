@@ -6,7 +6,6 @@ __license__   = 'MIT'
 
 
 import re
-import json
 
 from .serialize import to_json, from_json
 from .misc      import as_string, ru_open
