@@ -51,9 +51,9 @@ class StackTestClass(TestCase):
         self.assertTrue(stack_output['radical']['radical.dummy'].endswith(
             "no attribute 'version_detail'"))
 
-        # - "re" - not a namespace, but a package-
-        stack_output = ru.stack(ns=['radical', 're'])
-        self.assertFalse(stack_output['re'])
+        # - "msgpack" - not a namespace, but a package-
+        stack_output = ru.stack(ns=['radical', 'msgpack'])
+        self.assertFalse(stack_output['msgpack'])
 
         # - non existed namespace/package -
         with self.assertRaises(ModuleNotFoundError):
