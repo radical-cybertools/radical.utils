@@ -67,7 +67,6 @@ def get_version(_mod_root):
             'cd %s                               && '
             'tag=$(git describe --tags --always) && '
             'branch=$(git branch --show-current) && '
-            'branch=$(git branch --show-current) && '
             'echo $tag@$branch' % root)
         _version_detail = _out.strip()
         _version_detail = _version_detail.decode()

@@ -53,11 +53,9 @@ def stack(ns='radical'):
 
                 try:
                     ret[namespace][mname] = import_module(mname).version_detail
+
                 except Exception as e:
-                    if '%s_DEBUG' % namespace.upper() in os.environ:
-                        ret[namespace][mname] = str(e)
-                    else:
-                        ret[namespace][mname] = '?'
+                    ret[namespace][mname] = 'Error: %s' % str(e)
 
     return ret
 
