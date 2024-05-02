@@ -96,7 +96,8 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version_short, version_detail, version_base, version_branch = get_version(_mod_root)
+version_short, version_base, version_branch, version_tag, version_detail \
+        =  get_version(_mod_root)
 version      = version_short
 __version__  = version_detail
 

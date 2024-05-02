@@ -33,9 +33,10 @@ def get_version(paths=None):
         paths = [paths]
 
     version_short  = None
-    version_detail = None
     version_base   = None
     version_branch = None
+    version_tag    = None
+    version_detail = None
     err            = ''
 
     # if in any of the paths a VERSION file exists, we use the detailed version
@@ -47,31 +48,29 @@ def get_version(paths=None):
 
             with ru_open(version_path) as f:
                 data    = f.read()
-                lines   = data.split('\n', 1)
+                lines   = data.split('\n')
                 lines   = [line.strip() for line in lines]
-                lines   = [line         for line in lines if line]
-                detail  = lines[-1]
-                pattern = re.compile(_pat)
-                match   = pattern.search(detail)
 
-                if match:
-                    version_short  = match.group('short').strip()
-                    version_detail = match.group('detail').strip()
-                    version_base   = match.group('base').strip()
-                    version_branch = match.group('branch').strip()
 
-                    version_base.lstrip('-')
-                    version_branch.lstrip('@')
-                    break
+                # make sure we have a valid version file
+                assert len(lines) > 1
+
+                version_short = lines[0]
+
+                if len(lines) > 2:
+                    version_base   = lines[1]
+                    version_branch = lines[2]
+                    version_tag    = lines[3]
+                    version_detail = lines[4]
 
         except Exception as e:
-            # ignore missing VERSION file -- this is caught below.  But ew keep
-            # the error message
+            # ignore missing VERSION file, but keep error message
             err += '%s\n' % repr(e)
 
     # check if any one worked ok
-    if version_detail:
-        return (version_short, version_detail, version_base, version_branch)
+    if version_short:
+        return (version_short, version_base, version_branch,
+                version_tag, version_detail)
 
     else:
         raise RuntimeError("Cannot determine version from %s (%s)"

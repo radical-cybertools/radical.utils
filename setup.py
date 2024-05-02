@@ -54,33 +54,62 @@ def get_version(_mod_root):
     _err = None
     _ret = None
     try:
-        _version_path   = '%s/%s' % (root, _mod_root)
+        _version_path   = '%s/%s/VERSION' % (root, _mod_root)
         _version_base   = None
+        _version_short  = None
+        _version_branch = None
+        _version_tag    = None
         _version_detail = None
 
-        # get version_base from './VERSION'
+        # get `version_base` from distribution's 'VERSION' file
         with open('%s/VERSION' % root, 'r', encoding='utf-8') as fin:
             _version_base = fin.readline().strip()
 
-        # get version detail from git
-        _out, _err, _ret = sh_callout(
-            'cd %s                               && '
-            'tag=$(git describe --tags --always) && '
-            'branch=$(git branch --show-current) && '
-            'echo $tag@$branch' % root)
-        _version_detail = _out.strip()
-        _version_detail = _version_detail.decode()
-        _version_detail = _version_detail.replace('detached from ', 'detached-')
-        _version_detail = re.sub('@$', '@detached'       , _version_detail)
-        _version_detail = re.sub('[/ ]+', '-'            , _version_detail)
-        _version_detail = re.sub('[^a-zA-Z0-9_+@.-]+', '', _version_detail)
+        _, _, ret = sh_callout('cd %s && git rev-parse --git-dir && which git'
+                               % root)
+        _in_git = (ret == 0)
 
-        # make sure the version files exist for the runtime version inspection
-        with open(_version_path + '/VERSION', 'w', encoding='utf-8') as fout:
-            fout.write(_version_base   + '\n')
-            fout.write(_version_detail + '\n')
+        if not _in_git:
 
-        return _version_base, _version_detail, _version_path
+            with open(_version_path, 'w', encoding='utf-8') as fout:
+                fout.write(_version_base + '\n')
+
+        else:
+
+            # get details from git
+            _out, _, _ret = sh_callout('cd %s && git describe --tags --always' % root)
+            assert _ret == 0, 'git describe failed'
+            _out = _out.decode()
+            _out = _out.strip()
+
+            _version_tag = _out
+
+            _out, _, _ret = sh_callout('cd %s && git branch --show-current' % root)
+            assert _ret == 0, 'git branch failed'
+
+            _out = _out.decode()
+            _out = _out.strip()
+
+            _version_branch = _out or 'detached'
+            _version_branch = _version_branch.replace('detached from ', '~')
+
+            _version_short = _version_tag.split('-')[0]
+            _version_short = _version_short[1:]  # strip the 'v'
+
+            if _version_tag:
+                _version_detail = '%s-%s@%s' % (_version_base, _version_tag,
+                                                _version_branch)
+            else:
+                _version_detail = '%s@%s' % (_version_base, _version_branch)
+
+            with open(_version_path, 'w', encoding='utf-8') as fout:
+                fout.write(_version_short  + '\n')
+                fout.write(_version_base   + '\n')
+                fout.write(_version_branch + '\n')
+                fout.write(_version_tag    + '\n')
+                fout.write(_version_detail + '\n')
+
+        return _version_base, _version_path
 
     except Exception as e:
         _msg = 'Could not extract/set version: %s' % e
@@ -91,7 +120,7 @@ def get_version(_mod_root):
 
 # ------------------------------------------------------------------------------
 # get version info -- this will create VERSION and srcroot/VERSION
-version, version_detail, path = get_version(mod_root)
+version, version_path = get_version(mod_root)
 
 
 # ------------------------------------------------------------------------------
@@ -165,7 +194,7 @@ setup(**setup_args)
 # ------------------------------------------------------------------------------
 # clean temporary files from source tree
 os.system('rm -vrf src/%s.egg-info' % name)
-os.system('rm -vf  %s/VERSION'      % path)
+os.system('rm -vf  %s/VERSION'      % version_path)
 
 
 # ------------------------------------------------------------------------------
