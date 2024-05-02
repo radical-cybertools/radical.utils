@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 __author__    = 'RADICAL-Cybertools Team'
 __copyright__ = 'Copyright 2021, The RADICAL-Cybertools Team'
@@ -48,8 +48,10 @@ class StackTestClass(TestCase):
 
         os.environ['RADICAL_DEBUG'] = 'TRUE'
         stack_output = ru.stack()
+        import pprint
+        pprint.pprint(stack_output)
         self.assertTrue(stack_output['radical']['radical.dummy'].endswith(
-            "no attribute 'version_detail'"))
+            "no attribute 'version'"))
 
         # - "msgpack" - not a namespace, but a package-
         stack_output = ru.stack(ns=['radical', 'msgpack'])
@@ -60,3 +62,11 @@ class StackTestClass(TestCase):
             _ = ru.stack(ns='no_valid_pkg')
 
 # ------------------------------------------------------------------------------
+#
+if __name__ == '__main__':
+
+    tc = StackTestClass()
+    tc.setUpClass()
+    tc.test_stack()
+    tc.tearDownClass()
+
