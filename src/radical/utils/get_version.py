@@ -68,13 +68,12 @@ def get_version(paths=None):
             err += '%s\n' % repr(e)
 
     # check if any one worked ok
-    if version_short:
-        return (version_short, version_base, version_branch,
-                version_tag, version_detail)
-
-    else:
+    if not version_short:
         raise RuntimeError("Cannot determine version from %s (%s)"
                           % (paths, err.strip()))
+
+    return (version_short, version_base, version_branch,
+            version_tag, version_detail)
 
 
 # ------------------------------------------------------------------------------
