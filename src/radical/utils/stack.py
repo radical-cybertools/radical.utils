@@ -52,7 +52,14 @@ def stack(ns='radical'):
                     continue
 
                 try:
-                    ret[namespace][mname] = import_module(mname).version_detail
+                    mod = import_module(mname)
+                    version        = getattr(mod, 'version')
+                    version_detail = getattr(mod, 'version_detail')
+
+                    if version_detail:
+                        ret[namespace][mname] = version_detail
+                    else:
+                        ret[namespace][mname] = version
 
                 except Exception as e:
                     ret[namespace][mname] = 'Error: %s' % str(e)

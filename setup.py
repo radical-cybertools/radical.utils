@@ -67,7 +67,7 @@ def get_version(_mod_root):
 
         _, _, ret = sh_callout('cd %s && git rev-parse --git-dir && which git'
                                % root)
-        _in_git = (ret == 0)
+        _in_git = (ret != 0)
 
         if not _in_git:
 
