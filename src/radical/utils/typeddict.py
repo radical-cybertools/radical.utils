@@ -280,7 +280,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
                 self.__dict__['_data'] = dict()
             return self.__dict__['_data']
 
-        if k.startswith('_'):
+        if k.startswith('__'):
             return object.__getattribute__(self, k)
 
         data   = self._data
@@ -292,14 +292,14 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     def __setattr__(self, k, v):
 
-        if k.startswith('_'):
+        if k.startswith('__'):
             return object.__setattr__(self, k, v)
 
         self._data[k] = self._verify_setter(k, v)
 
     def __delattr__(self, k):
 
-        if k.startswith('_'):
+        if k.startswith('__'):
             return object.__delattr__(self, k)
 
         del self._data[k]
