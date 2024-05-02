@@ -99,15 +99,15 @@ def test_hb_uid():
     # --------------------------------------------------------------------------
     def proc():
 
-        hb = ru.Heartbeat('test', timeout=0.2, interval=0.01)
+        hb = ru.Heartbeat('test', timeout=0.4, interval=0.1)
         t0 = time.time()
 
         hb.start()
 
         try:
             while True:
-                if   time.time() < t0 + 3: hb.beat()
-                elif time.time() < t0 + 5: hb.beat()
+                if   time.time() < t0 + 0.3: hb.beat()
+                elif time.time() < t0 + 0.6: hb.beat()
                 else: break
                 time.sleep(0.1)
 
@@ -115,7 +115,7 @@ def test_hb_uid():
                 time.sleep(0.1)
 
         finally:
-            if time.time() > t0 + 3.2:
+            if time.time() > t0 + 0.35:
                 sys.exit(-1)
     # --------------------------------------------------------------------------
 
@@ -125,11 +125,11 @@ def test_hb_uid():
         p.start()
 
         # proc should still be alive after 2 seconds
-        time.sleep(2)
+        time.sleep(0.4)
         assert p.is_alive()
 
         # but it should have a zero exit value after 2 more seconds
-        time.sleep(3)
+        time.sleep(1.2)
         assert not p.is_alive()
         assert p.exitcode
 
