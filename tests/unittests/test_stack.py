@@ -48,8 +48,6 @@ class StackTestClass(TestCase):
 
         os.environ['RADICAL_DEBUG'] = 'TRUE'
         stack_output = ru.stack()
-        import pprint
-        pprint.pprint(stack_output)
         self.assertTrue(stack_output['radical']['radical.dummy'].endswith(
             "no attribute 'version'"))
 
