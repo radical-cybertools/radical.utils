@@ -76,7 +76,7 @@ def get_version(_mod_root):
         else:
 
             # get details from git
-            _out, _, _ret = sh_callout('cd %s && git describe --tags --always' % root)
+            _out, _err, _ret = sh_callout('cd %s && git describe --tags --always' % root)
             assert _ret == 0, 'git describe failed'
             _out = _out.decode()
             _out = _out.strip()
