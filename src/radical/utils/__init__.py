@@ -68,7 +68,7 @@ from .profile        import read_profiles, combine_profiles, clean_profile
 from .profile        import TIME, EVENT, ENTITY, UID, MSG
 
 from .json_io        import read_json, read_json_str, write_json
-from .json_io        import parse_json, parse_json_str, metric_expand
+from .json_io        import parse_json, parse_json_str
 from .which          import which
 from .tracer         import trace, untrace
 from .get_version    import get_version
@@ -95,10 +95,10 @@ import os
 
 _mod_root = os.path.dirname (__file__)
 
-version_short, version_detail, version_base, \
-               version_branch, sdist_name,   \
-               sdist_path = get_version(_mod_root)
-version = version_short
+version_short, version_base, version_branch, version_tag, version_detail \
+        =  get_version(_mod_root)
+version      = version_short
+__version__  = version_detail
 
 
 # ------------------------------------------------------------------------------
