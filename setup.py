@@ -8,7 +8,6 @@ __license__   = 'MIT'
 
 ''' Setup script, only usable via pip. '''
 
-import re
 import os
 
 import subprocess as sp
@@ -84,7 +83,7 @@ def get_version(_mod_root):
 
             _version_tag = _out
 
-            _out, _, _ret = sh_callout('cd %s && git branch --show-current' % root)
+            _out, _err, _ret = sh_callout('cd %s && git branch --show-current' % root)
             assert _ret == 0, 'git branch failed'
 
             _out = _out.decode()
@@ -194,7 +193,7 @@ setup(**setup_args)
 # ------------------------------------------------------------------------------
 # clean temporary files from source tree
 os.system('rm -vrf src/%s.egg-info' % name)
-os.system('rm -vf  %s/VERSION'      % version_path)
+os.system('rm -vf  %s'              % version_path)
 
 
 # ------------------------------------------------------------------------------

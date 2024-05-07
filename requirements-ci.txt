@@ -2,7 +2,6 @@
 # RU from the current branch
 .
 
-requests
 pytest
 pytest-timeout
 pylint
