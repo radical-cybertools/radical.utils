@@ -24,15 +24,16 @@ mod_root = 'src/radical/%s/' % base
 
 scripts  = list(glob('bin/*'))
 root     = os.path.dirname(__file__) or '.'
-readme   = open("%s/README.md" % root, encoding='utf-8').read()
-descr    = "RADICAL-Cybertools utility library"
+readme   = open('%s/README.md' % root, encoding='utf-8').read()
+descr    = 'RADICAL-Cybertools utility library'
 keywords = ['radical', 'cybertools', 'utilities']
 
 share    = 'share/%s' % name
 data     = [('%s/examples'      % share, glob('examples/*.{py,cfg,json,sh}')),
             ('%s/examples/zmq'  % share, glob('examples/zmq/*.md'          )),
             ('%s/examples/zmq'  % share, glob('examples/zmq/queue/*'       )),
-            ('%s/examples/zmq'  % share, glob('examples/zmq/pubsub/*'      ))]
+            ('%s/examples/zmq'  % share, glob('examples/zmq/pubsub/*'      ))
+]
 
 
 # ------------------------------------------------------------------------------
