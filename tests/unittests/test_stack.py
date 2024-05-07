@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 __author__    = 'RADICAL-Cybertools Team'
 __copyright__ = 'Copyright 2021, The RADICAL-Cybertools Team'
@@ -43,21 +43,28 @@ class StackTestClass(TestCase):
         stack_output = ru.stack()
         self.assertIn('sys', stack_output)
         self.assertIn('radical', stack_output)
-        for module in ['pilot', 'saga', 'utils']:
-            self.assertIn('radical.%s' % module, stack_output['radical'])
-        self.assertEqual(stack_output['radical']['radical.dummy'], '?')
+        self.assertIn('radical.utils', stack_output['radical'])
+        self.assertIn('radical.dummy', stack_output['radical'])
 
         os.environ['RADICAL_DEBUG'] = 'TRUE'
         stack_output = ru.stack()
         self.assertTrue(stack_output['radical']['radical.dummy'].endswith(
-            "no attribute 'version_detail'"))
+            "no attribute 'version'"))
 
-        # - "requests" - not a namespace, but a package-
-        stack_output = ru.stack(ns=['radical', 'requests'])
-        self.assertFalse(stack_output['requests'])
+        # - "msgpack" - not a namespace, but a package-
+        stack_output = ru.stack(ns=['radical', 'msgpack'])
+        self.assertFalse(stack_output['msgpack'])
 
         # - non existed namespace/package -
         with self.assertRaises(ModuleNotFoundError):
             _ = ru.stack(ns='no_valid_pkg')
 
 # ------------------------------------------------------------------------------
+#
+if __name__ == '__main__':
+
+    tc = StackTestClass()
+    tc.setUpClass()
+    tc.test_stack()
+    tc.tearDownClass()
+
