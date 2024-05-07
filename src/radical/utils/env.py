@@ -2,9 +2,11 @@
 
 import re
 import os
+import sys
 import queue
 import hashlib
 import tempfile
+import traceback
 
 from typing import List, Dict, Tuple, Any, Optional
 
@@ -389,7 +391,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
             raise RuntimeError('error running "%s": %s' % (cmd, err))
 
         env = env_read_lines(out.split('\n'))
-      # os.unlink(tmp_name)
+        os.unlink(tmp_name)
 
         _env_cache[cache_md5] = env
 
@@ -402,7 +404,6 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
-
         env_write(script_path, env=env, unset=unset, pre_exec=pre_exec)
 
     return env
@@ -470,7 +471,7 @@ class EnvProcess(object):
 
         self._q     = mp.Queue()
         self._env   = env
-        self._data  = [None, None]   # data, exception
+        self._data  = None
         self._child = None
 
 
@@ -512,13 +513,15 @@ class EnvProcess(object):
 
     # --------------------------------------------------------------------------
     #
-    def __exit__(self, exc  : Optional[Exception],
-                       value: Optional[Any],
-                       tb   : Optional[Any]
+    def __exit__(self, exc_type: Optional[Exception],
+                       exc_val : Optional[Any],
+                       exc_tb  : Optional[Any]
                 ) -> None:
 
-        if exc and self._child:
-            self._q.put([None, exc])
+        if exc_type and self._child:
+            stacktrace = ' '.join(traceback.format_exception(
+                                                     exc_type, exc_val, exc_tb))
+            self._q.put([None, exc_type, exc_val, stacktrace])
             self._q.close()
             self._q.join_thread()
             os._exit(0)
@@ -531,6 +534,7 @@ class EnvProcess(object):
                     self._data = self._q.get(timeout=1)
                     break
                 except queue.Empty:
+                    self._data = None
                     pass
 
 
@@ -539,7 +543,7 @@ class EnvProcess(object):
     def put(self, data: str) -> None:
 
         if self._child:
-            self._q.put([data, None])
+            self._q.put([data, None, None, None])
             self._q.close()
             self._q.join_thread()
             os._exit(0)
@@ -549,9 +553,15 @@ class EnvProcess(object):
     #
     def get(self) -> Any:
 
-        data, exc = self._data
-        if exc:
-            raise exc                         # pylint: disable=raising-bad-type
+        if self._data is None:
+            return
+
+
+        data, exc_type, exc_val, stacktrace = self._data
+        if exc_type:
+            sys.stdout.write('%s [%s]\n' % (exc_type, exc_val))
+            sys.stdout.write('%s\n\n' % stacktrace)
+            raise exc_type                    # pylint: disable=raising-bad-type
 
         return data
 

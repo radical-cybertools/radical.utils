@@ -42,7 +42,7 @@ from .testing        import sys_exit
 from .testing        import TestConfig
 from .testing        import set_test_config, add_test_config, get_test_config
 from .env            import env_read, env_write, env_read_lines, env_eval
-from .env            import env_prep, env_diff, EnvProcess
+from .env            import env_prep, env_diff, EnvProcess, env_dump
 from .stack          import stack
 from .modules        import import_module, find_module, import_file
 from .modules        import get_type, load_class
@@ -52,6 +52,7 @@ from .dict_mixin     import PRESERVE, OVERWRITE, iter_diff
 from .typeddict      import TypedDict, TypedDictMeta, as_dict
 from .config         import Config, DefaultConfig
 
+from .zmq            import Message
 from .zmq            import Bridge
 from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber

@@ -54,6 +54,7 @@ class _IDRegistry(object, metaclass=Singleton):
         self._rlock    = threading.RLock()
         self._registry = dict()
 
+
     # --------------------------------------------------------------------------
     def get_counter(self, prefix):
         """
@@ -70,7 +71,8 @@ class _IDRegistry(object, metaclass=Singleton):
 
             self._registry[prefix] += 1
 
-            return ret
+        return ret
+
 
     # --------------------------------------------------------------------------
     def reset_counter(self, prefix, reset_all_others=False):
@@ -108,7 +110,7 @@ ID_UUID    = 'uuid'
 
 # ------------------------------------------------------------------------------
 #
-def generate_id(prefix, mode=ID_SIMPLE, ns=None):
+def generate_id(prefix: str, mode=ID_SIMPLE, ns=None):
     """
     Generate a human readable, sequential ID for the given prefix.
 
@@ -183,8 +185,8 @@ def generate_id(prefix, mode=ID_SIMPLE, ns=None):
     and will, for `ID_PRIVATE`, revert to `ID_UUID`.
     """
 
-    if not prefix or not isinstance(prefix, str):
-        raise TypeError("ID generation expect prefix in basestring type")
+    if not isinstance(prefix, str):
+        raise TypeError('"prefix" must be a string, not %s' % type(prefix))
 
     if _cache['dockerized'] and mode == ID_PRIVATE:
         mode = ID_UUID

@@ -137,9 +137,11 @@ def get_version(_mod_root):
       # _sdist_name = _sdist_name.replace('#', '-')
       # _sdist_name = _sdist_name.replace('_', '-')
 
-        if '--record'    in sys.argv or \
-           'bdist_egg'   in sys.argv or \
-           'bdist_wheel' in sys.argv    :
+        # setuptools 69.5 does changes naming scheme
+        if not os.path.isfile('dist/%s' % _sdist_name):
+            _sdist_name = '%s-%s.tar.gz' % (name.replace('.', '_'), _version_base)
+
+        if os.path.isfile('dist/%s' % _sdist_name):
             # pip install stage 2 or easy_install stage 1
             #
             # pip install will untar the sdist in a tmp tree.  In that tmp
@@ -201,7 +203,7 @@ with open('%s/requirements.txt' % root, encoding='utf-8') as freq:
 #
 setup_args = {
     'name'               : name,
-    'namespace_packages' : ['radical'],
+  # 'namespace_packages' : ['radical'],
     'version'            : version,
     'description'        : 'Utilities for RADICAL-Cybertools projects',
     'author'             : 'RADICAL Group at Rutgers University',
@@ -235,7 +237,6 @@ setup_args = {
     'packages'           : find_namespace_packages('src', include=['radical.*']),
     'package_dir'        : {'': 'src'},
     'scripts'            : ['bin/radical-utils-fix-headers.pl',
-                            'bin/radical-utils-mongodb.py',
                             'bin/radical-utils-version',
                             'bin/radical-utils-pwatch',
                             'bin/radical-utils-service',

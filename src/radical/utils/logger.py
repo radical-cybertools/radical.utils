@@ -34,6 +34,15 @@ many times.  We use a shortcut, and create a new, unlocked lock.
 
 # ------------------------------------------------------------------------------
 #
+# NOTE: ForkingPickler does not like lambdas nor local functions, thus use
+#       a module level function to disable loggers.
+#
+def _noop(*args, **kwargs):
+    pass
+
+
+# ------------------------------------------------------------------------------
+#
 import os
 import sys
 import threading
@@ -331,6 +340,7 @@ class Logger(object):
             p = self._path
             n = self._name
             for t in self._targets:
+
                 if   t in ['0', 'null']       : h = logging.NullHandler()
                 elif t in ['-', '1', 'stdout']: h = ColorStreamHandler(sys.stdout)
                 elif t in ['=', '2', 'stderr']: h = ColorStreamHandler(sys.stderr)
@@ -402,21 +412,21 @@ class Logger(object):
         # class has no constructor, we do it this way.
 
         # disable all loggers
-        self.critical = lambda *args, **kwargs: None
-        self.error    = lambda *args, **kwargs: None
-        self.warn     = lambda *args, **kwargs: None
-        self.warning  = lambda *args, **kwargs: None
-        self.info     = lambda *args, **kwargs: None
-        self.debug    = lambda *args, **kwargs: None
-        self.debug_1  = lambda *args, **kwargs: None
-        self.debug_2  = lambda *args, **kwargs: None
-        self.debug_3  = lambda *args, **kwargs: None
-        self.debug_4  = lambda *args, **kwargs: None
-        self.debug_5  = lambda *args, **kwargs: None
-        self.debug_6  = lambda *args, **kwargs: None
-        self.debug_7  = lambda *args, **kwargs: None
-        self.debug_8  = lambda *args, **kwargs: None
-        self.debug_9  = lambda *args, **kwargs: None
+        self.critical = _noop
+        self.error    = _noop
+        self.warn     = _noop
+        self.warning  = _noop
+        self.info     = _noop
+        self.debug    = _noop
+        self.debug_1  = _noop
+        self.debug_2  = _noop
+        self.debug_3  = _noop
+        self.debug_4  = _noop
+        self.debug_5  = _noop
+        self.debug_6  = _noop
+        self.debug_7  = _noop
+        self.debug_8  = _noop
+        self.debug_9  = _noop
 
         # enable the ones we are configured for:
         if self._num_level <= 50: self.critical = self._logger.critical
