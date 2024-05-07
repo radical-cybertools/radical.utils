@@ -92,12 +92,12 @@ from . import zmq
 
 # ------------------------------------------------------------------------------
 #
-import os
+import os as _os
 
-_mod_root = os.path.dirname (__file__)
+_mod_root = _os.path.dirname (__file__)
 
 version_short, version_base, version_branch, version_tag, version_detail \
-        =  get_version(_mod_root)
+             = get_version(_mod_root)
 version      = version_short
 __version__  = version_detail
 
