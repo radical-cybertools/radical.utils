@@ -1,13 +1,5 @@
 
-# provided branches for RCT components can be edited,
-# if there is a dependency with non-devel branch
-
-# default RCT branch for CI runs is "devel"
-
-radical.saga @ git+https://github.com/radical-cybertools/radical.saga@devel
-radical.pilot @ git+https://github.com/radical-cybertools/radical.pilot@devel
-
-# RP from the current branch
+# RU from the current branch
 .
 
 pytest
