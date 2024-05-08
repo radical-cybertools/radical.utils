@@ -2,8 +2,7 @@
 import json
 import msgpack
 
-from .typeddict import as_dict
-
+from .typeddict import as_dict, TypedDict
 
 # ------------------------------------------------------------------------------
 #
@@ -35,6 +34,8 @@ def register_serializable(cls, encode=None, decode=None):
     if decode is None: decode = cls
 
     _ctypes[cls.__name__] = _CType(cls, encode, decode)
+
+register_serializable(TypedDict)
 
 
 # ------------------------------------------------------------------------------

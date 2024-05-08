@@ -98,7 +98,16 @@ class TypedDictMeta(type):
             elif k not in namespace:
                 namespace[k] = v
 
-        return super().__new__(mcs, name, bases, namespace)
+        _new_cls = super().__new__(mcs, name, bases, namespace)
+
+        if _new_cls.__base__ is not dict:
+
+            # register sub-classes
+            from .serialize import register_serializable
+            register_serializable(_new_cls)
+
+        return _new_cls
+
 
 
 # ------------------------------------------------------------------------------
