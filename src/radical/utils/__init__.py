@@ -7,7 +7,15 @@ __author__    = 'RADICAL-Cybertools Team'
 __copyright__ = 'Copyright 2013-2022, The RADICAL-Cybertools Team'
 __license__   = 'MIT'
 
+# ------------------------------------------------------------------------------
+#
+import os            as _os
+
+
+# ------------------------------------------------------------------------------
+#
 # we want atfork imported first, specifically before os and logging
+#
 from .atfork         import *
 
 # import constants
@@ -92,12 +100,12 @@ from . import zmq
 
 # ------------------------------------------------------------------------------
 #
-import os
-
-_mod_root = os.path.dirname (__file__)
+# get version info
+#
+_mod_root = _os.path.dirname (__file__)
 
 version_short, version_base, version_branch, version_tag, version_detail \
-        =  get_version(_mod_root)
+             = get_version(_mod_root)
 version      = version_short
 __version__  = version_detail
 
