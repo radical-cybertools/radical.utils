@@ -17,18 +17,23 @@ from setuptools import setup, Command, find_namespace_packages
 
 
 # ------------------------------------------------------------------------------
+#
 base     = 'utils'
 name     = 'radical.%s'      % base
 mod_root = 'src/radical/%s/' % base
 
 scripts  = list(glob('bin/*'))
 root     = os.path.dirname(__file__) or '.'
-descr    = 'Utilities for RADICAL-Cybertools projects'
+readme   = open('%s/README.md' % root, encoding='utf-8').read()
+descr    = 'RADICAL-Cybertools utility library'
+keywords = ['radical', 'cybertools', 'utilities']
 
-data     = [('share/%s/examples/'    % name, glob('examples/*.{py,cfg}'  )),
-            ('share/%s/examples/zmq' % name, glob('examples/zmq/*.md'    )),
-            ('share/%s/examples/zmq' % name, glob('examples/zmq/queue/*' )),
-            ('share/%s/examples/zmq' % name, glob('examples/zmq/pubsub/*'))]
+share    = 'share/%s' % name
+data     = [('%s/examples'      % share, glob('examples/*.{py,cfg,json,sh}')),
+            ('%s/examples/zmq'  % share, glob('examples/zmq/*.md'          )),
+            ('%s/examples/zmq'  % share, glob('examples/zmq/queue/*'       )),
+            ('%s/examples/zmq'  % share, glob('examples/zmq/pubsub/*'      ))
+]
 
 
 # ------------------------------------------------------------------------------
@@ -145,6 +150,8 @@ setup_args = {
     'name'               : name,
     'version'            : version,
     'description'        : descr,
+    'long_description'   : readme,
+    'long_description_content_type' : 'text/markdown',
     'author'             : 'RADICAL Group at Rutgers University',
     'author_email'       : 'radical@rutgers.edu',
     'maintainer'         : 'The RADICAL Group',
@@ -156,7 +163,7 @@ setup_args = {
         'Issues' : 'https://github.com/radical-cybertools/%s/issues'   % name,
     },
     'license'            : 'MIT',
-    'keywords'           : 'radical utils',
+    'keywords'           : keywords,
     'python_requires'    : '>=3.7',
     'classifiers'        : [
         'Development Status :: 5 - Production/Stable',
