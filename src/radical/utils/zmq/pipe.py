@@ -1,6 +1,7 @@
 
 import zmq
-import msgpack
+
+from ..serialize import to_msgpack, from_msgpack
 
 MODE_PUSH = 'push'
 MODE_PULL = 'pull'
@@ -121,7 +122,7 @@ class Pipe(object):
         '''
 
         assert self._mode == MODE_PUSH
-        self._sock.send(msgpack.packb(msg))
+        self._sock.send(to_msgpack(msg))
 
 
     # --------------------------------------------------------------------------
@@ -132,7 +133,7 @@ class Pipe(object):
         '''
 
         assert self._mode == MODE_PULL
-        return msgpack.unpackb(self._sock.recv())
+        return from_msgpack(self._sock.recv())
 
 
     # --------------------------------------------------------------------------
@@ -150,7 +151,7 @@ class Pipe(object):
         socks = dict(self._poller.poll(timeout=int(timeout * 1000)))
 
         if self._sock in socks:
-            return msgpack.unpackb(self._sock.recv())
+            return from_msgpack(self._sock.recv())
 
 
 # ------------------------------------------------------------------------------
