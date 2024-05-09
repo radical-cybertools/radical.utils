@@ -20,7 +20,7 @@ __license__   = 'MIT'
 import copy
 import sys
 
-from .misc import as_list, as_tuple, is_string
+from .misc      import as_list, as_tuple, is_string
 
 
 # ------------------------------------------------------------------------------
@@ -98,7 +98,16 @@ class TypedDictMeta(type):
             elif k not in namespace:
                 namespace[k] = v
 
-        return super().__new__(mcs, name, bases, namespace)
+        _new_cls = super().__new__(mcs, name, bases, namespace)
+
+        if _new_cls.__base__ is not dict:
+
+            # register sub-classes
+            from .serialize import register_serializable
+            register_serializable(_new_cls)
+
+        return _new_cls
+
 
 
 # ------------------------------------------------------------------------------
@@ -137,6 +146,10 @@ class TypedDict(dict, metaclass=TypedDictMeta):
               are specified (note that `from_dict` and `self` are invalid
               `kwargs`).
         '''
+
+        from .serialize import register_serializable
+
+        register_serializable(self.__class__)
 
         self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
@@ -288,15 +301,15 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     def __setattr__(self, k, v):
 
-        # if k.startswith('_'):
-        #     return object.__setattr__(self, k, v)
+        if k.startswith('__'):
+            return object.__setattr__(self, k, v)
 
         self._data[k] = self._verify_setter(k, v)
 
     def __delattr__(self, k):
 
-        # if k.startswith('_'):
-        #     return object.__delattr__(self, k)
+        if k.startswith('__'):
+            return object.__delattr__(self, k)
 
         del self._data[k]
 
@@ -312,8 +325,8 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
     # --------------------------------------------------------------------------
     #
-    def as_dict(self):
-        return as_dict(self._data)
+    def as_dict(self, _annotate=False):
+        return as_dict(self._data, _annotate)
 
 
     # --------------------------------------------------------------------------
@@ -483,21 +496,21 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 # ------------------------------------------------------------------------------
 #
-def _as_dict_value(v):
-    return v.as_dict() if isinstance(v, TypedDict) else as_dict(v)
-
-
-def as_dict(src):
+def as_dict(src, _annotate=False):
     '''
     Iterate given object, apply `as_dict()` to all typed
     values, and return the result (effectively a shallow copy).
     '''
-    if isinstance(src, dict):
-        tgt = {k: _as_dict_value(v) for k, v in src.items()}
+    if isinstance(src, TypedDict):
+        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
+        if _annotate:
+            tgt['_type'] = type(src).__name__
+    elif isinstance(src, dict):
+        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
     elif isinstance(src, list):
-        tgt = [_as_dict_value(x) for x in src]
+        tgt = [as_dict(x, _annotate) for x in src]
     elif isinstance(src, tuple):
-        tgt = tuple([_as_dict_value(x) for x in src])
+        tgt = tuple([as_dict(x, _annotate) for x in src])
     else:
         tgt = src
     return tgt
