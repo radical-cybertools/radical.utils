@@ -77,10 +77,13 @@ from .profile        import TIME, EVENT, COMP, TID, UID, STATE, MSG, ENTITY
 from .profile        import PROF_KEY_MAX
 
 from .json_io        import read_json, read_json_str, write_json
-from .json_io        import parse_json, parse_json_str
+from .json_io        import parse_json, parse_json_str, dumps_json
 from .which          import which
 from .tracer         import trace, untrace
 from .get_version    import get_version
+
+from .serialize      import to_json, from_json, to_msgpack, from_msgpack
+from .serialize      import register_serializable
 
 
 # import various utility methods

@@ -1,14 +1,14 @@
 
 import zmq
-import msgpack
 
 from typing import Any
 
 import threading as mt
 
-from ..json_io import read_json
-from ..misc    import as_string
-from .utils    import no_intr, sock_connect
+from ..json_io   import read_json
+from ..misc      import as_string
+from ..serialize import to_msgpack, from_msgpack
+from .utils      import no_intr, sock_connect
 
 
 # ------------------------------------------------------------------------------
@@ -61,14 +61,14 @@ class Client(object):
     #
     def request(self, cmd: str, *args: Any, **kwargs: Any) -> Any:
 
-        req = msgpack.packb({'cmd'   : cmd,
-                             'args'  : args,
-                             'kwargs': kwargs})
+        req = to_msgpack({'cmd'   : cmd,
+                          'args'  : args,
+                          'kwargs': kwargs})
 
         no_intr(self._sock.send, req)
 
         msg = no_intr(self._sock.recv)
-        res = as_string(msgpack.unpackb(msg))
+        res = as_string(from_msgpack(msg))
 
         # FIXME: assert proper res structure
 
