@@ -2,24 +2,23 @@
 
 import zmq
 import time
-import msgpack
 
 import threading as mt
 
-from typing    import Optional
+from typing      import Optional
 
-from ..atfork  import atfork
-from ..config  import Config
-from ..ids     import generate_id, ID_CUSTOM
-from ..url     import Url
-from ..misc    import as_string, as_bytes, as_list, noop
-from ..host    import get_hostip
-from ..logger  import Logger
+from ..atfork    import atfork
+from ..config    import Config
+from ..ids       import generate_id, ID_CUSTOM
+from ..url       import Url
+from ..misc      import as_string, as_bytes, as_list, noop
+from ..host      import get_hostip
+from ..logger    import Logger
+from ..profile   import Profiler
+from ..serialize import to_msgpack, from_msgpack
 
-from ..profile import Profiler
-
-from .bridge   import Bridge
-from .utils    import no_intr
+from .bridge     import Bridge
+from .utils      import no_intr
 
 
 # ------------------------------------------------------------------------------
@@ -248,7 +247,7 @@ class Publisher(object):
       # log_bulk(self._log, '-> %s' % topic, [msg])
 
         btopic = as_bytes(topic.replace(' ', '_'))
-        bmsg   = msgpack.packb(msg)
+        bmsg   = to_msgpack(msg)
         data   = btopic + b' ' + bmsg
 
         self._socket.send(data)
@@ -275,7 +274,7 @@ class Subscriber(object):
 
             data        = no_intr(socket.recv, flags=zmq.NOBLOCK)
             topic, bmsg = data.split(b' ', 1)
-            msg         = msgpack.unpackb(bmsg)
+            msg         = from_msgpack(bmsg)
 
           # log.debug(' <- %s: %s', topic, msg)
 
@@ -490,7 +489,7 @@ class Subscriber(object):
             data = no_intr(self._sock.recv)
 
         topic, bmsg = data.split(b' ', 1)
-        msg = msgpack.unpackb(bmsg)
+        msg = from_msgpack(bmsg)
 
       # log_bulk(self._log, '<- %s' % topic, [msg])
 
@@ -512,7 +511,7 @@ class Subscriber(object):
                 data = no_intr(self._sock.recv, flags=zmq.NOBLOCK)
 
             topic, bmsg = data.split(b' ', 1)
-            msg = msgpack.unpackb(bmsg)
+            msg = from_msgpack(bmsg)
 
           # log_bulk(self._log, '<- %s' % topic, [msg])
 
