@@ -176,22 +176,23 @@ class Config(TypedDict):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, module=None, category=None, name=None, cfg=None,
-                       from_dict=None, path=None, expand=True, env=None,
-                       _internal=False):
+    def __init__(self, from_dict=None,
+                       module=None, category=None, name=None,
+                       cfg=None,    path=None,     expand=True,
+                       env=None, _internal=False):
         """
         Load a config (json) file from the module's config tree, and overload
         any user specific config settings if found.
 
         Parameters
         ----------
+        from_dict: alias for cfg, to satisfy base class constructor
         module:    used to determine the module's config file location
                    - default: `radical.utils`
         category:  name of config to be loaded from module's config path
         name:      specify a specific configuration to be used
         path:      path to app config json to be used for initialization
         cfg:       application config dict to be used for initialization
-        from_dict: alias for cfg, to satisfy base class constructor
         expand:    enable / disable environment var expansion
                    - default: True
         env:       environment dictionary to be used for expansion
@@ -214,6 +215,12 @@ class Config(TypedDict):
               Keys containing dots are split and interpreted as paths in the
               configuration hierarchy.
         """
+
+        # if the `from_dict` is given but is a string, we interpret it as
+        # `module` parameter.
+        if from_dict and isinstance(from_dict, str):
+            module    = from_dict
+            from_dict = None
 
         if from_dict:
             # if we could only overload constructors by signature... :-/

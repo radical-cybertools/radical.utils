@@ -1,14 +1,15 @@
 
 from typing import Dict, Any
 
-import msgpack
-
 from ..typeddict import TypedDict
+from ..serialize import to_msgpack, from_msgpack
 
 
 # ------------------------------------------------------------------------------
 #
 class Message(TypedDict):
+
+    # FIXME: register serialization methods for all message types
 
     _schema = {
         '_msg_type': str,
@@ -48,11 +49,11 @@ class Message(TypedDict):
 
 
     def packb(self):
-        return msgpack.packb(self)
+        return to_msgpack(self)
 
     @staticmethod
     def unpackb(bdata):
-        return Message.deserialize(msgpack.unpackb(bdata))
+        return Message.deserialize(from_msgpack(bdata))
 
 
 # ------------------------------------------------------------------------------

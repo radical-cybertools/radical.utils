@@ -1,20 +1,20 @@
 
 import zmq
-import msgpack
 
 import threading as mt
 
-from typing import Optional, Union, Iterator, Any, Dict
+from typing      import Optional, Union, Iterator, Any, Dict
 
-from ..ids     import generate_id
-from ..url     import Url
-from ..misc    import as_string
-from ..host    import get_hostip
-from ..logger  import Logger
-from ..profile import Profiler
-from ..debug   import get_exception_trace
+from ..ids       import generate_id
+from ..url       import Url
+from ..misc      import as_string
+from ..host      import get_hostip
+from ..logger    import Logger
+from ..profile   import Profiler
+from ..debug     import get_exception_trace
+from ..serialize import to_msgpack, from_msgpack
 
-from .utils    import no_intr
+from .utils      import no_intr
 
 
 # --------------------------------------------------------------------------
@@ -284,7 +284,7 @@ class Server(object):
 
             try:
                 data = no_intr(self._sock.recv)
-                req  = as_string(msgpack.unpackb(data))
+                req  = as_string(from_msgpack(data))
                 self._log.debug('req: %s', str(req)[:128])
 
                 if not isinstance(req, dict):
@@ -312,7 +312,7 @@ class Server(object):
             finally:
                 if not rep:
                     rep = self._error('server error')
-                no_intr(self._sock.send, msgpack.packb(rep))
+                no_intr(self._sock.send, to_msgpack(rep))
                 self._log.debug('rep: %s', str(rep)[:128])
 
         self._sock.close()

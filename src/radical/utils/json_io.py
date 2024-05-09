@@ -6,9 +6,9 @@ __license__   = 'MIT'
 
 
 import re
-import json
 
-from .misc import as_string, ru_open
+from .serialize import to_json, from_json
+from .misc      import as_string, ru_open
 
 
 # ------------------------------------------------------------------------------
@@ -61,9 +61,20 @@ def write_json(data, fname):
         fname = tmp
 
     with ru_open(fname, 'w') as f:
-        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
+        f.write(to_json(data))
         f.write('\n')
         f.flush()
+
+
+# ------------------------------------------------------------------------------
+#
+def dumps_json(data):
+    '''
+    thin wrapper around python's json write, for consistency of interface
+
+    '''
+
+    return to_json(data)
 
 
 # ------------------------------------------------------------------------------
@@ -77,16 +88,11 @@ def parse_json(json_str, filter_comments=True):
     are stripped from json before parsing
     '''
 
-    if not filter_comments:
-        return json.loads(json_str)
+    if filter_comments:
+        json_str = '\n'.join([re.sub(r'^\s*#.*$', '', line)
+                         for line in json_str.split('\n')])
 
-    else:
-        content = ''
-        for line in json_str.split('\n'):
-            content += re.sub(r'^\s*#.*$', '', line)
-            content += '\n'
-
-        return json.loads(content)
+    return from_json(json_str)
 
 
 # ------------------------------------------------------------------------------
