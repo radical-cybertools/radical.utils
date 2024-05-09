@@ -3,24 +3,24 @@
 import sys
 import zmq
 import time
-import msgpack
 
 import threading as mt
 
-from typing import Optional
+from typing      import Optional
 
-from ..atfork  import atfork
-from ..config  import Config
-from ..ids     import generate_id, ID_CUSTOM
-from ..url     import Url
-from ..misc    import as_string, as_bytes, as_list, noop
-from ..host    import get_hostip
-from ..logger  import Logger
-from ..profile import Profiler
-from ..debug   import print_exception_trace
+from ..atfork    import atfork
+from ..config    import Config
+from ..ids       import generate_id, ID_CUSTOM
+from ..url       import Url
+from ..misc      import as_string, as_bytes, as_list, noop
+from ..host      import get_hostip
+from ..logger    import Logger
+from ..profile   import Profiler
+from ..debug     import print_exception_trace
+from ..serialize import to_msgpack, from_msgpack
 
-from .bridge   import Bridge
-from .utils    import no_intr
+from .bridge     import Bridge
+from .utils      import no_intr
 
 # NOTE: the log bulk method is frequently called and slow
 # from .utils    import log_bulk
@@ -238,8 +238,8 @@ class Queue(Bridge):
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
 
-                    qname = as_string(msgpack.unpackb(data[0]))
-                    msgs  = msgpack.unpackb(data[1])
+                    qname = as_string(from_msgpack(data[0]))
+                    msgs  = from_msgpack(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
                   # log_bulk(self._log, '<> %s' % qname, msgs)
                   # self._log.debug('put %s: %s ! ', qname, len(msgs))
@@ -278,7 +278,7 @@ class Queue(Bridge):
 
                   # log_bulk(self._log, '>< %s' % qname, msgs)
 
-                    data   = [msgpack.packb(qname), msgpack.packb(msgs)]
+                    data   = [to_msgpack(qname), to_msgpack(msgs)]
                     active = True
 
                   # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
@@ -380,7 +380,7 @@ class Putter(object):
             qname = 'default'
 
       # log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
-        data = [msgpack.packb(qname), msgpack.packb(msgs)]
+        data = [to_msgpack(qname), to_msgpack(msgs)]
 
         with self._lock:
             no_intr(self._q.send_multipart, data)
@@ -427,8 +427,8 @@ class Getter(object):
                 data = list(no_intr(info['socket'].recv_multipart))
                 info['requested'] = False
 
-                qname = as_string(msgpack.unpackb(data[0]))
-                msgs  = as_string(msgpack.unpackb(data[1]))
+                qname = as_string(from_msgpack(data[0]))
+                msgs  = as_string(from_msgpack(data[1]))
               # log_bulk(logger, '<-1 %s [%s]' % (uid, qname), msgs)
                 return msgs
 
@@ -694,8 +694,8 @@ class Getter(object):
             data = list(no_intr(self._q.recv_multipart))
             self._requested = False
 
-        qname = msgpack.unpackb(data[0])
-        msgs  = msgpack.unpackb(data[1])
+        qname = from_msgpack(data[0])
+        msgs  = from_msgpack(data[1])
 
       # log_bulk(self._log, '<-2 %s [%s]' % (self._channel, qname), msgs)
 
@@ -729,8 +729,8 @@ class Getter(object):
                 data = list(no_intr(self._q.recv_multipart))
                 self._requested = False
 
-            qname = msgpack.unpackb(data[0])
-            msgs  = msgpack.unpackb(data[1])
+            qname = from_msgpack(data[0])
+            msgs  = from_msgpack(data[1])
           # log_bulk(self._log, '<-3 %s [%s]' % (self._channel, qname), msgs)
 
             return as_string(msgs)
