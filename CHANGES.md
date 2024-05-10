@@ -3,6 +3,19 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.60.0 Release                                                        2024-05-10
+--------------------------------------------------------------------------------
+
+  - added CODECOV_TOKEN (CI)
+  - allow launcher command for flux startup
+  - implement custom (de)serialization for json and msgpack
+  - typed dict classes should have from_dict as default arg
+  - make typed dicts json (de)serializable
+  - remove leading `v` from version string
+  - simplify deployment
+  - speed up test
+
+
 1.52.0 Release                                                        2024-04-15
 --------------------------------------------------------------------------------
 
@@ -881,7 +894,3 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
-  - (HEAD -> master, origin/devel, origin/HEAD, devel) fix the fix
-  - (origin/project/scalems, project/scalems) devel version bump
-  - (HEAD -> master, origin/devel, origin/HEAD, devel) fix the fix
-  - (origin/project/scalems, project/scalems) devel version bump
