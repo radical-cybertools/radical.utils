@@ -215,8 +215,9 @@ env_prep(){
 
             # handle bash function definitions
             v=$(grep -e "^$k=" $src | cut -f 2- -d= | sed -e 's/{ /{\n/')
-            func=$(expr "$k" : '^BASH_FUNC_\(.*\)\(()\|%%\)$')
-            if ! test -z "$func"
+            func=$(expr "$k" : '^BASH_FUNC_\(.*\)()$' \
+                     \| "$k" : '^BASH_FUNC_\(.*\)%%$')
+            if ! test -z "$func" && ! test "$func" = 0
             then
                 functions="$func $v\nexport -f $func\n\n$functions"
             else
