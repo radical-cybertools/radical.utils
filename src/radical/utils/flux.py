@@ -147,7 +147,7 @@ class _FluxService(object):
         cmd += ['flux', 'start', 'bash', '-c',
                 'echo "HOST:$(hostname) URI:$FLUX_URI" && sleep inf']
 
-        selg._log.debug('=== flux command', cmd)
+        self._log.debug('flux command', cmd)
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
                              stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -165,7 +165,7 @@ class _FluxService(object):
             if not line:
                 continue
 
-            self._log.debug('=== flux output: %s', line)
+            self._log.debug('flux output: %s', line)
 
             if line.startswith('HOST:'):
 
@@ -199,7 +199,7 @@ class _FluxService(object):
         self._env       = flux_env
         self._proc      = flux_proc
 
-        selg._log.debug('=== flux uri', flux_uri)
+        self._log.debug('flux uri', flux_uri)
 
         self._prof.prof('flux_started', msg=self._uid)
 
