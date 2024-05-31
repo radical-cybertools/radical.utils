@@ -19,7 +19,6 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .host    import get_hostname
 
 
 # --------------------------------------------------------------------------
@@ -147,7 +146,7 @@ class _FluxService(object):
         cmd += ['flux', 'start', 'bash', '-c',
                 'echo "HOST:$(hostname) URI:$FLUX_URI" && sleep inf']
 
-        self._log.debug('flux command', cmd)
+        self._log.debug('flux command: %s', ' '.join(cmd))
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
                              stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -199,7 +198,7 @@ class _FluxService(object):
         self._env       = flux_env
         self._proc      = flux_proc
 
-        self._log.debug('flux uri', flux_uri)
+        self._log.debug('flux uri: %s', flux_uri)
 
         self._prof.prof('flux_started', msg=self._uid)
 
