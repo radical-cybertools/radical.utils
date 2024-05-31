@@ -19,7 +19,6 @@ from .shell   import sh_callout
 from .logger  import Logger
 from .profile import Profiler
 from .modules import import_module
-from .host    import get_hostname
 
 
 # --------------------------------------------------------------------------
@@ -144,7 +143,10 @@ class _FluxService(object):
         if launcher:
             cmd += shlex.split(launcher)
 
-        cmd += ['flux', 'start', 'bash', '-c', 'echo URI:$FLUX_URI && sleep inf']
+        cmd += ['flux', 'start', 'bash', '-c',
+                'echo "HOST:$(hostname) URI:$FLUX_URI" && sleep inf']
+
+        self._log.debug('flux command: %s', ' '.join(cmd))
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
                              stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -164,9 +166,15 @@ class _FluxService(object):
 
             self._log.debug('flux output: %s', line)
 
-            if line.startswith('URI:'):
-                flux_uri = line.split(':', 1)[1].strip()
-                flux_env['FLUX_URI'] = flux_uri
+            if line.startswith('HOST:'):
+
+                flux_host, flux_uri = line.split(' ', 1)
+
+                flux_host = flux_host.split(':', 1)[1].strip()
+                flux_uri  = flux_uri.split(':', 1)[1].strip()
+
+                flux_env['FLUX_HOST'] = flux_host
+                flux_env['FLUX_URI']  = flux_uri
                 break
 
         if flux_proc.poll() is not None:
@@ -181,7 +189,7 @@ class _FluxService(object):
         # make sure that the flux url can be reached from other hosts
         # FIXME: this also routes local access via ssh which may slow comm
         flux_url             = Url(flux_env['FLUX_URI'])
-        flux_url.host        = get_hostname()
+        flux_url.host        = flux_env['FLUX_HOST']
         flux_url.schema      = 'ssh'
         flux_uri             = str(flux_url)
         flux_env['FLUX_URI'] = flux_uri
@@ -189,6 +197,8 @@ class _FluxService(object):
         self._uri       = flux_uri
         self._env       = flux_env
         self._proc      = flux_proc
+
+        self._log.debug('flux uri: %s', flux_uri)
 
         self._prof.prof('flux_started', msg=self._uid)
 
