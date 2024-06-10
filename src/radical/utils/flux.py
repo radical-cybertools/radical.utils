@@ -263,7 +263,7 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self) -> None:
+    def __init__(self, name:str = None) -> None:
         '''
         The Flux Helper c'tor takes no arguments and will initially not be
         connected to a Flux instance.  After construction, the application can
@@ -313,6 +313,7 @@ class FluxHelper(object):
         self._env       = None
 
         self._uid       = generate_id('flux.%(item_counter)04d', ID_CUSTOM)
+        self._name      = name or self._uid
         self._log       = Logger(self._uid,   ns='radical.utils')
         self._prof      = Profiler(self._uid, ns='radical.utils')
 
