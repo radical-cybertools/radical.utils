@@ -314,8 +314,8 @@ class FluxHelper(object):
 
         self._uid       = generate_id('flux.%(item_counter)04d', ID_CUSTOM)
         self._name      = name or self._uid
-        self._log       = Logger(self._uid,   ns='radical.utils')
-        self._prof      = Profiler(self._uid, ns='radical.utils')
+        self._log       = Logger(self._name,   ns='radical.utils')
+        self._prof      = Profiler(self._name, ns='radical.utils')
 
         self._lock      = mt.RLock()
 
