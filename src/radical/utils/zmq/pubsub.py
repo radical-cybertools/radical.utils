@@ -277,7 +277,7 @@ class Subscriber(object):
 
           # log.debug(' <- %s: %s', topic, msg)
 
-            return [as_string(topic), as_string(msg)]
+            return [as_string(topic), msg]
 
         return None, None
 
@@ -501,7 +501,7 @@ class Subscriber(object):
 
       # log_bulk(self._log, '<- %s' % topic, [msg])
 
-        return [as_string(topic), as_string(msg)]
+        return [as_string(topic), msg]
 
 
     # --------------------------------------------------------------------------
@@ -523,7 +523,7 @@ class Subscriber(object):
 
           # log_bulk(self._log, '<- %s' % topic, [msg])
 
-            return [as_string(topic), as_string(msg)]
+            return [as_string(topic), msg]
 
         else:
             return [None, None]
