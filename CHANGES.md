@@ -3,6 +3,14 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.61.0 Release                                                        2024-07-01
+--------------------------------------------------------------------------------
+
+  - updated `expr` usage for env funcs extraction
+  - flux startup updates
+  - use uid for flux log names
+
+
 1.60.0 Release                                                        2024-05-10
 --------------------------------------------------------------------------------
 
