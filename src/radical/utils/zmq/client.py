@@ -8,8 +8,8 @@ import threading as mt
 from ..json_io   import read_json
 from ..misc      import as_string
 from ..serialize import to_msgpack, from_msgpack
+from ..logger    import Logger
 from .utils      import no_intr, sock_connect
-from .logger     import Logger
 
 
 # ------------------------------------------------------------------------------
