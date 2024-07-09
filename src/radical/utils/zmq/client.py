@@ -9,6 +9,7 @@ from ..json_io   import read_json
 from ..misc      import as_string
 from ..serialize import to_msgpack, from_msgpack
 from .utils      import no_intr, sock_connect
+from .logger     import Logger
 
 
 # ------------------------------------------------------------------------------
@@ -24,8 +25,9 @@ class Client(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, server: str = None,
-                       url:    str = None) -> None:
+    def __init__(self, server: str    = None,
+                       url:    str    = None,
+                       log:    Logger = None) -> None:
 
         if server:
             self._url = read_json('%s.cfg' % server)['addr']
@@ -36,8 +38,8 @@ class Client(object):
         else:
             raise ValueError('need server name/cfg or Url')
 
+        self._log  = log
         self._cb   = None
-
         self._ctx  = zmq.Context()
         self._sock = self._ctx.socket(zmq.REQ)
 
@@ -61,9 +63,14 @@ class Client(object):
     #
     def request(self, cmd: str, *args: Any, **kwargs: Any) -> Any:
 
-        req = to_msgpack({'cmd'   : cmd,
-                          'args'  : args,
-                          'kwargs': kwargs})
+        msg = {'cmd'   : cmd,
+               'args'  : args,
+               'kwargs': kwargs}
+
+        if self._log:
+            self._log.debug('request: %s', msg)
+
+        req = to_msgpack(msg)
 
         no_intr(self._sock.send, req)
 
