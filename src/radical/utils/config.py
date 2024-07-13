@@ -447,9 +447,9 @@ class DefaultConfig(Config, metaclass=DefaultConfigMeta):
     #
     def __init__(self):
 
-        super(DefaultConfig, self).__init__(module='radical.utils',
-                                            category='utils',
-                                            name='default')
+        super(self).__init__(module='radical.utils',
+                             category='utils',
+                             name='default')
 
 
 # ------------------------------------------------------------------------------
