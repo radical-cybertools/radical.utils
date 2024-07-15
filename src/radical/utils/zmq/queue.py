@@ -25,6 +25,7 @@ from .utils      import no_intr
 from .utils    import log_bulk
 # from .utils    import prof_bulk
 
+LOG_ENABLED = False
 
 
 # --------------------------------------------------------------------------
@@ -332,8 +333,10 @@ class Putter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils',
-                               level='DEBUG', path=path)
+            if LOG_ENABLED: level = self._cfg.log_lvl
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level, path=path)
 
         if not self._prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils', path=path)
@@ -410,7 +413,9 @@ class Getter(object):
 
         with info['lock']:
 
-            logger = Logger(name=qname, ns='radical.utils', level='DEBUG')
+            if LOG_ENABLED: level = self._cfg.log_lvl
+            else          : level = 'ERROR'
+            logger = Logger(name=qname, ns='radical.utils.zmq', level=level)
 
             if not info['requested']:
 
@@ -556,8 +561,10 @@ class Getter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils',
-                               level='DEBUG', path=path)
+            if LOG_ENABLED: level = self._cfg.log_lvl
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level, path=path)
 
         if not self._prof:
             self._prof  = Profiler(name=self._uid, ns='radical.utils', path=path)
