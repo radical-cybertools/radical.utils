@@ -10,11 +10,11 @@ from ..profile import Profiler
 from ..config  import Config
 from ..json_io import read_json, write_json
 
+from .utils import LOG_ENABLED
+
 QUEUE   = 'QUEUE'
 PUBSUB  = 'PUBSUB'
 UNKNOWN = 'UNKNOWN'
-
-LOG_ENABLED = False
 
 
 # ------------------------------------------------------------------------------

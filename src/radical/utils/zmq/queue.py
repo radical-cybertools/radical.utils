@@ -21,11 +21,8 @@ from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
 from .utils      import no_intr
-
-from .utils    import log_bulk
+from .utils      import log_bulk, LOG_ENABLED
 # from .utils    import prof_bulk
-
-LOG_ENABLED = False
 
 
 # --------------------------------------------------------------------------
@@ -333,7 +330,7 @@ class Putter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            if LOG_ENABLED: level = self._cfg.log_lvl
+            if LOG_ENABLED: level = 'DEBUG_9'
             else          : level = 'ERROR'
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
                                level=level, path=path)
@@ -413,7 +410,7 @@ class Getter(object):
 
         with info['lock']:
 
-            if LOG_ENABLED: level = self._cfg.log_lvl
+            if LOG_ENABLED: level = 'DEBUG_9'
             else          : level = 'ERROR'
             logger = Logger(name=qname, ns='radical.utils.zmq', level=level)
 
@@ -561,7 +558,7 @@ class Getter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            if LOG_ENABLED: level = self._cfg.log_lvl
+            if LOG_ENABLED: level = 'DEBUG_9'
             else          : level = 'ERROR'
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
                                level=level, path=path)

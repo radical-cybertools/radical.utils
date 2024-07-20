@@ -18,9 +18,7 @@ from ..profile   import Profiler
 from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
-from .utils      import no_intr, log_bulk
-
-LOG_ENABLED = False
+from .utils      import no_intr, log_bulk, LOG_ENABLED
 
 
 # ------------------------------------------------------------------------------
@@ -195,7 +193,7 @@ class Publisher(object):
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
-            if LOG_ENABLED: level = self._cfg.log_lvl
+            if LOG_ENABLED: level = 'DEBUG_9'
             else          : level = 'ERROR'
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
                                level=level, path=path)
@@ -358,7 +356,7 @@ class Subscriber(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            if LOG_ENABLED: level = self._cfg.log_lvl
+            if LOG_ENABLED: level = 'DEBUG_9'
             else          : level = 'ERROR'
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
                                level=level)
