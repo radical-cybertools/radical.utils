@@ -7,7 +7,7 @@ from ..url  import Url
 from ..misc import as_list
 from ..misc import ru_open
 
-LOG_ENABLED = True
+LOG_ENABLED = os.environ.get('RADICAL_ZMQ_LOG', '0').lower() in ['1', 'true']
 
 
 # --------------------------------------------------------------------------
