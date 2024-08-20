@@ -221,7 +221,7 @@ env_prep(){
     #
     # FIXME: the latter is not yet true and needs fixing
     #
-    local src tgt rem pre
+    local src tgt rem pre blk
     local OPTIND OPTION OPTARG
     while getopts "s:r:p:t:" OPTION; do
         case $OPTION in
@@ -229,6 +229,7 @@ env_prep(){
             t) tgt="$OPTARG"       ;;
             r) rem="$OPTARG"       ;;
             p) pre="$pre$OPTARG\n" ;;
+            b) blk="$OPTARG"       ;;
             *)  echo "Unknown option: '$OPTION'='$OPTARG'"
                 return 1;;
         esac
