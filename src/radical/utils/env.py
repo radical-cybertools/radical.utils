@@ -19,7 +19,7 @@ from .shell import sh_callout
 # we know that some env vars are not worth preserving.  We explicitly exclude
 # those which are common to have complex syntax and need serious caution on
 # shell escaping:
-BLACKLIST  = ['PS1', 'LS_COLORS', '_', 'SHLVL', 'PROMPT_COMMAND']
+IGNORE_LIST = ['PS1', 'LS_COLORS', '_', 'SHLVL', 'PROMPT_COMMAND']
 
 # Identical task `pre_exec_cached` settings will result in the same environment
 # settings, so we cache those environments here.  We rely on a hash to ensure
@@ -72,13 +72,13 @@ def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
             data += 'unset %s\n' % k
         data += '\n'
 
-    if BLACKLIST:
+    if IGNORE_LIST:
         data += '# blacklist\n'
-        for k in sorted(BLACKLIST):
+        for k in sorted(IGNORE_LIST):
             data += 'unset %s\n' % k
         data += '\n'
 
-        env = {k: v for k, v in env.items() if k not in BLACKLIST}
+        env = {k: v for k, v in env.items() if k not in IGNORE_LIST}
 
     if blacklist:
         data += '# blacklist\n'
@@ -164,7 +164,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
         if re_snake_case.match(this_key):
             # valid key - store previous key/val if we have any, and
             # initialize `key` and `val`
-            if key and key not in BLACKLIST:
+            if key and key not in IGNORE_LIST:
                 env[key] = val
 
             key = this_key
@@ -173,7 +173,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
         elif re_bash_function.match(this_key):
             # function definitions
             # initialize `key` and `val`
-            if key and key not in BLACKLIST:
+            if key and key not in IGNORE_LIST:
                 env[key] = val
 
             key = this_key
@@ -185,7 +185,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
             val += line
 
     # store last key/val if we have any
-    if key and key not in BLACKLIST:
+    if key and key not in IGNORE_LIST:
         env[key] = val
 
     return env
@@ -444,7 +444,7 @@ def env_diff(env_1 : Dict[str,str],
     those elements which appear in only either one or the other env, and which
     changed from one env to another.
 
-    It will ignore any keys in the `BLACKLIST` and will also ignore
+    It will ignore any keys in the `IGNORE_LIST` and will also ignore
     `BASH_FUNC_*` keys which point to bash function definitions.
     '''
 
@@ -456,7 +456,7 @@ def env_diff(env_1 : Dict[str,str],
     keys_2 = sorted(env_2.keys())
 
     for k in keys_1:
-        if k in BLACKLIST:
+        if k in IGNORE_LIST:
             continue
         if k.startswith('BASH_FUNC_'):
             continue
@@ -465,7 +465,7 @@ def env_diff(env_1 : Dict[str,str],
         elif v != env_2[k] : changed[k] = [v, env_2[k]]
 
     for k in keys_2:
-        if k in BLACKLIST:
+        if k in IGNORE_LIST:
             continue
         if k.startswith('BASH_FUNC_'):
             continue
