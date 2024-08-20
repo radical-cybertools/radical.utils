@@ -3,6 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.62.0 Release                                                        2024-08-20
+--------------------------------------------------------------------------------
+  
+  - add complete ru zmq examples
+  - apply blacklist
+
+
 1.61.0 Release                                                        2024-07-01
 --------------------------------------------------------------------------------
 
