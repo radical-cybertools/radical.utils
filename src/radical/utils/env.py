@@ -19,7 +19,7 @@ from .shell import sh_callout
 # we know that some env vars are not worth preserving.  We explicitly exclude
 # those which are common to have complex syntax and need serious caution on
 # shell escaping:
-BLACKLIST  = ['PS1', 'LS_COLORS', '_', 'SHLVL', 'PROMPT_COMMAND']
+IGNORE_LIST = ['PS1', 'LS_COLORS', '_', 'SHLVL', 'PROMPT_COMMAND']
 
 # Identical task `pre_exec_cached` settings will result in the same environment
 # settings, so we cache those environments here.  We rely on a hash to ensure
@@ -59,7 +59,7 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_write(script_path, env, unset=None, pre_exec=None):
+def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
 
     data = '\n'
     if unset:
@@ -72,17 +72,31 @@ def env_write(script_path, env, unset=None, pre_exec=None):
             data += 'unset %s\n' % k
         data += '\n'
 
-    if BLACKLIST:
+    if IGNORE_LIST:
         data += '# blacklist\n'
-        for k in sorted(BLACKLIST):
+        for k in sorted(IGNORE_LIST):
             data += 'unset %s\n' % k
         data += '\n'
+
+        env = {k: v for k, v in env.items() if k not in IGNORE_LIST}
+
+    if blacklist:
+        data += '# blacklist\n'
+        for k in sorted(blacklist):
+            data += '# %s\n' % k
+        data += '\n'
+
+        # apply blacklist
+        bl_exact   = [k for k in blacklist if not k.endswith('*')]
+        env = {k: v for k, v in env.items() if k not in bl_exact}
+
+        bl_pattern = [k for k in blacklist if k.endswith('*')]
+        for p in bl_pattern:
+            env = {k: v for k, v in env.items() if not k.startswith(p[:-1])}
 
     funcs = list()
     data += '# export\n'
     for k in sorted(env.keys()):
-        if k in BLACKLIST:
-            continue
         if k.startswith('BASH_FUNC_') and \
                 (k.endswith('%%') or k.endswith('()')):
             funcs.append(k)
@@ -150,7 +164,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
         if re_snake_case.match(this_key):
             # valid key - store previous key/val if we have any, and
             # initialize `key` and `val`
-            if key and key not in BLACKLIST:
+            if key and key not in IGNORE_LIST:
                 env[key] = val
 
             key = this_key
@@ -159,7 +173,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
         elif re_bash_function.match(this_key):
             # function definitions
             # initialize `key` and `val`
-            if key and key not in BLACKLIST:
+            if key and key not in IGNORE_LIST:
                 env[key] = val
 
             key = this_key
@@ -171,7 +185,7 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
             val += line
 
     # store last key/val if we have any
-    if key and key not in BLACKLIST:
+    if key and key not in IGNORE_LIST:
         env[key] = val
 
     return env
@@ -306,6 +320,7 @@ def env_dump(environment: Optional[Dict[str,str]] = None,
 #
 def env_prep(environment    : Optional[Dict[str,str]] = None,
              unset          : Optional[List[str]]     = None,
+             blacklist      : Optional[List[str]]     = None,
              pre_exec       : Optional[List[str]]     = None,
              pre_exec_cached: Optional[List[str]]     = None,
              script_path    : Optional[str]           = None
@@ -316,6 +331,12 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     variables *not* defined in `environment` but defined in `unset` (list) are
     unset.  Also ensure that all commands provided in `pre_exec_cached` (list)
     are executed after these settings.
+
+    If `blacklist` is given, all variables listed there will not to be touched,
+    so will neither be unset nor set.  This is useful to ensure that certain
+    values are not changed, even if they are not part of the `environment` dict.
+    `blacklist` can also contain patterns like `FOO_*` to blacklist all
+    variables starting with `FOO_`.
 
     Once the shell script is created, run it and dump the resulting env, then
     read it back via `env_read()` and return the resulting env dict - that
@@ -339,6 +360,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     # defaults
     if environment     is None: environment     = dict(os.environ)
     if unset           is None: unset           = list()
+    if blacklist       is None: blacklist       = list()
     if pre_exec        is None: pre_exec        = list()
     if pre_exec_cached is None: pre_exec_cached = list()
 
@@ -364,11 +386,11 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         # Write a temporary shell script which
         #
         #   - unsets all variables which are not defined in `environment`
-        #     but are defined in the `unset` list;
-        #   - unset all blacklisted vars;
-        #   - sets all variables defined in the `environment` dict;
-        #   - runs the `pre_exec_cached` commands given;
-        #   - dumps the resulting env in a temporary file;
+        #     but are defined in the `unset` list
+        #   - unset all `unset` vars
+        #   - sets all variables defined in the `environment` dict
+        #   - runs the `pre_exec_cached` commands given
+        #   - dumps the resulting env in a temporary file
         #
         # Then run that script and read the resulting env back into a dict to
         # return.  If `script_path` is specified, then also create a file at the
@@ -383,7 +405,8 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
 
         _, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
 
-        env_write(tmp_name, environment, unset, pre_exec_cached)
+        env_write(tmp_name, env=environment, unset=unset, blacklist=blacklist,
+                            pre_exec=pre_exec_cached)
         cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
@@ -393,6 +416,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         env = env_read_lines(out.split('\n'))
         os.unlink(tmp_name)
 
+        # cache the resulting env
         _env_cache[cache_md5] = env
 
 
@@ -404,7 +428,8 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     #
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
-        env_write(script_path, env=env, unset=unset, pre_exec=pre_exec)
+        env_write(script_path, env=env, unset=unset, blacklist=blacklist,
+                  pre_exec=pre_exec)
 
     return env
 
@@ -419,7 +444,7 @@ def env_diff(env_1 : Dict[str,str],
     those elements which appear in only either one or the other env, and which
     changed from one env to another.
 
-    It will ignore any keys in the `BLACKLIST` and will also ignore
+    It will ignore any keys in the `IGNORE_LIST` and will also ignore
     `BASH_FUNC_*` keys which point to bash function definitions.
     '''
 
@@ -431,7 +456,7 @@ def env_diff(env_1 : Dict[str,str],
     keys_2 = sorted(env_2.keys())
 
     for k in keys_1:
-        if k in BLACKLIST:
+        if k in IGNORE_LIST:
             continue
         if k.startswith('BASH_FUNC_'):
             continue
@@ -440,7 +465,7 @@ def env_diff(env_1 : Dict[str,str],
         elif v != env_2[k] : changed[k] = [v, env_2[k]]
 
     for k in keys_2:
-        if k in BLACKLIST:
+        if k in IGNORE_LIST:
             continue
         if k.startswith('BASH_FUNC_'):
             continue
