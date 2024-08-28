@@ -10,6 +10,8 @@ from ..profile  import Profiler
 from ..config   import Config
 from ..json_io  import read_json, write_json
 
+from .utils import LOG_ENABLED
+
 QUEUE   = 'QUEUE'
 PUBSUB  = 'PUBSUB'
 UNKNOWN = 'UNKNOWN'
@@ -43,9 +45,10 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, cfg):
+    def __init__(self, cfg, log=None):
 
         self._cfg     = cfg
+        self._log     = log
         self._channel = self._cfg.channel
         self._uid     = self._cfg.uid
         self._pwd     = self._cfg.path
@@ -53,9 +56,13 @@ class Bridge(object):
         if not self._pwd:
             self._pwd = os.getcwd()
 
-        self._log     = Logger(name=self._uid, ns='radical.utils',
-                               level=self._cfg.log_lvl, path=self._pwd)
-        self._prof    = Profiler(name=self._uid, path=self._pwd)
+        if not self._log:
+            if LOG_ENABLED: level = self._cfg.log_lvl
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level, path=self._pwd)
+
+        self._prof = Profiler(name=self._uid, path=self._pwd)
 
         if 'hb' in self._uid or 'heartbeat' in self._uid:
             self._prof.disable()
