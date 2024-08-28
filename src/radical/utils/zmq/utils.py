@@ -8,6 +8,10 @@ from ..misc import as_list
 from ..misc import ru_open
 
 
+# NOTE: this is ignoring `RADICAL_LOG_LVL` on purpose
+LOG_ENABLED = os.environ.get('RADICAL_ZMQ_LOG', '0').lower() in ['1', 'true']
+
+
 # --------------------------------------------------------------------------
 #
 # zmq will (rightly) barf at interrupted system calls.  We are able to rerun
@@ -125,19 +129,20 @@ def get_channel_url(ep_type, channel=None, url=None):
 #
 def log_bulk(log, token, msgs):
 
+    if log._num_level > 1:
+        # log level `debug_9` disabled
+        return
+
     if not msgs:
         return
 
-    if isinstance(msgs[0], dict) and 'arg' in msgs[0]:
-        msgs = [msg['arg'] for msg in msgs]
-
     if isinstance(msgs[0], dict) and 'uid' in msgs[0]:
         for msg in msgs:
-            log.debug("%s: %s [%s]", token, msg['uid'], msg.get('state'))
+            log.debug_9("%s: %s [%s]", token, msg['uid'], msg.get('state'))
 
     else:
         for msg in msgs:
-            log.debug("%s: %s", token, str(msg)[0:32])
+            log.debug_9("%s: %s", token, str(msg)[0:32])
 
 
 # ------------------------------------------------------------------------------
