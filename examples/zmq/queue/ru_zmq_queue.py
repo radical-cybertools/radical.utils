@@ -49,6 +49,7 @@ def main():
 
     bridge = ru.zmq.PubSub(CHANNEL)
     bridge.start()
+    time.sleep(1)
 
     threads = list()
 

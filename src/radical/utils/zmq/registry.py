@@ -41,9 +41,13 @@ class Registry(Server):
         super().__init__(url=url, uid=uid, path=path)
 
         if persistent:
-            self._data = shelve.open('%s/%s.db' % (self._path, self._uid),
-                                                   writeback=True)
+            path = '%s/%s.db' % (self._path, self._uid)
+            self._log.debug('use shelve %s', path)
+
+            self._data = shelve.open(path, writeback=True)
+
         else:
+            self._log.debug('use in-memory dict')
             self._data = dict()
 
         self.register_request('put',  self.put)
@@ -57,12 +61,17 @@ class Registry(Server):
     #
     def dump(self, name: str = None) -> None:
 
-        if isinstance(self._data, dict):
-            if name:
-                write_json(self._data, '%s/%s.%s.json' % (self._path, self._uid,
-                                                          name))
-            else:
-                write_json(self._data, '%s/%s.json' % (self._path, self._uid))
+
+        if not isinstance(self._data, dict):
+            self._log.debug('ignore dump for non-dict %s', name)
+
+        else:
+            if name: fname = '%s/%s.%s.json' % (self._path, self._uid, name)
+            else   : fname = '%s/%s.json'    % (self._path, self._uid)
+
+            self._log.debug('dumo to %s', fname)
+            write_json(self._data, fname)
+
 
 
     # --------------------------------------------------------------------------
@@ -70,6 +79,8 @@ class Registry(Server):
     def stop(self) -> None:
 
         self.dump()
+
+        self._log.debug('stop')
 
         if isinstance(self._data, shelve.Shelf):
             self._data.close()
@@ -85,6 +96,8 @@ class Registry(Server):
         elems = key.split('.')
         path  = elems[:-1]
         leaf  = elems[-1]
+
+        self._log.debug_9('put %s: %s', str(key), str(val))
 
         for elem in path:
 
@@ -117,6 +130,8 @@ class Registry(Server):
             this = dict()
 
         val = this.get(leaf)
+
+        self._log.debug_9('get %s: %s', str(key), str(val))
         return val
 
 
@@ -136,12 +151,18 @@ class Registry(Server):
         if this is None:
             this = dict()
 
-        return list(this.keys())
+        keys = list(this.keys())
+
+        self._log.debug_9('keys: %s', keys)
+
+        return keys
 
 
     # --------------------------------------------------------------------------
     #
     def delitem(self, key: str) -> None:
+
+        self._log.debug_9('del: %s', key)
 
         this = self._data
 

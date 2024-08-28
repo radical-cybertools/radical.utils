@@ -28,7 +28,7 @@ class PLUGIN_CLASS(ru.PluginBase):
     #
     def __init__(self, descr, *args, **kwargs):
 
-        super(PLUGIN_CLASS, self).__init__(descr)
+        super().__init__(descr)
 
         self._args = args
 
