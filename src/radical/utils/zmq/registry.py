@@ -63,7 +63,7 @@ class Registry(Server):
 
 
         if not isinstance(self._data, dict):
-            self._log.info('ignore dump for non-dict')
+            self._log.debug('ignore dump for non-dict %s', name)
 
         else:
             if name: fname = '%s/%s.%s.json' % (self._path, self._uid, name)
@@ -80,7 +80,7 @@ class Registry(Server):
 
         self.dump()
 
-        self._log.info('stop')
+        self._log.debug('stop')
 
         if isinstance(self._data, shelve.Shelf):
             self._data.close()
@@ -97,7 +97,7 @@ class Registry(Server):
         path  = elems[:-1]
         leaf  = elems[-1]
 
-        self._log.info('put %s: %s', str(key), str(val))
+        self._log.debug_9('put %s: %s', str(key), str(val))
 
         for elem in path:
 
@@ -131,7 +131,7 @@ class Registry(Server):
 
         val = this.get(leaf)
 
-        self._log.info('get %s: %s', str(key), str(val))
+        self._log.debug_9('get %s: %s', str(key), str(val))
         return val
 
 
@@ -153,7 +153,7 @@ class Registry(Server):
 
         keys = list(this.keys())
 
-        self._log.info('keys: %s', keys)
+        self._log.debug_9('keys: %s', keys)
 
         return keys
 
@@ -162,7 +162,7 @@ class Registry(Server):
     #
     def delitem(self, key: str) -> None:
 
-        self._log.info('del: %s', key)
+        self._log.debug_9('del: %s', key)
 
         this = self._data
 
