@@ -18,7 +18,7 @@ from ..profile   import Profiler
 from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
-from .utils      import no_intr
+from .utils      import no_intr, log_bulk, LOG_ENABLED
 
 
 # ------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ class PubSub(Bridge):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, channel: str, cfg: Optional[dict] = None):
+    def __init__(self, channel: str, cfg: Optional[dict] = None, log=None):
 
         if cfg:
             # create deep copy
@@ -56,7 +56,7 @@ class PubSub(Bridge):
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % channel,
                                   ID_CUSTOM)
 
-        super(PubSub, self).__init__(cfg)
+        super().__init__(cfg, log=log)
 
 
     # --------------------------------------------------------------------------
@@ -157,7 +157,7 @@ class PubSub(Bridge):
                 self._xpub.send(msg)
 
                 self._prof.prof('subscribe', uid=self._uid, msg=msg)
-              # log_bulk(self._log, '~~1 %s' % self.uid, [msg])
+                log_bulk(self._log, '~~1 %s' % self.uid, [msg])
 
 
             if self._xpub in socks:
@@ -168,7 +168,7 @@ class PubSub(Bridge):
                 self._xsub.send(msg)
 
               # self._prof.prof('msg_fwd', uid=self._uid, msg=msg)
-              # log_bulk(self._log, '<> %s' % self.uid, [msg])
+                log_bulk(self._log, '<> %s' % self.uid, [msg])
 
 
 # ------------------------------------------------------------------------------
@@ -194,8 +194,10 @@ class Publisher(object):
             self._url = Bridge.get_config(channel, path).pub
 
         if not log:
+            if LOG_ENABLED: level = 'DEBUG_9'
+            else          : level = 'ERROR'
             self._log = Logger(name=self._uid, ns='radical.utils.zmq',
-                               path=path)
+                               level=level, path=path)
 
         if not prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils.zmq',
@@ -241,10 +243,10 @@ class Publisher(object):
 
         assert isinstance(topic, str), 'invalid topic type'
 
-      # self._log.debug('=== put %s : %s: %s', topic, self.channel, msg)
-      # self._log.debug('=== put %s: %s', msg, get_stacktrace())
+        self._log.debug_9('=== put %s : %s: %s', topic, self.channel, msg)
+      # self._log.debug_9('=== put %s: %s', msg, get_stacktrace())
       # self._prof.prof('put', uid=self._uid, msg=msg)
-      # log_bulk(self._log, '-> %s' % topic, [msg])
+        log_bulk(self._log, '-> %s' % topic, [msg])
 
         btopic = as_bytes(topic.replace(' ', '_'))
         bmsg   = to_msgpack(msg)
@@ -276,7 +278,7 @@ class Subscriber(object):
             topic, bmsg = data.split(b' ', 1)
             msg         = from_msgpack(bmsg)
 
-          # log.debug(' <- %s: %s', topic, msg)
+            log.debug_9(' <- %s: %s', topic, msg)
 
             return [as_string(topic), as_string(msg)]
 
@@ -293,7 +295,7 @@ class Subscriber(object):
 
                 topic, msg = Subscriber._get_nowait(sock, lock, 500, log)
 
-              # log.debug(' <- %s: %s', topic, msg)
+                log.debug_9(' <- %s: %s', topic, msg)
 
                 if topic:
                     for cb, _lock in callbacks:
@@ -354,7 +356,10 @@ class Subscriber(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils.zmq')
+            if LOG_ENABLED: level = 'DEBUG_9'
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level)
 
         self._log.info('connect sub to %s: %s', self._channel, self._url)
 
@@ -404,6 +409,8 @@ class Subscriber(object):
         term      = self._term
         callbacks = self._callbacks
 
+        self._log.info('start listener for %s', self._channel)
+
         t = mt.Thread(target=Subscriber._listener,
                       args=[self._sock, lock, term, callbacks, self._log])
         t.daemon = True
@@ -445,10 +452,10 @@ class Subscriber(object):
             self._callbacks.append([cb, lock])
 
         topic = str(topic).replace(' ', '_')
-      # log_bulk(self._log, '~~2 %s' % topic, [topic])
+        log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
-          # self._log.debug('==== subscribe for %s', topic)
+            self._log.debug_9('==== subscribe for %s', topic)
             no_intr(self._sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
         if topic not in self._topics:
@@ -491,7 +498,7 @@ class Subscriber(object):
         topic, bmsg = data.split(b' ', 1)
         msg = from_msgpack(bmsg)
 
-      # log_bulk(self._log, '<- %s' % topic, [msg])
+        log_bulk(self._log, '<- %s' % topic, [msg])
 
         return [as_string(topic), as_string(msg)]
 
@@ -513,7 +520,7 @@ class Subscriber(object):
             topic, bmsg = data.split(b' ', 1)
             msg = from_msgpack(bmsg)
 
-          # log_bulk(self._log, '<- %s' % topic, [msg])
+            log_bulk(self._log, '<- %s' % topic, [msg])
 
             return [as_string(topic), as_string(msg)]
 
