@@ -21,11 +21,8 @@ from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
 from .utils      import no_intr
-
-# NOTE: the log bulk method is frequently called and slow
-# from .utils    import log_bulk
+from .utils      import log_bulk, LOG_ENABLED
 # from .utils    import prof_bulk
-
 
 
 # --------------------------------------------------------------------------
@@ -87,7 +84,7 @@ atfork(noop, noop, _atfork_child)
 #
 class Queue(Bridge):
 
-    def __init__(self, channel: str, cfg: Optional[dict] = None):
+    def __init__(self, channel: str, cfg: Optional[dict] = None, log=None):
         '''
         This Queue type sets up an zmq channel of this kind:
 
@@ -124,7 +121,7 @@ class Queue(Bridge):
             cfg.uid = generate_id('%s.bridge.%%(counter)04d' % cfg.channel,
                                   ID_CUSTOM)
 
-        super(Queue, self).__init__(cfg)
+        super().__init__(cfg, log=log)
 
         self._bulk_size  = self._cfg.get('bulk_size', 0)
 
@@ -227,13 +224,13 @@ class Queue(Bridge):
                 # check for incoming messages, and buffer them
                 ev_put = dict(no_intr(self._poll_put.poll, timeout=10))
               # self._prof.prof('poll_put', msg=len(ev_put))
-              # self._log.debug('polled put: %s', ev_put)
+                self._log.debug_9('polled put: %s', ev_put)
 
                 if self._put in ev_put:
 
                     with self._lock:
                         data = list(no_intr(self._put.recv_multipart))
-                  # self._log.debug('recvd  put: %s', data)
+                    self._log.debug_9('recvd  put: %s', data)
 
                     if len(data) != 2:
                         raise RuntimeError('%d frames unsupported' % len(data))
@@ -241,8 +238,8 @@ class Queue(Bridge):
                     qname = as_string(from_msgpack(data[0]))
                     msgs  = from_msgpack(data[1])
                   # prof_bulk(self._prof, 'poll_put_recv', msgs)
-                  # log_bulk(self._log, '<> %s' % qname, msgs)
-                  # self._log.debug('put %s: %s ! ', qname, len(msgs))
+                    log_bulk(self._log, '<> %s' % qname, msgs)
+                    self._log.debug_9('put %s: %s ! ', qname, len(msgs))
 
                     if qname not in buf:
                         buf[qname] = list()
@@ -255,7 +252,7 @@ class Queue(Bridge):
                 # check if somebody wants our messages
                 ev_get = dict(no_intr(self._poll_get.poll, timeout=10))
               # self._prof.prof('poll_get', msg=len(ev_get))
-              # self._log.debug('polled get: %s [%s]', ev_get, self._get)
+                self._log.debug_9('polled get: %s [%s]', ev_get, self._get)
 
                 if self._get in ev_get:
 
@@ -272,18 +269,18 @@ class Queue(Bridge):
                     if qname in buf:
                         msgs = buf[qname][:self._bulk_size]
                     else:
-                      # self._log.debug('get: %s not in %s', qname,
-                      #                                      list(buf.keys()))
+                        self._log.debug_9('get: %s not in %s', qname,
+                                                             list(buf.keys()))
                         msgs = list()
 
-                  # log_bulk(self._log, '>< %s' % qname, msgs)
+                    log_bulk(self._log, '>< %s' % qname, msgs)
 
                     data   = [to_msgpack(qname), to_msgpack(msgs)]
                     active = True
 
-                  # self._log.debug('==== get %s: %s', qname, list(buf.keys()))
-                  # self._log.debug('==== get %s: %s', qname, list(buf.values()))
-                  # self._log.debug('==== get %s: %s ! [%s]', qname, len(msgs),
+                  # self._log.debug_9('==== get %s: %s', qname, list(buf.keys()))
+                  # self._log.debug_9('==== get %s: %s', qname, list(buf.values()))
+                  # self._log.debug_9('==== get %s: %s ! [%s]', qname, len(msgs),
                   #                        [[x, len(y)] for x,y in buf.items()])
                     no_intr(self._get.send_multipart, data)
                   # prof_bulk(self._prof, 'poll_get_send', msgs=msgs, msg=req)
@@ -333,8 +330,10 @@ class Putter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils',
-                               level='DEBUG', path=path)
+            if LOG_ENABLED: level = 'DEBUG_9'
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level, path=path)
 
         if not self._prof:
             self._prof = Profiler(name=self._uid, ns='radical.utils', path=path)
@@ -379,7 +378,7 @@ class Putter(object):
         if not qname:
             qname = 'default'
 
-      # log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
+        log_bulk(self._log, '-> %s[%s]' % (self._channel, qname), msgs)
         data = [to_msgpack(qname), to_msgpack(msgs)]
 
         with self._lock:
@@ -411,13 +410,15 @@ class Getter(object):
 
         with info['lock']:
 
-          # logger = Logger(name=qname, ns='radical.utils', level='DEBUG')
+            if LOG_ENABLED: level = 'DEBUG_9'
+            else          : level = 'ERROR'
+            logger = Logger(name=qname, ns='radical.utils.zmq', level=level)
 
             if not info['requested']:
 
                 # send the request *once* per recieval (got lock above)
                 # FIXME: why is this sent repeatedly?
-              # logger.debug('=== => from %s[%s]', uid, qname)
+                logger.debug_9('=== => from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
 
@@ -429,7 +430,7 @@ class Getter(object):
 
                 qname = as_string(from_msgpack(data[0]))
                 msgs  = as_string(from_msgpack(data[1]))
-              # log_bulk(logger, '<-1 %s [%s]' % (uid, qname), msgs)
+                log_bulk(logger, '<-1 %s [%s]' % (uid, qname), msgs)
                 return msgs
 
             else:
@@ -557,8 +558,10 @@ class Getter(object):
             raise ValueError('no contact url specified, no config found')
 
         if not self._log:
-            self._log = Logger(name=self._uid, ns='radical.utils',
-                               level='DEBUG', path=path)
+            if LOG_ENABLED: level = 'DEBUG_9'
+            else          : level = 'ERROR'
+            self._log = Logger(name=self._uid, ns='radical.utils.zmq',
+                               level=level, path=path)
 
         if not self._prof:
             self._prof  = Profiler(name=self._uid, ns='radical.utils', path=path)
@@ -684,7 +687,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:
                 if not self._requested:
-                  # self._log.debug('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
                     no_intr(self._q.send, as_bytes(qname))
                     self._requested = True
 
@@ -697,7 +700,7 @@ class Getter(object):
         qname = from_msgpack(data[0])
         msgs  = from_msgpack(data[1])
 
-      # log_bulk(self._log, '<-2 %s [%s]' % (self._channel, qname), msgs)
+        log_bulk(self._log, '<-2 %s [%s]' % (self._channel, qname), msgs)
 
         return as_string(msgs)
 
@@ -720,7 +723,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:  # need to protect self._requested
                 if not self._requested:
-                  # self._log.debug('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
                     no_intr(self._q.send_multipart, [as_bytes(qname)])
                     self._requested = True
 
@@ -731,7 +734,7 @@ class Getter(object):
 
             qname = from_msgpack(data[0])
             msgs  = from_msgpack(data[1])
-          # log_bulk(self._log, '<-3 %s [%s]' % (self._channel, qname), msgs)
+            log_bulk(self._log, '<-3 %s [%s]' % (self._channel, qname), msgs)
 
             return as_string(msgs)
 
