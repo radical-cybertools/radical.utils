@@ -21,6 +21,11 @@
 from .atfork       import monkeypatch_os_fork_functions, atfork
 from .stdlib_fixer import fix_logging_module
 
-# fix_logging_module()
+# Python 3.13+ has a fix for the logging locks
+import sys as _sys
+_py_version = float("%d.%d" % _sys.version_info[:2])
+if _py_version < 3.13:
+     fix_logging_module()
+
 monkeypatch_os_fork_functions()
 
