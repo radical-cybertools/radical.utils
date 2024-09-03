@@ -3,6 +3,13 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.70.0 Release                                                        2024-09-03
+--------------------------------------------------------------------------------
+  
+  - fix zmq log levels
+  - simplify log switching for zmq
+
+
 1.62.0 Release                                                        2024-08-20
 --------------------------------------------------------------------------------
   
