@@ -72,6 +72,9 @@ def get_version(paths=None):
         raise RuntimeError("Cannot determine version from %s (%s)"
                           % (paths, err.strip()))
 
+    if version_detail is None:
+        version_detail = version_short
+
     return (version_short, version_base, version_branch,
             version_tag, version_detail)
 
