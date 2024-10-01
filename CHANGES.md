@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.82.0 Release                                                        2024-10-01
+--------------------------------------------------------------------------------
+  
+  - ensure `version_detail` is not `None`
+
+
 1.81.0 Release                                                        2024-09-03
 --------------------------------------------------------------------------------
   
@@ -916,5 +922,3 @@ Version 0.7.5 release                                                 2014-07-22
 
 --------------------------------------------------------------------------------
 
-  - (HEAD -> master, origin/devel, origin/HEAD, devel) devel version bump
-  - (HEAD -> master, origin/devel, origin/HEAD, devel) devel version bump
