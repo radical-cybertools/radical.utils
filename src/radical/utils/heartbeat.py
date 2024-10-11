@@ -1,5 +1,6 @@
 
 import os
+import sys
 import time
 import pprint
 import signal
@@ -261,6 +262,137 @@ class Heartbeat(object):
 
         else:
             self._log.debug_3('wait ok  : %s', ok)
+
+
+# ------------------------------------------------------------------------------
+#
+class PWatcher(object):
+
+    NOTHING = 'nothing'
+    SUICIDE = 'suicide'
+    KILLALL = 'killall'
+    RAMPAGE = 'rampage'
+
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, action=None, uid=None, log=None):
+        '''
+
+        This is a simple process monitor: once started it runs in a separate
+        thread and monitors all given process IDs (`self._watch_pid`).  If
+        a process is found to have died, the watcher will invoke the given
+        action:
+
+          - `nothing`: log event and do nothing else
+          - `suicide`: kill the curent process
+          - `killall`: kill all monitored pids
+          - `rampage`: both of the above (`suicide + killall`)
+
+        The default action is `rampage`.
+
+        The passed uid (default: `pwatcher`) is used for logging purposes only.
+        '''
+
+        self._action = action or self.RAMPAGE
+        self._uid    = uid    or 'pwatcher'
+        self._log    = log    or Logger(name=uid, ns='radical.utils')
+        self._pids   = list()
+        self._lock   = mt.Lock()
+
+        self._log.debug_1('pwatcher create')
+
+        self._thread = mt.Thread(target=self._watch)
+        self._thread.daemon = True
+        self._thread.start()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _is_alive(self, pid):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _watch(self):
+
+        self._log.debug_1('pwatcher started')
+
+        while True:
+
+            with self._lock:
+
+                for pid in self._pids:
+
+                    if not self._is_alive(pid):
+
+                        self._log.warn('process %d died, exit', pid)
+                        self._pids.remove(pid)
+
+                        if   self._action == self.SUICIDE: self._suicide(pid)
+                        elif self._action == self.KILLALL: self._killall(pid)
+                        elif self._action == self.RAMPAGE: self._rampage(pid)
+
+            time.sleep(0.05)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def watch(self, pid):
+
+        self._log.debug('add pid %d to watchlist', pid)
+
+        with self._lock:
+            self._pids.append(pid)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unwatch(self, pid):
+
+        self._log.debug('remove pid %d from watchlist', pid)
+
+        with self._lock:
+            self._pids.remove(pid)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _nothing(self, pid):
+
+        self._log.debug("process %d's demise triggered, well, nothing", pid)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _suicide(self, pid):
+
+        self._log.debug("process %d's demise triggered suicide", pid)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _killall(self, pid):
+
+        self._log.debug("process %d's demise triggered killall (%s)",
+                        pid, self._pids)
+
+        for pid in self._pids:
+            os.kill(pid, signal.SIGKILL)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _rampage(self, pid):
+
+        self._killall(pid)
+        self._suicide(pid)
 
 
 # ------------------------------------------------------------------------------

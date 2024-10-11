@@ -139,11 +139,157 @@ def test_hb_uid():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_hb_pwatch_py():
+
+    queue = mp.Queue()
+
+    # pid check
+    def is_alive(pid):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+
+    # watcher process
+    def _watcher(action):
+
+        pwatcher = ru.PWatcher(action=action)
+
+        # create two sleep processes to watch / handle
+        proc_1 = mp.Process(target=time.sleep, args=(0.1,))
+        proc_2 = mp.Process(target=time.sleep, args=(0.4,))
+
+        proc_1.daemon = True
+        proc_2.daemon = True
+
+        proc_1.start()
+        proc_2.start()
+
+        pwatcher.watch(proc_1.pid)
+        pwatcher.watch(proc_2.pid)
+
+        queue.put([os.getpid(), proc_1.pid, proc_2.pid])
+
+        # sleep for 1 seconds
+        start = time.time()
+        proc_1.join(timeout=1)
+
+        remaining = max(0, 1 - (time.time() - start))
+        proc_2.join(timeout=remaining)
+
+        remaining = max(0, 1 - (time.time() - start))
+        time.sleep(remaining)
+
+
+    # NOTE: we cannot use `test_proc.daemon = True` here, as the daemon flag
+    #       damon procs cannot spawn childrin in Python :-/
+
+    # --------------------------------------------------------------------------
+    # test mode `nothing`
+    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.NOTHING])
+    test_proc.start()
+
+    pids = queue.get()
+
+    # after 0.2 seconds, the watcher and second sleep should still be alive
+    time.sleep(0.2)
+    assert     is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert     is_alive(pids[2])
+
+    # after 0.5 seconds, only the watcher should still be alive
+    time.sleep(0.5)
+    assert     is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+    # after 1.1 seconds, the watcher should have exited
+    time.sleep(1.1)
+    test_proc.join(timeout=0.0)
+    assert not is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+    # --------------------------------------------------------------------------
+    # test mode `suicide`
+    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.SUICIDE])
+    test_proc.start()
+
+    pids = queue.get()
+
+    # after 0.2 seconds, only second sleep should still be alive
+    time.sleep(0.4)
+    test_proc.join(timeout=0.1)
+    assert not is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert     is_alive(pids[2])
+
+    # after 0.5 seconds, none of the processes should be alive
+    time.sleep(0.5)
+    assert not is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+
+    # --------------------------------------------------------------------------
+    # test mode `killall`
+    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.KILLALL])
+    test_proc.start()
+
+    pids = queue.get()
+
+    # after 0.2 seconds, only second sleep should still be alive
+    time.sleep(0.4)
+    test_proc.join(timeout=0.1)
+    assert     is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+    # after 0.5 seconds, none of the processes should be alive
+    time.sleep(0.5)
+    test_proc.join(timeout=0.1)
+    assert not is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+
+    # --------------------------------------------------------------------------
+    # test mode `rampage`
+    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.RAMPAGE])
+    test_proc.start()
+
+    pids = queue.get()
+
+    # after 0.2 seconds, only second sleep should still be alive
+    time.sleep(0.4)
+    test_proc.join(timeout=0.1)
+    assert not is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+# ------------------------------------------------------------------------------
+#
+def test_hb_pwatch_sh():
+
+    pwd    = os.path.dirname(__file__)
+    script = '%s/../bin/test_pwatch.sh' % pwd
+
+    out, err, ret = ru.sh_callout('%s -h' % script)
+
+    assert ret == 0, [out, err, ret]
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
-  # test_hb_default()
+    test_hb_default()
     test_hb_uid()
+    test_hb_pwatch_py()
+    test_hb_pwatch_sh()
 
 
 # ------------------------------------------------------------------------------
