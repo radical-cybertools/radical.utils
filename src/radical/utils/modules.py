@@ -2,9 +2,7 @@
 import builtins
 import inspect
 import os
-import pkgutil
-
-import importlib.util as imputil
+import importlib
 
 from typing import Any, Union, Optional
 
@@ -32,16 +30,16 @@ def import_module(name):
 #
 def find_module(name):
 
-    package = pkgutil.get_loader(name)
+    package = importlib.util.find_spec(name)
 
     if not package:
         return None
 
-    if '_NamespaceLoader' in str(package):
+    if '_NamespaceLoader' in str(package.loader):
         # since Python 3.5, loaders differ between modules and namespaces
         return package._path._path[0]                    # pylint: disable=W0212
     else:
-        return os.path.dirname(package.get_filename())
+        return os.path.dirname(package.loader.get_filename())
 
 
 # ------------------------------------------------------------------------------
@@ -66,8 +64,8 @@ def import_file(path):
     _id_cnt += 1
 
     uid  = 'mod_%d' % _id_cnt
-    spec = imputil.spec_from_file_location(uid, path)
-    mod  = imputil.module_from_spec(spec)
+    spec = importlib.util.spec_from_file_location(uid, path)
+    mod  = importlib.util.module_from_spec(spec)
 
     spec.loader.exec_module(mod)
 
@@ -119,8 +117,8 @@ def load_class(fpath: str,
         raise ValueError('no source file at [%s]' % fpath)
 
     pname  = os.path.splitext(os.path.basename(fpath))[0]
-    spec   = imputil.spec_from_file_location(pname, fpath)
-    plugin = imputil.module_from_spec(spec)
+    spec   = importlib.util.spec_from_file_location(pname, fpath)
+    plugin = importlib.util.module_from_spec(spec)
 
     spec.loader.exec_module(plugin)
 
