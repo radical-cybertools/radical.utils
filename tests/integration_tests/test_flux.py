@@ -7,6 +7,10 @@ import pytest
 import radical.utils as ru
 
 
+if not bool(ru.which('flux')):
+    pytest.skip('flux not installed', allow_module_level=True)
+
+
 yaml   = pytest.importorskip('yaml')
 flux   = pytest.importorskip('flux')
 events = dict()
