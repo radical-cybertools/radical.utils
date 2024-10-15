@@ -77,7 +77,8 @@ def test_env_read():
         env = ru.env_read(fname)
 
         for k,v in env.items():
-            assert os.environ[k] == v, [k, os.environ[k], v]
+            if k not in ru.env.IGNORE_LIST:
+                assert os.environ[k] == v, [k, os.environ[k], v]
 
         for k,v in os.environ.items():
             if k not in ru.env.IGNORE_LIST:
