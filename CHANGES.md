@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.83.0 Release                                                        2024-10-15
+--------------------------------------------------------------------------------
+  
+  - remove an obsolete monkeypatch
+
+
 1.82.0 Release                                                        2024-10-01
 --------------------------------------------------------------------------------
   
