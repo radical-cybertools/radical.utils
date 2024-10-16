@@ -233,6 +233,9 @@ class Logger(object):
         settings.
         """
 
+        if name is None:
+            raise ValueError('logger name must be specified and not `None`')
+
         self._name        = name
         self._ns          = ns
         self._path        = path
