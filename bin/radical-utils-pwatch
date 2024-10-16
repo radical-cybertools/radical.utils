@@ -33,7 +33,7 @@
 # Depending on what finishes first, the sleep 5 or the random sleep (and thus
 # the parent shell), the process watcher will kill the other shell.
 #
-# 
+#
 # Example 2:
 #
 #   sleep $((RANDOM % 10)) & RU_PW_PID1=$!;
@@ -58,7 +58,7 @@ run_pwatch(){
     # check RU_PW_PPID and RU_PW_CPID are set, and use them
     test -z "$RU_PW_PID1" || pid1=$RU_PW_PID1
     test -z "$RU_PW_PID2" || pid2=$RU_PW_PID2
-    
+
     # use fallback pid1 (PPID)
     test -z "$pid1" && pid1=$PPID
 
@@ -66,21 +66,21 @@ run_pwatch(){
     # NOTE: we cannot use `test -z $pid2 && $ARGS & pid2=$!` - that would give
     #       us the pid of the subshell, not of the command (at least in bash)
     if test -z "$pid2"
-    then 
+    then
         # eval ensures that args could contain pipelines and I/O redirections,
-        # but we need to add the backgrounding to arga (if its not there, yet).
+        # but we need to add the backgrounding to args (if its not there, yet).
         # Don't background `eval` itself, that results in a subshell pid.
         ARGS=$(echo "$ARGS" | sed 's/[& ]\+$//')
         eval "$ARGS &"
         pid2=$!
     fi
-    
+
     # ensure we have two PIDs
     test -z "$pid1" && echo 'missing process to watch  (1)' && return 1
     test -z "$pid2" && echo 'missing process to watch  (2)' && return 2
 
   # echo "pwatch [$pid1] [$pid2]"
-    
+
     # --------------------------------------------------------------------------
     while true
     do
@@ -98,7 +98,7 @@ run_pwatch(){
             kill      $pid1
             return 0
         fi
-    
+
         sleep 1
     done
 }
