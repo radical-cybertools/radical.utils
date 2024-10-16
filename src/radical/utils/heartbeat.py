@@ -295,7 +295,7 @@ class PWatcher(object):
 
         self._action = action or self.RAMPAGE
         self._uid    = uid    or 'pwatcher'
-        self._log    = log    or Logger(name=uid, ns='radical.utils')
+        self._log    = log    or Logger(name=self._uid, ns='radical.utils')
         self._pids   = list()
         self._lock   = mt.Lock()
 
