@@ -384,10 +384,9 @@ class PWatcher(object):
         self._log.debug("process %d's demise triggered killall (%s)",
                         pid, self._pids)
 
-        with self._lock:
-            for pid in self._pids:
-                try   : os.kill(pid, signal.SIGKILL)
-                except: pass
+        for pid in list(self._pids):
+            try   : os.kill(pid, signal.SIGKILL)
+            except: pass
 
 
     # --------------------------------------------------------------------------

@@ -185,7 +185,7 @@ def test_hb_pwatch_py():
 
 
     # NOTE: we cannot use `test_proc.daemon = True` here, as the daemon flag
-    #       damon procs cannot spawn childrin in Python :-/
+    #       damon procs cannot spawn children in Python :-/
 
     # --------------------------------------------------------------------------
     # test mode `nothing`
@@ -263,12 +263,13 @@ def test_hb_pwatch_py():
 
     pids = queue.get()
 
-    # after 0.2 seconds, only second sleep should still be alive
-    time.sleep(0.4)
+    # after 0.2 seconds, the first sleep dies and no process should be alive
+    time.sleep(0.2)
     test_proc.join(timeout=0.1)
     assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
+
 
 # ------------------------------------------------------------------------------
 #
