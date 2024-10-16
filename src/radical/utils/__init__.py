@@ -25,7 +25,7 @@ from .constants      import *
 from .object_cache   import ObjectCache
 from .plugin_manager import PluginManager, PluginBase
 from .singleton      import Singleton
-from .heartbeat      import Heartbeat
+from .heartbeat      import Heartbeat, PWatcher
 from .threads        import is_main_thread, is_this_thread, cancel_main_thread
 from .threads        import main_thread, this_thread, get_thread_name, gettid
 from .threads        import set_cancellation_handler, unset_cancellation_handler

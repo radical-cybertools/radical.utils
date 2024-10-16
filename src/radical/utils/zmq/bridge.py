@@ -144,6 +144,21 @@ class Bridge(object):
 
     # --------------------------------------------------------------------------
     #
+    def wait(self, timeout=None):
+        '''
+        wait for the bridge to terminate.  If `timeout` is set, the call will
+        return after that many seconds, with a return value indicating whether
+        the bridge is still alive.
+        '''
+
+        self._bridge_thread.join(timeout=timeout)
+
+        if timeout is not None:
+            return not self._bridge_thread.is_alive()
+
+
+    # --------------------------------------------------------------------------
+    #
     @staticmethod
     def create(channel : str,
                kind    : Optional[str]  = None,
