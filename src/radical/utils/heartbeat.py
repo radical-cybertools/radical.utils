@@ -327,7 +327,7 @@ class PWatcher(object):
 
             with self._lock:
 
-                for pid in self._pids:
+                for pid in list(self._pids):
 
                     if not self._is_alive(pid):
 
@@ -358,7 +358,8 @@ class PWatcher(object):
         self._log.debug('remove pid %d from watchlist', pid)
 
         with self._lock:
-            self._pids.remove(pid)
+            if pid in self._pids:
+                self._pids.remove(pid)
 
 
     # --------------------------------------------------------------------------
@@ -383,8 +384,10 @@ class PWatcher(object):
         self._log.debug("process %d's demise triggered killall (%s)",
                         pid, self._pids)
 
-        for pid in self._pids:
-            os.kill(pid, signal.SIGKILL)
+        with self._lock:
+            for pid in self._pids:
+                try   : os.kill(pid, signal.SIGKILL)
+                except: pass
 
 
     # --------------------------------------------------------------------------
