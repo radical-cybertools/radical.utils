@@ -68,7 +68,7 @@ run_pwatch(){
     if test -z "$pid2"
     then
         # eval ensures that args could contain pipelines and I/O redirections,
-        # but we need to add the backgrounding to arga (if its not there, yet).
+        # but we need to add the backgrounding to args (if its not there, yet).
         # Don't background `eval` itself, that results in a subshell pid.
         ARGS=$(echo "$ARGS" | sed 's/[& ]\+$//')
         eval "$ARGS &"
