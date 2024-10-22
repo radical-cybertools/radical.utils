@@ -180,28 +180,26 @@ class Profiler(object):
 
         ru_def = DefaultConfig()
 
+
         if not ns:
             ns = name
 
         # check if this profile is enabled via an env variable
         self._enabled = ru_get_env_ns('profile', ns)
 
-        if  self._enabled is None:
-            self._enabled = ru_def.get('profile')
-
         if self._enabled is None:
-            self._enabled = 'False'
+            self._enabled = ru_def.get('profile', 'False')
 
         if self._enabled.lower() in ['0', 'false', 'off']:
             self._enabled = False
 
         # don't open the file on disabled profilers
         if not self._enabled:
-            self._handle = None
             return
 
         # profiler is enabled - set properties, sync time, open handle
         self._enabled = True
+        self._handle  = None
         self._path    = path
         self._name    = name
 
@@ -212,8 +210,20 @@ class Profiler(object):
 
         try:
             os.makedirs(self._path)
+
         except OSError:
             pass  # already exists
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _open(self):
+
+        if not self._enabled:
+            return
+
+        if self._handle:
+            return
 
         # we set `buffering` to `1` to force line buffering.  That is not idea
         # performance wise - but will not do an `fsync()` after writes, so OS
@@ -225,18 +235,16 @@ class Profiler(object):
         # register for cleanup after fork
         _profilers.append([self, fname])
 
-
         # write header and time normalization info
-        if self._handle:
-            self._handle.write('#%s\n' % (','.join(Profiler.fields)))
-            self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
-                           (self.timestamp(), 'sync_abs', self._name,
-                            ru_get_thread_name(), '', '',
-                            '%s:%s:%s:%s:%s' % (ru_get_hostname(),
-                                                ru_get_hostip(),
-                                                self._ts_zero,
-                                                self._ts_abs,
-                                                self._ts_mode)))
+        self._handle.write('#%s\n' % (','.join(Profiler.fields)))
+        self._handle.write('%.7f,%s,%s,%s,%s,%s,%s\n' %
+                       (self.timestamp(), 'sync_abs', self._name,
+                        ru_get_thread_name(), '', '',
+                        '%s:%s:%s:%s:%s' % (ru_get_hostname(),
+                                            ru_get_hostip(),
+                                            self._ts_zero,
+                                            self._ts_abs,
+                                            self._ts_mode)))
 
 
     # --------------------------------------------------------------------------
@@ -275,11 +283,12 @@ class Profiler(object):
             if not self._enabled:
                 return
 
-            if self._enabled and self._handle:
+            if self._enabled:
                 self.prof('END')
                 self.flush()
                 self._handle.close()
-                self._handle = None
+                self._handle  = None
+                self._enabled = False
 
         except:
             pass
@@ -289,11 +298,8 @@ class Profiler(object):
     #
     def flush(self, verbose=False):
 
-        if not self._enabled: return
-        if not self._handle : return
-
-        if verbose:
-            self.prof('flush')
+        if not self._enabled:
+            return
 
         # see https://docs.python.org/2/library/stdtypes.html#file.flush
         self._handle.flush()
@@ -307,8 +313,11 @@ class Profiler(object):
     def prof(self, event, uid=None, state=None, msg=None, ts=None, comp=None,
                    tid=None):
 
-        if not self._enabled: return
-        if not self._handle : return
+
+        if not self._enabled:
+            return
+
+        self._open()
 
         if ts    is None: ts    = self.timestamp()
         if comp  is None: comp  = self._name

@@ -182,7 +182,7 @@ class FSHandler(logging.FileHandler):
         except:
             pass  # exists
 
-        logging.FileHandler.__init__(self, target)
+        logging.FileHandler.__init__(self, target, delay=True)
 
 
 # ------------------------------------------------------------------------------
