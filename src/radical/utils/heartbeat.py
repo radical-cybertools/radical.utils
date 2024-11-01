@@ -309,12 +309,21 @@ class PWatcher(object):
     # --------------------------------------------------------------------------
     #
     def _is_alive(self, pid):
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            return False
-        else:
-            return True
+
+        try           : os.kill(pid, 0)
+        except OSError: return False
+        else          : return True
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _kill(self, pid):
+
+        try   : os.killpg(pid, signal.SIGTERM)
+        except: pass
+
+        try   : os.kill(pid, signal.SIGTERM)
+        except: pass
 
 
     # --------------------------------------------------------------------------
@@ -334,7 +343,8 @@ class PWatcher(object):
                         self._log.warn('process %d died, exit', pid)
                         self._pids.remove(pid)
 
-                        if   self._action == self.SUICIDE: self._suicide(pid)
+                        if   self._action == self.NOTHING: self._nothing(pid)
+                        elif self._action == self.SUICIDE: self._suicide(pid)
                         elif self._action == self.KILLALL: self._killall(pid)
                         elif self._action == self.RAMPAGE: self._rampage(pid)
 
@@ -361,7 +371,6 @@ class PWatcher(object):
             if pid in self._pids:
                 self._pids.remove(pid)
 
-
     # --------------------------------------------------------------------------
     #
     def _nothing(self, pid):
@@ -374,7 +383,7 @@ class PWatcher(object):
     def _suicide(self, pid):
 
         self._log.debug("process %d's demise triggered suicide", pid)
-        os.kill(os.getpid(), signal.SIGKILL)
+        self._kill(os.getpid())
 
 
     # --------------------------------------------------------------------------
@@ -385,8 +394,7 @@ class PWatcher(object):
                         pid, self._pids)
 
         for pid in list(self._pids):
-            try   : os.kill(pid, signal.SIGKILL)
-            except: pass
+            self._kill(pid)
 
 
     # --------------------------------------------------------------------------
