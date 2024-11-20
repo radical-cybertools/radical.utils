@@ -78,7 +78,7 @@ class Registry(Server):
     #
     def stop(self) -> None:
 
-        self.dump()
+      # self.dump()
 
         self._log.debug('stop')
 
