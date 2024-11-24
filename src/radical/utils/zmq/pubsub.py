@@ -100,12 +100,12 @@ class PubSub(Bridge):
         self._xpub        = self._ctx.socket(zmq.XSUB)
         self._xpub.linger = _LINGER_TIMEOUT
         self._xpub.hwm    = _HIGH_WATER_MARK
-        self._xpub.bind('tcp://*:*')
+        self._xpub.bind('tcp://*:%s' % (self._cfg.get('port_pub') or '10000+'))
 
         self._xsub        = self._ctx.socket(zmq.XPUB)
         self._xsub.linger = _LINGER_TIMEOUT
         self._xsub.hwm    = _HIGH_WATER_MARK
-        self._xsub.bind('tcp://*:*')
+        self._xsub.bind('tcp://*:%s' % (self._cfg.get('port_sub') or '10000+'))
 
         # communicate the bridge ports to the parent process
         _addr_pub = as_string(self._xpub.getsockopt(zmq.LAST_ENDPOINT))

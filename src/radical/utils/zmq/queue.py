@@ -165,19 +165,18 @@ class Queue(Bridge):
 
         self._log.info('start bridge %s', self._uid)
 
-        self._url        = 'tcp://*:*'
-        self._lock       = mt.Lock()
+        self._lock        = mt.Lock()
 
-        self._ctx        = zmq.Context()  # rely on GC for destruction
+        self._ctx         = zmq.Context()  # rely on GC for destruction
         self._put         = self._ctx.socket(zmq.PULL)
         self._put.linger  = _LINGER_TIMEOUT
         self._put.hwm     = _HIGH_WATER_MARK
-        self._put.bind(self._url)
+        self._get.bind('tcp://*:%s' % (self._cfg.get('port_put') or find_port())
 
         self._get        = self._ctx.socket(zmq.REP)
         self._get.linger = _LINGER_TIMEOUT
         self._get.hwm    = _HIGH_WATER_MARK
-        self._get.bind(self._url)
+        self._get.bind('tcp://*:%s' % (self._cfg.get('port_get') or find_port())
 
         # communicate the bridge ports to the parent process
         _addr_put = as_string(self._put.getsockopt(zmq.LAST_ENDPOINT))
