@@ -12,7 +12,7 @@ from ..atfork    import atfork
 from ..config    import Config
 from ..ids       import generate_id, ID_CUSTOM
 from ..url       import Url
-from ..misc      import as_string, as_bytes, as_list, noop
+from ..misc      import as_string, as_bytes, as_list, noop, find_port
 from ..host      import get_hostip
 from ..logger    import Logger
 from ..threads   import get_thread_name, get_thread_id
@@ -20,7 +20,7 @@ from ..debug     import print_exception_trace
 from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
-from .utils      import no_intr
+from .utils      import zmq_bind, no_intr
 from .utils      import log_bulk, LOG_ENABLED
 # from .utils    import prof_bulk
 
@@ -172,7 +172,6 @@ class Queue(Bridge):
 
         self._log.info('start bridge %s', self._uid)
 
-        self._url        = 'tcp://*:*'
         self._lock       = mt.Lock()
 
         self._tinfo      = _tinfo()
@@ -180,24 +179,12 @@ class Queue(Bridge):
         self._put        = self._ctx.socket(zmq.PULL)
         self._put.linger = _LINGER_TIMEOUT
         self._put.hwm    = _HIGH_WATER_MARK
-        self._put.bind(self._url)
+        self._addr_put   = zmq_bind(self._put)
 
         self._get        = self._ctx.socket(zmq.REP)
         self._get.linger = _LINGER_TIMEOUT
         self._get.hwm    = _HIGH_WATER_MARK
-        self._get.bind(self._url)
-
-        # communicate the bridge ports to the parent process
-        _addr_put = as_string(self._put.getsockopt(zmq.LAST_ENDPOINT))
-        _addr_get = as_string(self._get.getsockopt(zmq.LAST_ENDPOINT))
-
-        # store addresses
-        self._addr_put = Url(_addr_put)
-        self._addr_get = Url(_addr_get)
-
-        # use the local hostip for bridge addresses
-        self._addr_put.host = get_hostip()
-        self._addr_get.host = get_hostip()
+        self._addr_get   = zmq_bind(self._get)
 
         self._log.info('bridge in  %s: %s', self._uid, self._addr_put)
         self._log.info('bridge out %s: %s', self._uid, self._addr_get)
@@ -446,7 +433,7 @@ class Getter(object):
             qname = 'default'
 
         assert url in Getter._callbacks
-        time.sleep(1)
+        time.sleep(0.1)
 
         try:
             term = Getter._callbacks.get(url, {})['term']
