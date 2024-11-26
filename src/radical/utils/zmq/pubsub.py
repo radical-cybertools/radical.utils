@@ -18,7 +18,7 @@ from ..profile   import Profiler
 from ..serialize import to_msgpack, from_msgpack
 
 from .bridge     import Bridge
-from .utils      import no_intr, log_bulk, LOG_ENABLED
+from .utils      import zmq_bind, no_intr, log_bulk, LOG_ENABLED
 
 
 # ------------------------------------------------------------------------------
@@ -94,30 +94,18 @@ class PubSub(Bridge):
 
         self._log.info('initialize bridge %s', self._uid)
 
-        self._lock       = mt.Lock()
+        self._lock        = mt.Lock()
 
-        self._ctx        = zmq.Context.instance()  # rely on GC for destruction
+        self._ctx         = zmq.Context.instance()  # rely on GC for destruction
         self._xpub        = self._ctx.socket(zmq.XSUB)
         self._xpub.linger = _LINGER_TIMEOUT
         self._xpub.hwm    = _HIGH_WATER_MARK
-        self._xpub.bind('tcp://*:*')
+        self._addr_pub    = zmq_bind(self._xpub)
 
         self._xsub        = self._ctx.socket(zmq.XPUB)
         self._xsub.linger = _LINGER_TIMEOUT
         self._xsub.hwm    = _HIGH_WATER_MARK
-        self._xsub.bind('tcp://*:*')
-
-        # communicate the bridge ports to the parent process
-        _addr_pub = as_string(self._xpub.getsockopt(zmq.LAST_ENDPOINT))
-        _addr_sub = as_string(self._xsub.getsockopt(zmq.LAST_ENDPOINT))
-
-        # store addresses
-        self._addr_pub = Url(_addr_pub)
-        self._addr_sub = Url(_addr_sub)
-
-        # use the local hostip for bridge addresses
-        self._addr_pub.host = get_hostip()
-        self._addr_sub.host = get_hostip()
+        self._addr_sub    = zmq_bind(self._xsub)
 
         self._log.info('bridge pub on  %s: %s', self._uid, self._addr_pub)
         self._log.info('       sub on  %s: %s', self._uid, self._addr_sub)

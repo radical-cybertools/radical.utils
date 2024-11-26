@@ -3,6 +3,8 @@ import zmq
 
 from ..serialize import to_msgpack, from_msgpack
 
+from .utils import zmq_bind
+
 MODE_PUSH = 'push'
 MODE_PULL = 'pull'
 
@@ -74,16 +76,13 @@ class Pipe(object):
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
-        if url:
-            bind = False
-        else:
-            bind = True
-            url  = 'tcp://*:*'
-
         self._sock = self._context.socket(zmq.PUSH)
 
-        if bind: self._sock.bind(url)
-        else   : self._sock.connect(url)
+        if url:
+            self._sock.connect(url)
+            self._url = url
+        else:
+            self._url = zmq_bind(self._sock)
 
         self._url = self._sock.getsockopt(zmq.LAST_ENDPOINT)
 
@@ -106,10 +105,12 @@ class Pipe(object):
 
         self._sock = self._context.socket(zmq.PULL)
 
-        if bind: self._sock.bind(url)
-        else   : self._sock.connect(url)
+        if url:
+            self._sock.connect(url)
+            self._url = url
+        else:
+            self._url = zmq_bind(self._sock)
 
-        self._url = self._sock.getsockopt(zmq.LAST_ENDPOINT)
         self._poller.register(self._sock, zmq.POLLIN)
 
 

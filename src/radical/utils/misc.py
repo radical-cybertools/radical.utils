@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import errno
+import socket
 import tarfile
 import datetime
 import tempfile
@@ -381,12 +382,12 @@ def get_env_ns(key, ns, default=None):
     '''
     get an environment setting within a namespace.  For example.
 
-        get_env_ns('verbose', 'radical.pilot.umgr'),
+        get_env_ns('verbose', 'radical.pilot.tmgr'),
 
     will return the value of the first found env variable from the following
     sequence:
 
-        RADICAL_PILOT_UMGR_LOG_LVL
+        RADICAL_PILOT_TMGR_LOG_LVL
         RADICAL_PILOT_LOG_LVL
         RADICAL_LOG_LVL
 
@@ -705,7 +706,7 @@ def script_2_func(fpath):
     This method accepts a single parameter `fpath` which is expected to point to
     a file containing a self-sufficient Python script.  The script will be read
     and stored, and a function handle will be returned which, upon calling, will
-    run that script in the currect Python interpreter`.  It will be ensured that
+    run that script in the current Python interpreter.  It will be ensured that
     `__name__` is set to `__main__`, and that any arguments passed to the
     callable are passed on as `sys.argv`.  A single list argument is also
     allowed which is interpreted as argument list.
@@ -714,7 +715,6 @@ def script_2_func(fpath):
 
         my_func = ru.script_2_func('/tmp/my_script.py')
         my_func('-f', 'foo', '-b', 'bar')
-        my_func('-f foo -b bar'.split())   # equivalent
 
     NOTE: calling the returned function handle will change `sys.argv` for the
           current Python interpreter.
@@ -722,7 +722,6 @@ def script_2_func(fpath):
 
     prefix  = []
     postfix = []
-
 
     with ru_open(fpath, 'r') as fin:
         code_lines = fin.readlines()
@@ -827,6 +826,27 @@ def ru_open(*args, **kwargs):
         kwargs['encoding'] = 'utf8'
 
     return open(*args, **kwargs)
+
+
+# ------------------------------------------------------------------------------
+#
+def find_port(port_min=10000, port_max=65535):
+    '''
+    Find a free port in the given range.  The range defaults to 10000-65535.
+    Returns `None` if no free port could be found.
+    '''
+
+    for port in range(port_min, port_max):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind(('', port))
+            return port
+
+        except socket.error:
+            pass
+
+        finally:
+            sock.close()
 
 
 # ------------------------------------------------------------------------------
