@@ -8,6 +8,7 @@ __license__   = "MIT"
 import os
 import copy
 import pytest
+import socket
 import tempfile
 
 import radical.utils as ru
@@ -296,6 +297,32 @@ def test_ru_open():
 
 
 # ------------------------------------------------------------------------------
+#
+def test_find_port():
+
+
+    s1 = None
+    s2 = None
+    try:
+        p1 = ru.find_port()
+        assert p1 > 0
+
+        s1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s1.bind(('', p1))
+
+        p2 = ru.find_port()
+        assert p2 > p1
+
+        with pytest.raises(socket.error):
+            s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s2.bind(('', p2 - 1))
+
+    finally:
+        if s1: s1.close()
+        if s2: s2.close()
+
+
+# ------------------------------------------------------------------------------
 # run tests if called directly
 if __name__ == "__main__":
 
@@ -309,6 +336,7 @@ if __name__ == "__main__":
     test_script_2_func()
     test_base()
     test_ru_open()
+    test_find_port()
 
 
 # ------------------------------------------------------------------------------
