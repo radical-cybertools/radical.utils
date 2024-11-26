@@ -21,7 +21,7 @@ def test_zmq_pipe():
     pipe_3 = ru.zmq.Pipe(ru.zmq.MODE_PULL, url)
 
     # let ZMQ settle
-    time.sleep(1)
+    time.sleep(0.1)
 
     for i in range(1000):
         pipe_1.put('foo %d' % i)
