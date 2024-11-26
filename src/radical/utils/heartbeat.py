@@ -171,7 +171,7 @@ class Heartbeat(object):
                         self._log.warn('hb %s fail  %s: fatal (%d)',
                                        self._uid, uid, self._pid)
                         os.kill(self._pid, signal.SIGTERM)
-                        time.sleep(1)
+                        time.sleep(0.1)
                         os.kill(self._pid, signal.SIGKILL)
 
                     else:
