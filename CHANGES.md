@@ -3,6 +3,17 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.84.0 Release                                                        2024-11-27
+--------------------------------------------------------------------------------
+  
+  - don't claim macos support
+  - allow client logging
+  - delay opening of logfile until first write
+  - delay profile opening
+  - fix registry dump
+  - get better port numbers to simplify tunneling
+
+
 1.83.0 Release                                                        2024-10-15
 --------------------------------------------------------------------------------
   
