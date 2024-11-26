@@ -4,8 +4,8 @@ import zmq
 import errno
 
 from ..url  import Url
-from ..misc import as_list
-from ..misc import ru_open
+from ..host import get_hostip
+from ..misc import as_list, as_string, find_port, ru_open
 
 
 # NOTE: this is ignoring `RADICAL_LOG_LVL` on purpose
@@ -154,12 +154,27 @@ def sock_connect(sock, url, hop=None):
 
     if hop:
         from zmq import ssh
-        print('connect   to %s via %s' % (url, hop))
         ssh.tunnel_connection(sock, url, hop)
-        print('connected to %s via %s' % (url, hop))
 
     else:
         sock.connect(url)
+
+
+# ------------------------------------------------------------------------------
+#
+def zmq_bind(sock):
+
+    while True:
+        port = find_port()
+        try:
+            sock.bind('tcp://*:%s' % port)
+            addr      = Url(as_string(sock.getsockopt(zmq.LAST_ENDPOINT)))
+            addr.host = get_hostip()
+            return addr
+        except:
+            pass
+
+    raise RuntimeError('could not bind to any port')
 
 
 # ------------------------------------------------------------------------------
