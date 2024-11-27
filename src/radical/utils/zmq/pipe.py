@@ -1,7 +1,9 @@
 
 import zmq
+import threading as mt
 
 from ..serialize import to_msgpack, from_msgpack
+from ..logger    import Logger
 
 from .utils import zmq_bind
 
@@ -32,7 +34,7 @@ class Pipe(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, mode, url=None) -> None:
+    def __init__(self, mode, url=None, log=None) -> None:
         '''
         Create a `Pipe` instance which can be used for either sending (`put()`)
         or receiving (`get()` / `get_nowait()`) data. according to the specified
@@ -43,11 +45,14 @@ class Pipe(object):
         URL provided by the listening end (`Pipe.url`).
         '''
 
-        self._context = zmq.Context.instance()
-        self._mode    = mode
-        self._url     = None
-        self._sock    = None
-        self._poller  = zmq.Poller()
+        self._context  = zmq.Context.instance()
+        self._mode     = mode
+        self._url      = None
+        self._log      = log
+        self._sock     = None
+        self._poller   = zmq.Poller()
+        self._cbs      = list()
+        self._listener = None
 
         if mode == MODE_PUSH:
             self._connect_push(url)
@@ -57,6 +62,10 @@ class Pipe(object):
 
         else:
             raise ValueError('unsupported pipe mode [%s]' % mode)
+
+        if not self._log:
+
+            self._log = Logger('radical.utils.pipe')
 
 
     # --------------------------------------------------------------------------
@@ -97,12 +106,6 @@ class Pipe(object):
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
-        if url:
-            bind = False
-        else:
-            bind = True
-            url  = 'tcp://*:*'
-
         self._sock = self._context.socket(zmq.PULL)
 
         if url:
@@ -112,6 +115,49 @@ class Pipe(object):
             self._url = zmq_bind(self._sock)
 
         self._poller.register(self._sock, zmq.POLLIN)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register_cb(self, cb):
+        '''
+        Register a callback for incoming messages.  The callback will be called
+        with the message as argument.
+
+        Only a pipe in pull mode can have callbacks registered.  Note that once
+        a callback is registered, the `get()` and `get_nowait()` methods must
+        not be used anymore.
+        '''
+
+        assert self._mode == MODE_PULL
+
+        self._cbs.append(cb)
+
+        if not self._listener:
+            self._listener = mt.Thread(target=self._listen)
+            self._listener.daemon = True
+            self._listener.start()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _listen(self):
+        '''
+        Listen for incoming messages, and call registered callbacks.
+        '''
+
+        while True:
+
+            socks = dict(self._poller.poll(timeout=10))
+
+            if self._sock in socks:
+                msg = from_msgpack(self._sock.recv())
+
+                for cb in self._cbs:
+                    try:
+                        cb(msg)
+                    except:
+                        self._log.exception('callback failed')
 
 
     # --------------------------------------------------------------------------
@@ -134,6 +180,8 @@ class Pipe(object):
         '''
 
         assert self._mode == MODE_PULL
+        assert not self._cbs
+
         return from_msgpack(self._sock.recv())
 
 
@@ -147,6 +195,7 @@ class Pipe(object):
         '''
 
         assert self._mode == MODE_PULL
+        assert not self._cbs
 
         # zmq timeouts are in milliseconds
         socks = dict(self._poller.poll(timeout=int(timeout * 1000)))
