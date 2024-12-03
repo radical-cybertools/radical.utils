@@ -395,23 +395,22 @@ class Subscriber(object):
     def _start_listener(self):
 
         # only start if needed
-        if self._thread:
-            return
+        with self._lock:
 
-        lock      = self._lock
-        term      = self._term
-        callbacks = self._callbacks
+            if self._thread:
+                return
 
-        self._log.info('start listener for %s', self._channel)
+            lock      = self._lock
+            term      = self._term
+            callbacks = self._callbacks
 
-        t = mt.Thread(target=Subscriber._listener,
-                      args=[self._sock, lock, term, callbacks,
-                            self._log, self._prof])
-        t.daemon = True
-        print('=== create pubsub listener %s' % t)
-        t.start()
+            self._log.info('start listener for %s', self._channel)
 
-        self._thread = t
+            self._thread = mt.Thread(target=Subscriber._listener,
+                                     args=[self._sock, lock, term, callbacks,
+                                      self._log, self._prof])
+            self._thread.daemon = True
+            self._thread.start()
 
 
     # --------------------------------------------------------------------------
@@ -420,11 +419,12 @@ class Subscriber(object):
 
         # only stop listener if no callbacks remain registered (unless forced)
         if force or not self._callbacks:
-            if  self._thread:
-                self._term.set()
-                self._thread.join()
-                self._term.clear()
-                self._thread = None
+            with self._lock:
+                if  self._thread:
+                    self._term.set()
+                    self._thread.join()
+                    self._term.clear()
+                    self._thread = None
 
 
     # --------------------------------------------------------------------------
