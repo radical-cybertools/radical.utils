@@ -433,7 +433,7 @@ class Getter(object):
             qname = 'default'
 
         assert url in Getter._callbacks
-        time.sleep(0.1)
+        time.sleep(0.01)
 
         try:
             term = Getter._callbacks.get(url, {})['term']
@@ -772,7 +772,7 @@ def test_queue(channel, addr_pub, addr_sub):
     t_a.join()
     t_b.join()
 
-    time.sleep(0.1)
+    time.sleep(0.01)
 
     import pprint
     pprint.pprint(data)
