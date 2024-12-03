@@ -111,7 +111,7 @@ class PubSub(Bridge):
         self._log.info('       sub on  %s: %s', self._uid, self._addr_sub)
 
         # make sure bind is active
-        time.sleep(0.1)
+        time.sleep(0.01)
 
         # start polling for messages
         self._poll = zmq.Poller()
@@ -202,7 +202,7 @@ class Publisher(object):
         self._socket.hwm    = _HIGH_WATER_MARK
         self._socket.connect(self._url)
 
-        time.sleep(0.1)
+        time.sleep(0.01)
 
 
     # --------------------------------------------------------------------------
@@ -364,7 +364,7 @@ class Subscriber(object):
         self._sock.hwm    = _HIGH_WATER_MARK
         self._sock.connect(self._url)
 
-        time.sleep(0.1)
+        time.sleep(0.01)
 
         # only allow `get()` and `get_nowait()`
         self._interactive = True
@@ -577,7 +577,7 @@ def test_pubsub(channel, addr_pub, addr_sub):
     t_a.join()
     t_b.join()
 
-    time.sleep(0.1)
+    time.sleep(0.01)
 
     assert data['A']['A'] == c_a
     assert data['B']['B'] == c_b
