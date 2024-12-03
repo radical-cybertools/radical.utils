@@ -10,9 +10,7 @@ from typing      import Optional
 from ..atfork    import atfork
 from ..config    import Config
 from ..ids       import generate_id, ID_CUSTOM
-from ..url       import Url
 from ..misc      import as_string, as_bytes, as_list, noop
-from ..host      import get_hostip
 from ..logger    import Logger
 from ..profile   import Profiler
 from ..serialize import to_msgpack, from_msgpack
@@ -410,6 +408,7 @@ class Subscriber(object):
                       args=[self._sock, lock, term, callbacks,
                             self._log, self._prof])
         t.daemon = True
+        print('=== create pubsub listener %s' % t)
         t.start()
 
         self._thread = t

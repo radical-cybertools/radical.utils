@@ -45,15 +45,15 @@ class Pipe(object):
         URL provided by the listening end (`Pipe.url`).
         '''
 
-        self._context  = zmq.Context.instance()
-        self._mode     = mode
-        self._url      = None
-        self._log      = log
-        self._sock     = None
-        self._poller   = zmq.Poller()
-        self._cbs      = list()
-        self._listener = None
-        self._term     = mt.Event()
+        self._context = zmq.Context.instance()
+        self._mode    = mode
+        self._url     = None
+        self._log     = log
+        self._sock    = None
+        self._poller  = zmq.Poller()
+        self._cbs     = list()
+        self._thread  = None
+        self._term    = mt.Event()
 
         if mode == MODE_PUSH:
             self._connect_push(url)
@@ -120,61 +120,6 @@ class Pipe(object):
 
     # --------------------------------------------------------------------------
     #
-    def register_cb(self, cb):
-        '''
-        Register a callback for incoming messages.  The callback will be called
-        with the message as argument.
-
-        Only a pipe in pull mode can have callbacks registered.  Note that once
-        a callback is registered, the `get()` and `get_nowait()` methods must
-        not be used anymore.
-        '''
-
-        assert self._mode == MODE_PULL
-
-        self._cbs.append(cb)
-
-        if not self._listener:
-            self._listener = mt.Thread(target=self._listen)
-            self._listener.daemon = True
-            self._listener.start()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _listen(self):
-        '''
-        Listen for incoming messages, and call registered callbacks.
-        '''
-
-        while not self._term.is_set():
-
-            socks = dict(self._poller.poll(timeout=10))
-
-            if self._sock in socks:
-                msg = from_msgpack(self._sock.recv())
-
-                for cb in self._cbs:
-                    try:
-                        cb(msg)
-                    except:
-                        self._log.exception('callback failed')
-
-
-    # --------------------------------------------------------------------------
-    #
-    def put(self, msg):
-        '''
-        Send a message - if receiving endpoints are connected, exactly one of
-        them will be able to receive that message.
-        '''
-
-        assert self._mode == MODE_PUSH
-        self._sock.send(to_msgpack(msg))
-
-
-    # --------------------------------------------------------------------------
-    #
     def get(self):
         '''
         Receive a message.  This call blocks until a message is available.
@@ -207,9 +152,93 @@ class Pipe(object):
 
     # --------------------------------------------------------------------------
     #
+    def _listener(self):
+        '''
+        Listen for incoming messages, and call registered callbacks.
+        '''
+
+        while not self._term.is_set():
+
+            socks = dict(self._poller.poll(timeout=10))
+
+            if self._sock in socks:
+                msg = from_msgpack(self._sock.recv())
+
+                for cb in self._cbs:
+                    try:
+                        cb(msg)
+                    except:
+                        self._log.exception('callback failed')
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register_cb(self, cb):
+        '''
+        Register a callback for incoming messages.  The callback will be called
+        with the message as argument.
+
+        Only a pipe in pull mode can have callbacks registered.  Note that once
+        a callback is registered, the `get()` and `get_nowait()` methods must
+        not be used anymore.
+        '''
+
+        assert self._mode == MODE_PULL
+
+        self._cbs.append(cb)
+
+        if not self._thread:
+            self._thread = mt.Thread(target=self._listener)
+            self._thread.daemon = True
+            self._thread.start()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unregister_cb(self, cb):
+        '''
+        Unregister a callback.  If no callback remains registered, the listener
+        thread will be stopped.
+        '''
+
+        assert self._mode == MODE_PULL
+        assert cb in self._cbs
+
+        self._cbs.remove(cb)
+
+        if not self._cbs:
+            self._stop_listener()
+
+
+    # --------------------------------------------------------------------------
+    #
+    def put(self, msg):
+        '''
+        Send a message - if receiving endpoints are connected, exactly one of
+        them will be able to receive that message.
+        '''
+
+        assert self._mode == MODE_PUSH
+        self._sock.send(to_msgpack(msg))
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _stop_listener(self):
+
+        if self._thread:
+            self._term.set()
+            self._thread.join()
+            self._term.clear()
+            self._thread = None
+
+
+    # --------------------------------------------------------------------------
+    #
     def stop(self):
 
-        self._term.set()
+        self._stop_listener()
+
 
 
 # ------------------------------------------------------------------------------

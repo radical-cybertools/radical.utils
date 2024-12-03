@@ -11,9 +11,7 @@ from typing      import Optional
 from ..atfork    import atfork
 from ..config    import Config
 from ..ids       import generate_id, ID_CUSTOM
-from ..url       import Url
-from ..misc      import as_string, as_bytes, as_list, noop, find_port
-from ..host      import get_hostip
+from ..misc      import as_string, as_bytes, as_list, noop
 from ..logger    import Logger
 from ..profile   import Profiler
 from ..debug     import print_exception_trace
@@ -501,6 +499,7 @@ class Getter(object):
 
         t = mt.Thread(target=Getter._listener, args=[self._url, qname, self._uid])
         t.daemon = True
+        print('=== create queue  listener %s' % t)
         t.start()
 
         Getter._callbacks[self._url]['thread'] = t
