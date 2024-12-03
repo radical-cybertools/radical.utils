@@ -53,6 +53,7 @@ class Pipe(object):
         self._poller   = zmq.Poller()
         self._cbs      = list()
         self._listener = None
+        self._term     = mt.Event()
 
         if mode == MODE_PUSH:
             self._connect_push(url)
@@ -146,7 +147,7 @@ class Pipe(object):
         Listen for incoming messages, and call registered callbacks.
         '''
 
-        while True:
+        while not self._term.is_set():
 
             socks = dict(self._poller.poll(timeout=10))
 
@@ -202,6 +203,13 @@ class Pipe(object):
 
         if self._sock in socks:
             return from_msgpack(self._sock.recv())
+
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self):
+
+        self._term.set()
 
 
 # ------------------------------------------------------------------------------
