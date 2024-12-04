@@ -403,7 +403,7 @@ class Getter(object):
 
                 # send the request *once* per recieval (got lock above)
                 # FIXME: why is this sent repeatedly?
-                logger.debug_9('=== => from %s[%s]', uid, qname)
+                logger.debug_9('=> from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
 
@@ -499,7 +499,6 @@ class Getter(object):
 
         t = mt.Thread(target=Getter._listener, args=[self._url, qname, self._uid])
         t.daemon = True
-        print('=== create queue  listener %s' % t)
         t.start()
 
         Getter._callbacks[self._url]['thread'] = t
@@ -673,7 +672,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:
                 if not self._requested:
-                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=> from %s[%s]', self._channel, qname)
                     no_intr(self._q.send, as_bytes(qname))
                     self._requested = True
 
@@ -709,7 +708,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:  # need to protect self._requested
                 if not self._requested:
-                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=> from %s[%s]', self._channel, qname)
                     no_intr(self._q.send_multipart, [as_bytes(qname)])
                     self._requested = True
 

@@ -228,8 +228,8 @@ class Publisher(object):
 
         assert isinstance(topic, str), 'invalid topic type'
 
-        self._log.debug_9('=== put %s : %s: %s', topic, self.channel, msg)
-      # self._log.debug_9('=== put %s: %s', msg, get_stacktrace())
+        self._log.debug_9('put %s : %s: %s', topic, self.channel, msg)
+      # self._log.debug_9('put %s: %s', msg, get_stacktrace())
       # self._prof.prof('put', uid=self._uid, msg=msg)
         log_bulk(self._log, '-> %s' % topic, [msg])
 
@@ -450,7 +450,7 @@ class Subscriber(object):
         log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
-            self._log.debug_9('==== subscribe for %s', topic)
+            self._log.debug_9('subscribe for %s', topic)
             no_intr(self._sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
         if topic not in self._topics:
