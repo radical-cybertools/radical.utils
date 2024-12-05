@@ -10,9 +10,7 @@ from typing      import Optional
 from ..atfork    import atfork
 from ..config    import Config
 from ..ids       import generate_id, ID_CUSTOM
-from ..url       import Url
 from ..misc      import as_string, as_bytes, as_list, noop
-from ..host      import get_hostip
 from ..logger    import Logger
 from ..profile   import Profiler
 from ..serialize import to_msgpack, from_msgpack
@@ -232,8 +230,8 @@ class Publisher(object):
 
         assert isinstance(topic, str), 'invalid topic type'
 
-        self._log.debug_9('=== put %s : %s: %s', topic, self.channel, msg)
-      # self._log.debug_9('=== put %s: %s', msg, get_stacktrace())
+        self._log.debug_9('put %s : %s: %s', topic, self.channel, msg)
+      # self._log.debug_9('put %s: %s', msg, get_stacktrace())
       # self._prof.prof('put', uid=self._uid, msg=msg)
         log_bulk(self._log, '-> %s' % topic, [msg])
 
@@ -391,21 +389,22 @@ class Subscriber(object):
     def _start_listener(self):
 
         # only start if needed
-        if self._thread:
-            return
+        with self._lock:
 
-        lock      = self._lock
-        term      = self._term
-        callbacks = self._callbacks
+            if self._thread:
+                return
 
-        self._log.info('start listener for %s', self._channel)
+            lock      = self._lock
+            term      = self._term
+            callbacks = self._callbacks
 
-        t = mt.Thread(target=Subscriber._listener,
-                      args=[self._sock, lock, term, callbacks, self._log])
-        t.daemon = True
-        t.start()
+            self._log.info('start listener for %s', self._channel)
 
-        self._thread = t
+            self._thread = mt.Thread(target=Subscriber._listener,
+                                     args=[self._sock, lock, term, callbacks,
+                                           self._log, self._prof])
+            self._thread.daemon = True
+            self._thread.start()
 
 
     # --------------------------------------------------------------------------
@@ -414,11 +413,12 @@ class Subscriber(object):
 
         # only stop listener if no callbacks remain registered (unless forced)
         if force or not self._callbacks:
-            if  self._thread:
-                self._term.set()
-                self._thread.join()
-                self._term.clear()
-                self._thread = None
+            with self._lock:
+                if  self._thread:
+                    self._term.set()
+                    self._thread.join()
+                    self._term.clear()
+                    self._thread = None
 
 
     # --------------------------------------------------------------------------
@@ -444,7 +444,7 @@ class Subscriber(object):
         log_bulk(self._log, '~~2 %s' % topic, [topic])
 
         with self._lock:
-            self._log.debug_9('==== subscribe for %s', topic)
+            self._log.debug_9('subscribe for %s', topic)
             no_intr(self._sock.setsockopt, zmq.SUBSCRIBE, as_bytes(topic))
 
         if topic not in self._topics:
