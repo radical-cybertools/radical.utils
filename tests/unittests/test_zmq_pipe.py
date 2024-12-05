@@ -14,14 +14,10 @@ import radical.utils as ru
 def test_zmq_pipe():
 
     pipe_1 = ru.zmq.Pipe(ru.zmq.MODE_PUSH)
+    pipe_2 = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
+    pipe_3 = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
 
-    url = pipe_1.url
-
-    pipe_2 = ru.zmq.Pipe(ru.zmq.MODE_PULL, url)
-    pipe_3 = ru.zmq.Pipe(ru.zmq.MODE_PULL, url)
-
-    # let ZMQ settle
-    time.sleep(0.1)
+    time.sleep(0.01)
 
     for i in range(1000):
         pipe_1.put('foo %d' % i)
@@ -34,17 +30,41 @@ def test_zmq_pipe():
         result_3.append(pipe_3.get())
 
     for i in range(100):
-        result_2.append(pipe_2.get_nowait(timeout=1.0))
-        result_3.append(pipe_3.get_nowait(timeout=1.0))
+        result_2.append(pipe_2.get_nowait(timeout=0.01))
+        result_3.append(pipe_3.get_nowait(timeout=0.01))
 
     assert len(result_2) == 500
     assert len(result_3) == 500
 
-    test_2 = result_2.append(pipe_2.get_nowait(timeout=1.0))
-    test_3 = result_3.append(pipe_3.get_nowait(timeout=1.0))
+    test_2 = result_2.append(pipe_2.get_nowait(timeout=0.01))
+    test_3 = result_3.append(pipe_3.get_nowait(timeout=0.01))
 
     assert test_2 is None
     assert test_3 is None
+
+
+# ------------------------------------------------------------------------------
+#
+def test_zmq_pipe_cb():
+
+    pipe_1  = ru.zmq.Pipe(ru.zmq.MODE_PUSH)
+    pipe_2  = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
+    results = list()
+
+    time.sleep(0.01)
+
+    def cb(msg):
+        results.append(msg)
+
+    pipe_2.register_cb(cb)
+
+    n = 1000
+    for i in range(n):
+        pipe_1.put('foo %d' % i)
+
+    time.sleep(0.01)
+
+    assert len(results) == n, results
 
 
 # ------------------------------------------------------------------------------
@@ -52,6 +72,7 @@ def test_zmq_pipe():
 if __name__ == '__main__':
 
     test_zmq_pipe()
+    test_zmq_pipe_cb()
 
 
 # ------------------------------------------------------------------------------
