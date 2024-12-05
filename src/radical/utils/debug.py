@@ -339,8 +339,8 @@ def attach_pudb(log=None):
 
     if log:
         log.info('debugger open: telnet %s %d', host, port)
-    else:
-        print('debugger open: telnet %s %d' % (host, port))
+
+    print('debugger open: telnet %s %d' % (host, port))
 
     try:
         import pudb                                      # pylint: disable=E0401
@@ -352,7 +352,9 @@ def attach_pudb(log=None):
 
     except Exception as e:
         if log:
-            log.warning('failed to attach pudb (%s)', e)
+            log.exception('failed to attach pudb')
+        else:
+            print('failed to attach pudb (%s)' % repr(e))
 
 
 # ------------------------------------------------------------------------------
