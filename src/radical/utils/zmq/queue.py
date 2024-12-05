@@ -11,9 +11,7 @@ from typing      import Optional
 from ..atfork    import atfork
 from ..config    import Config
 from ..ids       import generate_id, ID_CUSTOM
-from ..url       import Url
-from ..misc      import as_string, as_bytes, as_list, noop, find_port
-from ..host      import get_hostip
+from ..misc      import as_string, as_bytes, as_list, noop
 from ..logger    import Logger
 from ..profile   import Profiler
 from ..debug     import print_exception_trace
@@ -405,7 +403,7 @@ class Getter(object):
 
                 # send the request *once* per recieval (got lock above)
                 # FIXME: why is this sent repeatedly?
-                logger.debug_9('=== => from %s[%s]', uid, qname)
+                logger.debug_9('=> from %s[%s]', uid, qname)
                 no_intr(info['socket'].send, as_bytes(qname))
                 info['requested'] = True
 
@@ -674,7 +672,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:
                 if not self._requested:
-                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=> from %s[%s]', self._channel, qname)
                     no_intr(self._q.send, as_bytes(qname))
                     self._requested = True
 
@@ -710,7 +708,7 @@ class Getter(object):
         if not self._requested:
             with self._lock:  # need to protect self._requested
                 if not self._requested:
-                    self._log.debug_9('=== => from %s[%s]', self._channel, qname)
+                    self._log.debug_9('=> from %s[%s]', self._channel, qname)
                     no_intr(self._q.send_multipart, [as_bytes(qname)])
                     self._requested = True
 
