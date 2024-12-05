@@ -129,7 +129,7 @@ def get_channel_url(ep_type, channel=None, url=None):
 #
 def log_bulk(log, token, msgs):
 
-    if log._num_level > 1:
+    if log.num_level > 1:
         # log level `debug_9` disabled
         return
 
