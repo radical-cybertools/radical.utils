@@ -84,6 +84,7 @@ class Pipe(object):
         '''
 
         assert self._mode == MODE_PUSH
+
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
