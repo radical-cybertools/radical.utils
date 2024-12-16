@@ -50,7 +50,7 @@ class Pipe(object):
         self._url     = None
         self._log     = log
         self._sock    = None
-        self._poller  = zmq.Poller()
+        self._poller  = None
         self._cbs     = list()
         self._thread  = None
         self._term    = mt.Event()
@@ -83,6 +83,8 @@ class Pipe(object):
         Establish this pipe instance as sending endpoint.
         '''
 
+        assert self._mode == MODE_PUSH
+
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
@@ -104,6 +106,8 @@ class Pipe(object):
         Establish this Pipe as receiving endpoint.
         '''
 
+        assert self._mode == MODE_PULL
+
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
 
@@ -115,6 +119,7 @@ class Pipe(object):
         else:
             self._url = zmq_bind(self._sock)
 
+        self._poller = zmq.Poller()
         self._poller.register(self._sock, zmq.POLLIN)
 
 
