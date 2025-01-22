@@ -3,6 +3,14 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.90.0 Release                                                        2024-12-16
+--------------------------------------------------------------------------------
+
+  - add callbacks to pulling end of pipe
+  - zmq startup is faster than we think
+  - remove MacOS support
+
+  
 1.84.0 Release                                                        2024-11-27
 --------------------------------------------------------------------------------
   
