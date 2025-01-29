@@ -322,17 +322,17 @@ class PWatcher(object):
         try   : os.killpg(pid, signal.SIGTERM)
         except: pass
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
         try   : os.killpg(pid, signal.SIGKILL)
         except: pass
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
         try   : os.kill(pid, signal.SIGTERM)
         except: pass
 
-        time.sleep(0.1)
+        time.sleep(0.05)
 
         try   : os.kill(pid, signal.SIGKILL)
         except: pass
