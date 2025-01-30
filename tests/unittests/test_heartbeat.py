@@ -194,19 +194,19 @@ def test_hb_pwatch_py():
 
     pids = queue.get()
 
-    # after 0.2 seconds, the watcher and second sleep should still be alive
+    # after 0.3 seconds, the watcher and second sleep should still be alive
     time.sleep(0.3)
     assert     is_alive(pids[0])
     assert not is_alive(pids[1])
     assert     is_alive(pids[2])
 
-    # after 0.5 seconds, only the watcher should still be alive
+    # after 0.6 seconds, only the watcher should still be alive
     time.sleep(0.6)
     assert     is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
 
-    # after 1.1 seconds, the watcher should have exited
+    # after 1.2 seconds, the watcher should have exited
     time.sleep(1.2)
     test_proc.join(timeout=0.0)
     assert not is_alive(pids[0])
@@ -220,7 +220,7 @@ def test_hb_pwatch_py():
 
     pids = queue.get()
 
-    # after 0.2 seconds, only second sleep should still be alive
+    # after 0.4 seconds, only second sleep should still be alive
     time.sleep(0.4)
     test_proc.join(timeout=0.1)
     assert not is_alive(pids[0])
@@ -241,7 +241,7 @@ def test_hb_pwatch_py():
 
     pids = queue.get()
 
-    # after 0.2 seconds, only second sleep should still be alive
+    # after 0.4 seconds, only second sleep should still be alive
     time.sleep(0.4)
     test_proc.join(timeout=0.1)
     assert     is_alive(pids[0])
@@ -258,15 +258,22 @@ def test_hb_pwatch_py():
 
     # --------------------------------------------------------------------------
     # test mode `rampage`
-    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.RAMPAGE])
+    test_proc = mp.Process(target=_watcher, args=[ru.PWatcher.KILLALL])
     test_proc.start()
 
     pids = queue.get()
 
-    # after 0.2 seconds, the first sleep dies and no process should be alive
-    time.sleep(0.3)
+    # after 0.4 seconds, only second sleep should still be alive
+    time.sleep(0.4)
     test_proc.join(timeout=0.1)
     assert     is_alive(pids[0])
+    assert not is_alive(pids[1])
+    assert not is_alive(pids[2])
+
+    # after 0.5 seconds, none of the processes should be alive
+    time.sleep(0.5)
+    test_proc.join(timeout=0.1)
+    assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
 
