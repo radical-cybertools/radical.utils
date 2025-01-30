@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 2
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Install dependencies
         run: |
           python -m venv testenv
@@ -43,8 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12',
-                          '3.13' ]
+        python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12', '3.13' ]
     steps:
     - uses: actions/checkout@v3
       with:
@@ -69,7 +68,7 @@ jobs:
         coverage run --include=$LOC/radical/utils/* -m pytest -ra -vvv --showlocals tests/unittests/
         coverage xml
     - uses: codecov/codecov-action@v3
-      if: ${{ matrix.python-version == '3.7' }}
+      if: ${{ matrix.python-version == '3.8' }}
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
