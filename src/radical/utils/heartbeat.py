@@ -336,8 +336,9 @@ class PWatcher(object):
 
         self._send_signal(pid, signal.SIGTERM)
         self._send_signal(pid, signal.SIGKILL)
-      # self._send_signal(pid, signal.SIGKILL, group=True)
-      # self._send_signal(pid, signal.SIGKILL, group=True)
+        # NOTE: sending a signal to the process group causes pytest to fail
+        # self._send_signal(pid, signal.SIGKILL, group=True)
+        # self._send_signal(pid, signal.SIGKILL, group=True)
 
 
     # --------------------------------------------------------------------------
