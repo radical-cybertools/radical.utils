@@ -315,6 +315,8 @@ class PWatcher(object):
         else          : return True
 
 
+    # --------------------------------------------------------------------------
+    #
     def _send_signal(self, pid, sig, group=False):
 
         if self._is_alive(pid):
@@ -328,15 +330,14 @@ class PWatcher(object):
             time.sleep(0.05)
 
 
-
     # --------------------------------------------------------------------------
     #
     def _kill(self, pid):
 
         self._send_signal(pid, signal.SIGTERM)
         self._send_signal(pid, signal.SIGKILL)
-        self._send_signal(pid, signal.SIGKILL, group=True)
-        self._send_signal(pid, signal.SIGKILL, group=True)
+      # self._send_signal(pid, signal.SIGKILL, group=True)
+      # self._send_signal(pid, signal.SIGKILL, group=True)
 
 
     # --------------------------------------------------------------------------
