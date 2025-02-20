@@ -1,5 +1,6 @@
 
 import zmq
+import time
 
 import threading as mt
 
@@ -30,9 +31,11 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url:  Optional[str] = None,
-                       uid:  Optional[str] = None,
-                       path: Optional[str] = None) -> None:
+    def __init__(self, url:  Optional[str]      = None,
+                       uid:  Optional[str]      = None,
+                       path: Optional[str]      = None,
+                       log:  Optional[Logger]   = None,
+                       prof: Optional[Profiler] = None) -> None:
 
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
@@ -47,8 +50,11 @@ class Server(object):
         if uid: self._uid = uid
         else  : self._uid = generate_id('server', ns='radical.utils')
 
-        self._log    = Logger(self._uid,   path=self._path)
-        self._prof   = Profiler(self._uid, path=self._path)
+        if log : self._log = log
+        else   : self._log = Logger(self._uid,   ns='radical.utils', path=self._path)
+
+        if prof: self._prof = prof
+        else   : self._prof = Profiler(self._uid, ns='radical.utils', path=self._path)
 
         self._addr   = None
         self._thread = None
@@ -280,9 +286,13 @@ class Server(object):
             # default response
             rep = None
             req = None
+            uid = None
 
             try:
+
+                t_req_start = time.time()
                 data = no_intr(self._sock.recv)
+                t_req_rec = time.time()
                 req  = as_string(from_msgpack(data))
                 self._log.debug('req: %s', str(req)[:128])
 
@@ -294,6 +304,12 @@ class Server(object):
                     args   = req['args']
                     kwargs = req['kwargs']
 
+                    uid    = kwargs.get('uid')
+                    if uid:
+                        self._prof.prof('req_start', ts=t_req_start, uid=uid)
+                        self._prof.prof('req_received', ts=t_req_rec, uid=uid)
+                        self._prof.prof('req_parsed', uid=uid)
+
                     if not cmd:
                         rep = self._error(err='no command in request')
 
@@ -303,16 +319,23 @@ class Server(object):
                     else:
                         rep = self._success(self._cbs[cmd](*args, **kwargs))
 
+                    if uid:
+                        self._prof.prof('req_stop', uid=uid)
+
             except Exception as e:
                 self._log.exception('command failed: %s', req)
                 rep = self._error(err='command failed: %s' % str(e),
                                   exc='\n'.join(get_exception_trace()))
 
             finally:
+                if uid:
+                    self._prof.prof('rep_start', uid=uid)
                 if not rep:
                     rep = self._error('server error')
                 no_intr(self._sock.send, to_msgpack(rep))
                 self._log.debug('rep: %s', str(rep)[:128])
+                if uid:
+                    self._prof.prof('rep_stop', uid=uid)
 
         self._sock.close()
         self._log.debug('term')
