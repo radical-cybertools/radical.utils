@@ -322,20 +322,18 @@ class PWatcher(object):
         try   : os.killpg(pid, signal.SIGTERM)
         except: pass
 
-      # time.sleep(0.05)
-      #
-      # try   : os.killpg(pid, signal.SIGKILL)
-      # except: pass
-
         time.sleep(0.05)
-
         try   : os.kill(pid, signal.SIGTERM)
         except: pass
 
-      # time.sleep(0.05)
-      #
-      # try   : os.kill(pid, signal.SIGKILL)
-      # except: pass
+        if os.environ.get("PYTEST_VERSION") is not None:
+            time.sleep(0.05)
+            try   : os.killpg(pid, signal.SIGKILL)
+            except: pass
+
+            time.sleep(0.05)
+            try   : os.kill(pid, signal.SIGKILL)
+            except: pass
 
 
     # --------------------------------------------------------------------------
