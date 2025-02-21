@@ -3,6 +3,12 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.91.0 Release                                                        2025-02-21
+--------------------------------------------------------------------------------
+
+  - fix test aborts due to SIGKILL
+
+
 1.90.0 Release                                                        2024-12-16
 --------------------------------------------------------------------------------
 
