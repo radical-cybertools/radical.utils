@@ -317,6 +317,21 @@ class PWatcher(object):
 
     # --------------------------------------------------------------------------
     #
+    def _send_signal(self, pid, sig, group=False):
+
+        if self._is_alive(pid):
+            try:
+                if group: os.killpg(pid, sig)
+                else    : os.kill(pid, sig)
+            except OSError as e:
+                pass
+
+            # let signal handler kick in
+            time.sleep(0.05)
+
+
+    # --------------------------------------------------------------------------
+    #
     def _kill(self, pid):
 
         try   : os.killpg(pid, signal.SIGTERM)
