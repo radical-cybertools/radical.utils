@@ -342,7 +342,7 @@ class PWatcher(object):
         except: pass
 
         # pytest will barf at any SIGKILL
-        if os.environ.get("PYTEST_VERSION") is not None:
+        if os.environ.get("PYTEST_VERSION") is None:
 
             time.sleep(0.05)
             try   : os.killpg(pid, signal.SIGKILL)
