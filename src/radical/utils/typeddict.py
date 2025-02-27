@@ -87,7 +87,7 @@ class TypedDictMeta(type):
                     if   k == '_schema':
                         _base_namespace[k].update(_cls_v)
                     elif k == '_defaults':
-                        _base_namespace[k].update(copy.deepcopy(_cls_v))
+                        _base_namespace[k].update(_cls_v)
                     else:
                         _base_namespace[k] = _cls_v
 
@@ -151,7 +151,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         register_serializable(self.__class__)
 
-        self.update(copy.deepcopy(self._defaults))
+        self.update(self._defaults)
         self.update(from_dict)
 
         if kwargs:
@@ -326,7 +326,25 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     # --------------------------------------------------------------------------
     #
     def as_dict(self, _annotate=False):
-        return as_dict(self._data, _annotate)
+
+        tgt = dict()
+
+        for k, v in self._data.items():
+
+            if isinstance(v, TypedDict):
+                tgt[k] = v.as_dict()
+            else:
+                tgt[k] = as_dict(v)
+            if _annotate:
+                tgt['_type'] = type(src).__name__
+
+        return tgt
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _as_dict(self, _annotate=False, _internal=False):
+        return as_dict(self._data, _annotate, _internal=_internal)
 
 
     # --------------------------------------------------------------------------
@@ -496,24 +514,24 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 # ------------------------------------------------------------------------------
 #
-def as_dict(src, _annotate=False):
+def as_dict(src, _annotate=False, _internal=False):
     '''
     Iterate given object, apply `as_dict()` to all typed
     values, and return the result (effectively a shallow copy).
     '''
     if isinstance(src, TypedDict):
-        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
-        if _annotate:
-            tgt['_type'] = type(src).__name__
-    elif isinstance(src, dict):
-        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
-    elif isinstance(src, list):
-        tgt = [as_dict(x, _annotate) for x in src]
-    elif isinstance(src, tuple):
-        tgt = tuple([as_dict(x, _annotate) for x in src])
-    else:
-        tgt = src
-    return tgt
+        return src.as_dict()
+
+    if isinstance(src, dict):
+        return {k: as_dict(v, _annotate) for k, v in src.items()}
+
+    if isinstance(src, list):
+        return [as_dict(x, _annotate) for x in src]
+
+    if isinstance(src, tuple):
+        return tuple([as_dict(x, _annotate) for x in src])
+
+    return src
 
 
 # ------------------------------------------------------------------------------
