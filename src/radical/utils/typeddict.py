@@ -332,19 +332,13 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         for k, v in self._data.items():
 
             if isinstance(v, TypedDict):
-                tgt[k] = v.as_dict()
+                tgt[k] = v.as_dict(_annotate=_annotate)
             else:
-                tgt[k] = as_dict(v)
+                tgt[k] = as_dict(v, _annotate=_annotate)
             if _annotate:
-                tgt['_type'] = type(src).__name__
+                tgt['_type'] = type(self).__name__
 
         return tgt
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _as_dict(self, _annotate=False, _internal=False):
-        return as_dict(self._data, _annotate, _internal=_internal)
 
 
     # --------------------------------------------------------------------------
@@ -514,13 +508,13 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 # ------------------------------------------------------------------------------
 #
-def as_dict(src, _annotate=False, _internal=False):
+def as_dict(src, _annotate=False):
     '''
     Iterate given object, apply `as_dict()` to all typed
     values, and return the result (effectively a shallow copy).
     '''
     if isinstance(src, TypedDict):
-        return src.as_dict()
+        return src.as_dict(_annotate=_annotate)
 
     if isinstance(src, dict):
         return {k: as_dict(v, _annotate) for k, v in src.items()}
