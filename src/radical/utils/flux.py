@@ -7,7 +7,8 @@ import time
 import json
 import shlex
 
-from typing import Optional, List, Dict, Any, Callable
+from typing    import Optional, List, Dict, Any, Callable
+from functools import partial
 
 import threading       as mt
 import subprocess      as sp
@@ -312,8 +313,8 @@ class FluxHelper(object):
         if uid: self._uid = uid
         else  : self._uid = generate_id('flux.%(item_counter)04d', ID_CUSTOM)
 
-        self._log       = Logger(self._uid,   ns='radical.utils')
-        self._prof      = Profiler(self._uid, ns='radical.utils')
+        self._log       = Logger  ('radical.utils', ns='radical.utils', level='DEBUG')
+        self._prof      = Profiler('radical.utils', ns='radical.utils')
 
         self._lock      = mt.RLock()
 
@@ -505,41 +506,47 @@ class FluxHelper(object):
             if not self._uri:
                 raise RuntimeError('FluxHelper is not connected')
 
-            assert self._exe, 'no executor'
+            assert self._exe
+
+            def app_cb(flux_id, exe_fut, event):
+                try   : cb(flux_id, event)
+                except: self._log.exception('app cb failed for %s [%s]',
+                                            flux_id, event)
 
             futures = list()
-            for spec in specs:
-                jobspec = json.dumps(spec)
-                fut     = self._flux_job.submit_async(self._handle, jobspec)
-                futures.append(fut)
+            def id_cb(fut):
+                flux_id = fut.jobid()
+                idx     = fut.ru_idx
+                for ev in ['alloc', 'start', 'finish', 'release', 'exception']:
+                    # 'submit', 'free', 'clean',
+                    tmp_cb = partial(app_cb, flux_id)
+                    fut.add_event_callback(ev, tmp_cb)
+                futures.append([flux_id, idx, fut])
+                self._log.debug('got flux id: %s: %s', idx, flux_id)
 
-            ids = list()
-            for fut in futures:
-                flux_id = fut.get_id()
-                ids.append(flux_id)
-                self._log.debug('submit: %s', flux_id)
+            for idx, spec in enumerate(specs):
+                jobspec  = json.dumps(spec)
+                fut      = self._exe.submit(jobspec)
+                fut.ru_idx = idx
+                self._log.debug('submitted  : %s', idx)
+                fut.add_jobid_callback(id_cb)
 
-                if cb:
-                    def app_cb(fut, event):
-                        try:
-                            cb(flux_id, event)
-                        except:
-                            self._log.exception('app cb failed')
+            # wait until we saw all jobid callbacks (assume 10 tasks/sec)
+            timeout = len(specs) / 10
+            timeout = max(10, timeout)
+            start   = time.time()
+            self._log.debug('wait %.2fsec for %d flux IDs', timeout, len(specs))
+            while len(futures) < len(specs):
+                time.sleep(0.1)
+                self._log.debug('wait %s / %s', len(futures), len(specs))
+                if time.time() - start > timeout:
+                    raise RuntimeError('timeout on job submission')
+            self._log.info('got %d flux IDs', len(futures))
 
-                    for ev in [
-                               'submit',
-                               'alloc',
-                               'start',
-                               'finish',
-                               'release',
-                             # 'free',
-                             # 'clean',
-                               'exception',
-                              ]:
-                        fut.add_event_callback(ev, app_cb)
+            # get flux_ids sorted by submission order (idx)
+            flux_ids = [fut[0] for fut in sorted(futures, key=lambda x: x[1])]
 
-            self._log.debug('submitted: %s', ids)
-            return ids
+            return flux_ids
 
 
     # --------------------------------------------------------------------------
