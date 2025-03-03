@@ -12,6 +12,8 @@ from .host    import get_hostip      as ru_get_hostip
 from .threads import get_thread_name as ru_get_thread_name
 from .config  import DefaultConfig
 from .atfork  import atfork
+from .shell   import sh_callout
+from .modules import import_module
 
 
 # ------------------------------------------------------------------------------
@@ -841,6 +843,36 @@ def event_to_label(event):
         return event[STATE]
     else:
         return event[EVENT]
+
+
+# ------------------------------------------------------------------------------
+#
+class Yappi(object):
+
+    def __init__(self, name, method='wall'):
+        self._yappi = import_module('yappi')
+        self._yappi.set_clock_type(method)
+        self._name = name
+
+    def __enter__(self):
+        if self._yappi:
+            self._yappi.start(builtins=True)
+
+    def __exit__(self, etype, value, traceback):
+
+        if self._yappi:
+
+          # self._yappi.get_thread_stats().print_all()
+
+            fstats = self._yappi.get_func_stats()
+            pstats = self._yappi.convert2pstats(fstats)
+            pstats.dump_stats('%s.pstats' % self._name)
+
+            cmd  = 'gprof2dot -e 0.00 -n 0.12 --skew=0.3'
+            cmd += ' --node-label="total-time" -f pstats %s.pstats' % self._name
+            cmd += ' | dot -Tpng -o %s.png' % self._name
+
+            sh_callout(cmd, shell=True)
 
 
 # ------------------------------------------------------------------------------
