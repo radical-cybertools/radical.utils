@@ -151,7 +151,7 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         register_serializable(self.__class__)
 
-        self.update(self._defaults)
+        self.update(copy.deepcopy(self._defaults))
         self.update(from_dict)
 
         if kwargs:
