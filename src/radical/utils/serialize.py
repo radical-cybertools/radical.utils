@@ -50,7 +50,6 @@ class _json_encoder(json.JSONEncoder):
         return super().encode(tmp, *args, **kw)
 
     def default(self, o):
-        print('== encode: %s' % o)
         for cname,methods in _ctypes.items():
             if isinstance(o, methods.ctype):
                 return {'_type': cname,
