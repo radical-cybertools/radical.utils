@@ -77,17 +77,22 @@ class TypedDictMeta(type):
             '_defaults'    : {},
             '_self_default': False,  # convert unschemed-dict into class itself
             '_check'       : False,  # attribute type checking on set
-            '_cast'        : True    # attempt to cast on type mismatch
+            '_cast'        : True,   # attempt to cast on type mismatch
+            '_deep'        : True    # use deepcopy on defaults
         }
 
         for _cls in bases:
+            deep = namespace.get('_deep', _base_namespace['_deep'])
             for k in _base_namespace.keys():
                 _cls_v = getattr(_cls, k, None)
                 if _cls_v is not None:
                     if   k == '_schema':
                         _base_namespace[k].update(_cls_v)
                     elif k == '_defaults':
-                        _base_namespace[k].update(_cls_v)
+                        if deep:
+                            _base_namespace[k].update(copy.deepcopy(_cls_v))
+                        else:
+                            _base_namespace[k].update(_cls_v)
                     else:
                         _base_namespace[k] = _cls_v
 
@@ -151,7 +156,12 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         register_serializable(self.__class__)
 
-        self.update(copy.deepcopy(self._defaults))
+
+        if self._deep:
+            self.update(copy.deepcopy(self._defaults))
+        else:
+            self.update(self._defaults)
+
         self.update(from_dict)
 
         if kwargs:
