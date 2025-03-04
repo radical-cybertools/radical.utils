@@ -166,7 +166,8 @@ def from_msgpack(data):
     Returns:
         object: deserialized data
     '''
-    return msgpack.unpackb(data, object_hook=_msgpack_decoder, raw=False)
+    return msgpack.unpackb(data, object_hook=_msgpack_decoder,
+                           raw=False, strict_map_key=False)
 
 
 # ------------------------------------------------------------------------------
