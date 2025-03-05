@@ -3,6 +3,14 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.100.0 Release                                                       2025-03-05
+--------------------------------------------------------------------------------
+
+  - TypedDct: deepcopy default settings only when flagged `deep`
+  - loosen msgpack restrictions (allow `int` keys in `TypedDict`s)
+  - speed up serialization, fix type annotation
+
+
 1.91.1 Release                                                        2025-02-25
 --------------------------------------------------------------------------------
 
