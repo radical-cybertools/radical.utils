@@ -45,9 +45,9 @@ class Server(object):
             self._path = './'
 
         if uid: self._uid = uid
-        else  : self._uid = generate_id('server', ns='radical.utils')
+        else  : self._uid = generate_id('xgfabric.server')
 
-        self._log    = Logger(self._uid,   path=self._path)
+        self._log    = Logger(self._uid,   path=self._path, level='DEBUG')
         self._prof   = Profiler(self._uid, path=self._path)
 
         self._addr   = None
@@ -249,19 +249,24 @@ class Server(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
 
+        addr = None
         for url in self._iterate_urls():
             try:
                 self._log.debug('try url %s', url)
                 self._sock.bind(url)
                 self._log.debug('success')
+                addr = self._sock.getsockopt(zmq.LAST_ENDPOINT)
                 break
             except zmq.error.ZMQError as e:
                 if 'Address already in use' in str(e):
-                    self._log.warn('port in use - try next (%s)' % url)
+                    self._log.warn('port in use - try next (%s)', url)
                 else:
                     raise
 
-        addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
+        if not addr:
+            raise RuntimeError('could not start service on given port range')
+
+        addr       = Url(as_string(addr))
         addr.host  = get_hostip()
         self._addr = str(addr)
 
