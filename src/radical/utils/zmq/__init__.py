@@ -9,7 +9,7 @@ __license__   = "GPL"
 from .bridge   import Bridge
 from .queue    import Queue,  Putter,    Getter,     test_queue
 from .pubsub   import PubSub, Publisher, Subscriber, test_pubsub
-from .pipe     import Pipe,   MODE_PUSH, MODE_PULL
+from .pipe     import Pipe
 from .client   import Client
 from .server   import Server
 from .registry import Registry, RegistryClient

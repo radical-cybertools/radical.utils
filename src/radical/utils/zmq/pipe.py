@@ -7,10 +7,6 @@ from ..logger    import Logger
 
 from .utils import zmq_bind
 
-MODE_PUSH = 'push'
-MODE_PULL = 'pull'
-
-
 # ------------------------------------------------------------------------------
 #
 class Pipe(object):
@@ -32,13 +28,16 @@ class Pipe(object):
       - data should only be sent once at least one receiving EP is established
     '''
 
+    PUSH = 'PUSH'
+    PULL = 'PULL'
+
     # --------------------------------------------------------------------------
     #
     def __init__(self, mode, url=None, log=None) -> None:
         '''
         Create a `Pipe` instance which can be used for either sending (`put()`)
         or receiving (`get()` / `get_nowait()`) data. according to the specified
-        mode (`MODE_PUSH` or `MODE_PULL`).
+        mode (`PUSH` or `PULL`).
 
         An URL can be specified for one end of the pipe - that end will then be
         in listening mode.  The other end of the pipe MUST use the connection
@@ -55,10 +54,10 @@ class Pipe(object):
         self._thread  = None
         self._term    = mt.Event()
 
-        if mode == MODE_PUSH:
+        if mode == self.PUSH:
             self._connect_push(url)
 
-        elif mode == MODE_PULL:
+        elif mode == self.PULL:
             self._connect_pull(url)
 
         else:
@@ -83,7 +82,7 @@ class Pipe(object):
         Establish this pipe instance as sending endpoint.
         '''
 
-        assert self._mode == MODE_PUSH
+        assert self._mode == self.PUSH
 
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
@@ -106,7 +105,7 @@ class Pipe(object):
         Establish this Pipe as receiving endpoint.
         '''
 
-        assert self._mode == MODE_PULL
+        assert self._mode == self.PULL
 
         if self._sock:
             raise RuntimeError('already connected at %s' % self._url)
@@ -130,7 +129,7 @@ class Pipe(object):
         Receive a message.  This call blocks until a message is available.
         '''
 
-        assert self._mode == MODE_PULL
+        assert self._mode == self.PULL
         assert not self._cbs
 
         return from_msgpack(self._sock.recv())
@@ -145,7 +144,7 @@ class Pipe(object):
         `None` is returned.
         '''
 
-        assert self._mode == MODE_PULL
+        assert self._mode == self.PULL
         assert not self._cbs
 
         # zmq timeouts are in milliseconds
@@ -188,7 +187,7 @@ class Pipe(object):
         not be used anymore.
         '''
 
-        assert self._mode == MODE_PULL
+        assert self._mode == self.PULL
 
         self._cbs.append(cb)
 
@@ -206,7 +205,7 @@ class Pipe(object):
         thread will be stopped.
         '''
 
-        assert self._mode == MODE_PULL
+        assert self._mode == self.PULL
         assert cb in self._cbs
 
         self._cbs.remove(cb)
@@ -223,7 +222,7 @@ class Pipe(object):
         them will be able to receive that message.
         '''
 
-        assert self._mode == MODE_PUSH
+        assert self._mode == self.PUSH
         self._sock.send(to_msgpack(msg))
 
 

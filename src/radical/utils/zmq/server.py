@@ -45,7 +45,7 @@ class Server(object):
             self._path = './'
 
         if uid: self._uid = uid
-        else  : self._uid = generate_id('xgfabric.server')
+        else  : self._uid = generate_id('server')
 
         self._log    = Logger(self._uid,   path=self._path, level='DEBUG')
         self._prof   = Profiler(self._uid, path=self._path)

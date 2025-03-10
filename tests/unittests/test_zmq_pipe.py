@@ -13,9 +13,9 @@ import radical.utils as ru
 #
 def test_zmq_pipe():
 
-    pipe_1 = ru.zmq.Pipe(ru.zmq.MODE_PUSH)
-    pipe_2 = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
-    pipe_3 = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
+    pipe_1 = ru.zmq.Pipe(ru.zmq.Pipe.PUSH)
+    pipe_2 = ru.zmq.Pipe(ru.zmq.Pipe.PULL, pipe_1.url)
+    pipe_3 = ru.zmq.Pipe(ru.zmq.Pipe.PULL, pipe_1.url)
 
     time.sleep(0.01)
 
@@ -47,8 +47,8 @@ def test_zmq_pipe():
 #
 def test_zmq_pipe_cb():
 
-    pipe_1  = ru.zmq.Pipe(ru.zmq.MODE_PUSH)
-    pipe_2  = ru.zmq.Pipe(ru.zmq.MODE_PULL, pipe_1.url)
+    pipe_1  = ru.zmq.Pipe(ru.zmq.Pipe.PUSH)
+    pipe_2  = ru.zmq.Pipe(ru.zmq.Pipe.PULL, pipe_1.url)
     results = list()
 
     time.sleep(0.01)

@@ -165,20 +165,10 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
             if is_string(stderr): self._err_f = ru_open(stderr, 'w')
             else                : self._err_f = None
 
-            self.state = RUNNING
-            self._proc = sp.Popen(cmd, stdin=self._in_r,
-                                       stdout=self._out_w,
-                                       stderr=self._err_w,
-                                       shell=shell,
-                                       env=env,
-                                       cwd=cwd,
-                                       bufsize=1)
-
-            t = mt.Thread(target=self._watch)
+            t = mt.Thread(target=self._watch,
+                          args=(cmd, stdin, stdout, stderr, shell, env, cwd))
             t.daemon = True
             t.start()
-
-            self.rc = None  # return code
 
 
         @property
@@ -222,7 +212,17 @@ def sh_callout_async(cmd, stdin=True, stdout=True, stderr=True,
 
         # ----------------------------------------------------------------------
         #
-        def _watch(self):
+        def _watch(self, cmd, stdin, stdout, stderr, shell, env, cwd):
+
+            self.rc    = None  # return code
+            self.state = RUNNING
+            self._proc = sp.Popen(cmd, stdin=self._in_r,
+                                       stdout=self._out_w,
+                                       stderr=self._err_w,
+                                       shell=shell,
+                                       env=env,
+                                       cwd=cwd,
+                                       bufsize=1)
 
             poller = select.poll()
             poller.register(self._out_r, select.POLLIN | select.POLLHUP)
