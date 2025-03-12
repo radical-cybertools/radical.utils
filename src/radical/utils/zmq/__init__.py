@@ -15,6 +15,10 @@ from .server   import Server
 from .registry import Registry, RegistryClient
 from .message  import Message
 
+# FIXME: this should be deprecated in 1.110
+MODE_PULL = Pipe.PULL
+MODE_PUSH = Pipe.PUSH
+
 
 # ------------------------------------------------------------------------------
 
