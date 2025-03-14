@@ -55,15 +55,15 @@ def write_json(data, fname):
     thin wrapper around python's json write, for consistency of interface
     '''
 
-    if not data:
-        # we don't have a logger to report :-/
-        return
-
     if isinstance(fname, dict) and isinstance(data, str):
         # arguments were switched: accept anyway
         tmp   = data
         data  = fname
         fname = tmp
+
+    if not data:
+        # we don't have a logger to report :-/
+        return
 
     dirname = os.path.dirname(fname) or '.'
 
@@ -71,7 +71,6 @@ def write_json(data, fname):
     with open(t_name, 'w') as f_out:
         f_out.write(to_json(data))
         f_out.write('\n')
-        f_out.close()
 
     os.rename(t_name, fname)
 
