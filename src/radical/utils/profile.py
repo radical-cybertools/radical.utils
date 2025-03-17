@@ -690,25 +690,23 @@ def combine_profiles(profs):
             continue
 
         if not syncs[pname]['abs']:
-          # print('no sync_abs event: %s' % prof[0])
-            continue
 
-        sync_abs = syncs[pname]['abs'][0]
-
-      # print(MSG)
-      # print(sync_abs)
-      # print(sync_abs[MSG])
-      # print(sync_abs[MSG].split(':'))
-        host, ip, _, _, _ = sync_abs[MSG].split(':')
-        host_id = '%s:%s' % (host, ip)
-        if host_id in t_host:
-            t_off = t_host[host_id]
-        else:
-            unsynced.add(host_id)
             t_off = 0.0
 
-        t_0 = sync_abs[TIME]
-        t_0 -= t_min
+        else:
+
+            sync_abs = syncs[pname]['abs'][0]
+
+            host, ip, _, _, _ = sync_abs[MSG].split(':')
+            host_id = '%s:%s' % (host, ip)
+            if host_id in t_host:
+                t_off = t_host[host_id]
+            else:
+                unsynced.add(host_id)
+                t_off = 0.0
+
+            t_0 = sync_abs[TIME]
+            t_0 -= t_min
 
         # correct profile timestamps
         for row in prof:
