@@ -65,11 +65,14 @@ def write_json(data, fname):
         # we don't have a logger to report :-/
         return
 
+    str_data = to_json(data)
+    assert str_data, 'failed to serialize data'
+
     dirname = os.path.dirname(fname) or '.'
 
     _, t_name = tempfile.mkstemp(dir=dirname)
     with open(t_name, 'w') as f_out:
-        f_out.write('%s\n' % to_json(data))
+        f_out.write('%s\n' % str_data)
 
     os.rename(t_name, fname)
 
