@@ -6,6 +6,8 @@ __license__   = 'MIT'
 
 
 import re
+import os
+import tempfile
 
 from .serialize import to_json, from_json
 from .misc      import as_string, ru_open
@@ -51,7 +53,6 @@ def read_json_str(filename, filter_comments=True):
 def write_json(data, fname):
     '''
     thin wrapper around python's json write, for consistency of interface
-
     '''
 
     if isinstance(fname, dict) and isinstance(data, str):
@@ -60,10 +61,20 @@ def write_json(data, fname):
         data  = fname
         fname = tmp
 
-    with ru_open(fname, 'w') as f:
-        f.write(to_json(data))
-        f.write('\n')
-        f.flush()
+    if not data:
+        # we don't have a logger to report :-/
+        return
+
+    str_data = to_json(data)
+    assert str_data, 'failed to serialize data'
+
+    dirname = os.path.dirname(fname) or '.'
+
+    _, t_name = tempfile.mkstemp(dir=dirname)
+    with open(t_name, 'w') as f_out:
+        f_out.write('%s\n' % str_data)
+
+    os.rename(t_name, fname)
 
 
 # ------------------------------------------------------------------------------
