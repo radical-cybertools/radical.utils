@@ -198,12 +198,18 @@ def generate_id(prefix: str, mode=ID_SIMPLE, ns=None):
     elif mode == ID_PRIVATE: template = TEMPLATE_PRIVATE
     else: raise ValueError("unsupported mode '%s'", mode)
 
+    print('template:', template)
+    print('prefix  :', prefix)
+    print('mode    :', mode)
+
     return _generate_id(template, prefix, ns)
 
 
 # ------------------------------------------------------------------------------
 #
 def _generate_id(template, prefix, ns=None):
+
+    print('template:', template)
 
     # FIXME: several of the vars below are constants, and many of them are
     #  rarely used in IDs. They should be created only once per module instance,
@@ -272,7 +278,11 @@ def _generate_id(template, prefix, ns=None):
         fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, days))
         info['day_counter'] = _read_file_counter(fname)
 
+    print('template 2:', template)
     if '%(item_counter)' in template:
+
+        print('template:', template)
+        print('prefix  :', prefix)
 
         # clean up "prefix" to use in file name
         #  FIXME: extend same procedure for other cases (with regex?)
@@ -284,8 +294,11 @@ def _generate_id(template, prefix, ns=None):
                     break
             prefix = '.'.join(prefix_parts)
 
+        print('prefix  :', prefix)
+
         fname = os.path.join(state_dir, 'ru_%s_%s.cnt' % (user, prefix))
         info['item_counter'] = _read_file_counter(fname)
+        print('item_counter:', info['item_counter'])
 
     if '%(counter)' in template:
         info['counter'] = _id_registry.get_counter(prefix.replace('%', ''))

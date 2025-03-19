@@ -105,7 +105,8 @@ class _FluxService(object):
 
             time.sleep(1)
 
-            _, err, ret = sh_callout('flux ping -c 1 kvs')
+            out, err, ret = sh_callout('flux ping -c 1 kvs')
+            self._log.debug('flux ping:%s', out)
             if ret:
                 self._log.error('flux watcher err: %s', err)
                 break
