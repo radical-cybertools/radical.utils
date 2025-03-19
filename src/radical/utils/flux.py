@@ -517,8 +517,8 @@ class FluxHelper(object):
             def id_cb(fut):
                 flux_id = fut.jobid()
                 idx     = fut.ru_idx
-                for ev in ['alloc', 'start', 'finish', 'release', 'exception']:
-                    # 'submit', 'free', 'clean',
+                for ev in ['submit', 'free', 'clean',
+                        'alloc', 'start', 'finish', 'release', 'exception']:
                     tmp_cb = partial(app_cb, flux_id)
                     fut.add_event_callback(ev, tmp_cb)
                 futures.append([flux_id, idx, fut])
@@ -532,8 +532,8 @@ class FluxHelper(object):
                 fut.add_jobid_callback(id_cb)
 
             # wait until we saw all jobid callbacks (assume 10 tasks/sec)
-            timeout = len(specs) / 10
-            timeout = max(10, timeout)
+            timeout = len(specs) 
+          # timeout = max(10, timeout)
             start   = time.time()
             self._log.debug('wait %.2fsec for %d flux IDs', timeout, len(specs))
             while len(futures) < len(specs):
