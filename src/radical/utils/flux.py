@@ -533,8 +533,8 @@ class FluxHelper(object):
                 fut.add_jobid_callback(id_cb)
 
             # wait until we saw all jobid callbacks (assume 10 tasks/sec)
-            timeout = len(specs) 
-          # timeout = max(10, timeout)
+            timeout = len(specs)
+            timeout = max(100, timeout)
             start   = time.time()
             self._log.debug('wait %.2fsec for %d flux IDs', timeout, len(specs))
             while len(futures) < len(specs):
