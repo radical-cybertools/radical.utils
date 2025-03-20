@@ -151,7 +151,7 @@ class _FluxService(object):
         self._log.debug('flux command: %s', ' '.join(cmd))
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
-                             stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.PIPE)
+                             stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT)
 
         flux_env = dict()
         while flux_proc.poll() is None:
