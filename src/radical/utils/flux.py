@@ -92,14 +92,14 @@ class _FluxService(object):
         #        we want to call `flux ping` via `sh_callout`.  We should
         #        instead use the Flux Python API to run the pings and pass the
         #        URI explicitly.
-        self._log.info('starting flux watcher')
+        self._log.info('%s: starting flux watcher', self._uid)
 
         if self._env:
             for k,v in self._env.items():
                 os.environ[k] = v
 
         out, err, ret = sh_callout('flux resource list')
-        self._log.info('flux resources [ %d %s]:\n%s', ret, err, out)
+        self._log.info('%s: flux resources [ %d %s]:\n%s', self._uid, ret, err, out)
 
         while not self._term.is_set():
 
@@ -108,12 +108,12 @@ class _FluxService(object):
             out, err, ret = sh_callout('flux ping -c 1 kvs')
             self._log.debug('flux ping:%s', out)
             if ret:
-                self._log.error('flux watcher err: %s', err)
+                self._log.error('%s: flux watcher err: %s', self._uid, err)
                 break
 
         # we only get here when the ping failed - set the event
         self._term.set()
-        self._log.warn('flux stopped')
+        self._log.warn('%s: flux stopped', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -148,7 +148,7 @@ class _FluxService(object):
         cmd += ['flux', 'start', 'bash', '-c',
                 'echo "HOST:$(hostname) URI:$FLUX_URI" && sleep inf']
 
-        self._log.debug('flux command: %s', ' '.join(cmd))
+        self._log.debug('%s: flux command: %s', self._uid, ' '.join(cmd))
 
         flux_proc = sp.Popen(cmd, encoding="utf-8",
                              stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT)
@@ -160,13 +160,14 @@ class _FluxService(object):
                 line = flux_proc.stdout.readline()
 
             except Exception as e:
-                self._log.exception('flux service failed to start')
+                self._log.exception('%s: flux service failed to start',
+                                    self._uid)
                 raise RuntimeError('could not start flux') from e
 
             if not line:
                 continue
 
-            self._log.debug('flux output: %s', line)
+            self._log.debug('%s: flux output: %s', self._uid, line)
 
             if line.startswith('HOST:'):
 
@@ -209,7 +210,8 @@ class _FluxService(object):
         self._watcher.daemon = True
         self._watcher.start()
 
-        self._log.info("flux startup successful: [%s]", flux_env['FLUX_URI'])
+        self._log.info("%s: flux startup successful: [%s]",
+                       self._uid, flux_env['FLUX_URI'])
 
         return self._uri
 
@@ -511,8 +513,8 @@ class FluxHelper(object):
 
             def app_cb(flux_id, exe_fut, event):
                 try   : cb(flux_id, event)
-                except: self._log.exception('app cb failed for %s [%s]',
-                                            flux_id, event)
+                except: self._log.exception('%s: app cb failed for %s [%s]',
+                                            self._uid, flux_id, event)
 
             futures = list()
             def id_cb(fut):
@@ -529,24 +531,27 @@ class FluxHelper(object):
                 jobspec  = json.dumps(spec)
                 fut      = self._exe.submit(jobspec)
                 fut.ru_idx = idx
-                self._log.debug('submitted  : %s', idx)
+                self._log.debug('%s: submitted  : %s', self._uid, idx)
                 fut.add_jobid_callback(id_cb)
 
             # wait until we saw all jobid callbacks (assume 10 tasks/sec)
             timeout = len(specs)
             timeout = max(100, timeout)
             start   = time.time()
-            self._log.debug('wait %.2fsec for %d flux IDs', timeout, len(specs))
+            self._log.debug('%s: wait %.2fsec for %d flux IDs',
+                            self._uid, timeout, len(specs))
             while len(futures) < len(specs):
                 time.sleep(0.1)
-                self._log.debug('wait %s / %s', len(futures), len(specs))
+                self._log.debug('%s: wait %s / %s', self._uid,
+                                                     len(futures), len(specs))
                 if time.time() - start > timeout:
-                    raise RuntimeError('timeout on job submission')
+                    raise RuntimeError('%s: timeout on submission', self._uid)
             self._log.info('got %d flux IDs', len(futures))
 
             # get flux_ids sorted by submission order (idx)
             flux_ids = [fut[0] for fut in sorted(futures, key=lambda x: x[1])]
 
+            self._log.debug('%s: submitted: %s', self._uid, ids)
             return flux_ids
 
 
@@ -567,14 +572,14 @@ class FluxHelper(object):
             for flux_id in ids:
 
                 fut = self._exe.attach(flux_id)
-                self._log.debug('attach %s : %s', flux_id, fut)
+                self._log.debug('%s: attach %s : %s', self._uid, flux_id, fut)
 
                 if cb:
                     def app_cb(fut, event):
                         try:
                             cb(flux_id, event)
                         except:
-                            self._log.exception('app cb failed')
+                            self._log.exception('%s: app cb failed', self._uid)
 
                     for ev in [
                                'submit',
@@ -599,7 +604,7 @@ class FluxHelper(object):
 
             for flux_id in flux_ids:
                 fut = self._exe.attach(flux_id)
-                self._log.debug('cancel %s : %s', flux_id, fut)
+                self._log.debug('%s: cancel %s : %s', self._uid, flux_id, fut)
                 fut.cancel()
 
 
