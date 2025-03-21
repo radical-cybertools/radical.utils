@@ -200,14 +200,14 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         for k, v in other.items():
             if isinstance(v, dict):
-                t = type(self._schema.get(k) or self)
-                  # (type(self) if self._self_default else TypedDict)
-              # if isinstance(t, type) and issubclass(t, TypedDict):
-                # cast to expected TypedDict type
-                if not self.get(k):
-                    self[k] = t()
-                self[k].update(v)
-                continue
+                t = self._schema.get(k) or \
+                    (type(self) if self._self_default else TypedDict)
+                if isinstance(t, type) and issubclass(t, TypedDict):
+                    # cast to expected TypedDict type
+                    if not self.get(k):
+                        self[k] = t()
+                    self[k].update(v)
+                    continue
             self[k] = v
 
 
