@@ -551,7 +551,7 @@ class FluxHelper(object):
             # get flux_ids sorted by submission order (idx)
             flux_ids = [fut[0] for fut in sorted(futures, key=lambda x: x[1])]
 
-            self._log.debug('%s: submitted: %s', self._uid, ids)
+            self._log.debug('%s: submitted: %s', self._uid, flux_ids)
             return flux_ids
 
 
