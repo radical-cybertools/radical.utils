@@ -51,13 +51,12 @@ def test_flux_startup():
     njobs    = 10
     events   = dict()
 
-    def cb1(job_id, state, ts, context):
+    def cb1(job_id, state):
 
-      # print([job_id, state, ts, context])
         if job_id not in events:
-            events[job_id] = [ts, state]
+            events[job_id] = [state]
         else:
-            events[job_id].append([ts, state])
+            events[job_id].append(state)
 
 
     fh = ru.FluxHelper()
@@ -99,13 +98,12 @@ def test_flux_pickup():
         for k,v in outer_fh.env.items():
             os.environ[k] = v
 
-    def cb1(job_id, state, ts, context):
+    def cb1(job_id, state):
 
-      # print([job_id, state, ts, context])
         if job_id not in events:
-            events[job_id] = [ts, state]
+            events[job_id] = [state]
         else:
-            events[job_id].append([ts, state])
+            events[job_id].append(state)
 
     fh = ru.FluxHelper()
     fh.start_flux()

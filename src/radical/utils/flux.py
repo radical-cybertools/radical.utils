@@ -1,654 +1,372 @@
 
-# pylint: disable=cell-var-from-loop
-
-import os
-import sys
 import time
-import json
 import shlex
 
-from typing    import Optional, List, Dict, Any, Callable
-from functools import partial
+import threading as mt
 
-import threading       as mt
-import subprocess      as sp
+from rc.process  import Process
+from functools   import partial
+from collections import defaultdict
+from typing      import List, Dict, Any
+
+from .misc       import as_list
+from .which      import which
+from .ids        import generate_id
+from .logger     import Logger
+from .modules    import import_module
 
 
-from .url     import Url
-from .ids     import generate_id, ID_CUSTOM
-from .shell   import sh_callout
-from .logger  import Logger
-from .profile import Profiler
-from .modules import import_module
+try:
+    _flux     = import_module('flux')
+    _flux_job = import_module('flux.job')
+    _flux_exc = None
+
+except Exception as e:
+    _flux     = None
+    _flux_job = None
+    _flux_exc = e
 
 
-# --------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
 class _FluxService(object):
-    '''
-    Helper class to handle a private Flux instance, including configuration,
-    start, monitoring and termination.
-    '''
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, uid  : str,
-                       log  : Logger,
-                       prof : Profiler) -> None:
+    def __init__(self, uid : str,
+                       log : Logger) -> None:
 
-        self._uid     = uid
-        self._log     = log
-        self._prof    = prof
+        self._uid  = uid
+        self._log  = log
 
-        self._lock    = mt.RLock()
-        self._term    = mt.Event()
+        self._fexe = which('flux')
+        self._uri  = None
+        self._tout = 60
 
-        self._uri     = None
-        self._env     = None
-        self._proc    = None
-        self._watcher = None
+        if not _flux:
+            raise RuntimeError('flux module not found') from self._exception
 
-        try:
-            cmd = 'flux python -c "import flux; print(flux.__file__)"'
-            out, err, ret = sh_callout(cmd)
+        if not _flux_job:
+            raise RuntimeError('flux.job module not found') from self._exception
 
-            if ret:
-                raise RuntimeError('flux not found: %s' % err)
+        if not self._fexe:
+            raise RuntimeError('flux executable not found')
 
-            flux_path = os.path.dirname(out.strip())
-            mod_path  = os.path.dirname(flux_path)
-            sys.path.append(mod_path)
-
-            self._flux     = import_module('flux')
-            self._flux_job = import_module('flux.job')
-
-        except Exception:
-            self._log.exception('flux import failed')
-            raise
+        self._start()
 
 
     # --------------------------------------------------------------------------
     #
     @property
-    def uid(self):
-        return self._uid
-
-
-    @property
-    def uri(self):
+    def uri(self) -> str:
         return self._uri
 
-
     @property
-    def env(self):
-        return self._env
+    def timeout(self) -> int:
+        return self._tout
+
+    @timeout.setter
+    def timeout(self, tout) -> None:
+        self._tout = tout
 
 
     # --------------------------------------------------------------------------
     #
-    def _watch(self) -> None:
+    def _proc_line_cb(self, prefix: str,
+                            proc  : Process,
+                            lines : List[str]
+                     ) -> None:
 
-        # FIXME: this thread will change `os.environ` for this *process* because
-        #        we want to call `flux ping` via `sh_callout`.  We should
-        #        instead use the Flux Python API to run the pings and pass the
-        #        URI explicitly.
-        self._log.info('%s: starting flux watcher', self._uid)
+        for line in lines:
+            if line.startswith('FLUX_URI:'):
+                self._uri = line.strip().split(':', 1)[1]
 
-        if self._env:
-            for k,v in self._env.items():
-                os.environ[k] = v
-
-        out, err, ret = sh_callout('flux resource list')
-        self._log.info('%s: flux resources [ %d %s]:\n%s', self._uid, ret, err, out)
-
-        while not self._term.is_set():
-
-            time.sleep(1)
-
-            out, err, ret = sh_callout('flux ping -c 1 kvs')
-            self._log.debug('flux ping:%s', out)
-            if ret:
-                self._log.error('%s: flux watcher err: %s', self._uid, err)
-                break
-
-        # we only get here when the ping failed - set the event
-        self._term.set()
-        self._log.warn('%s: flux stopped', self._uid)
+    # --------------------------------------------------------------------------
+    #
+    def _proc_state_cb(self, proc: Process, state: str) -> None:
+        self._log.info('flux instance state update: %s', state)
 
 
     # --------------------------------------------------------------------------
     #
-    def start_service(self,
-                      launcher: Optional[str]           = None,
-                      env     : Optional[Dict[str,str]] = None
-                     ) -> Optional[str]:
+    def _start(self) -> None:
 
-        with self._lock:
+        fcmd = 'echo FLUX_URI:\\$FLUX_URI && sleep inf'
+        cmd  = '%s start bash -c "%s"' % (self._fexe, fcmd)
 
-            if self._proc is not None:
-                raise RuntimeError('already started Flux: %s' % self._uri)
+        self._log.info('%s: start flux instance: %s', self._uid, cmd)
 
-            self._term.clear()
+        p = Process(cmd)
+        p.register_cb(p.CB_OUT_LINE, partial(self._proc_line_cb, 'out'))
+        p.register_cb(p.CB_ERR_LINE, partial(self._proc_line_cb, 'err'))
+        p.register_cb(p.CB_STATE, self._proc_state_cb)
+        p.polldelay = 0.1
+        p.start()
 
-            return self._locked_start_service(launcher, env)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _locked_start_service(self,
-                              launcher: Optional[str]           = None,
-                              env     : Optional[Dict[str,str]] = None
-                             ) -> Optional[str]:
-
-        cmd  = list()
-
-        if launcher:
-            cmd += shlex.split(launcher)
-
-        cmd += ['flux', 'start', 'bash', '-c',
-                'echo "HOST:$(hostname) URI:$FLUX_URI" && sleep inf']
-
-        self._log.debug('%s: flux command: %s', self._uid, ' '.join(cmd))
-
-        flux_proc = sp.Popen(cmd, encoding="utf-8",
-                             stdin=sp.DEVNULL, stdout=sp.PIPE, stderr=sp.STDOUT)
-
-        flux_env = dict()
-        while flux_proc.poll() is None:
-
-            try:
-                line = flux_proc.stdout.readline()
-
-            except Exception as e:
-                self._log.exception('%s: flux service failed to start',
-                                    self._uid)
-                raise RuntimeError('could not start flux') from e
-
-            if not line:
-                continue
-
-            self._log.debug('%s: flux output: %s', self._uid, line)
-
-            if line.startswith('HOST:'):
-
-                flux_host, flux_uri = line.split(' ', 1)
-
-                flux_host = flux_host.split(':', 1)[1].strip()
-                flux_uri  = flux_uri.split(':', 1)[1].strip()
-
-                flux_env['FLUX_HOST'] = flux_host
-                flux_env['FLUX_URI']  = flux_uri
-                break
-
-        if flux_proc.poll() is not None:
-            raise RuntimeError('could not execute `flux start`')
-
-      # fr  = self._flux.uri.uri.FluxURIResolver()
-      # ret = fr.resolve('pid:%d' % flux_proc.pid)
-      # flux_env = {'FLUX_URI': ret}
-
-        assert 'FLUX_URI' in flux_env, 'no FLUX_URI in env'
-
-        # make sure that the flux url can be reached from other hosts
-        # FIXME: this also routes local access via ssh which may slow comm
-        flux_url             = Url(flux_env['FLUX_URI'])
-        flux_url.host        = flux_env['FLUX_HOST']
-        flux_url.schema      = 'ssh'
-        flux_uri             = str(flux_url)
-        flux_env['FLUX_URI'] = flux_uri
-
-        self._uri       = flux_uri
-        self._env       = flux_env
-        self._proc      = flux_proc
-
-        self._log.debug('flux uri: %s', flux_uri)
-
-        self._prof.prof('flux_started', msg=self._uid)
-
-        # start watcher thread to monitor the instance
-        self._watcher = mt.Thread(target=self._watch)
-        self._watcher.daemon = True
-        self._watcher.start()
-
-        self._log.info("%s: flux startup successful: [%s]",
-                       self._uid, flux_env['FLUX_URI'])
-
-        return self._uri
-
-
-    # --------------------------------------------------------------------------
-    #
-    def check_service(self) -> Optional[str]:
-
-        with self._lock:
-
-            if not self._proc:
-                raise RuntimeError('flux service was not yet started')
-
-            if self._term.is_set():
-                raise RuntimeError('flux service was terminated')
-
-            return self._uri
-
-
-    # --------------------------------------------------------------------------
-    #
-    def close_service(self) -> None:
-
-        with self._lock:
-
-            self.check_service()
-
-            if not self._proc:
-                raise RuntimeError('cannot kill flux from this process')
-
-            if self._watcher:
-                self._watcher.join()
-
-            # terminate the service process
-            # FIXME: send termination signal to flux for cleanup
-            self._proc.kill()
+        start = time.time()
+        while time.time() - start < self._tout:
             time.sleep(0.1)
-            self._proc.terminate()
-            self._proc.wait()
+            if self._uri is not None:
+                break
 
-            self._uri = None
-            self._env = None
+        if self.uri is None:
+            self._log.error('%s: flux instance did not start', self._uid)
+            raise RuntimeError('%s: flux instance did not start', self._uid)
+
+        self._log.info('%s: found flux uri: %s', self._uid, self.uri)
 
 
 # ------------------------------------------------------------------------------
 #
 class FluxHelper(object):
 
-    '''
-    Helper CLASS to programnatically handle flux instances and to obtain state
-    update events for flux jobs known in that instance.
-    '''
+    # --------------------------------------------------------------------------
+    #
+    def __init__(self, uri : str      = None,
+                       log : Logger   = None) -> None:
+
+        self._uri      = uri
+        self._log      = log  or Logger('radical.utils.flux')
+        self._uid      = generate_id('ru.flux')
+        self._handle   = None
+        self._journal  = None
+        self._service  = None
+        self._jthread  = None
+        self._started  = False
+
+        self._tasks    = dict()  # task ID -> task
+        self._task_ids = dict()  # flux ID -> task ID
+        self._flux_ids = dict()  # task ID -> flux ID
+
+        self._elock    = mt.Lock()          # lock event dict
+        self._events   = defaultdict(list)  # flux ID -> event list
+        self._cbacks   = list()             # list of callbacks
+
+        if not _flux:
+            raise RuntimeError('flux module not found') from _flux_exc
+
+        if not _flux_job:
+            raise RuntimeError('flux.job module not found') from _flux_exc
+
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, uid:str = None) -> None:
-        '''
-        The Flux Helper c'tor takes no arguments and will initially not be
-        connected to a Flux instance.  After construction, the application can
-        call either one of the following methods:
+    def start(self) -> None:
 
-            FluxHelper.connect_flux(uri=None)
-            FluxHelper.start_flux()
+        if self._started:
+            return
 
-        The first will attempt to connect to the Flux instance referenced by
-        that URI - a `ValueError` exception will be raised if that instance
-        cannot be reached.  If no URI is provided, the environment variable
-        `FLUX_URI` will be used.
+        if not self._uri:
+            self._flux_service = _FluxService(uid=self._uid, log=self._log)
+            self._uri = self._flux_service.uri
 
-        The second method will instantiate a new flux instance in the current
-        process environment.
+        self._handle = _flux.Flux(self._uri)
 
-        In both cases, the properties
+        self._jthread = mt.Thread(target=self._watcher)
+        self._jthread.daemon = True
+        self._jthread.start()
 
-            FluxHelper.uri
-            FluxHelper.env
-
-        will provide information about the connected Flux instance.  The `uri`
-        is provided as a string, the `env` as a dictionary of environment
-        settings (including `FLUX_URI` again).
-
-        The method
-
-            FluxHelper.reset()
-
-        will disconnect from the Flux instance, and in the case where
-        `start_flux` created a private instance, that instance will be killed.
-        The `uri` and `env` properties will be reset to `None`.
+        self._started = True
 
 
-        While connected to a Flux instance, the following methods can be used to
-        interact with the instance:
+    # --------------------------------------------------------------------------
+    #
+    @property
+    def uid(self) -> str:
+        return self._uid
 
-            FluxHelper.get_executor() - return a flux.job.Executor instance
-            FluxHelper.get_handle()   - return a flux.job.Flux     instance
 
-        All provided executors and handles will be invalidated upon `reset()`.
-        '''
+    # --------------------------------------------------------------------------
+    #
+    def _watcher(self):
 
-        self._service : Optional[_FluxService] = None
+        # NOTE: *never* used self._handle in this thread, as it is not thread
+        #      safe.  Instead, use the private handle created here
+        handle = _flux.Flux(self._uri)
 
-        if uid: self._uid = uid
-        else  : self._uid = generate_id('flux.%(item_counter)04d', ID_CUSTOM)
+        # start watching the event journal
+        self._journal = _flux_job.JournalConsumer(handle)
+        self._journal.start()
 
-        self._log       = Logger  ('radical.utils', ns='radical.utils', level='DEBUG')
-        self._prof      = Profiler('radical.utils', ns='radical.utils')
+        while True:
 
-        self._lock      = mt.RLock()
+            try:
+                event = self._journal.poll(timeout=1.0)
+                self._handle_events(event.jobid, event)
 
-        self._uri       = None
-        self._env       = None
-        self._exe       = None
-        self._handle    = None
-        self._handles   = list()  # TODO
-        self._executors = list()  # TODO
+            except TimeoutError:
+                pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    def register_cb(self, cb: callable) -> None:
+
+        with self._elock:
+            self._cbacks.append(cb)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def unregister_cb(self, cb: callable) -> None:
+
+        with self._elock:
+            self._cbacks.remove(cb)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _handle_events(self, flux_id: 'flux.job.JobID',
+                             event  : 'flux.job.journal.JournalEvent' = None
+                      ) -> None:
+
+        with self._elock:
+
+            # if triggered by submit, check if we have anything to do
+            if not event:
+                if flux_id not in self._events:
+                    return
+
+            # check if we can handle the event - otherwise store it
+            if not self._cbacks:
+                self._events[flux_id].append(event)
+                return
+
+            # check if we already know the task - otherwise store the event
+            if flux_id not in self._task_ids:
+                self._events[flux_id].append(event)
+                return
+
+            # task is known, process stored events
+            for ev in self._events[flux_id]:
+                for cb in self._cbacks:
+                    cb(self._task_ids[flux_id], ev)
+
+            # process the current event
+            if event:
+                for cb in self._cbacks:
+                    cb(self._task_ids[flux_id], event)
+
+
+    # --------------------------------------------------------------------------
+    #
+    def spec_from_command(self, cmd: str) -> 'flux.job.JobspecV1':
+
+        return _flux_job.JobspecV1.from_command(shlex.split(cmd))
+
+
+    # --------------------------------------------------------------------------
+    #
+    def spec_from_dict(self, td: dict) -> 'flux.job.JobspecV1':
+
+        version    = 1
+        tasks      = [{'command': [td['executable']] + td.get('arguments', []),
+                       'slot'   : 'task',
+                       'count'  : {'per_slot': 1}}]
+
+        system = {'duration': td.get('duration', 0.0)}
+
+        if 'environment' in td: system['environment'] = td['environment']
+        if 'sandbox'     in td: system['cwd']         = td['sandbox']
+        if 'shell'       in td: system['shell']       = td['shell']
+        if 'stdin'       in td: system['stdin']       = td['stdin']
+        if 'stdout'      in td: system['stdout']      = td['stdout']
+        if 'stderr'      in td: system['stderr']      = td['stderr']
+        if 'uid'         in td: system['job']         = {'name': td['uid']}
+
+        attributes = {'system' : system}
+        resources  = [{'count': td.get('ranks', 1),
+                       'type' : 'slot',
+                       'label': 'task',
+                       'with' : [{
+                           'count': int(td.get('cores_per_rank', 1)),
+                           'type' : 'core'}]}]
+                     #     'count': int(td.get('gpus_per_rank', 0)) or None,
+                     #     'type' : 'gpu'
+
+        if 'gpus_per_rank' in td:
+            resources[0]['with'].append({
+                    # flux likes integer GPU counts
+                    'count': math.ceil(td['gpus_per_rank']),
+                    'type' : 'gpu'})
+
+      # import json
+      # return json.dumps({
+      #     'version'   : version,
+      #     'resources' : resources,
+      #     'attributes': attributes,
+      #     'tasks'     : tasks})
+
+        spec = _flux_job.JobspecV1(resources=resources,
+                                   attributes=attributes,
+                                   tasks=tasks,
+                                   version=version)
+
+        return spec
+
+
+    # --------------------------------------------------------------------------
+    #
+    def submit(self, descriptions: List[Dict[str, Any]]) -> List[str]:
+
+        jobs  = list()
+
+        def _submit_cb(tid: str, f: _flux.future.Future) -> None:
+            # care must be taken on the order of some of the operations: the
+            # `journal_cb` will check if a flux_id is known, and if so will
+            # assume that the task id is known also and callbacks can be issued.
+            # So *first* register the task ID, *then* the flux ID, to avoid the
+            # need for additional locking.
+
+            flux_id = _flux_job.submit_get_id(f)
+            self._flux_ids[tid]     = flux_id
+            self._task_ids[flux_id] = tid
+            jobs.append(flux_id)
+
+            # if we already got events we'll invoke the callbacks now
+            self._handle_events(flux_id)
 
         try:
-            cmd = 'flux python -c "import flux; print(flux.__file__)"'
-            out, err, ret = sh_callout(cmd)
+            # asynchronously submit jobspec files from a directory
+            for i, descr in enumerate(descriptions):
+                cb   = partial(_submit_cb, 'task.%04d' % i)
+                spec = descr
+                fut  = _flux_job.submit_async(self._handle, spec, waitable=True)
+                fut.then(cb)
 
-            if ret:
-                raise RuntimeError('flux not found: %s' % err)
+            # make sure we get jobid events
+            if self._handle.reactor_run() < 0:
+                self._log.error("reactor run failed")
+                self._handle.fatal_error("reactor start failed")
 
-            flux_path = os.path.dirname(out.strip())
-            mod_path  = os.path.dirname(flux_path)
-            sys.path.append(mod_path)
+            # wait for all jobs to get IDs
+            # FIXME: Do we need a timeout?  Also, the jobid cb can signal on
+            #        completion, so we could wait for that instead of polling.
+            while len(jobs) < len(descriptions):
+                time.sleep(0.001)
 
-            self._flux     = import_module('flux')
-            self._flux_job = import_module('flux.job')
+            return jobs
+
 
         except Exception:
-            self._log.exception('flux import failed')
+            self._log.exception("exception")
             raise
 
 
     # --------------------------------------------------------------------------
     #
-    def __del__(self):
+    def cancel(self, flux_ids: [str|List[str]]) -> None:
 
-        # FIXME: are handles / executors correctly garbage collected?
-        self.reset()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def reset(self):
-        '''
-        Close the connection to the FLux instance (if it exists), and terminate
-        the Flux service if it was started by this instance.  All handles and
-        executors created for this service will be invalidated.
-        '''
-
-        with self._lock:
-
-            for idx in range(len(self._handles)):
-                del self._handles[idx]
-
-            for idx in range(len(self._executors)):
-                del self._executors[idx]
-
-            self._exe    = None
-            self._handle = None
-
-            if self._uri:
-                try:
-                    self._service.close_service()
-                except:
-                    pass
-                self._uri = None
-                self._env = None
+        for flux_id in as_list(flux_ids):
+            _flux_job.cancel_async(self._handle, flux_id, reason='user cancel')
 
 
     # --------------------------------------------------------------------------
     #
-    @property
-    def uid(self):
-        '''
-        unique ID for this FluxHelper instance
-        '''
+    def wait(self, flux_ids: [str|List[str]]) -> None:
 
-        with self._lock:
-            return self._uid
-
-
-    # --------------------------------------------------------------------------
-    #
-    @property
-    def uri(self):
-        '''
-        uri for the connected Flux instance.  Returns `None` if no instance is
-        connected.
-        '''
-
-        with self._lock:
-            return self._uri
-
-
-    # --------------------------------------------------------------------------
-    #
-    @property
-    def env(self):
-        '''
-        environment dict for the connected Flux instance.  Returns `None` if no
-        instance is connected.
-        '''
-
-        with self._lock:
-            return self._env
-
-
-    # --------------------------------------------------------------------------
-    #
-    def start_flux(self, launcher: Optional[str] = None) -> None:
-        '''
-        Start a private Flux instance
-
-        FIXME: forward env
-        '''
-
-        with self._lock:
-
-            if self._uri:
-                raise RuntimeError('service already connected: %s' % self._uri)
-
-            self._service = _FluxService(self._uid, self._log, self._prof)
-            self._service.start_service(launcher=launcher)
-
-            self._uri = self._service.check_service()
-            self._env = self._service.env
-
-          # with ru_open(self._uid + '.dump', 'a') as fout:
-          #     fout.write('start flux pid %d: %s\n' % (os.getpid(), self._uri))
-          #     for l in get_stacktrace()[:-1]:
-          #         fout.write(l)
-
-            self._setup()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def connect_flux(self, uri : Optional[str] = None) -> None:
-        '''
-        Connect to an existing Flux instance
-        '''
-
-        with self._lock:
-
-          # with ru_open(self._uid + '.dump', 'a') as fout:
-          #     fout.write('connect flux %d: %s\n' % (os.getpid(),  uri))
-          #     for l in get_stacktrace():
-          #         fout.write(l + '\n')
-
-            if self._uri:
-                raise RuntimeError('service already connected: %s' % self._uri)
-
-            if not uri:
-                uri = os.environ.get('FLUX_URI')
-
-            if not uri:
-                raise RuntimeError('no Flux instance found via FLUX_URI')
-
-            self._uri = uri
-            self._env = {'FLUX_URI': uri}
-
-            # FIXME: run a ping test to ensure the service is up
-
-            self._setup()
-
-
-    # ----------------------------------------------------------------------
-    #
-    def _setup(self):
-        '''
-        Once a service is connected, create a handle and executor
-        '''
-
-        with self._lock:
-
-            assert self._uri, 'not initialized'
-
-            # create a executor and handle for job management
-            self._exe    = self.get_executor()
-            self._handle = self.get_handle()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def submit_jobs(self,
-               specs: List[Dict[str, Any]],
-               cb   : Optional[Callable[[str, Any], None]] = None
-              ) -> Any:
-
-        with self._lock:
-
-            if not self._uri:
-                raise RuntimeError('FluxHelper is not connected')
-
-            assert self._exe
-
-            def app_cb(flux_id, exe_fut, event):
-                try   : cb(flux_id, event)
-                except: self._log.exception('%s: app cb failed for %s [%s]',
-                                            self._uid, flux_id, event)
-
-            futures = list()
-            def id_cb(fut):
-                flux_id = fut.jobid()
-                idx     = fut.ru_idx
-                for ev in ['submit', 'free', 'clean',
-                        'alloc', 'start', 'finish', 'release', 'exception']:
-                    tmp_cb = partial(app_cb, flux_id)
-                    fut.add_event_callback(ev, tmp_cb)
-                futures.append([flux_id, idx, fut])
-                self._log.debug('got flux id: %s: %s', idx, flux_id)
-
-            for idx, spec in enumerate(specs):
-                jobspec  = json.dumps(spec)
-                fut      = self._exe.submit(jobspec)
-                fut.ru_idx = idx
-                self._log.debug('%s: submitted  : %s', self._uid, idx)
-                fut.add_jobid_callback(id_cb)
-
-            # wait until we saw all jobid callbacks (assume 10 tasks/sec)
-            timeout = len(specs)
-            timeout = max(100, timeout)
-            start   = time.time()
-            self._log.debug('%s: wait %.2fsec for %d flux IDs',
-                            self._uid, timeout, len(specs))
-            while len(futures) < len(specs):
-                time.sleep(0.1)
-                self._log.debug('%s: wait %s / %s', self._uid,
-                                                     len(futures), len(specs))
-                if time.time() - start > timeout:
-                    raise RuntimeError('%s: timeout on submission', self._uid)
-            self._log.info('got %d flux IDs', len(futures))
-
-            # get flux_ids sorted by submission order (idx)
-            flux_ids = [fut[0] for fut in sorted(futures, key=lambda x: x[1])]
-
-            self._log.debug('%s: submitted: %s', self._uid, flux_ids)
-            return flux_ids
-
-
-    # --------------------------------------------------------------------------
-    #
-    def attach_jobs(self,
-                    ids: List[int],
-                    cb : Optional[Callable[[int, Any], None]] = None
-                   ) -> Any:
-
-        with self._lock:
-
-            if not self._uri:
-                raise RuntimeError('FluxHelper is not connected')
-
-            assert self._exe, 'no executor'
-
-            for flux_id in ids:
-
-                fut = self._exe.attach(flux_id)
-                self._log.debug('%s: attach %s : %s', self._uid, flux_id, fut)
-
-                if cb:
-                    def app_cb(fut, event):
-                        try:
-                            cb(flux_id, event)
-                        except:
-                            self._log.exception('%s: app cb failed', self._uid)
-
-                    for ev in [
-                               'submit',
-                               'alloc',
-                               'start',
-                               'finish',
-                               'release',
-                             # 'free',
-                             # 'clean',
-                               'exception',
-                              ]:
-                        fut.add_event_callback(ev, app_cb)
-
-
-    # --------------------------------------------------------------------------
-    #
-    def cancel_jobs(self, flux_ids: List[int]) -> None:
-
-        with self._lock:
-
-            assert self._exe, 'no executor'
-
-            for flux_id in flux_ids:
-                fut = self._exe.attach(flux_id)
-                self._log.debug('%s: cancel %s : %s', self._uid, flux_id, fut)
-                fut.cancel()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def get_handle(self) -> Any:
-
-        with self._lock:
-
-            if not self._uri:
-                raise RuntimeError('FluxHelper is not connected')
-
-            try:
-                handle = self._flux.Flux(url=self._uri)
-                assert handle, 'no handle'
-
-            except Exception as e:
-                raise RuntimeError('failed to connect at %s' % self._uri) from e
-
-            self._handles.append(handle)
-
-            return handle
-
-
-    # --------------------------------------------------------------------------
-    #
-    def get_executor(self) -> Any:
-
-        with self._lock:
-
-            if not self._uri:
-                raise RuntimeError('FluxHelper is not connected')
-
-            try:
-                args = {'url': self._uri}
-                exe  = self._flux_job.executor.FluxExecutor(handle_kwargs=args)
-                assert exe, 'no executor'
-
-            except Exception as e:
-                raise RuntimeError('failed to connect at %s' % self._uri) from e
-
-            self._executors.append(exe)
-
-            return exe
+        for flux_id in as_list(flux_ids):
+            _flux_job.wait(self._handle, flux_id)
 
 
 # ------------------------------------------------------------------------------
