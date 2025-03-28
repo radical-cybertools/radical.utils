@@ -1,6 +1,7 @@
 
 import time
 import shlex
+import queue
 
 import threading as mt
 
@@ -130,12 +131,22 @@ class FluxHelper(object):
         self._log      = log  or Logger('radical.utils.flux')
         self._uid      = generate_id('ru.flux')
         self._handle   = None
-        self._journal  = None
         self._service  = None
-        self._jthread  = None
-        self._started  = False
 
-        self._elock    = mt.RLock()         # lock event dict
+        # journal watcher
+        self._jthread  = None
+
+        # event handle thread
+        self._ethread  = None
+        self._equeue   = queue.Queue()
+
+        # submit thread
+        self._sthread  = None
+        self._squeue   = queue.Queue()
+        self._sevent   = mt.Event()
+
+        self._idlock   = mt.Lock()          # lock ID dicts
+        self._elock    = mt.Lock()          # lock event dict
         self._task_ids = dict()             # flux ID -> task ID
         self._flux_ids = dict()             # task ID -> flux ID
         self._events   = defaultdict(list)  # flux ID -> event list
@@ -152,7 +163,7 @@ class FluxHelper(object):
     #
     def start(self) -> None:
 
-        if self._started:
+        if self._handle is not None:
             return
 
         if not self._uri:
@@ -161,25 +172,31 @@ class FluxHelper(object):
 
         self._handle = _flux.Flux(self._uri)
 
-        self._jthread = mt.Thread(target=self._watcher)
+        self._jthread = mt.Thread(target=self._jwatcher)
         self._jthread.daemon = True
         self._jthread.start()
 
-        self._started = True
+        self._ethread = mt.Thread(target=self._ewatcher)
+        self._ethread.daemon = True
+        self._ethread.start()
+
+        self._sthread = mt.Thread(target=self._swatcher)
+        self._sthread.daemon = True
+        self._sthread.start()
+
 
     # --------------------------------------------------------------------------
     #
     def stop(self):
 
-        if not self._started:
+        if self._handle is None:
             self._jterm.set()
             self._jthread.join()
 
-            # FIXME
-            self._handle       = None
+            # FIXME: shutdown flux instance
             self._flux_service = None
             self._uri          = None
-            self._started      = False
+            self._handle       = None
 
 
     # --------------------------------------------------------------------------
@@ -191,24 +208,85 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def _watcher(self):
+    def _jwatcher(self):
 
         # NOTE: *never* used self._handle in this thread, as it is not thread
         #      safe.  Instead, use the private handle created here
-        handle = _flux.Flux(self._uri)
+        fh = _flux.Flux(self._uri)
 
         # start watching the event journal
-        self._journal = _flux_job.JournalConsumer(handle)
-        self._journal.start()
+        journal = _flux_job.JournalConsumer(fh)
+        journal.start()
 
         while True:
 
             try:
-                event = self._journal.poll(timeout=1.0)
-                self._handle_events(event.jobid, event)
+                event = journal.poll(timeout=1.0)
+                self._handle_events(fh, event.jobid, event)
 
             except TimeoutError:
                 pass
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _swatcher(self):
+
+        # if we get new specs, submit them, return IDs to iqueue, and also
+        # forward ID to ewatcher
+
+        fh = _flux.Flux(self._uri)
+        while True:
+
+            try:
+                specs = self._squeue.get(timeout=1.0)
+
+            except queue.Empty:
+                continue
+
+            try:
+                with self._idlock:
+
+                    futs = list()
+                    tids = list()
+
+                    for spec in specs:
+                        tid = spec.attributes['system']['job']['name']
+                        fut = _flux_job.submit_async(fh, spec, waitable=True)
+
+                        futs.append([fut, tid])
+
+                    for fut, tid in futs:
+                        fid = fut.get_id()
+                        self._task_ids[fid] = tid
+                        self._flux_ids[tid] = fid
+
+                        # trigger an event check
+                        self._equeue.put(fid)
+
+                # trigger submit completion
+                self._sevent.set()
+
+            except Exception:
+                self._log.exception("exception")
+                raise
+
+
+    # --------------------------------------------------------------------------
+    #
+    def _ewatcher(self):
+
+        # if we get a new job ID, check if we have events for it
+
+        fh = _flux.Flux(self._uri)
+        while True:
+
+            try:
+                fid = self._equeue.get(timeout=1.0)
+                self._handle_events(fh, fid)
+
+            except queue.Empty:
+                continue
 
 
     # --------------------------------------------------------------------------
@@ -229,7 +307,8 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def _handle_events(self, fid  : 'flux.job.JobID',
+    def _handle_events(self, fh   : 'flux.Flux',
+                             fid  : 'flux.job.JobID',
                              event: 'flux.job.journal.JournalEvent' = None
                       ) -> None:
 
@@ -322,47 +401,41 @@ class FluxHelper(object):
     #
     def submit(self, specs: List[Dict[str, Any]]) -> List[str]:
 
-        try:
-            futs = list()
-            tids = list()
-            for spec in specs:
-                tid  = spec.attributes['system'].get('job',{}).get('name') \
-                       or generate_id('ru.flux.task', ID_SIMPLE)
-                fut  = _flux_job.submit_async(self._handle, spec, waitable=True)
-                futs.append(fut)
-                tids.append(tid)
+        # ensure we have a job name which we use as task ID
+        for spec in specs:
+            tid = spec.attributes['system'].get('job', {}).get('name')
+            if not tid:
+                tid = generate_id(ID_SIMPLE)
+                if 'job' not in spec.attributes['system']:
+                    spec.attributes['system']['job'] = dict()
+                spec.attributes['system']['job']['name'] = tid
 
-            for fut, tid in zip(futs, tids):
-                fid = fut.get_id()
-                self._task_ids[fid] = tid
-                self._flux_ids[tid] = fid
+        self._sevent.clear()
+        self._squeue.put(specs)
+        self._sevent.wait()  # FIXME: timeout?
 
-                # check if we meanwhile got events to handle
-                self._handle_events(fid)
-
-            return tids
-
-        except Exception:
-            self._log.exception("exception")
-            raise
+        tids = [spec.attributes['system']['job']['name'] for spec in specs]
+        return tids
 
 
     # --------------------------------------------------------------------------
     #
     def cancel(self, tids: [str|List[str]]) -> None:
 
-        for tid in as_list(tids):
-            fid = self._flux_ids[tid]
-            _flux_job.cancel_async(self._handle, fid, reason='user cancel')
+        with self._idlock:
+            for tid in as_list(tids):
+                fid = self._flux_ids[tid]
+                _flux_job.cancel_async(self._handle, fid, reason='user cancel')
 
 
     # --------------------------------------------------------------------------
     #
     def wait(self, tids: [str|List[str]]) -> None:
 
-        for tid in as_list(tids):
-            fid = self._flux_ids[tid]
-            _flux_job.wait(self._handle, fid)
+        with self._idlock:
+            for tid in as_list(tids):
+                fid = self._flux_ids[tid]
+                _flux_job.wait(self._handle, fid)
 
 
 # ------------------------------------------------------------------------------
