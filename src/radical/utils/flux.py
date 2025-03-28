@@ -11,7 +11,7 @@ from typing      import List, Dict, Any
 
 from .misc       import as_list
 from .which      import which
-from .ids        import generate_id
+from .ids        import generate_id, ID_SIMPLE
 from .logger     import Logger
 from .modules    import import_module
 
@@ -81,6 +81,7 @@ class _FluxService(object):
             if line.startswith('FLUX_URI:'):
                 self._uri = line.strip().split(':', 1)[1]
 
+
     # --------------------------------------------------------------------------
     #
     def _proc_state_cb(self, proc: Process, state: str) -> None:
@@ -134,11 +135,9 @@ class FluxHelper(object):
         self._jthread  = None
         self._started  = False
 
-        self._tasks    = dict()  # task ID -> task
-        self._task_ids = dict()  # flux ID -> task ID
-        self._flux_ids = dict()  # task ID -> flux ID
-
-        self._elock    = mt.Lock()          # lock event dict
+        self._elock    = mt.RLock()         # lock event dict
+        self._task_ids = dict()             # flux ID -> task ID
+        self._flux_ids = dict()             # task ID -> flux ID
         self._events   = defaultdict(list)  # flux ID -> event list
         self._cbacks   = list()             # list of callbacks
 
@@ -167,6 +166,20 @@ class FluxHelper(object):
         self._jthread.start()
 
         self._started = True
+
+    # --------------------------------------------------------------------------
+    #
+    def stop(self):
+
+        if not self._started:
+            self._jterm.set()
+            self._jthread.join()
+
+            # FIXME
+            self._handle       = None
+            self._flux_service = None
+            self._uri          = None
+            self._started      = False
 
 
     # --------------------------------------------------------------------------
@@ -216,36 +229,37 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def _handle_events(self, flux_id: 'flux.job.JobID',
-                             event  : 'flux.job.journal.JournalEvent' = None
+    def _handle_events(self, fid  : 'flux.job.JobID',
+                             event: 'flux.job.journal.JournalEvent' = None
                       ) -> None:
 
         with self._elock:
 
             # if triggered by submit, check if we have anything to do
             if not event:
-                if flux_id not in self._events:
+                if fid not in self._events:
                     return
 
             # check if we can handle the event - otherwise store it
             if not self._cbacks:
-                self._events[flux_id].append(event)
+                self._events[fid].append(event)
                 return
 
-            # check if we already know the task - otherwise store the event
-            if flux_id not in self._task_ids:
-                self._events[flux_id].append(event)
+            # check if application knows the task - otherwise store the event
+            if fid not in self._task_ids:
+                self._events[fid].append(event)
                 return
 
-            # task is known, process stored events
-            for ev in self._events[flux_id]:
+            # task is known, flush stored events
+            for ev in self._events[fid]:
                 for cb in self._cbacks:
-                    cb(self._task_ids[flux_id], ev)
+                    cb(self._task_ids[fid], ev)
+                self._events[fid] = []
 
             # process the current event
             if event:
                 for cb in self._cbacks:
-                    cb(self._task_ids[flux_id], event)
+                    cb(self._task_ids[fid], event)
 
 
     # --------------------------------------------------------------------------
@@ -301,52 +315,32 @@ class FluxHelper(object):
                                    attributes=attributes,
                                    tasks=tasks,
                                    version=version)
-
         return spec
 
 
     # --------------------------------------------------------------------------
     #
-    def submit(self, descriptions: List[Dict[str, Any]]) -> List[str]:
-
-        jobs  = list()
-
-        def _submit_cb(tid: str, f: _flux.future.Future) -> None:
-            # care must be taken on the order of some of the operations: the
-            # `journal_cb` will check if a flux_id is known, and if so will
-            # assume that the task id is known also and callbacks can be issued.
-            # So *first* register the task ID, *then* the flux ID, to avoid the
-            # need for additional locking.
-
-            flux_id = _flux_job.submit_get_id(f)
-            self._flux_ids[tid]     = flux_id
-            self._task_ids[flux_id] = tid
-            jobs.append(flux_id)
-
-            # if we already got events we'll invoke the callbacks now
-            self._handle_events(flux_id)
+    def submit(self, specs: List[Dict[str, Any]]) -> List[str]:
 
         try:
-            # asynchronously submit jobspec files from a directory
-            for i, descr in enumerate(descriptions):
-                cb   = partial(_submit_cb, 'task.%04d' % i)
-                spec = descr
+            futs = list()
+            tids = list()
+            for spec in specs:
+                tid  = spec.attributes['system'].get('job',{}).get('name') \
+                       or generate_id('ru.flux.task', ID_SIMPLE)
                 fut  = _flux_job.submit_async(self._handle, spec, waitable=True)
-                fut.then(cb)
+                futs.append(fut)
+                tids.append(tid)
 
-            # make sure we get jobid events
-            if self._handle.reactor_run() < 0:
-                self._log.error("reactor run failed")
-                self._handle.fatal_error("reactor start failed")
+            for fut, tid in zip(futs, tids):
+                fid = fut.get_id()
+                self._task_ids[fid] = tid
+                self._flux_ids[tid] = fid
 
-            # wait for all jobs to get IDs
-            # FIXME: Do we need a timeout?  Also, the jobid cb can signal on
-            #        completion, so we could wait for that instead of polling.
-            while len(jobs) < len(descriptions):
-                time.sleep(0.001)
+                # check if we meanwhile got events to handle
+                self._handle_events(fid)
 
-            return jobs
-
+            return tids
 
         except Exception:
             self._log.exception("exception")
@@ -355,18 +349,20 @@ class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
-    def cancel(self, flux_ids: [str|List[str]]) -> None:
+    def cancel(self, tids: [str|List[str]]) -> None:
 
-        for flux_id in as_list(flux_ids):
-            _flux_job.cancel_async(self._handle, flux_id, reason='user cancel')
+        for tid in as_list(tids):
+            fid = self._flux_ids[tid]
+            _flux_job.cancel_async(self._handle, fid, reason='user cancel')
 
 
     # --------------------------------------------------------------------------
     #
-    def wait(self, flux_ids: [str|List[str]]) -> None:
+    def wait(self, tids: [str|List[str]]) -> None:
 
-        for flux_id in as_list(flux_ids):
-            _flux_job.wait(self._handle, flux_id)
+        for tid in as_list(tids):
+            fid = self._flux_ids[tid]
+            _flux_job.wait(self._handle, fid)
 
 
 # ------------------------------------------------------------------------------
