@@ -544,7 +544,12 @@ class EnvProcess(object):
                        exc_tb  : Optional[Any]
                 ) -> None:
 
-        if exc_type and self._child:
+        if self._parent:
+            while self._data is None:
+                try               : self._data = self._q.get(timeout=1)
+                except queue.Empty: pass
+
+        elif exc_type and self._child:
             stacktrace = ' '.join(traceback.format_exception(
                                                      exc_type, exc_val, exc_tb))
             self._q.put([None, exc_type, exc_val, stacktrace])
@@ -553,41 +558,34 @@ class EnvProcess(object):
             os._exit(0)
 
 
-        if self._parent:
-
-            while True:
-                try:
-                    self._data = self._q.get(timeout=1)
-                    break
-                except queue.Empty:
-                    self._data = None
-                    pass
-
-
     # --------------------------------------------------------------------------
     #
     def put(self, data: str) -> None:
 
-        if self._child:
-            self._q.put([data, None, None, None])
-            self._q.close()
-            self._q.join_thread()
-            os._exit(0)
+        assert self._child
+
+        self._q.put([data, None, None, None])
+        self._q.close()
+        self._q.join_thread()
+        os._exit(0)
 
 
     # --------------------------------------------------------------------------
     #
     def get(self) -> Any:
 
+        assert self._parent
+
         if self._data is None:
             return
 
-
         data, exc_type, exc_val, stacktrace = self._data
         if exc_type:
-            sys.stdout.write('%s [%s]\n' % (exc_type, exc_val))
-            sys.stdout.write('%s\n\n' % stacktrace)
-            raise exc_type                    # pylint: disable=raising-bad-type
+            sys.stderr.write('envp excepted %s(%s)\n' % (exc_type, exc_val))
+            sys.stderr.write(stacktrace)
+            sys.stderr.flush()
+            raise RuntimeError('envp failed: %s(%s) - check stderr'
+                               % (exc_type, exc_val))
 
         return data
 
