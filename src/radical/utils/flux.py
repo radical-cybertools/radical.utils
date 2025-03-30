@@ -693,7 +693,6 @@ if 'JournalConsumer' in dir(_flux_job):
 else:
     FluxHelper = FluxHelperV0
 
-FluxHelper = FluxHelperV0
 
 # ------------------------------------------------------------------------------
 
