@@ -244,7 +244,7 @@ class FluxHelperV0(object):
 
         with self._api_lock:
 
-            if self._jthread is not None:
+            if self._ethread is not None:
                 return
 
             self._ethread = mt.Thread(target=self._ewatcher)
@@ -301,17 +301,6 @@ class FluxHelperV0(object):
         def event_cb(fid, fut, event):
             self._handle_events(fh, fid, event)
 
-        def jobid_cb(tid, fut):
-            fid = fut.jobid()
-            self._log.debug('jobid %s -> %s', tid, fid)
-            fids.append([fid, tid])
-            self._flux_ids[tid] = fid
-            self._task_ids[fid] = tid
-            self._equeue.put(fid)
-
-            for event in events:
-                fut.add_event_callback(event, partial(event_cb, fid))
-
         while True:
 
             try:
@@ -328,13 +317,18 @@ class FluxHelperV0(object):
 
                 try:
 
+                    fids = list()
                     for spec in specs:
                         tid = spec.attributes['user']['uid']
                         fut = exe.submit(spec, waitable=True)
-                        fut.add_jobid_callback(partial(jobid_cb, tid))
+                        fid = fut.jobid()
+                        self._flux_ids[tid] = fid
+                        self._task_ids[fid] = tid
+                        fids.append(fid)
+                        self._equeue.put(fid)
 
-                    while len(fids) < len(specs):
-                        time.sleep(0.1)
+                        for event in events:
+                            fut.add_event_callback(event, partial(event_cb, fid))
 
                 except Exception:
                     self._log.exception("exception")
@@ -768,7 +762,7 @@ if 'JournalConsumer' in dir(_flux_job):
 else:
     FluxHelper = FluxHelperV0
 
-FluxHelper = FluxHelperV1
+FluxHelper = FluxHelperV0
 
 # ------------------------------------------------------------------------------
 
