@@ -214,15 +214,8 @@ class FluxHelperV0(object):
         self._uid      = generate_id('ru.flux')
         self._handle   = _flux.Flux(self._uri)
         self._api_lock = mt.Lock()
-
-        # event handle thread
-        self._ethread  = None
-        self._equeue   = queue.Queue()
-
-        # submit thread
-        self._sthread  = None
-        self._squeue   = queue.Queue()
-        self._sevent   = mt.Event()
+        self._exe      = _flux_job.executor.FluxExecutor(
+                                               handle_kwargs={'url': self._uri})
 
         self._idlock   = mt.Lock()          # lock ID dicts
         self._elock    = mt.Lock()          # lock event dict
@@ -242,18 +235,7 @@ class FluxHelperV0(object):
     #
     def start(self, launcher: str   = None) -> None:
 
-        with self._api_lock:
-
-            if self._ethread is not None:
-                return
-
-            self._ethread = mt.Thread(target=self._ewatcher)
-            self._ethread.daemon = True
-            self._ethread.start()
-
-            self._sthread = mt.Thread(target=self._swatcher)
-            self._sthread.daemon = True
-            self._sthread.start()
+        pass
 
 
     # --------------------------------------------------------------------------
@@ -262,14 +244,10 @@ class FluxHelperV0(object):
 
         with self._api_lock:
 
-            if self._handle is None:
-                self._jterm.set()
-                self._jthread.join()
-
-                # FIXME: shutdown flux instance
-                self._flux_service = None
-                self._uri          = None
-                self._handle       = None
+             # FIXME: shutdown flux instance
+             self._flux_service = None
+             self._uri          = None
+             self._handle       = None
 
 
     # --------------------------------------------------------------------------
@@ -285,84 +263,11 @@ class FluxHelperV0(object):
 
     # --------------------------------------------------------------------------
     #
-    def _swatcher(self):
-        '''
-        if we get new specs, submit them, return IDs to iqueue, and also
-        forward ID to ewatcher
-        '''
-
-        events = ['submit', 'depend', 'alloc', 'start', # 'cleanup',
-                  'finish', 'release', 'free', 'clean', 'priority', 'exception']
-
-        exe  = _flux_job.executor.FluxExecutor(handle_kwargs={'url': self._uri})
-        fh   = _flux.Flux(self._uri)
-        fids = list()
-
-        def event_cb(fid, fut, event):
-            self._handle_events(fh, fid, event)
-
-        while True:
-
-            try:
-                specs = self._squeue.get(block=True, timeout=1.0)
-
-            except queue.Empty:
-                continue
-
-            except:
-                self._log.exception("exception")
-                raise
-
-            with self._idlock:
-
-                try:
-
-                    fids = list()
-                    for spec in specs:
-                        tid = spec.attributes['user']['uid']
-                        fut = exe.submit(spec, waitable=True)
-                        fid = fut.jobid()
-                        self._flux_ids[tid] = fid
-                        self._task_ids[fid] = tid
-                        fids.append(fid)
-                        self._equeue.put(fid)
-
-                        for event in events:
-                            fut.add_event_callback(event, partial(event_cb, fid))
-
-                except Exception:
-                    self._log.exception("exception")
-                    raise
-
-                finally:
-                    # trigger submit completion
-                    self._sevent.set()
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _ewatcher(self):
-
-        # if we get a new job ID, check if we have events for it
-
-        fh = _flux.Flux(self._uri)
-        while True:
-
-            try:
-                fid = self._equeue.get(timeout=1.0)
-                self._handle_events(fh, fid)
-
-            except queue.Empty:
-                continue
-
-
-    # --------------------------------------------------------------------------
-    #
     def register_cb(self, cb: callable) -> None:
 
         with self._api_lock, self._elock:
-                self._log.debug('register cb %s', cb)
-                self._cbacks.append(cb)
+            self._log.debug('register cb %s', cb)
+            self._cbacks.append(cb)
 
 
     # --------------------------------------------------------------------------
@@ -380,39 +285,35 @@ class FluxHelperV0(object):
                              event: 'flux.job.journal.JournalEvent' = None
                       ) -> None:
 
-        with self._elock:
+        self._log.debug('event for %s: %s', fid, event)
+      # print('event %s: %s' % (fid, event))
 
-          # self._log.debug_9('event %s: %s', fid, event)
-
-            # if triggered by submit, check if we have anything to do
-            if not event:
-                if fid not in self._events:
-                    return
-
-            # check if we can handle the event - otherwise store it
-            if not self._cbacks:
-                self._events[fid].append(event)
+        # if triggered by submit, check if we have anything to do
+        if not event:
+            if fid not in self._events:
+              # print('no event')
                 return
 
-            # check if application knows the task - otherwise store the event
-            if fid not in self._task_ids:
-                self._events[fid].append(event)
-                return
+        # check if we can handle the event - otherwise store it
+        if not self._cbacks:
+          # print('no cbacks')
+            self._events[fid].append(event)
+            return
 
-            tid = self._task_ids[fid]
+        # task is known, flush stored events
+        for ev in self._events[fid]:
+          # print('flush stored events')
+            for cb in self._cbacks:
+                try   : cb(fid, ev)
+                except: self._log.exception('cb failed: %s')
+            self._events[fid] = []
 
-            # task is known, flush stored events
-            for ev in self._events[fid]:
-                for cb in self._cbacks:
-                    try   : cb(tid, ev)
-                    except: self._log.exception('cb failed: %s')
-                self._events[fid] = []
-
-            # process the current event
-            if event:
-                for cb in self._cbacks:
-                    try   : cb(tid, event)
-                    except: self._log.exception('cb failed: %s')
+        # process the current event
+        if event:
+          # print('process current event')
+            for cb in self._cbacks:
+                try   : cb(fid, event)
+                except: self._log.exception('cb failed: %s')
 
 
     # --------------------------------------------------------------------------
@@ -425,18 +326,53 @@ class FluxHelperV0(object):
                 raise RuntimeError('flux instance not started')
 
             self._log.debug('== submit %d specs', len(specs))
-            tids = [spec.attributes['user']['uid'] for spec in specs]
 
-            self._sevent.clear()
-            self._squeue.put(specs)
-            self._sevent.wait()  # FIXME: timeout?
+            events = ['submit', 'depend', 'alloc', 'start', # 'cleanup',
+                      'finish', 'release', 'free', 'clean', 'priority', 'exception']
 
-            return tids
+            def event_cb(fid, fut, event):
+                self._handle_events(self._handle, fid, event)
+
+            futures = list()
+            def id_cb(fut):
+                flux_id = fut.jobid()
+                idx     = fut.ru_idx
+                for ev in events:
+                    tmp_cb = partial(event_cb, flux_id)
+                    fut.add_event_callback(ev, tmp_cb)
+                futures.append([flux_id, idx, fut])
+                self._log.debug('got flux id: %s: %s', idx, flux_id)
+
+            for idx, spec in enumerate(specs):
+                fut      = self._exe.submit(spec, waitable=True)
+                fut.ru_idx = idx
+                self._log.debug('%s: submitted  : %s', self._uid, idx)
+                fut.add_jobid_callback(id_cb)
+
+            # wait until we saw all jobid callbacks (assume 10 tasks/sec)
+            timeout = len(specs)
+            timeout = max(100, timeout)
+            start   = time.time()
+            self._log.debug('%s: wait %.2fsec for %d flux IDs',
+                            self._uid, timeout, len(specs))
+            while len(futures) < len(specs):
+                time.sleep(0.1)
+                self._log.debug('%s: wait %s / %s', self._uid,
+                                                     len(futures), len(specs))
+                if time.time() - start > timeout:
+                    raise RuntimeError('%s: timeout on submission', self._uid)
+            self._log.info('got %d flux IDs', len(futures))
+
+            # get flux_ids sorted by submission order (idx)
+            flux_ids = [fut[0] for fut in sorted(futures, key=lambda x: x[1])]
+
+            self._log.debug('%s: submitted: %s', self._uid, flux_ids)
+            return flux_ids
 
 
     # --------------------------------------------------------------------------
     #
-    def cancel(self, tids: [str|List[str]]) -> None:
+    def cancel(self, fids: [str|List[str]]) -> None:
 
         with self._api_lock:
 
@@ -444,26 +380,21 @@ class FluxHelperV0(object):
                 raise RuntimeError('flux instance not started')
 
             with self._idlock:
-                for tid in as_list(tids):
-                    fid = self._flux_ids[tid]
+                for fid in as_list(fids):
                     _flux_job.cancel_async(self._handle, fid, reason='user cancel')
 
 
     # --------------------------------------------------------------------------
     #
-    def wait(self, tids: [str|List[str]]) -> None:
+    def wait(self, fids: [str|List[str]]) -> None:
 
         with self._api_lock:
 
             if not self._handle:
                 raise RuntimeError('flux instance not started')
 
-            tids = as_list(tids)
-            with self._idlock:
-                fids = [self._flux_ids[tid] for tid in tids]
-
             for fid in fids:
-                print('wait for %s [%s]' % (fid, tids))
+                self._log.debug('wait  for %s', fid)
                 _flux_job.wait(self._handle, fid)
 
 
@@ -650,8 +581,8 @@ class FluxHelperV1(object):
     def register_cb(self, cb: callable) -> None:
 
         with self._api_lock, self._elock:
-                self._log.debug('register cb %s', cb)
-                self._cbacks.append(cb)
+            self._log.debug('register cb %s', cb)
+            self._cbacks.append(cb)
 
 
     # --------------------------------------------------------------------------
