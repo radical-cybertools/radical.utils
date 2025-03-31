@@ -130,7 +130,17 @@ class FluxService(object):
 
         for line in lines:
             if line.startswith('FLUX_URI:'):
-                self._uri = line.strip().split(':', 1)[1]
+                parts = line.strip().split(':', 1)
+                self._log.info('%s: found flux info: %s', self._uid, parts)
+
+                uri   = parts[1].split('=', 1)[1]
+                host  = parts[2].split('=', 1)[1]
+
+                url        = Url(uri)
+                url.host   = host
+                url.schema = 'ssh'
+                self._uri  = str(flux_url)
+
                 self._log.info('%s: found flux uri: %s', self._uid, self.uri)
                 self._ready.set()
 
@@ -150,7 +160,7 @@ class FluxService(object):
     #
     def start(self, timeout: float = None) -> None:
 
-        fcmd = 'echo FLUX_URI:\\$FLUX_URI && sleep inf'
+        fcmd = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=$(hostname) && sleep inf'
         cmd  = '%s start bash -c "%s"' % (self._fexe, fcmd)
 
         if self._launcher:
