@@ -178,7 +178,7 @@ class FluxService(object):
     #
     def start(self, timeout: float = None) -> None:
 
-        fcmd = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=$(hostname) && sleep inf'
+        fcmd = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=\\$(hostname) && sleep inf'
         cmd  = '%s start bash -c "%s"' % (self._fexe, fcmd)
 
         if self._launcher:
