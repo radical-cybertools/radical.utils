@@ -10,7 +10,8 @@ import socket
 
 from functools import reduce
 
-from .misc import as_list, ru_open
+from .misc   import as_list, ru_open
+from .config import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -39,8 +40,6 @@ def get_hostip(req=None, log=None):
     If interface is not given, do some magic."""
 
     global _hostip                                       # pylint: disable=W0603
-    if _hostip:
-        return _hostip
 
     AF_INET = netifaces.AF_INET
 
@@ -51,6 +50,9 @@ def get_hostip(req=None, log=None):
     #   - all others (whatever is not in the above)
     # Then this list is traversed, we check if the interface exists and has an
     # IP address.  The first match is used.
+
+    if not req:
+        req = DefaultConfig().get('iface')
 
     req = as_list(req)
 
@@ -68,6 +70,10 @@ def get_hostip(req=None, log=None):
         'lo',       # takes the 'inter' out of the 'net'
         'sit0'      # ?
     ]
+
+    # default value is cached
+    if not req and _hostip:
+        return _hostip
 
     ifaces = netifaces.interfaces()
     rest   = [iface for iface in ifaces
@@ -104,9 +110,10 @@ def get_hostip(req=None, log=None):
         if log:
             log.debug('check iface %s: ip is %s', iface, ip)
 
-        if ip:
+        if not req and ip:
             _hostip = ip
-            return ip
+
+        return ip
 
     return '127.0.0.1'
 
