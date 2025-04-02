@@ -11,6 +11,7 @@ from functools   import partial
 from collections import defaultdict
 from typing      import List, Dict, Any
 
+from .url        import Url
 from .misc       import as_list
 from .which      import which
 from .ids        import generate_id, ID_SIMPLE
@@ -22,11 +23,16 @@ try:
     _flux     = import_module('flux')
     _flux_job = import_module('flux.job')
     _flux_exc = None
+    if 'JournalConsumer' in dir(_flux_job):
+        _flux_v = 1
+    else:
+        _flux_v = 0
 
 except Exception as e:
     _flux     = None
     _flux_job = None
     _flux_exc = e
+    _flux_v   = -1
 
 
 # --------------------------------------------------------------------------
@@ -97,6 +103,8 @@ class FluxService(object):
 
         self._fexe  = which('flux')
         self._uri   = None
+        self._r_uri = None
+        self._host  = None
         self._proc  = None
         self._ready = mt.Event()
 
@@ -121,6 +129,11 @@ class FluxService(object):
         return self._uri
 
 
+    @property
+    def r_uri(self) -> str:
+        return self._r_uri
+
+
     # --------------------------------------------------------------------------
     #
     def _proc_line_cb(self, prefix: str,
@@ -128,21 +141,26 @@ class FluxService(object):
                             lines : List[str]
                      ) -> None:
 
-        for line in lines:
-            if line.startswith('FLUX_URI:'):
-                parts = line.strip().split(':', 1)
-                self._log.info('%s: found flux info: %s', self._uid, parts)
+        try:
+            for line in lines:
+                self._log.info('=== line: %s', line)
+                if line.startswith('FLUX_URI='):
+                    parts = line.strip().split(' ', 1)
+                    self._log.info('%s: found flux info: %s', self._uid, parts)
 
-                uri   = parts[1].split('=', 1)[1]
-                host  = parts[2].split('=', 1)[1]
+                    self._uri   = parts[0].split('=', 1)[1]
+                    self._host  = parts[1].split('=', 1)[1]
 
-                url        = Url(uri)
-                url.host   = host
-                url.schema = 'ssh'
-                self._uri  = str(flux_url)
+                    url         = Url(self._uri)
+                    url.host    = self._host
+                    url.schema  = 'ssh'
+                    self._r_uri = str(url)
 
-                self._log.info('%s: found flux uri: %s', self._uid, self.uri)
-                self._ready.set()
+                    self._log.info('%s: flux uri: %s', self._uid, self._uri)
+                    self._log.info('%s:    r uri: %s', self._uid, self._r_uri)
+                    self._ready.set()
+        except:
+            self._log.exception('line processing failed')
 
 
     # --------------------------------------------------------------------------
@@ -698,10 +716,8 @@ class FluxHelperV1(object):
 
 # ------------------------------------------------------------------------------
 #
-if 'JournalConsumer' in dir(_flux_job):
-    FluxHelper = FluxHelperV1
-else:
-    FluxHelper = FluxHelperV0
+if _flux_v == 1: FluxHelper = FluxHelperV1
+else           : FluxHelper = FluxHelperV0
 
 
 # ------------------------------------------------------------------------------
