@@ -32,6 +32,7 @@ except Exception as e:
     _flux     = None
     _flux_job = None
     _flux_exc = e
+    _flux_v   = -1
 
 
 # --------------------------------------------------------------------------
