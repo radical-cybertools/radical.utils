@@ -56,7 +56,7 @@ def get_hostip(req=None, log=None):
 
     white_list = [
         'ens1f1',   # amarel
-        'ib0',      # infiniband
+        'ib0',      # infiniband   # NOTE: unusable on Amarel, use `req` there!
         'hsn0',     # Frontier (HPE Cray EX)
         'ipogif0',  # Cray's
         'br0',      # SuperMIC
