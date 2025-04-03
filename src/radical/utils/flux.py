@@ -388,7 +388,7 @@ class FluxHelperV0(object):
                 self._log.debug('%s: wait %s / %s', self._uid,
                                                      len(futures), len(specs))
                 if time.time() - start > timeout:
-                    raise RuntimeError('%s: timeout on submission', self._uid)
+                    raise RuntimeError('%s: timeout on submission' % self._uid)
             self._log.info('got %d flux IDs', len(futures))
 
             # get flux_ids sorted by submission order (idx)
