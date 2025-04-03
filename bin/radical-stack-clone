@@ -78,7 +78,7 @@ radical.pilot     https://github.com/radical-cybertools/radical.pilot.git     de
 radical.analytics https://github.com/radical-cybertools/radical.analytics.git devel          titan
 
 installed:
-python            : 3.8+
+python            : 3.9
 virtualenv        : /home/merzky/radical/radical.utils/ve_test
 radical.utils     : titan@HEAD-detached-at-titan
 radical.saga      : titan@HEAD-detached-at-titan
@@ -200,7 +200,7 @@ then
     then
         if test -z "$python"
         then
-            conda create -y -p "$veloc" python=3.8 >> $log 2>&1
+            conda create -y -p "$veloc" python=3.9 >> $log 2>&1
         else
             conda create -y -p "$veloc" python="&python" >> $log 2>&1
         fi
