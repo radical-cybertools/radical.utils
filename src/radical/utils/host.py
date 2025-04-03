@@ -32,14 +32,9 @@ def get_hostname():
 
 # ------------------------------------------------------------------------------
 #
-_hostip = None
-
-
 def get_hostip(req=None, log=None):
     """Look up the IP address for a given requested interface name.
     If interface is not given, do some magic."""
-
-    global _hostip                                       # pylint: disable=W0603
 
     AF_INET = netifaces.AF_INET
 
@@ -70,10 +65,6 @@ def get_hostip(req=None, log=None):
         'lo',       # takes the 'inter' out of the 'net'
         'sit0'      # ?
     ]
-
-    # default value is cached
-    if not req and _hostip:
-        return _hostip
 
     ifaces = netifaces.interfaces()
     rest   = [iface for iface in ifaces
@@ -109,9 +100,6 @@ def get_hostip(req=None, log=None):
         ip = info[AF_INET][0].get('addr')
         if log:
             log.debug('check iface %s: ip is %s', iface, ip)
-
-        if not req and ip:
-            _hostip = ip
 
         return ip
 
