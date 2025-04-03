@@ -1,4 +1,6 @@
 
+import os
+import sys
 import math
 import time
 import shlex
@@ -17,22 +19,69 @@ from .which      import which
 from .ids        import generate_id, ID_SIMPLE
 from .logger     import Logger
 from .modules    import import_module
+from .shell      import sh_callout
 
 
-try:
-    _flux     = import_module('flux')
-    _flux_job = import_module('flux.job')
-    _flux_exc = None
-    if 'JournalConsumer' in dir(_flux_job):
-        _flux_v = 1
-    else:
-        _flux_v = 0
+# ------------------------------------------------------------------------------
+#
+def import_flux():
+    '''
+    import the flux module, if available
 
-except Exception as e:
-    _flux     = None
-    _flux_job = None
-    _flux_exc = e
-    _flux_v   = -1
+    returns: flux     : loaded python module (`None` if not available)
+             flux.job : loaded python module (`None` if not available)
+             exception: exception raised during import (`None` if no error)
+             version  : what ru.FluxHelper version to use (`0` or `1`)
+    '''
+
+    flux     = None
+    flux_job = None
+    flux_exc = None
+    flux_v   = None
+
+    try:
+        flux     = import_module('flux')
+        flux_job = import_module('flux.job')
+        if 'JournalConsumer' in dir(flux_job):
+            flux_v = 1
+        else:
+            flux_v = 0
+
+    except Exception as e:
+        flux_exc = e
+
+
+    # on failure, try to derive module path from flux executable
+    if flux is None or flux_job is None:
+
+        to_pop = None
+        try:
+            cmd = 'flux python -c "import flux; print(flux.__file__)"'
+            out, err, ret = sh_callout(cmd)
+
+            if not ret:
+                flux_path = os.path.dirname(out.strip())
+                mod_path  = os.path.dirname(flux_path)
+                sys.path.append(mod_path)
+                to_pop = mod_path
+
+                flux     = import_module('flux')
+                flux_job = import_module('flux.job')
+                if 'JournalConsumer' in dir(flux_job):
+                    flux_v = 1
+                else:
+                    flux_v = 0
+
+        except Exception as e:
+            flux_exc = e
+
+        if to_pop:
+            sys.path.remove(to_pop)
+
+    return flux, flux_job, flux_exc, flux_v
+
+
+_flux, _flux_job, _flux_exc, _flux_v = import_flux()
 
 
 # --------------------------------------------------------------------------
