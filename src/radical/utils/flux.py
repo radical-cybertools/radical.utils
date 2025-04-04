@@ -269,7 +269,7 @@ class FluxService(object):
         self._proc.cancel()
         self._proc.wait()
 
-        self.uri   = None
+        self._uri  = None
         self._proc = None
 
         self._log.info('%s: found flux uri: %s', self._uid, self.uri)
@@ -583,7 +583,10 @@ class FluxHelperV1(object):
 
             try:
                 event = journal.poll(timeout=1.0)
-                self._handle_events(fh, event.jobid, event)
+                if event:
+                    # FIXME: How can that ever *not* be a journal event?
+                    #        But it has happened...
+                    self._handle_events(fh, event.jobid, event)
 
             except TimeoutError:
                 pass
