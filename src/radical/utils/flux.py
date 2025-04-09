@@ -229,7 +229,7 @@ class FluxService(object):
 
         fcmd  = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=\\$(hostname) '
         fcmd += ' && flux resources list '
-        fmcd += ' && sleep inf '
+        fcmd += ' && sleep inf '
         cmd   = '%s start bash -c "%s"' % (self._fexe, fcmd)
 
         if self._launcher:
