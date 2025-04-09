@@ -227,8 +227,10 @@ class FluxService(object):
     #
     def start(self, timeout: float = None) -> None:
 
-        fcmd = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=\\$(hostname) && sleep inf'
-        cmd  = '%s start bash -c "%s"' % (self._fexe, fcmd)
+        fcmd  = 'echo FLUX_URI=\\$FLUX_URI FLUX_HOST=\\$(hostname) '
+        fcmd += ' && flux resources list '
+        fmcd += ' && sleep inf '
+        cmd   = '%s start bash -c "%s"' % (self._fexe, fcmd)
 
         if self._launcher:
             cmd = '%s %s' % (self._launcher, cmd)
@@ -382,7 +384,7 @@ class FluxHelperV0(object):
           # print('flush stored events')
             for cb in self._cbacks:
                 try   : cb(fid, ev)
-                except: self._log.exception('cb failed: %s')
+                except: self._log.exception('cb failed')
             self._events[fid] = []
 
         # process the current event
@@ -390,7 +392,7 @@ class FluxHelperV0(object):
           # print('process current event')
             for cb in self._cbacks:
                 try   : cb(fid, event)
-                except: self._log.exception('cb failed: %s')
+                except: self._log.exception('cb failed')
 
 
     # --------------------------------------------------------------------------
@@ -705,14 +707,14 @@ class FluxHelperV1(object):
             for ev in self._events[fid]:
                 for cb in self._cbacks:
                     try   : cb(tid, ev)
-                    except: self._log.exception('cb failed: %s')
+                    except: self._log.exception('cb failed')
                 self._events[fid] = []
 
             # process the current event
             if event:
                 for cb in self._cbacks:
                     try   : cb(tid, event)
-                    except: self._log.exception('cb failed: %s')
+                    except: self._log.exception('cb failed')
 
 
     # --------------------------------------------------------------------------
