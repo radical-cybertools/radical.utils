@@ -598,6 +598,8 @@ class FluxHelperV1(object):
     #
     def _swatcher(self):
 
+        self._log.debug('=== swatcher started')
+
         # if we get new specs, submit them, return IDs to iqueue, and also
         # forward ID to ewatcher
         fh = _flux.Flux(self._uri)
@@ -605,6 +607,7 @@ class FluxHelperV1(object):
 
             try:
                 specs = self._squeue.get(block=True, timeout=1.0)
+                self._log.debug('=== got %d specs', len(specs))
 
             except queue.Empty:
                 continue
@@ -621,7 +624,6 @@ class FluxHelperV1(object):
                     for spec in specs:
                         tid = spec.attributes['user']['uid']
                         fut = _flux_job.submit_async(fh, spec, waitable=True)
-
                         futs.append([fut, tid])
 
                     for fut, tid in futs:
@@ -638,6 +640,7 @@ class FluxHelperV1(object):
 
                 finally:
                     # trigger submit completion
+                    self._log.debug('=== submit done')
                     self._sevent.set()
 
 
@@ -726,12 +729,13 @@ class FluxHelperV1(object):
             if not self._handle:
                 raise RuntimeError('flux instance not started')
 
-            self._log.debug('== submit %d specs', len(specs))
+            self._log.debug('== submit %d specs start', len(specs))
             tids = [spec.attributes['user']['uid'] for spec in specs]
 
             self._sevent.clear()
             self._squeue.put(specs)
             self._sevent.wait()  # FIXME: timeout?
+            self._log.debug('== submit %d specs done', len(specs))
 
             return tids
 
