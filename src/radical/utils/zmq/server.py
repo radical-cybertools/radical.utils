@@ -14,7 +14,7 @@ from ..profile   import Profiler
 from ..debug     import get_exception_trace
 from ..serialize import to_msgpack, from_msgpack
 
-from .utils      import no_intr
+from .utils      import no_intr, zmq_bind
 
 
 # --------------------------------------------------------------------------
@@ -156,6 +156,7 @@ class Server(object):
     @property
     def addr(self) -> Optional[str]:
 
+        print(0, self._addr)
         return self._addr
 
 
@@ -163,7 +164,7 @@ class Server(object):
     #
     def start(self) -> None:
 
-        self._log.info('start bridge %s', self._uid)
+        self._log.info('start server %s', self._uid)
 
         if self._thread:
             raise RuntimeError('`start()` can be called only once')
@@ -179,7 +180,7 @@ class Server(object):
     #
     def stop(self) -> None:
 
-        self._log.info('stop bridge %s', self._uid)
+        self._log.info('stop server %s', self._uid)
         self._term.set()
 
 
@@ -187,12 +188,12 @@ class Server(object):
     #
     def wait(self) -> None:
 
-        self._log.info('wait bridge %s', self._uid)
+        self._log.info('wait server %s', self._uid)
 
         if self._thread:
             self._thread.join()
 
-        self._log.info('wait bridge %s', self._uid)
+        self._log.info('wait server %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -249,21 +250,10 @@ class Server(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
 
-        for url in self._iterate_urls():
-            try:
-                self._log.debug('try url %s', url)
-                self._sock.bind(url)
-                self._log.debug('success')
-                break
-            except zmq.error.ZMQError as e:
-                if 'Address already in use' in str(e):
-                    self._log.warn('port in use - try next (%s)' % url)
-                else:
-                    raise
-
-        addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
-        addr.host  = get_hostip()
+        addr = zmq_bind(self._sock)
+        assert addr
         self._addr = str(addr)
+        print(0, self._addr)
 
         self._up.set()
 
