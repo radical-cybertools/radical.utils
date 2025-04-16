@@ -30,7 +30,8 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, port: Optional[Union[int, str]] = None,
+    def __init__(self, url : Optional[str]             = None,  # backward comp.
+                       port: Optional[Union[int, str]] = None,
                        uid : Optional[str]             = None,
                        path: Optional[str]             = None) -> None:
 
@@ -56,6 +57,15 @@ class Server(object):
 
         self.register_request('echo', self._request_echo)
         self.register_request('fail', self._request_fail)
+
+        if url and port:
+            raise ValueError('only one of `url` or `port` can be specified')
+
+        if url:
+            while ':' in url:
+                url = url.split(':', 1)[1]
+            url  = url.replace('+', '-')
+            port = url
 
 
         # FIXME: interpret hostname part as specification for the interface to
