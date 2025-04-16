@@ -62,7 +62,8 @@ class TestZMQServer(TestCase):
         s = Server()
         self.assertTrue  (s.uid.startswith('server'))
         self.assertIsNone(s.addr)
-        self.assertEqual (s._url, 'tcp://*:10000-11000')
+        self.assertEqual (s._pmin, None)
+        self.assertEqual (s._pmax, None)
 
         self.assertFalse(s._up.is_set())
         self.assertFalse(s._term.is_set())
@@ -71,13 +72,9 @@ class TestZMQServer(TestCase):
         s = Server(uid=uid)
         self.assertEqual(s.uid, uid)
 
-        with self.assertRaises(AssertionError):
-            # port(s) not set
-            Server(url='tcp://*')
-
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             # port(s) set incorrectly
-            Server(url='tcp://*:10000-11000-22000')
+            Server(port='10000-11000-22000')
 
         # default callbacks
         self.assertIn('echo', s._cbs)
@@ -117,7 +114,7 @@ class TestZMQServer(TestCase):
     @mock.patch('radical.utils.zmq.server.Profiler')
     def test_start(self, mocked_profiler, mocked_logger):
 
-        s = Server(url='tcp://*:12345')
+        s = Server(port=12345)
         s.start()
         self.assertTrue(s.addr.endswith('12345'))
 
@@ -127,10 +124,8 @@ class TestZMQServer(TestCase):
             # `start()` can be called only once
             s.start()
 
-        s2 = Server(url='tcp://*:12345-')
+        s2 = Server(port='12345-')
         s2.start()
-        # logged warning about port already in use
-        self.assertTrue(s2._log.warn.called)
         self.assertTrue(s2.addr.endswith('12346'))
 
         s2.stop()
@@ -152,7 +147,7 @@ class TestZMQServer(TestCase):
         mocked_zmq_ctx().socket().bind = mock.Mock(
             side_effect=zmq.error.ZMQError(msg='random ZMQ error'))
 
-        with self.assertRaises(zmq.error.ZMQError):
+        with self.assertRaises(RuntimeError):
             s._work()
 
 
