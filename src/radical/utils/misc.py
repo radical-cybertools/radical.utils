@@ -843,7 +843,6 @@ def find_port(port_min: int = None,
         port_max = 65535
 
     for port in range(port_min, port_max + 1):
-        time.sleep(0.1)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
