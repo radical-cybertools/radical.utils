@@ -7,6 +7,7 @@
     "report_tgt" : "${RADICAL_DEFAULT_REPORT_TGT:stderr}",
     "report_dir" : "${RADICAL_DEFAULT_REPORT_DIR:$PWD}",
     "profile"    : "${RADICAL_DEFAULT_PROFILE:TRUE}",
-    "profile_dir": "${RADICAL_DEFAULT_PROFILE_DIR:$PWD}"
+    "profile_dir": "${RADICAL_DEFAULT_PROFILE_DIR:$PWD}",
+    "iface"      : "${RADICAL_DEFAULT_IFACE}"
 }
 
