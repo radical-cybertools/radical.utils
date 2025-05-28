@@ -160,7 +160,6 @@ class Profiler(object):
 
         ru_def = DefaultConfig()
 
-
         if not ns:
             ns = name
 

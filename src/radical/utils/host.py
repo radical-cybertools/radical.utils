@@ -10,7 +10,8 @@ import socket
 
 from functools import reduce
 
-from .misc import as_list, ru_open
+from .misc   import as_list, ru_open
+from .config import DefaultConfig
 
 
 # ------------------------------------------------------------------------------
@@ -31,16 +32,9 @@ def get_hostname():
 
 # ------------------------------------------------------------------------------
 #
-_hostip = None
-
-
 def get_hostip(req=None, log=None):
     """Look up the IP address for a given requested interface name.
     If interface is not given, do some magic."""
-
-    global _hostip                                       # pylint: disable=W0603
-    if _hostip:
-        return _hostip
 
     AF_INET = netifaces.AF_INET
 
@@ -52,11 +46,14 @@ def get_hostip(req=None, log=None):
     # Then this list is traversed, we check if the interface exists and has an
     # IP address.  The first match is used.
 
+    if not req:
+        req = DefaultConfig().get('iface')
+
     req = as_list(req)
 
     white_list = [
         'ens1f1',   # amarel
-      # 'ib0',      # infiniband
+        'ib0',      # infiniband   # NOTE: unusable on Amarel, use `req` there!
         'hsn0',     # Frontier (HPE Cray EX)
         'ipogif0',  # Cray's
         'br0',      # SuperMIC
@@ -105,7 +102,6 @@ def get_hostip(req=None, log=None):
             log.debug('check iface %s: ip is %s', iface, ip)
 
         if ip:
-            _hostip = ip
             return ip
 
     return '127.0.0.1'
