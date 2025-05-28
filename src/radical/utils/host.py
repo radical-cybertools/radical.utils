@@ -101,7 +101,8 @@ def get_hostip(req=None, log=None):
         if log:
             log.debug('check iface %s: ip is %s', iface, ip)
 
-        return ip
+        if ip:
+            return ip
 
     return '127.0.0.1'
 
