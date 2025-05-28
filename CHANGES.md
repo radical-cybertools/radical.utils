@@ -3,6 +3,18 @@ For a list of open issues and known problems, see
 https://github.com/radical-cybertools/radical.utils/issues/
 
 
+1.102.0 Release                                                       2025-05-28
+--------------------------------------------------------------------------------
+
+  - atomic write_json
+  - fix #436
+  - gracefully handle unsynced profiles
+  - make default network iface configurable
+  - move python version to 3.8
+  - remove ip caching
+  - rtd fix
+
+
 1.100.0 Release                                                       2025-03-05
 --------------------------------------------------------------------------------
 
