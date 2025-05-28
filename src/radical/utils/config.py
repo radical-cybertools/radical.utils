@@ -441,6 +441,7 @@ class DefaultConfig(Config, metaclass=DefaultConfigMeta):
         'report_dir' : str,
         'profile'    : bool,
         'profile_dir': str,
+        'iface'      : list,
     }
 
     # --------------------------------------------------------------------------
