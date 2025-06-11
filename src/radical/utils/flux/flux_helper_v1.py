@@ -5,7 +5,7 @@ import queue
 import threading as mt
 
 from collections import defaultdict
-from typing      import List
+from typing      import List, Union
 
 from ..misc       import as_list
 from ..ids        import generate_id
@@ -277,7 +277,7 @@ class FluxHelperV1(object):
 
     # --------------------------------------------------------------------------
     #
-    def cancel(self, tids: [str|List[str]]) -> None:
+    def cancel(self, tids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 
@@ -292,7 +292,7 @@ class FluxHelperV1(object):
 
     # --------------------------------------------------------------------------
     #
-    def wait(self, tids: [str|List[str]]) -> None:
+    def wait(self, tids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 
