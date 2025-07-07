@@ -64,7 +64,8 @@ class FluxService(object):
 
         try:
             for line in lines:
-                self._log.info('=== line: %s', line)
+                self._log.info('%s: flux io : %s', self._uid, line)
+
                 if line.startswith('FLUX_URI='):
                     parts = line.strip().split(' ', 1)
                     self._log.info('%s: found flux info: %s', self._uid, parts)

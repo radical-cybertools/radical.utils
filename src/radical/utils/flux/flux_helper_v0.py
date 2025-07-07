@@ -24,7 +24,7 @@ class FluxHelperV0(object):
     def __init__(self, uri : str,
                        log : Logger = None) -> None:
 
-        print('=== v0 flux helper ===')
+      # print('=== v0 flux helper ===')
 
         self._uri      = uri
         self._log      = log or Logger('radical.utils.flux')
