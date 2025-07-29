@@ -1,14 +1,13 @@
 
+# pylint: disable=E1136
+
 __author__    = 'RADICAL-Cybertools Team'
 __copyright__ = 'Copyright 2021, The RADICAL-Cybertools Team'
 __license__   = 'MIT'
 
 import collections
-import math
 import netifaces
 import socket
-
-from functools import reduce
 
 from .misc   import as_list, ru_open
 from .config import DefaultConfig
@@ -162,7 +161,6 @@ def compress_hostlist(nodes):
         prefix += char
 
     plen = len(prefix)
-    clen = len(nodes[0]) - plen
 
     for node in nodes:
 
@@ -183,7 +181,7 @@ def compress_hostlist(nodes):
 
         node_idx  = int(node[plen:])
         start_idx = int(start[plen:]) if start else None
-        end_idx   = int(end[plen:])   if end else None
+        end_idx   = int(end[plen:])   if end   else None
 
         if not start:
             start = node
