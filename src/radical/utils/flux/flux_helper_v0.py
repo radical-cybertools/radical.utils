@@ -6,7 +6,7 @@ import threading as mt
 
 from functools   import partial
 from collections import defaultdict
-from typing      import List
+from typing      import List, Union
 
 from ..misc       import as_list
 from ..ids        import generate_id
@@ -24,7 +24,7 @@ class FluxHelperV0(object):
     def __init__(self, uri : str,
                        log : Logger = None) -> None:
 
-        print('=== v0 flux helper ===')
+      # print('=== v0 flux helper ===')
 
         self._uri      = uri
         self._log      = log or Logger('radical.utils.flux')
@@ -187,7 +187,7 @@ class FluxHelperV0(object):
 
     # --------------------------------------------------------------------------
     #
-    def cancel(self, fids: [str|List[str]]) -> None:
+    def cancel(self, fids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 
@@ -201,7 +201,7 @@ class FluxHelperV0(object):
 
     # --------------------------------------------------------------------------
     #
-    def wait(self, fids: [str|List[str]]) -> None:
+    def wait(self, fids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 

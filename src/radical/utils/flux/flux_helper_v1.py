@@ -5,7 +5,7 @@ import queue
 import threading as mt
 
 from collections import defaultdict
-from typing      import List
+from typing      import List, Union
 
 from ..misc       import as_list
 from ..ids        import generate_id
@@ -23,7 +23,7 @@ class FluxHelperV1(object):
     def __init__(self, uri : str,
                        log : Logger = None) -> None:
 
-        print('=== v1 flux helper ===')
+      # print('=== v1 flux helper ===')
 
         self._uri      = uri
         self._log      = log or Logger('radical.utils.flux')
@@ -133,7 +133,7 @@ class FluxHelperV1(object):
     #
     def _swatcher(self):
 
-        self._log.debug('=== swatcher started')
+        self._log.debug('swatcher started')
 
         # if we get new specs, submit them, return IDs to iqueue, and also
         # forward ID to ewatcher
@@ -142,7 +142,7 @@ class FluxHelperV1(object):
 
             try:
                 specs = self._squeue.get(block=True, timeout=1.0)
-                self._log.debug('=== got %d specs', len(specs))
+                self._log.debug('got %d specs', len(specs))
 
             except queue.Empty:
                 continue
@@ -175,7 +175,7 @@ class FluxHelperV1(object):
 
                 finally:
                     # trigger submit completion
-                    self._log.debug('=== submit done')
+                    self._log.debug('submit done')
                     self._sevent.set()
 
 
@@ -277,7 +277,7 @@ class FluxHelperV1(object):
 
     # --------------------------------------------------------------------------
     #
-    def cancel(self, tids: [str|List[str]]) -> None:
+    def cancel(self, tids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 
@@ -292,7 +292,7 @@ class FluxHelperV1(object):
 
     # --------------------------------------------------------------------------
     #
-    def wait(self, tids: [str|List[str]]) -> None:
+    def wait(self, tids: [Union[str, List[str]]]) -> None:
 
         with self._api_lock:
 
