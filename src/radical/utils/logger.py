@@ -488,7 +488,9 @@ class Logger(object):
     #
     def __getattr__(self, name):
 
-        self._ensure_handler()
+        if name != '_logger':
+            self._ensure_handler()
+
         try:
             return getattr(self, name)
         except:

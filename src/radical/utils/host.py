@@ -135,26 +135,96 @@ def create_hostfile(sandbox, name, hostlist, sep=' ', impaired=False):
 
 # ------------------------------------------------------------------------------
 #
-def compress_hostlist(hostlist):
+def compress_hostlist(nodes):
+    '''
+    Assume that a batch allocation has these nodes:
 
-    # create dict: {'host1': x, 'host2': y}
-    count_dict = dict(collections.Counter(hostlist))
-    # find the gcd of the host counts (gcd of a list of numbers)
-    host_gcd = reduce(math.gcd, set(count_dict.values()))
+       nodes = ['node01', 'node02', 'node03', 'node04',
+                'node15', 'node17', 'node18']
 
-    # divide host counts by the gcd
-    for host in count_dict:
-        count_dict[host] /= host_gcd
+    then the nodelist is compressed to:
 
-    # recreate a list of hosts based on the normalized dict
-    hosts = []
-    for host, count in count_dict.items():
-        hosts.extend([host] * int(count))
+       nodelist = 'node[01-04,15,17-18]'
 
-    # sort the list for readability
-    hosts.sort()
+    NOTE: not support yet for further packing like:
 
-    return hosts
+       nodelist = 'node0[1-4],node1[5,7-8]'
+    '''
+
+    if not nodes:
+        return ''
+
+    nodes  = sorted(nodes)
+    prefix = ''
+    for char in nodes[0]:
+        if char.isdigit():
+            break
+        prefix += char
+
+    plen = len(prefix)
+    clen = len(nodes[0]) - plen
+
+    for node in nodes:
+
+        if not node.startswith(prefix):
+            raise ValueError('nodes do not have the same prefix: %s' % nodes)
+
+        if not node[len(prefix):].isdigit():
+            raise ValueError('nodes do not have numeric suffix: %s' % nodes)
+
+    if len(nodes) == 1:
+        return nodes[0]
+
+    ranges = list()
+    start  = None
+    end    = None
+
+    for node in nodes:
+
+        node_idx  = int(node[plen:])
+        start_idx = int(start[plen:]) if start else None
+        end_idx   = int(end[plen:])   if end else None
+
+        if not start:
+            start = node
+            continue
+
+        if not end:
+            # if we have no end yet, check if we have a consecutive node and
+            # mark the new end
+            if node_idx == start_idx + 1:
+                end = node
+                continue
+
+            else:
+                # store the previous node and start a new range
+                ranges.append('%s' % start[plen:])
+                start = node
+
+        else:
+            # if we have an end, check if we have a consecutive node and move
+            # the end
+            if node_idx == end_idx + 1:
+                end = node
+                continue
+
+            else:
+                # otherwise, store the previous range and start a new one
+                ranges.append('%s-%s' % (start[plen:], end[plen:]))
+                start = node
+                end   = None
+
+    # if we have a start but no end, we need to store the last node
+    # if we have an end, we need to store the last range
+    if start:
+        if end:
+            ranges.append('%s-%s' % (start[plen:], end[plen:]))
+        else:
+            ranges.append('%s' % start[plen:])
+
+    new = '%s[%s]' % (prefix, ','.join(ranges))
+
+    return new
 
 
 # ------------------------------------------------------------------------------

@@ -349,6 +349,29 @@ def lazy_bisect(data, check,
 
     '''
 
+  # good = list()
+  # bad  = list()
+  # fail = list()
+  #
+  # for item in data:
+  #     try:
+  #         if check(item):
+  #             good.append(item)
+  #             if on_ok:
+  #                 on_ok(item)
+  #         else:
+  #             bad.append(item)
+  #             if on_nok:
+  #                 on_nok(item)
+  #     except Exception as e:
+  #         fail.append([item, str(e)])
+  #         if on_fail:
+  #             on_fail(item, str(e))
+  #
+  # return good, bad, fail
+
+    # --------------------------------------------------------------------------
+
     if not data:
         return [], [], []
 
