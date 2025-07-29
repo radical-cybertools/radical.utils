@@ -6,7 +6,7 @@ from .typeddict import as_dict, TypedDict
 
 # ------------------------------------------------------------------------------
 #
-class _CType:
+class _ClassType:
 
     def __init__(self, ctype, encode, decode):
 
@@ -33,15 +33,9 @@ def register_serializable(cls, encode=None, decode=None):
     if encode is None: encode = cls
     if decode is None: decode = cls
 
-    _ctypes[cls.__name__] = _CType(cls, encode, decode)
+    _ctypes[cls.__name__] = _ClassType(cls, encode, decode)
 
 register_serializable(TypedDict)
-
-
-# ------------------------------------------------------------------------------
-#
-def _prep_typed_dict(d):
-    return as_dict(d, _annotate=True)
 
 
 # ------------------------------------------------------------------------------
@@ -56,7 +50,6 @@ class _json_encoder(json.JSONEncoder):
         return super().encode(tmp, *args, **kw)
 
     def default(self, o):
-      # print('encode: %s' % o)
         for cname,methods in _ctypes.items():
             if isinstance(o, methods.ctype):
                 return {'_type': cname,
@@ -70,16 +63,19 @@ def _json_decoder(obj):
     '''
     internal methods to decode registered classes from json
     '''
-  # print('decode: %s' % obj)
-    for cname, methods in _ctypes.items():
-      # print('check %s' % cname)
-        if '_type' in obj and obj['_type'] == cname:
-            del obj['_type']
-          # print('found %s' % cname)
-            if 'as_str' in obj:
-                return methods.decode(obj['as_str'])
-            return methods.decode(obj)
-    return obj
+    otype = obj.get('_type')
+    if not otype:
+        return obj
+
+    methods = _ctypes.get(otype)
+    if not methods:
+        return obj
+
+    del obj['_type']
+    if 'as_str' in obj:
+        return methods.decode(obj['as_str'])
+
+    return methods.decode(obj)
 
 
 # ------------------------------------------------------------------------------
@@ -166,7 +162,8 @@ def from_msgpack(data):
     Returns:
         object: deserialized data
     '''
-    return msgpack.unpackb(data, object_hook=_msgpack_decoder, raw=False)
+    return msgpack.unpackb(data, object_hook=_msgpack_decoder,
+                           raw=False, strict_map_key=False)
 
 
 # ------------------------------------------------------------------------------

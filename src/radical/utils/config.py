@@ -40,7 +40,7 @@ the location of the user provided config files.
 
 For example, the module `radical.utils` will have the following config dirs:
 
-    sys_config_dir = /tmp/ve/lib/python3.7/site-packages/radical/utils/configs
+    sys_config_dir = /tmp/ve/lib/python3.8/site-packages/radical/utils/configs
     usr_config_dir = /home/merzky/.radical/utils/configs
 
 After loading the system level config file, any existing user level config
@@ -441,6 +441,7 @@ class DefaultConfig(Config, metaclass=DefaultConfigMeta):
         'report_dir' : str,
         'profile'    : bool,
         'profile_dir': str,
+        'iface'      : list,
     }
 
     # --------------------------------------------------------------------------

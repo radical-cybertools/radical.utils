@@ -77,17 +77,22 @@ class TypedDictMeta(type):
             '_defaults'    : {},
             '_self_default': False,  # convert unschemed-dict into class itself
             '_check'       : False,  # attribute type checking on set
-            '_cast'        : True    # attempt to cast on type mismatch
+            '_cast'        : True,   # attempt to cast on type mismatch
+            '_deep'        : True    # use deepcopy on defaults
         }
 
         for _cls in bases:
+            deep = namespace.get('_deep', _base_namespace['_deep'])
             for k in _base_namespace.keys():
                 _cls_v = getattr(_cls, k, None)
                 if _cls_v is not None:
                     if   k == '_schema':
                         _base_namespace[k].update(_cls_v)
                     elif k == '_defaults':
-                        _base_namespace[k].update(copy.deepcopy(_cls_v))
+                        if deep:
+                            _base_namespace[k].update(copy.deepcopy(_cls_v))
+                        else:
+                            _base_namespace[k].update(_cls_v)
                     else:
                         _base_namespace[k] = _cls_v
 
@@ -151,8 +156,15 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
         register_serializable(self.__class__)
 
-        self.update(copy.deepcopy(self._defaults))
-        self.update(from_dict)
+
+        if self._deep:
+            self.__dict__['_data'] = copy.deepcopy(self._defaults)
+        else:
+            self.__dict__['_data'] = dict()
+            self.__dict__['_data'].update(self._defaults)
+
+        if from_dict:
+            self.update(from_dict)
 
         if kwargs:
             self.update(kwargs)
@@ -218,7 +230,10 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         return self._data[k]
 
     def __setitem__(self, k, v):
-        self._data[k] = self._verify_setter(k, v)
+        if self._check :
+            self._data[k] = self._verify_setter(k, v)
+        else:
+            self._data[k] = v
 
     def __delitem__(self, k):
         del self._data[k]
@@ -285,8 +300,6 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     def __getattr__(self, k):
 
         if k == '_data':
-            if '_data' not in self.__dict__:
-                self.__dict__['_data'] = dict()
             return self.__dict__['_data']
 
         if k.startswith('__'):
@@ -304,7 +317,10 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         if k.startswith('__'):
             return object.__setattr__(self, k, v)
 
-        self._data[k] = self._verify_setter(k, v)
+        if self._check :
+            self._data[k] = self._verify_setter(k, v)
+        else:
+            self._data[k] = v
 
     def __delattr__(self, k):
 
@@ -326,7 +342,19 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     # --------------------------------------------------------------------------
     #
     def as_dict(self, _annotate=False):
-        return as_dict(self._data, _annotate)
+
+        tgt = dict()
+
+        for k, v in self._data.items():
+
+            if isinstance(v, TypedDict):
+                tgt[k] = v.as_dict(_annotate=_annotate)
+            else:
+                tgt[k] = as_dict(v, _annotate=_annotate)
+            if _annotate:
+                tgt['_type'] = type(self).__name__
+
+        return tgt
 
 
     # --------------------------------------------------------------------------
@@ -502,18 +530,18 @@ def as_dict(src, _annotate=False):
     values, and return the result (effectively a shallow copy).
     '''
     if isinstance(src, TypedDict):
-        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
-        if _annotate:
-            tgt['_type'] = type(src).__name__
-    elif isinstance(src, dict):
-        tgt = {k: as_dict(v, _annotate) for k, v in src.items()}
-    elif isinstance(src, list):
-        tgt = [as_dict(x, _annotate) for x in src]
-    elif isinstance(src, tuple):
-        tgt = tuple([as_dict(x, _annotate) for x in src])
-    else:
-        tgt = src
-    return tgt
+        return src.as_dict(_annotate=_annotate)
+
+    if isinstance(src, dict):
+        return {k: as_dict(v, _annotate) for k, v in src.items()}
+
+    if isinstance(src, list):
+        return [as_dict(x, _annotate) for x in src]
+
+    if isinstance(src, tuple):
+        return tuple([as_dict(x, _annotate) for x in src])
+
+    return src
 
 
 # ------------------------------------------------------------------------------

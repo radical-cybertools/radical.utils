@@ -13,6 +13,7 @@ from .threads import get_thread_name as ru_get_thread_name
 from .config  import DefaultConfig
 from .atfork  import atfork
 from .shell   import sh_callout
+from .which   import which
 from .modules import import_module
 
 
@@ -181,7 +182,6 @@ class Profiler(object):
         '''
 
         ru_def = DefaultConfig()
-
 
         if not ns:
             ns = name
@@ -692,25 +692,23 @@ def combine_profiles(profs):
             continue
 
         if not syncs[pname]['abs']:
-          # print('no sync_abs event: %s' % prof[0])
-            continue
 
-        sync_abs = syncs[pname]['abs'][0]
-
-      # print(MSG)
-      # print(sync_abs)
-      # print(sync_abs[MSG])
-      # print(sync_abs[MSG].split(':'))
-        host, ip, _, _, _ = sync_abs[MSG].split(':')
-        host_id = '%s:%s' % (host, ip)
-        if host_id in t_host:
-            t_off = t_host[host_id]
-        else:
-            unsynced.add(host_id)
             t_off = 0.0
 
-        t_0 = sync_abs[TIME]
-        t_0 -= t_min
+        else:
+
+            sync_abs = syncs[pname]['abs'][0]
+
+            host, ip, _, _, _ = sync_abs[MSG].split(':')
+            host_id = '%s:%s' % (host, ip)
+            if host_id in t_host:
+                t_off = t_host[host_id]
+            else:
+                unsynced.add(host_id)
+                t_off = 0.0
+
+            t_0 = sync_abs[TIME]
+            t_0 -= t_min
 
         # correct profile timestamps
         for row in prof:
@@ -849,8 +847,9 @@ def event_to_label(event):
 #
 class Yappi(object):
 
-    def __init__(self, name, method='wall'):
+    def __init__(self, name, method='wall', verbose=False):
         self._name  = name
+        self._verb  = verbose
         self._yappi = None
         try:
             self._yappi = import_module('yappi')
@@ -866,17 +865,23 @@ class Yappi(object):
 
         if self._yappi:
 
-          # self._yappi.get_thread_stats().print_all()
+            if self._verb:
+                self._yappi.get_func_stats().print_all()
+                self._yappi.get_thread_stats().print_all()
 
             fstats = self._yappi.get_func_stats()
             pstats = self._yappi.convert2pstats(fstats)
             pstats.dump_stats('%s.pstats' % self._name)
 
-            cmd  = 'gprof2dot -e 0.00 -n 0.12 --skew=0.3'
-            cmd += ' --node-label="total-time" -f pstats %s.pstats' % self._name
-            cmd += ' | dot -Tpng -o %s.png' % self._name
+            if which('gprof2dot'):
 
-            sh_callout(cmd, shell=True)
+                cmd  = 'gprof2dot -e 0.00 -n 0.12 --skew=0.3'
+                cmd += ' --node-label="total-time" -f pstats %s.pstats' % self._name
+                cmd += ' | dot -Tpng -o %s.png' % self._name
+
+                out, err, ret = sh_callout(cmd, shell=True)
+                if ret:
+                    print('gprof2dot failed: %s' % err)
 
 
 # ------------------------------------------------------------------------------
