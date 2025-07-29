@@ -25,9 +25,9 @@ from .utils      import log_bulk, LOG_ENABLED
 
 # --------------------------------------------------------------------------
 #
-_LINGER_TIMEOUT    =  250  # ms to linger after close
-_HIGH_WATER_MARK   =    0  # number of messages to buffer before dropping
-_DEFAULT_BULK_SIZE = 1024  # number of messages to put in a bulk
+_LINGER_TIMEOUT    =     250  # ms to linger after close
+_HIGH_WATER_MARK   =       0  # number of messages to buffer before dropping
+_DEFAULT_BULK_SIZE = 1024 * 8 # number of messages to put in a bulk
 
 
 # ------------------------------------------------------------------------------
