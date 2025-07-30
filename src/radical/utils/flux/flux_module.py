@@ -144,7 +144,7 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
 
     version = 1
     user    = {'uid'     : td.get('uid', generate_id('ru_flux', ID_SIMPLE))}
-    system  = {'duration': td.get('duration', 0.0)}
+    system  = {'duration': td.get('timeout', 0.0)}
     tasks   = [{'command': [td['executable']] + td.get('arguments', []),
                 'slot'   : 'task',
                 'count'  : {'per_slot': 1}}]
