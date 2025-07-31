@@ -315,6 +315,9 @@ def get_hostlist(hoststring):
 
             idx = closed_bracket_idx + 1
 
+    # make sure to strip all names
+    output = [h.strip() for h in output]
+
     return output
 
 
