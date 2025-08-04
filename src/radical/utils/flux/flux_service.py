@@ -26,7 +26,7 @@ class FluxService(object):
                        ) -> None:
 
         self._uid      = uid      or generate_id('ru.flux')
-        self._log      = log      or Logger('radical.utils.flux')
+        self._log      = log      or Logger(self._uid)
         self._launcher = launcher or ''
 
         self._fm    = FluxModule()
