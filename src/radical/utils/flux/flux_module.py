@@ -152,9 +152,6 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
     if 'environment' in td: system['environment'] = td['environment']
     if 'sandbox'     in td: system['cwd']         = td['sandbox']
     if 'shell'       in td: system['shell']       = td['shell']
-    if 'stdin'       in td: system['stdin']       = td['stdin']
-    if 'stdout'      in td: system['stdout']      = td['stdout']
-    if 'stderr'      in td: system['stderr']      = td['stderr']
 
     attributes = {'system' : system,
                   'user'   : user}
@@ -176,6 +173,11 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
                             attributes=attributes,
                             tasks=tasks,
                             version=version)
+
+    if td.get('stdin') : spec.stdin  = td['stdin']
+    if td.get('stdout'): spec.stdout = td['stdout']
+    if td.get('stderr'): spec.stderr = td['stderr']
+
     return spec
 
 
