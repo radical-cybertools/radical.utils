@@ -155,7 +155,9 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
 
     attributes = {'system' : system,
                   'user'   : user}
-    resources  = [{'count': td.get('ranks', 1),
+
+    n_ranks = td.get('ranks', 1)
+    resources  = [{'count': n_ranks,
                    'type' : 'slot',
                    'label': 'task',
                    'with' : [{
@@ -173,6 +175,13 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
                             attributes=attributes,
                             tasks=tasks,
                             version=version)
+
+    if n_ranks > 1:
+        if td.get('use_mpi', True):
+            # ensure that all ranks exit if one rank fails
+            spec.setattr_shell_option('exit-on-error', 1)  # defaults to 0
+        else:
+            spec.setattr_shell_option('exit-timeout', 'none') # defaults to 30
 
     if td.get('stdin') : spec.stdin  = td['stdin']
     if td.get('stdout'): spec.stdout = td['stdout']
