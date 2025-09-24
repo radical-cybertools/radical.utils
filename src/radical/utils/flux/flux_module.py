@@ -131,6 +131,8 @@ def spec_from_command(cmd: str) -> 'flux.job.JobspecV1':
     fm = FluxModule()
 
     spec = fm.job.JobspecV1.from_command(shlex.split(cmd))
+    if not 'user' in spec.attributes:
+        spec.attributes['user'] = dict()
     spec.attributes['user']['uid'] = generate_id(ID_SIMPLE)
 
     return spec
