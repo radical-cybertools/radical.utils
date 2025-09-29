@@ -270,7 +270,11 @@ class FluxHelperV1(object):
 
             self._sevent.clear()
             self._squeue.put(specs)
-            self._sevent.wait()  # FIXME: timeout?
+            self._sevent.wait(timeout=60.0)
+
+            if not self._sevent.is_set():
+                raise RuntimeError('flux submit timeout')
+
             self._log.debug('== submit %d specs done', len(specs))
 
             return tids
