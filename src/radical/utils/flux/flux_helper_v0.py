@@ -60,7 +60,6 @@ class FluxHelperV0(object):
         with self._api_lock:
 
             # FIXME: shutdown flux instance
-            self._flux_service = None
             self._uri          = None
             self._handle       = None
 
