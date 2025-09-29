@@ -35,6 +35,7 @@ class FluxHelperV1(object):
 
         # journal watcher
         self._jthread  = None
+        self._jterm    = mt.Event()
 
         # event handle thread
         self._ethread  = None
@@ -116,7 +117,7 @@ class FluxHelperV1(object):
         journal = self._fm.job.JournalConsumer(fh)
         journal.start()
 
-        while True:
+        while not self._jterm.is_set():
 
             try:
                 event = journal.poll(timeout=1.0)
