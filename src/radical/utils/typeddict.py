@@ -158,11 +158,13 @@ class TypedDict(dict, metaclass=TypedDictMeta):
 
 
         if self._deep:
-            self.update(copy.deepcopy(self._defaults))
+            self.__dict__['_data'] = copy.deepcopy(self._defaults)
         else:
-            self.update(self._defaults)
+            self.__dict__['_data'] = dict()
+            self.__dict__['_data'].update(self._defaults)
 
-        self.update(from_dict)
+        if from_dict:
+            self.update(from_dict)
 
         if kwargs:
             self.update(kwargs)
@@ -228,7 +230,10 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         return self._data[k]
 
     def __setitem__(self, k, v):
-        self._data[k] = self._verify_setter(k, v)
+        if self._check :
+            self._data[k] = self._verify_setter(k, v)
+        else:
+            self._data[k] = v
 
     def __delitem__(self, k):
         del self._data[k]
@@ -295,8 +300,6 @@ class TypedDict(dict, metaclass=TypedDictMeta):
     def __getattr__(self, k):
 
         if k == '_data':
-            if '_data' not in self.__dict__:
-                self.__dict__['_data'] = dict()
             return self.__dict__['_data']
 
         if k.startswith('__'):
@@ -314,7 +317,10 @@ class TypedDict(dict, metaclass=TypedDictMeta):
         if k.startswith('__'):
             return object.__setattr__(self, k, v)
 
-        self._data[k] = self._verify_setter(k, v)
+        if self._check :
+            self._data[k] = self._verify_setter(k, v)
+        else:
+            self._data[k] = v
 
     def __delattr__(self, k):
 
