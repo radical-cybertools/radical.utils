@@ -6,4 +6,5 @@ psutil
 pyzmq
 regex
 setproctitle
+rc.process
 

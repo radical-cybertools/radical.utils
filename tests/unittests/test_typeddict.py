@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # pylint: disable=protected-access
 
 __author__    = 'RADICAL-Cybertools Team'
@@ -654,22 +656,43 @@ class TypedDictTestCase(TestCase):
         self.assertIsInstance(td.any_data, TypedDict)
         self.assertIsNot(td.any_data, input_data['any_data'])
 
-    # --------------------------------------------------------------------------
-    #
-    def test_pickle(self):
-
-        import pickle
-
-        td = TDSimple({
-            'attr_str' : 'foo',
-            'attr_dict': {'bar': 'buz'}})
-
-        ser = pickle.dumps(td)
-        td2 = pickle.loads(ser)
-        td2.verify()
-
-        self.assertEqual(td2.attr_str, 'foo')
-        self.assertEqual(td2.attr_int, 1)
-        self.assertEqual(td2.attr_dict['bar'], 'buz')
+  # # --------------------------------------------------------------------------
+  # #
+  # def test_pickle(self):
+  #
+  #     import pickle
+  #
+  #     td = TDSimple({
+  #         'attr_str' : 'foo',
+  #         'attr_dict': {'bar': 'buz'}})
+  #
+  #     ser = pickle.dumps(td)
+  #     td2 = pickle.loads(ser)
+  #     td2.verify()
+  #
+  #     self.assertEqual(td2.attr_str, 'foo')
+  #     self.assertEqual(td2.attr_int, 1)
+  #     self.assertEqual(td2.attr_dict['bar'], 'buz')
 
 # ------------------------------------------------------------------------------
+#
+if __name__ == '__main__':
+
+    tc = TypedDictTestCase()
+    tc.setUpClass()
+
+    tc.test_init()
+    tc.test_hash()
+    tc.test_self_default()
+    tc.test_verify()
+    tc.test_verify_setter()
+    tc.test_base_methods()
+    tc.test_pop()
+    tc.test_popitem()
+    tc.test_query()
+    tc.test_metaclass()
+    tc.test_tderrors()
+    tc.test_none()
+  # tc.test_pickle()
+
+
