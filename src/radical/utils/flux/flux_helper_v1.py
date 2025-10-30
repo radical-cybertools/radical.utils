@@ -35,6 +35,7 @@ class FluxHelperV1(object):
 
         # journal watcher
         self._jthread  = None
+        self._jterm    = mt.Event()
 
         # event handle thread
         self._ethread  = None
@@ -116,7 +117,7 @@ class FluxHelperV1(object):
         journal = self._fm.job.JournalConsumer(fh)
         journal.start()
 
-        while True:
+        while not self._jterm.is_set():
 
             try:
                 event = journal.poll(timeout=1.0)
@@ -269,7 +270,11 @@ class FluxHelperV1(object):
 
             self._sevent.clear()
             self._squeue.put(specs)
-            self._sevent.wait()  # FIXME: timeout?
+            self._sevent.wait(timeout=60.0)
+
+            if not self._sevent.is_set():
+                raise RuntimeError('flux submit timeout')
+
             self._log.debug('== submit %d specs done', len(specs))
 
             return tids

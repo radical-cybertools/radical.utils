@@ -131,6 +131,8 @@ def spec_from_command(cmd: str) -> 'flux.job.JobspecV1':
     fm = FluxModule()
 
     spec = fm.job.JobspecV1.from_command(shlex.split(cmd))
+    if not 'user' in spec.attributes:
+        spec.attributes['user'] = dict()
     spec.attributes['user']['uid'] = generate_id(ID_SIMPLE)
 
     return spec
@@ -152,13 +154,12 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
     if 'environment' in td: system['environment'] = td['environment']
     if 'sandbox'     in td: system['cwd']         = td['sandbox']
     if 'shell'       in td: system['shell']       = td['shell']
-    if 'stdin'       in td: system['stdin']       = td['stdin']
-    if 'stdout'      in td: system['stdout']      = td['stdout']
-    if 'stderr'      in td: system['stderr']      = td['stderr']
 
     attributes = {'system' : system,
                   'user'   : user}
-    resources  = [{'count': td.get('ranks', 1),
+
+    n_ranks = td.get('ranks', 1)
+    resources  = [{'count': n_ranks,
                    'type' : 'slot',
                    'label': 'task',
                    'with' : [{
@@ -176,6 +177,18 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
                             attributes=attributes,
                             tasks=tasks,
                             version=version)
+
+    if n_ranks > 1:
+        if td.get('use_mpi', True):
+            # ensure that all ranks exit if one rank fails
+            spec.setattr_shell_option('exit-on-error', 1)  # defaults to 0
+        else:
+            spec.setattr_shell_option('exit-timeout', 'none') # defaults to 30
+
+    if td.get('stdin') : spec.stdin  = td['stdin']
+    if td.get('stdout'): spec.stdout = td['stdout']
+    if td.get('stderr'): spec.stderr = td['stderr']
+
     return spec
 
 

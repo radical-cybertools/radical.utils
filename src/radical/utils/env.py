@@ -60,7 +60,8 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
+def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None,
+              extend=False):
 
     data = '\n'
     if unset:
@@ -104,7 +105,7 @@ def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
             continue
         if not re_snake_case.match(k):
             continue
-        data += "export %s=%s\n" % (k, _quote(env[k]))
+        data += "export %s=%s\n" % (k, _quote(env[k], extend=extend))
     data += '\n'
 
     if funcs:
@@ -194,14 +195,15 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def _quote(data: str) -> str:
+def _quote(data: str, extend: bool = False) -> str:
 
     if "'" in data or '$' in data or '`' in data:
         # cannot use single quote, so use double quote and escale all other
         # double quotes in the data
         # NOTE: we only support these three types of shell directives
-        data = data.replace('"', '\\"') \
-                   .replace('$', '\\$')
+        data = data.replace('"', '\\"')
+        if not extend:
+            data = data.replace('$', '\\$')
         data = '"' + data + '"'
 
     else:
@@ -407,7 +409,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         _, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
 
         env_write(tmp_name, env=environment, unset=unset, blacklist=blacklist,
-                            pre_exec=pre_exec_cached)
+                            pre_exec=pre_exec_cached, extend=False)
         cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
@@ -430,7 +432,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
         env_write(script_path, env=env, unset=unset, blacklist=blacklist,
-                  pre_exec=pre_exec)
+                  pre_exec=pre_exec, extend=True)
 
     return env
 

@@ -153,6 +153,13 @@ def test_hb_pwatch_py():
         else:
             return True
 
+    def _join(proc, timeout=0.1):
+        proc.join(timeout=timeout)
+        try:
+            os.waitpid(test_proc.pid, os.WNOHANG)
+        except:
+            pass
+
     # watcher process
     def _watcher(action):
 
@@ -208,7 +215,7 @@ def test_hb_pwatch_py():
 
     # after 1.2 seconds, the watcher should have exited
     time.sleep(1.2)
-    test_proc.join(timeout=0.0)
+    _join(test_proc, 0.0)
     assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
@@ -222,7 +229,7 @@ def test_hb_pwatch_py():
 
     # after 0.4 seconds, only second sleep should still be alive
     time.sleep(0.4)
-    test_proc.join(timeout=0.1)
+    _join(test_proc, 0.1)
     assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert     is_alive(pids[2])
@@ -243,14 +250,14 @@ def test_hb_pwatch_py():
 
     # after 0.4 seconds, only second sleep should still be alive
     time.sleep(0.4)
-    test_proc.join(timeout=0.1)
+    _join(test_proc, 0.1)
     assert     is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
 
     # after 0.5 seconds, none of the processes should be alive
     time.sleep(0.5)
-    test_proc.join(timeout=0.1)
+    _join(test_proc, 0.1)
     assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
@@ -265,14 +272,14 @@ def test_hb_pwatch_py():
 
     # after 0.4 seconds, only second sleep should still be alive
     time.sleep(0.4)
-    test_proc.join(timeout=0.1)
+    _join(test_proc, 0.1)
     assert     is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])
 
     # after 0.5 seconds, none of the processes should be alive
     time.sleep(0.5)
-    test_proc.join(timeout=0.1)
+    _join(test_proc, 0.1)
     assert not is_alive(pids[0])
     assert not is_alive(pids[1])
     assert not is_alive(pids[2])

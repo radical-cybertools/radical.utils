@@ -25,7 +25,7 @@ class FluxService(object):
                        launcher: str    = None
                        ) -> None:
 
-        self._uid      = uid      or generate_id('ru.flux')
+        self._uid      = uid      or generate_id('radical.utils.flux')
         self._log      = log      or Logger(self._uid)
         self._launcher = launcher or ''
 
@@ -139,6 +139,7 @@ class FluxService(object):
     def stop(self) -> None:
 
         if not self._proc:
+            self._uri  = None
             return
 
         self._proc.cancel()
