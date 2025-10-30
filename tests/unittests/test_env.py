@@ -126,7 +126,8 @@ def test_env_proc():
     env_proc = ru.EnvProcess(env=env)
 
     with env_proc:
-        env_proc.put(ru.sh_callout('echo -n $%s' % key, shell=True))
+        if env_proc:
+            env_proc.put(ru.sh_callout('echo -n $%s' % key, shell=True))
     out = str(env_proc.get())
 
     assert isinstance(out, str)
