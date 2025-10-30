@@ -60,7 +60,8 @@ def env_read(fname: str) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
+def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None,
+              extend=False):
 
     data = '\n'
     if unset:
@@ -104,7 +105,7 @@ def env_write(script_path, env, unset=None, blacklist=None, pre_exec=None):
             continue
         if not re_snake_case.match(k):
             continue
-        data += "export %s=%s\n" % (k, _quote(env[k]))
+        data += "export %s=%s\n" % (k, _quote(env[k], extend=extend))
     data += '\n'
 
     if funcs:
@@ -194,14 +195,15 @@ def env_read_lines(lines: List[str]) -> Dict[str, str]:
 
 # ------------------------------------------------------------------------------
 #
-def _quote(data: str) -> str:
+def _quote(data: str, extend: bool = False) -> str:
 
     if "'" in data or '$' in data or '`' in data:
         # cannot use single quote, so use double quote and escale all other
         # double quotes in the data
         # NOTE: we only support these three types of shell directives
-        data = data.replace('"', '\\"') \
-                   .replace('$', '\\$')
+        data = data.replace('"', '\\"')
+        if not extend:
+            data = data.replace('$', '\\$')
         data = '"' + data + '"'
 
     else:
@@ -407,7 +409,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
         _, tmp_name = tempfile.mkstemp(prefix=prefix, dir=tgt)
 
         env_write(tmp_name, env=environment, unset=unset, blacklist=blacklist,
-                            pre_exec=pre_exec_cached)
+                            pre_exec=pre_exec_cached, extend=False)
         cmd = '/bin/bash -c ". %s && /usr/bin/env"' % tmp_name
         out, err, ret = sh_callout(cmd)
 
@@ -430,7 +432,7 @@ def env_prep(environment    : Optional[Dict[str,str]] = None,
     # FIXME: files could also be cached and re-used (copied or linked)
     if script_path:
         env_write(script_path, env=env, unset=unset, blacklist=blacklist,
-                  pre_exec=pre_exec)
+                  pre_exec=pre_exec, extend=True)
 
     return env
 
@@ -544,7 +546,12 @@ class EnvProcess(object):
                        exc_tb  : Optional[Any]
                 ) -> None:
 
-        if exc_type and self._child:
+        if self._parent:
+            while self._data is None:
+                try               : self._data = self._q.get(timeout=1)
+                except queue.Empty: pass
+
+        elif exc_type and self._child:
             stacktrace = ' '.join(traceback.format_exception(
                                                      exc_type, exc_val, exc_tb))
             self._q.put([None, exc_type, exc_val, stacktrace])
@@ -553,41 +560,34 @@ class EnvProcess(object):
             os._exit(0)
 
 
-        if self._parent:
-
-            while True:
-                try:
-                    self._data = self._q.get(timeout=1)
-                    break
-                except queue.Empty:
-                    self._data = None
-                    pass
-
-
     # --------------------------------------------------------------------------
     #
     def put(self, data: str) -> None:
 
-        if self._child:
-            self._q.put([data, None, None, None])
-            self._q.close()
-            self._q.join_thread()
-            os._exit(0)
+        assert self._child
+
+        self._q.put([data, None, None, None])
+        self._q.close()
+        self._q.join_thread()
+        os._exit(0)
 
 
     # --------------------------------------------------------------------------
     #
     def get(self) -> Any:
 
+        assert self._parent
+
         if self._data is None:
             return
 
-
         data, exc_type, exc_val, stacktrace = self._data
         if exc_type:
-            sys.stdout.write('%s [%s]\n' % (exc_type, exc_val))
-            sys.stdout.write('%s\n\n' % stacktrace)
-            raise exc_type                    # pylint: disable=raising-bad-type
+            sys.stderr.write('envp excepted %s(%s)\n' % (exc_type, exc_val))
+            sys.stderr.write(stacktrace)
+            sys.stderr.flush()
+            raise RuntimeError('envp failed: %s(%s) - check stderr'
+                               % (exc_type, exc_val))
 
         return data
 

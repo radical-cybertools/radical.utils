@@ -252,20 +252,26 @@ def _generate_id(template, prefix, ns=None):
     if '%(uuid)' in template: info['uuid'] = uuid.uuid1()          # plain uuid
 
     def _read_file_counter(name):
-        fd = os.open(name, os.O_RDWR | os.O_CREAT)
+        output = 0
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
-        except OSError:
-            # fcntl.flock might cause OSError: [Errno 524] Unknown error 524
-            # (the case for Theta@ALCF)
-            fcntl.lockf(fd, fcntl.LOCK_EX)
-        os.lseek(fd, 0, os.SEEK_SET)
-        data = os.read(fd, 256)
-        if not data: output = 0
-        else       : output = int(data)
-        os.lseek(fd, 0, os.SEEK_SET)
-        os.write(fd, str.encode("%d\n" % (output + 1)))
-        os.close(fd)
+            fd = os.open(name, os.O_RDWR | os.O_CREAT)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except OSError:
+                # fcntl.flock might cause OSError: [Errno 524] Unknown error 524
+                # (the case for Theta@ALCF)
+                fcntl.lockf(fd, fcntl.LOCK_EX)
+            os.lseek(fd, 0, os.SEEK_SET)
+            data = os.read(fd, 256)
+            if data: output = int(data)
+            os.lseek(fd, 0, os.SEEK_SET)
+            os.write(fd, str.encode("%d\n" % (output + 1)))
+            os.close(fd)
+        finally:
+            try:
+                os.close(fd)
+            except:
+                pass
         return output
 
     if '%(day_counter)' in template:
