@@ -5,4 +5,5 @@ ntplib
 pyzmq
 regex
 setproctitle
+rc.process
 

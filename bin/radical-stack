@@ -6,7 +6,7 @@ import radical.utils as ru
 
 namespaces = sys.argv[1:]
 if not namespaces:
-    namespaces = ['radical']
+    namespaces = ['radical', 'rc']
 
 stack = ru.stack(namespaces)
 
