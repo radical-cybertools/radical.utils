@@ -66,7 +66,7 @@ from .zmq            import Queue,  Putter,    Getter
 from .zmq            import PubSub, Publisher, Subscriber
 from .zmq            import Server, Client
 
-from .flux           import FluxHelper
+from .flux           import FluxService, FluxHelper
 
 from .logger         import DEBUG, INFO, WARNING, WARN, ERROR, CRITICAL, OFF
 from .logger         import Logger
