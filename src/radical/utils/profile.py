@@ -848,10 +848,14 @@ def event_to_label(event):
 class Yappi(object):
 
     def __init__(self, name, method='wall', verbose=False):
-        self._yappi = import_module('yappi')
-        self._yappi.set_clock_type(method)
-        self._name = name
-        self._verb = verbose
+        self._name  = name
+        self._verb  = verbose
+        self._yappi = None
+        try:
+            self._yappi = import_module('yappi')
+            self._yappi.set_clock_type(method)
+        except:
+            pass
 
     def __enter__(self):
         if self._yappi:
