@@ -14,7 +14,7 @@ from ..profile   import Profiler
 from ..debug     import get_exception_trace
 from ..serialize import to_msgpack, from_msgpack
 
-from .utils      import no_intr
+from .utils      import no_intr, zmq_bind
 
 
 # --------------------------------------------------------------------------
@@ -30,14 +30,13 @@ class Server(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self, url:  Optional[str] = None,
-                       uid:  Optional[str] = None,
-                       path: Optional[str] = None) -> None:
+    def __init__(self, port: Optional[Union[int, str]] = None,
+                       uid : Optional[str]             = None,
+                       path: Optional[str]             = None) -> None:
 
         # this server offers only synchronous communication: a request will be
         # worked upon and answered before the next request is received.
 
-        self._url  = url
         self._cbs  = dict()
         self._path = path
 
@@ -58,91 +57,20 @@ class Server(object):
         self.register_request('echo', self._request_echo)
         self.register_request('fail', self._request_fail)
 
-        if not self._url:
-            self._url = 'tcp://*:10000-11000'
 
-        # URLs can specify port ranges to use - check if that is the case (see
-        # default above) and initilize iterator.  The URL is expected to have
-        # the form:
-        #
-        #   <proto>://<iface>:<ports>/
-        #
-        # where
-        #   <proto>: any protocol accepted by zmq,       defaults to `tcp`
-        #   <iface>: IP number of interface to bind to   defaults to `*`
-        #   <ports>: port range to find port to bind to  defaults to `*`
-        #
-        # The port range can be formed as:
-        #
-        #   '*'      : any port
-        #   '100+'   : any port equal or larger than 100
-        #   '100-'   : any port equal or larger than 100
-        #   '100-110': any port equal or larger than 100, up to 110
-        tmp = self._url.split(':', 2)
-        assert len(tmp) == 3
-        self._proto = tmp[0]
-        self._iface = tmp[1].lstrip('/')
-        self._ports = tmp[2].replace('+', '-')
-
-        tmp = self._ports.split('-')
-
-        self._port_this : Union[int, str, None] = None
-        self._port_start: Optional[int]
-        self._port_stop : Optional[int]
-
-        if len(tmp) == 0:
-            self._port_start = 1
-            self._port_stop  = None
-        elif len(tmp) == 1:
-            if tmp[0] == '*':
-                self._port_this  = '*'
-                self._port_start = None
-                self._port_stop  = None
-            else:
-                self._port_start = int(tmp[0])
-                self._port_stop  = int(tmp[0])
-        elif len(tmp) == 2:
-            if tmp[0]: self._port_start = int(tmp[0])
-            else     : self._port_start = 1
-            if tmp[1]: self._port_stop  = int(tmp[1])
-            else     : self._port_stop  = None
+        # FIXME: interpret hostname part as specification for the interface to
+        #        be used.
+        # `ports` can specify as port ranges to use - check if that is the case
+        if port is None           : pmin = pmax = None
+        elif isinstance(port, str):
+            if '-' in port        : pmin,  pmax = port.split('-', 1)
+            else                  : pmin = pmax = port
+        elif isinstance(port, int): pmin = pmax = port
         else:
-            raise RuntimeError('cannot parse port spec %s' % self._ports)
+            raise ValueError('invalid port specification: %s' % str(port))
 
-
-    # --------------------------------------------------------------------------
-    #
-    def _iterate_ports(self) -> Iterator[Union[int, str, None]]:
-
-        if self._port_this == '*':
-            # leave scanning to zmq
-            yield self._port_this
-
-        if self._port_this is None:
-            # initialize range iterator
-            self._port_this = self._port_start
-
-        if self._port_stop is None:
-            while True:
-                yield self._port_this
-                self._port_this += 1
-
-        else:
-            # make type checker happy
-            assert isinstance(self._port_this,  int)
-            assert isinstance(self._port_start, int)
-
-            while self._port_this <= self._port_stop:
-                yield self._port_this
-                self._port_this += 1
-
-
-    # --------------------------------------------------------------------------
-    #
-    def _iterate_urls(self) -> Iterator[str]:
-
-        for port in self._iterate_ports():
-            yield '%s://%s:%s' % (self._proto, self._iface, port)
+        self._pmin = int(pmin) if pmin else None
+        self._pmax = int(pmax) if pmax else None
 
 
     # --------------------------------------------------------------------------
@@ -163,7 +91,7 @@ class Server(object):
     #
     def start(self) -> None:
 
-        self._log.info('start bridge %s', self._uid)
+        self._log.info('start server %s', self._uid)
 
         if self._thread:
             raise RuntimeError('`start()` can be called only once')
@@ -179,7 +107,7 @@ class Server(object):
     #
     def stop(self) -> None:
 
-        self._log.info('stop bridge %s', self._uid)
+        self._log.info('stop server %s', self._uid)
         self._term.set()
 
 
@@ -187,12 +115,12 @@ class Server(object):
     #
     def wait(self) -> None:
 
-        self._log.info('wait bridge %s', self._uid)
+        self._log.info('wait server %s', self._uid)
 
         if self._thread:
             self._thread.join()
 
-        self._log.info('wait bridge %s', self._uid)
+        self._log.info('wait server %s', self._uid)
 
 
     # --------------------------------------------------------------------------
@@ -249,20 +177,9 @@ class Server(object):
         self._sock.linger = _LINGER_TIMEOUT
         self._sock.hwm    = _HIGH_WATER_MARK
 
-        for url in self._iterate_urls():
-            try:
-                self._log.debug('try url %s', url)
-                self._sock.bind(url)
-                self._log.debug('success')
-                break
-            except zmq.error.ZMQError as e:
-                if 'Address already in use' in str(e):
-                    self._log.warn('port in use - try next (%s)' % url)
-                else:
-                    raise
-
-        addr       = Url(as_string(self._sock.getsockopt(zmq.LAST_ENDPOINT)))
-        addr.host  = get_hostip()
+        addr = zmq_bind(self._sock, port_min=self._pmin,
+                                    port_max=self._pmax)
+        assert addr
         self._addr = str(addr)
 
         self._up.set()
