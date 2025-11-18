@@ -54,6 +54,8 @@ class FluxHelperV1(object):
         self._cbacks   = list()             # list of callbacks
 
         self._fm.verify()
+        for line in (self._fm.version or '').splitlines():
+            self._log.info('flux version: %s', line)
 
 
     # --------------------------------------------------------------------------
