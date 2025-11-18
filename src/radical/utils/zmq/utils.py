@@ -162,17 +162,27 @@ def sock_connect(sock, url, hop=None):
 
 # ------------------------------------------------------------------------------
 #
-def zmq_bind(sock):
+def zmq_bind(sock, port_min: int = None,
+                   port_max: int = None) -> Url:
 
-    while True:
-        port = find_port()
+    prev = -1
+    port = find_port(port_min, port_max)
+
+    while prev != port:
+
+        if not port:
+            raise RuntimeError('no port found in range %s - %s'
+                               % (port_min, port_max))
         try:
             sock.bind('tcp://*:%s' % port)
             addr      = Url(as_string(sock.getsockopt(zmq.LAST_ENDPOINT)))
             addr.host = get_hostip()
             return addr
-        except:
+        except Exception as e:
             pass
+
+        prev = port
+        port = find_port(port_min, port_max)
 
     raise RuntimeError('could not bind to any port')
 
