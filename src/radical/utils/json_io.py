@@ -70,8 +70,8 @@ def write_json(data, fname):
 
     dirname = os.path.dirname(fname) or '.'
 
-    _, t_name = tempfile.mkstemp(dir=dirname)
-    with open(t_name, 'w') as f_out:
+    fd, t_name = tempfile.mkstemp(dir=dirname)
+    with os.fdopen(fd, 'w') as f_out:
         f_out.write('%s\n' % str_data)
 
     os.rename(t_name, fname)
