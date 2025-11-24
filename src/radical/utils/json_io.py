@@ -71,10 +71,17 @@ def write_json(data, fname):
     dirname = os.path.dirname(fname) or '.'
 
     fd, t_name = tempfile.mkstemp(dir=dirname)
-    with os.fdopen(fd, 'w') as f_out:
-        f_out.write('%s\n' % str_data)
-
-    os.rename(t_name, fname)
+    try:
+        with os.fdopen(fd, 'w') as f_out:
+            f_out.write('%s\n' % str_data)
+        os.rename(t_name, fname)
+    except Exception:
+        # cleanup the temp file
+        try:
+            os.unlink(t_name)
+        except OSError:
+            pass
+        raise
 
 
 # ------------------------------------------------------------------------------
