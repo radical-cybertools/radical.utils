@@ -76,6 +76,11 @@ def write_json(data, fname):
             f_out.write('%s\n' % str_data)
         os.rename(t_name, fname)
     except Exception:
+        # The fd from mkstemp can be leaked if os.fdopen fails, so close it.
+        try:
+            os.close(fd)
+        except OSError:
+            pass
         # cleanup the temp file
         try:
             os.unlink(t_name)
