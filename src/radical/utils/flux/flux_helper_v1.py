@@ -160,6 +160,8 @@ class FluxHelperV1(object):
                     for spec in specs:
                         tid = spec.attributes['user']['uid']
                         pri = spec.attributes['user']['priority']
+
+                        self._log.debug('task priority %02d [%s]', pri, tid)
                         fut = self._fm.job.submit_async(fh, spec, waitable=True,
                                                         urgency=pri)
                         futs.append([fut, tid])

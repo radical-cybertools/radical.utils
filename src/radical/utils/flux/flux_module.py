@@ -152,10 +152,10 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
                 'slot'   : 'task',
                 'count'  : {'per_slot': 1}}]
 
-    # fix priorities: instead of starting at 0, start at 16 and max out at 31
+    # normalize priority to [1, 31]
     if user['priority'] is not None:
-        user['priority'] += 16
         user['priority']  = min(user['priority'], 31)
+        user['priority']  = max(user['priority'], 1)
 
     if 'environment' in td: system['environment'] = td['environment']
     if 'sandbox'     in td: system['cwd']         = td['sandbox']
@@ -194,9 +194,6 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
     if td.get('stdin') : spec.stdin  = td['stdin']
     if td.get('stdout'): spec.stdout = td['stdout']
     if td.get('stderr'): spec.stderr = td['stderr']
-
-
-    spec.attributes['user']['priority'] = 16
 
     return spec
 
