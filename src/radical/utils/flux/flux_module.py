@@ -145,11 +145,17 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
     fm = FluxModule()
 
     version = 1
-    user    = {'uid'     : td.get('uid', generate_id('ru_flux', ID_SIMPLE))}
+    user    = {'uid'     : td.get('uid', generate_id('ru_flux', ID_SIMPLE)),
+               'priority': td.get('priority')}
     system  = {'duration': td.get('timeout', 0.0)}
     tasks   = [{'command': [td['executable']] + td.get('arguments', []),
                 'slot'   : 'task',
                 'count'  : {'per_slot': 1}}]
+
+    # fix priorities: instead of starting at 0, start at 16 and max out at 31
+    if user['priority'] is not None:
+        user['priority'] += 16
+        user['priority']  = min(user['priority'], 31)
 
     if 'environment' in td: system['environment'] = td['environment']
     if 'sandbox'     in td: system['cwd']         = td['sandbox']
@@ -188,6 +194,9 @@ def spec_from_dict(td: dict) -> 'flux.job.JobspecV1':
     if td.get('stdin') : spec.stdin  = td['stdin']
     if td.get('stdout'): spec.stdout = td['stdout']
     if td.get('stderr'): spec.stderr = td['stderr']
+
+
+    spec.attributes['user']['priority'] = 16
 
     return spec
 
