@@ -141,8 +141,27 @@ class HostTestCase(TestCase):
 
             else:
 
+                print()
+                print('>', hoststring)
+                print('=', test_case['result']['hostlist'])
+                print('~', ru.get_hostlist(hoststring=hoststring))
+                print('?', ru.compress_hostlist(test_case['result']['hostlist']))
                 self.assertEqual(test_case['result']['hostlist'],
                                  ru.get_hostlist(hoststring=hoststring))
 
 
 # ------------------------------------------------------------------------------
+#
+if __name__ == '__main__':
+
+    tc = HostTestCase()
+    tc.setUpClass()
+  # tc.test_create_hostfile()
+  # tc.test_compress_hostlist()
+    tc.test_get_hostlist_by_range()
+    tc.test_get_hostlist()
+    tc.tearDownClass()
+
+
+# ------------------------------------------------------------------------------
+

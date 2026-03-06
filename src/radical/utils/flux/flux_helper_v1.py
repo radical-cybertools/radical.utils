@@ -16,14 +16,14 @@ from .flux_module import FluxModule
 
 # ------------------------------------------------------------------------------
 #
-class FluxHelperV1(object):
+class FluxHelper(object):
 
     # --------------------------------------------------------------------------
     #
     def __init__(self, uri : str,
                        log : Logger = None) -> None:
 
-      # print('=== v1 flux helper ===')
+      # print('=== flux helper ===')
 
         self._uri      = uri
         self._log      = log or Logger('radical.utils.flux')
