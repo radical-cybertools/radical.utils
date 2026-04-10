@@ -20,6 +20,7 @@ class FluxModule(object):
     _flux_job  = None
     _flux_exc  = None
     _flux_v    = None
+    _flux_mode = None
 
 
     # --------------------------------------------------------------------------
@@ -32,18 +33,24 @@ class FluxModule(object):
         if self._flux_core or self._flux_job or self._flux_exc:
             return
 
-        flux     = None
-        flux_job = None
-        flux_exc = None
-        flux_v   = None
+        flux      = None
+        flux_job  = None
+        flux_exc  = None
+        flux_v    = None
+        flux_mode = None
 
         try:
+            out, err, ret = sh_callout('flux --version')
+            assert not ret, ['flux --version', err]
+
+            flux_v = out.strip()
+
             flux     = import_module('flux')
             flux_job = import_module('flux.job')
             if 'JournalConsumer' in dir(flux_job):
-                flux_v = 1
+                flux_mode = 1
             else:
-                flux_v = 0
+                flux_mode = 0
 
         except Exception as e:
             flux_exc = e
@@ -67,9 +74,9 @@ class FluxModule(object):
                 flux     = import_module('flux')
                 flux_job = import_module('flux.job')
                 if 'JournalConsumer' in dir(flux_job):
-                    flux_v = 1
+                    flux_mode = 1
                 else:
-                    flux_v = 0
+                    flux_mode = 0
 
             except Exception as e:
                 flux_exc = e
@@ -81,6 +88,7 @@ class FluxModule(object):
         self._flux_job  = flux_job
         self._flux_exc  = flux_exc
         self._flux_v    = flux_v
+        self._flux_mode = flux_mode
         self._flux_exe  = which('flux')
 
 
@@ -103,6 +111,10 @@ class FluxModule(object):
 
     # --------------------------------------------------------------------------
     #
+    @property
+    def mode(self) -> int:
+        return self._flux_mode
+
     @property
     def version(self) -> int:
         return self._flux_v
