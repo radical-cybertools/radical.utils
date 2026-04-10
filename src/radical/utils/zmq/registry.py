@@ -38,7 +38,7 @@ class Registry(Server):
                        path      : Optional[str] = None,
                        persistent: bool          = False) -> None:
 
-        super().__init__(url=url, uid=uid, path=path)
+        super().__init__(port=url, uid=uid, path=path)
 
         if persistent:
             path = '%s/%s.db' % (self._path, self._uid)

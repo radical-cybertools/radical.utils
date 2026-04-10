@@ -830,13 +830,21 @@ def ru_open(*args, **kwargs):
 
 # ------------------------------------------------------------------------------
 #
-def find_port(port_min=10000, port_max=65535):
+def find_port(port_min: int = None,
+              port_max: int = None) -> Union[int, None]:
     '''
     Find a free port in the given range.  The range defaults to 10000-65535.
     Returns `None` if no free port could be found.
     '''
 
-    for port in range(port_min, port_max):
+    if port_min is None:
+        port_min = 10000
+    if port_max is None:
+        port_max = 65535
+
+    for port in range(port_min, port_max + 1):
+        time.sleep(0.1)
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             sock.bind(('', port))
