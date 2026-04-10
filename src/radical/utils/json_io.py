@@ -70,11 +70,23 @@ def write_json(data, fname):
 
     dirname = os.path.dirname(fname) or '.'
 
-    _, t_name = tempfile.mkstemp(dir=dirname)
-    with open(t_name, 'w') as f_out:
-        f_out.write('%s\n' % str_data)
-
-    os.rename(t_name, fname)
+    fd, t_name = tempfile.mkstemp(dir=dirname)
+    try:
+        with os.fdopen(fd, 'w') as f_out:
+            f_out.write('%s\n' % str_data)
+        os.rename(t_name, fname)
+    except Exception:
+        # The fd from mkstemp can be leaked if os.fdopen fails, so close it.
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        # cleanup the temp file
+        try:
+            os.unlink(t_name)
+        except OSError:
+            pass
+        raise
 
 
 # ------------------------------------------------------------------------------
